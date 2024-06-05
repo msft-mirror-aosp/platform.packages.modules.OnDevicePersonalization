@@ -28,7 +28,7 @@ public final class ODPAuthorizationTokenContract {
          * An identifier for different ODP adopters (e.g, server address, calling package name,
          * etc).
          */
-        public static final String ADOPTER_IDENTIFIER = "adopter_identifier";
+        public static final String OWNER_IDENTIFIER = "owner_identifier";
 
         /**
          * The authorization token received from the server.

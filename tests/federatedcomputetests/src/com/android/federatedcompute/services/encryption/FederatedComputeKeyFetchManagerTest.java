@@ -83,22 +83,24 @@ public class FederatedComputeKeyFetchManagerTest {
 
     private Clock mClock;
 
+    private Flags mMockFlags;
+
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         mContext = ApplicationProvider.getApplicationContext();
         mClock = MonotonicClock.getInstance();
         mEncryptionKeyDao = FederatedComputeEncryptionKeyDao.getInstanceForTest(mContext);
-        Flags mockFlags = Mockito.mock(Flags.class);
+        mMockFlags = Mockito.mock(Flags.class);
         mFederatedComputeEncryptionKeyManager =
                 new FederatedComputeEncryptionKeyManager(
                         mClock,
                         mEncryptionKeyDao,
-                        mockFlags,
+                        mMockFlags,
                         mMockHttpClient,
                         FederatedComputeExecutors.getBackgroundExecutor());
         String overrideUrl = "https://real-coordinator/v1alpha/publicKeys";
-        doReturn(overrideUrl).when(mockFlags).getEncryptionKeyFetchUrl();
+        doReturn(overrideUrl).when(mMockFlags).getEncryptionKeyFetchUrl();
     }
 
     @After
@@ -198,6 +200,42 @@ public class FederatedComputeKeyFetchManagerTest {
                         .get();
 
         assertThat(keys.size()).isGreaterThan(0);
+    }
+
+    @Test
+    public void testFetchAndPersistActiveKeys_EmptyUrl_throws() {
+        doReturn("").when(mMockFlags).getEncryptionKeyFetchUrl();
+        assertThrows(
+                ExecutionException.class,
+                () ->
+                        mFederatedComputeEncryptionKeyManager
+                                .fetchAndPersistActiveKeys(
+                                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
+                                .get());
+    }
+
+    @Test
+    public void testFetchAndPersistActiveKeys_NullUrl_throws() {
+        doReturn(null).when(mMockFlags).getEncryptionKeyFetchUrl();
+        assertThrows(
+                ExecutionException.class,
+                () ->
+                        mFederatedComputeEncryptionKeyManager
+                                .fetchAndPersistActiveKeys(
+                                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
+                                .get());
+    }
+
+    @Test
+    public void testFetchAndPersistActiveKeys_InvalidUrl_throws() {
+        doReturn("1").when(mMockFlags).getEncryptionKeyFetchUrl();
+        assertThrows(
+                ExecutionException.class,
+                () ->
+                        mFederatedComputeEncryptionKeyManager
+                                .fetchAndPersistActiveKeys(
+                                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
+                                .get());
     }
 
     @Test

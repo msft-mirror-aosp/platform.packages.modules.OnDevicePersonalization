@@ -26,13 +26,13 @@ import java.io.Serializable;
 /**
  * A Serializable wrapper for the data used internally for rendering.
  */
-class SlotWrapper implements Serializable {
+public class SlotWrapper implements Serializable {
     private ParcelWrapper<RequestLogRecord> mWrappedLogRecord;
     private ParcelWrapper<RenderingConfig> mWrappedRenderingConfig;
     private String mServicePackageName;
     private long mQueryId;
 
-    SlotWrapper(
+    public SlotWrapper(
             RequestLogRecord logInfo, RenderingConfig renderingConfig,
             String servicePackageName, long queryId) {
         mWrappedLogRecord = new ParcelWrapper<>(logInfo);

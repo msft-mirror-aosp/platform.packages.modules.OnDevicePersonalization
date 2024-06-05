@@ -1,0 +1,488 @@
+/*
+ * Copyright (C) 2024 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.android.ondevicepersonalization.testing.sampleservice;
+
+import android.adservices.ondevicepersonalization.EventLogRecord;
+import android.adservices.ondevicepersonalization.EventUrlProvider;
+import android.adservices.ondevicepersonalization.ExecuteInput;
+import android.adservices.ondevicepersonalization.ExecuteOutput;
+import android.adservices.ondevicepersonalization.FederatedComputeInput;
+import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
+import android.adservices.ondevicepersonalization.InferenceInput;
+import android.adservices.ondevicepersonalization.InferenceOutput;
+import android.adservices.ondevicepersonalization.IsolatedServiceException;
+import android.adservices.ondevicepersonalization.IsolatedWorker;
+import android.adservices.ondevicepersonalization.KeyValueStore;
+import android.adservices.ondevicepersonalization.LogReader;
+import android.adservices.ondevicepersonalization.ModelManager;
+import android.adservices.ondevicepersonalization.MutableKeyValueStore;
+import android.adservices.ondevicepersonalization.RenderInput;
+import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RenderingConfig;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.TrainingInterval;
+import android.adservices.ondevicepersonalization.UserData;
+import android.annotation.NonNull;
+import android.content.ContentValues;
+import android.net.Uri;
+import android.os.OutcomeReceiver;
+import android.os.PersistableBundle;
+import android.util.Base64;
+import android.util.Log;
+
+import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+class SampleWorker implements IsolatedWorker {
+    private static final String TAG = "OdpTestingSampleService";
+
+    private static final int ERROR_SAMPLE_SERVICE_FAILED = 1;
+
+    private static final String TRANSPARENT_PNG_BASE64 =
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA"
+                    + "AAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC";
+    private static final byte[] TRANSPARENT_PNG_BYTES = Base64.decode(TRANSPARENT_PNG_BASE64, 0);
+
+    private final KeyValueStore mRemoteData;
+    private final MutableKeyValueStore mLocalData;
+    private final UserData mUserData;
+    private final EventUrlProvider mEventUrlProvider;
+    private final ModelManager mModelManager;
+    private final LogReader mLogReader;
+    private final FederatedComputeScheduler mFcpScheduler;
+
+    private final ExecutorService mExecutor = Executors.newCachedThreadPool();
+
+    SampleWorker(
+            KeyValueStore remoteData,
+            MutableKeyValueStore localData,
+            UserData userData,
+            EventUrlProvider eventUrlProvider,
+            ModelManager modelManager,
+            LogReader logReader,
+            FederatedComputeScheduler fcpScheduler) {
+        mRemoteData = remoteData;
+        mLocalData = localData;
+        mUserData = userData;
+        mEventUrlProvider = eventUrlProvider;
+        mModelManager = modelManager;
+        mLogReader = logReader;
+        mFcpScheduler = fcpScheduler;
+    }
+
+    @Override
+    public void onExecute(
+            ExecuteInput input, OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
+        PersistableBundle appParams = Objects.requireNonNull(input.getAppParams());
+        if (appParams == null
+                || appParams.equals(PersistableBundle.EMPTY)
+                || appParams.getString(SampleServiceApi.KEY_OPCODE) == null) {
+            receiver.onResult(new ExecuteOutput.Builder().build());
+            return;
+        }
+
+        String op = Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_OPCODE));
+        if (op.equals(SampleServiceApi.OPCODE_THROW_EXCEPTION)) {
+            throw createException(appParams);
+        }
+
+        mExecutor.submit(() -> handleOnExecute(appParams, receiver));
+    }
+
+    private void handleOnExecute(
+            PersistableBundle appParams,
+            OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
+        Log.i(TAG, "handleOnExecute()");
+        ExecuteOutput result = null;
+        int errorCode = ERROR_SAMPLE_SERVICE_FAILED;
+
+        try {
+            String op = Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_OPCODE));
+            if (op.equals(SampleServiceApi.OPCODE_RENDER_AND_LOG)) {
+                result = handleRenderAndLog(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_FAIL_WITH_ERROR_CODE)) {
+                errorCode =
+                        appParams.getInt(
+                                SampleServiceApi.KEY_ERROR_CODE, ERROR_SAMPLE_SERVICE_FAILED);
+            } else if (op.equals(SampleServiceApi.OPCODE_WRITE_LOCAL_DATA)) {
+                result = handleWriteLocalData(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_READ_LOCAL_DATA)) {
+                result = handleReadLocalData(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_CHECK_VALUE_LENGTH)) {
+                result = handleCheckValueLength(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_RUN_MODEL_INFERENCE)) {
+                result = handleRunModelInference(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_RETURN_OUTPUT_DATA)) {
+                result = handleReturnOutputData(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_READ_REMOTE_DATA)) {
+                result = handleReadRemoteData(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_READ_USER_DATA)) {
+                result = handleReadUserData(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_READ_LOG)) {
+                result = handleReadLog(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB)) {
+                result = handleScheduleFederatedJob(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_CANCEL_FEDERATED_JOB)) {
+                result = handleCancelFederatedJob(appParams);
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Service error", e);
+        }
+
+        if (result != null) {
+            receiver.onResult(result);
+        } else {
+            receiver.onError(new IsolatedServiceException(errorCode));
+        }
+    }
+
+    private ExecuteOutput handleRenderAndLog(PersistableBundle appParams) {
+        Log.i(TAG, "handleRenderAndLog()");
+        var builder = new ExecuteOutput.Builder();
+        String renderingConfigIdList =
+                appParams.getString(SampleServiceApi.KEY_RENDERING_CONFIG_IDS);
+        if (renderingConfigIdList != null && !renderingConfigIdList.isBlank()) {
+            List<String> renderingConfigIds = List.of(renderingConfigIdList.split(","));
+            if (!renderingConfigIds.isEmpty()) {
+                builder.setRenderingConfig(
+                        new RenderingConfig.Builder().setKeys(renderingConfigIds).build());
+            }
+        }
+        // TODO(b/273826477): Support multiple rows.
+        PersistableBundle logDataBundle =
+                appParams.getPersistableBundle(SampleServiceApi.KEY_LOG_DATA);
+        if (logDataBundle != null && !logDataBundle.isEmpty()) {
+            ContentValues logData = new ContentValues();
+            for (String key : logDataBundle.keySet()) {
+                putObject(logData, key, logDataBundle.get(key));
+            }
+            if (!logData.isEmpty()) {
+                builder.setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build());
+            }
+        }
+
+        return builder.build();
+    }
+
+    private ExecuteOutput handleWriteLocalData(PersistableBundle appParams) {
+        Log.i(TAG, "handleWriteLocalData()");
+        String key = Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_TABLE_KEY));
+        String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
+        byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
+        if (value != null) {
+            int repeatCount = appParams.getInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, 1);
+            byte[] writtenValue = expandByteArray(value, repeatCount);
+            var unused = mLocalData.put(key, writtenValue);
+        } else {
+            var unused = mLocalData.remove(key);
+        }
+        return new ExecuteOutput.Builder().build();
+    }
+
+    private ExecuteOutput handleReturnOutputData(PersistableBundle appParams) {
+        Log.i(TAG, "handleReturnOutputData()");
+        String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
+        byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
+        return new ExecuteOutput.Builder().setOutputData(value).build();
+    }
+
+    private ExecuteOutput handleReadRemoteData(PersistableBundle appParams) {
+        Log.i(TAG, "handleReadRemoteData()");
+        Objects.requireNonNull(mRemoteData);
+        return new ExecuteOutput.Builder().build();
+        // TODO(b/273826477): Add remote data verification.
+    }
+
+    private ExecuteOutput handleReadUserData(PersistableBundle appParams) {
+        Log.i(TAG, "handleReadUserData()");
+        Objects.requireNonNull(mUserData);
+        int numInstalled = 0;
+        for (var entry : mUserData.getAppInfos().entrySet()) {
+            if (entry.getValue().isInstalled()) {
+                ++numInstalled;
+            }
+        }
+        var capabilities = mUserData.getNetworkCapabilities();
+        // TODO(b/273826477): Enable user data collection in CTS and add
+        // validation for installed apps and network capabilities.
+        if (mUserData.getAvailableStorageBytes() < 0) {
+            throw new IllegalStateException("available storage bytes");
+        }
+        if (mUserData.getBatteryPercentage() < 0) {
+            throw new IllegalStateException("battery percentage");
+        }
+        if (mUserData.getCarrier() == null) {
+            throw new IllegalStateException("carrier");
+        }
+        if (mUserData.getDataNetworkType() < 0) {
+            throw new IllegalStateException("data network type");
+        }
+        if (mUserData.getOrientation() < 0) {
+            throw new IllegalStateException("orientation");
+        }
+        if (mUserData.getTimezoneUtcOffset() == null) {
+            throw new IllegalStateException("timezone utc offset");
+        }
+        return new ExecuteOutput.Builder().build();
+    }
+
+    private ExecuteOutput handleReadLog(PersistableBundle appParams) {
+        Log.i(TAG, "handleReadLog()");
+        Objects.requireNonNull(mLogReader);
+        final long now = System.currentTimeMillis();
+        final long expectedValue = appParams.getLong(SampleServiceApi.KEY_EXPECTED_LOG_DATA_VALUE);
+        List<RequestLogRecord> records =
+                mLogReader.getRequests(
+                        Instant.ofEpochMilli(now - 60 * 60 * 1000), Instant.ofEpochMilli(now));
+        if (records.isEmpty()) {
+            throw new IllegalStateException("no log records");
+        }
+        Log.i(TAG, "Found " + records.size() + " records");
+        boolean found = false;
+        for (var record : records) {
+            if (record.getRows() == null) {
+                continue;
+            }
+            for (var row : record.getRows()) {
+                Long value = row.getAsLong(SampleServiceApi.KEY_EXPECTED_LOG_DATA_KEY);
+                if (value == null) {
+                    continue;
+                }
+                if (value == expectedValue) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                break;
+            }
+        }
+        if (!found) {
+            throw new IllegalStateException("log not found");
+        }
+        List<EventLogRecord> events =
+                mLogReader.getJoinedEvents(
+                        Instant.ofEpochMilli(now - 60 * 60 * 1000), Instant.ofEpochMilli(now));
+        Log.i(TAG, "Found " + events.size() + " event records");
+        return new ExecuteOutput.Builder().build();
+    }
+
+    private ExecuteOutput handleRunModelInference(PersistableBundle appParams)
+            throws InterruptedException, ExecutionException {
+        Log.i(TAG, "handleRunModelInference()");
+        String tableKey =
+                Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_TABLE_KEY));
+        InferenceInput.Params params =
+                new InferenceInput.Params.Builder(mLocalData, tableKey).build();
+        InferenceInput input = buildInferenceInput(params);
+        CompletableFuture<InferenceOutput> future = new CompletableFuture<>();
+        OutcomeReceiver<InferenceOutput, Exception> callback =
+                new OutcomeReceiver<>() {
+                    @Override
+                    public void onResult(InferenceOutput result) {
+                        Log.i(TAG, "run model inference success");
+                        future.complete(result);
+                    }
+
+                    @Override
+                    public void onError(@NonNull Exception error) {
+                        Log.e(TAG, "Run model inference resulted in an error!", error);
+                        future.complete(null);
+                    }
+                };
+
+        Log.i(TAG, "call ModelManager.run()");
+        mModelManager.run(input, mExecutor, callback);
+        InferenceOutput result = future.get();
+        if (result == null) {
+            return null;
+        }
+        float[] outputData = (float[]) result.getDataOutputs().get(0);
+        double expectedResult = appParams.getDouble(SampleServiceApi.KEY_INFERENCE_RESULT);
+        if (Math.abs(expectedResult - outputData[0]) > 0.01) {
+            return null;
+        }
+        return new ExecuteOutput.Builder().build();
+    }
+
+    private InferenceInput buildInferenceInput(InferenceInput.Params params) {
+        float[][] inputData = new float[1][100];
+        for (int j = 0; j < 100; j++) {
+            inputData[0][j] = 1;
+        }
+        float[] output0 = new float[1];
+        HashMap<Integer, Object> outputMap = new HashMap<>();
+        outputMap.put(0, output0);
+        InferenceInput input =
+                new InferenceInput.Builder(
+                                params,
+                                new Object[] {inputData},
+                                new InferenceOutput.Builder().setDataOutputs(outputMap).build())
+                        .setBatchSize(1)
+                        .build();
+        return input;
+    }
+
+    private ExecuteOutput handleReadLocalData(PersistableBundle appParams) {
+        Log.i(TAG, "handleReadLocalData()");
+        String key = Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_TABLE_KEY));
+        String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
+        byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
+        boolean success = false;
+        if (value != null) {
+            int repeatCount = appParams.getInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, 1);
+            byte[] expectedValue = expandByteArray(value, repeatCount);
+            byte[] actualValue = mLocalData.get(key);
+            success = Arrays.equals(expectedValue, actualValue);
+        } else {
+            success = mLocalData.get(key) == null;
+        }
+
+        if (success) {
+            return new ExecuteOutput.Builder().build();
+        } else {
+            return null;
+        }
+    }
+
+    private ExecuteOutput handleCheckValueLength(PersistableBundle appParams) {
+        Log.i(TAG, "handleCheckValueLength()");
+        String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
+        byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
+        int expectedLength = appParams.getInt(SampleServiceApi.KEY_VALUE_LENGTH);
+
+        if (expectedLength == value.length) {
+            return new ExecuteOutput.Builder().build();
+        } else {
+            return null;
+        }
+    }
+
+    private byte[] expandByteArray(byte[] input, int count) {
+        byte[] output = new byte[input.length * count];
+        for (int i = 0; i < count; ++i) {
+            System.arraycopy(input, 0, output, i * input.length, input.length);
+        }
+        return output;
+    }
+
+    private RuntimeException createException(PersistableBundle appParams) {
+        try {
+            String exceptionClass =
+                    appParams.getString(
+                            SampleServiceApi.KEY_EXCEPTION_CLASS, "IllegalStateException");
+            var clazz = Class.forName(exceptionClass);
+            return (RuntimeException) clazz.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating exception", e);
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private void putObject(ContentValues cv, String key, Object value) {
+        if (value instanceof String) {
+            cv.put(key, (String) value);
+        } else if (value instanceof Double) {
+            cv.put(key, (Double) value);
+        } else if (value instanceof Long) {
+            cv.put(key, (Long) value);
+        }
+    }
+
+    @Override
+    public void onRender(
+            RenderInput input, OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver) {
+        Log.i(TAG, "onRender()");
+        mExecutor.submit(() -> handleOnRender(input, receiver));
+    }
+
+    private void handleOnRender(
+            RenderInput input, OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver) {
+        Log.i(TAG, "handleOnRender()");
+        var keys = input.getRenderingConfig().getKeys();
+        if (keys.size() <= 0) {
+            receiver.onError(new IsolatedServiceException(ERROR_SAMPLE_SERVICE_FAILED));
+            return;
+        }
+        if (input.getHeight() < 0 || input.getWidth() < 0) {
+            receiver.onError(new IsolatedServiceException(ERROR_SAMPLE_SERVICE_FAILED));
+            return;
+        }
+
+        PersistableBundle eventParams = new PersistableBundle();
+        eventParams.putInt(SampleServiceApi.KEY_EVENT_TYPE, SampleServiceApi.EVENT_TYPE_VIEW);
+        String viewUrl =
+                mEventUrlProvider
+                        .createEventTrackingUrlWithResponse(
+                                eventParams, TRANSPARENT_PNG_BYTES, "image/png")
+                        .toString();
+        eventParams.putInt(SampleServiceApi.KEY_EVENT_TYPE, SampleServiceApi.EVENT_TYPE_CLICK);
+        String clickUrl =
+                mEventUrlProvider
+                        .createEventTrackingUrlWithRedirect(
+                                eventParams, Uri.parse(SampleServiceApi.DESTINATION_URL))
+                        .toString();
+        String html =
+                "<body><img src=\""
+                        + viewUrl
+                        + "\">\n"
+                        + "<a href=\""
+                        + clickUrl
+                        + "\">"
+                        + SampleServiceApi.LINK_TEXT
+                        + "</a></body>";
+        Log.i(TAG, "HTML output: " + html);
+        receiver.onResult(new RenderOutput.Builder().setContent(html).build());
+    }
+
+    private ExecuteOutput handleScheduleFederatedJob(PersistableBundle appParams) {
+        Log.i(TAG, "handleScheduleFederatedJob()");
+        String populationName =
+                Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_POPULATION_NAME));
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder().setPopulationName(populationName).build();
+        TrainingInterval interval =
+                new TrainingInterval.Builder()
+                        .setMinimumInterval(Duration.ofSeconds(10))
+                        .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_ONE_TIME)
+                        .build();
+        FederatedComputeScheduler.Params params = new FederatedComputeScheduler.Params(interval);
+        mFcpScheduler.schedule(params, input);
+        return new ExecuteOutput.Builder().build();
+    }
+
+    private ExecuteOutput handleCancelFederatedJob(PersistableBundle appParams) {
+        Log.i(TAG, "handleCancelFederatedJob()");
+        String populationName =
+                Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_POPULATION_NAME));
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder().setPopulationName(populationName).build();
+        mFcpScheduler.cancel(input);
+        return new ExecuteOutput.Builder().build();
+    }
+}

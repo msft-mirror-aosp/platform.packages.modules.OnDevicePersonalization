@@ -51,7 +51,7 @@ public final class ExampleConsumptionRecorderTest {
         assertThat(recorder.finishRecordingAndGet())
                 .containsExactly(
                         new ExampleConsumption.Builder()
-                                .setTaskName(taskName)
+                                .setTaskId(taskName)
                                 .setExampleCount(2)
                                 .setSelectionCriteria(selectionCriteria)
                                 .setResumptionToken(token2)
@@ -75,13 +75,13 @@ public final class ExampleConsumptionRecorderTest {
         assertThat(recorder.finishRecordingAndGet())
                 .containsExactly(
                         new ExampleConsumption.Builder()
-                                .setTaskName(taskName)
+                                .setTaskId(taskName)
                                 .setSelectionCriteria(criteria)
                                 .setExampleCount(1)
                                 .setResumptionToken(token1)
                                 .build(),
                         new ExampleConsumption.Builder()
-                                .setTaskName(taskName2)
+                                .setTaskId(taskName2)
                                 .setExampleCount(1)
                                 .setSelectionCriteria(criteria)
                                 .setResumptionToken(token2)

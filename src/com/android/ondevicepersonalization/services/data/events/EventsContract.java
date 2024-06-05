@@ -39,8 +39,8 @@ public class EventsContract {
         /** Index of the request log entry for this event */
         public static final String ROW_INDEX = "rowIndex";
 
-        /** Name of the service package or this event */
-        public static final String SERVICE_PACKAGE_NAME = "servicePackageName";
+        /** Name of the service that owns this event */
+        public static final String SERVICE_NAME = "serviceName";
 
         /** Integer enum defining the type of event */
         public static final String TYPE = "type";
@@ -56,7 +56,7 @@ public class EventsContract {
                     + EVENT_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                     + QUERY_ID + " INTEGER NOT NULL,"
                     + ROW_INDEX + " INTEGER NOT NULL,"
-                    + SERVICE_PACKAGE_NAME + " TEXT NOT NULL,"
+                    + SERVICE_NAME + " TEXT NOT NULL,"
                     + TYPE + " INTEGER NOT NULL,"
                     + TIME_MILLIS + " INTEGER NOT NULL,"
                     + EVENT_DATA + " BLOB NOT NULL,"
@@ -65,7 +65,7 @@ public class EventsContract {
                         + QueriesContract.QueriesEntry.QUERY_ID + "),"
                     + "UNIQUE(" + QUERY_ID + ","
                         + ROW_INDEX + ","
-                        + SERVICE_PACKAGE_NAME + ","
+                        + SERVICE_NAME + ","
                         + TYPE + "))";
 
         private EventsEntry() {}

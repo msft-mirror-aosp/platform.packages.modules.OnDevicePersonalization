@@ -39,7 +39,7 @@ public class ExampleConsumptionRecorder {
     /** Records information for a single query. */
     @ThreadSafe
     public static class SingleQueryRecorder {
-        private final String mTaskName;
+        private final String mTaskId;
         private final byte[] mCriteria;
 
         // The pair of example count and resumption token needs to be updated atomically, therefore
@@ -52,8 +52,8 @@ public class ExampleConsumptionRecorder {
         @GuardedBy("SingleQueryRecorder.this")
         private byte[] mResumptionToken;
 
-        private SingleQueryRecorder(String taskName, byte[] criteria) {
-            this.mTaskName = taskName;
+        private SingleQueryRecorder(String taskId, byte[] criteria) {
+            this.mTaskId = taskId;
             this.mCriteria = criteria;
             this.mExampleCount = 0;
             this.mResumptionToken = null;
@@ -72,7 +72,7 @@ public class ExampleConsumptionRecorder {
         /** Returns a single recorded of {@link ExampleConsumption}. */
         public synchronized ExampleConsumption finishRecordingAndGet() {
             return new ExampleConsumption.Builder()
-                    .setTaskName(mTaskName)
+                    .setTaskId(mTaskId)
                     .setSelectionCriteria(mCriteria)
                     .setExampleCount(mExampleCount)
                     .setResumptionToken(mResumptionToken)
@@ -82,8 +82,8 @@ public class ExampleConsumptionRecorder {
 
     /** Create a {@link SingleQueryRecorder} for the current task. */
     public synchronized SingleQueryRecorder createRecorderForTracking(
-            String taskName, byte[] criteria) {
-        SingleQueryRecorder recorder = new SingleQueryRecorder(taskName, criteria);
+            String taskId, byte[] criteria) {
+        SingleQueryRecorder recorder = new SingleQueryRecorder(taskId, criteria);
         mSingleQueryRecorders.add(recorder);
         return recorder;
     }

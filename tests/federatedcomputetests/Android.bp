@@ -25,6 +25,10 @@ android_test {
         ":statslog-federatedcompute-java-gen",
         ":fcp_native_wrapper",
     ],
+    defaults: [
+        // For ExtendedMockito dependencies.
+        "modules-utils-testable-device-config-defaults",
+    ],
     libs: [
         "android.test.base",
         "android.test.runner",
@@ -33,7 +37,7 @@ android_test {
         "framework-ondevicepersonalization.impl",
         "framework-configinfrastructure", // For PH flags
         "framework-statsd.stubs.module_lib", // For WW logging
-        "truth-prebuilt",
+        "truth",
     ],
     static_libs: [
         "androidx.test.ext.junit",
@@ -46,6 +50,8 @@ android_test {
         "modules-utils-preconditions",
         "libprotobuf-java-lite",
         "tensorflow_core_proto_java_lite",
+        // Used for client error logging and background job logging.
+        "adservices-shared-spe",
     ],
     manifest: "AndroidManifest.xml",
     plugins: ["auto_value_plugin"],
@@ -63,5 +69,6 @@ android_test {
         "libdexmakerjvmtiagent",
         "libstaticjvmtiagent",
         "libfcp_cpp_dep_jni",
+        "libfcp_hpke_jni",
     ],
 }

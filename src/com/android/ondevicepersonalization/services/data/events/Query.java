@@ -17,32 +17,43 @@
 package com.android.ondevicepersonalization.services.data.events;
 
 import android.annotation.NonNull;
-import android.annotation.Nullable;
+import android.content.ComponentName;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
+import com.android.ondevicepersonalization.services.data.DbUtils;
 
 /**
  * Query object for the Query table
  */
-@DataClass(
-        genBuilder = true,
-        genEqualsHashCode = true
-)
+@DataClass(genBuilder = true)
 public class Query {
     /** The id of the query. */
-    private final long mQueryId;
+    private long mQueryId = 0;
 
     /** Time of the query in milliseconds. */
     private final long mTimeMillis;
 
-    /** Name of the package that handled the request */
+    /** Package name of the app the made the request */
     @NonNull
-    private final String mServicePackageName;
+    private final String mAppPackageName;
+
+    /** Name of the service that handled the request */
+    @NonNull
+    private final ComponentName mService;
+
+    /** CertDigest of the service that handled the request */
+    @NonNull
+    private final String mServiceCertDigest;
 
     /** Blob representing the query. */
     @NonNull
     private final byte[] mQueryData;
+
+    /** The name of the service */
+    public String getServiceName() {
+        return DbUtils.toTableValue(mService);
+    }
 
 
 
@@ -63,13 +74,21 @@ public class Query {
     /* package-private */ Query(
             long queryId,
             long timeMillis,
-            @NonNull String servicePackageName,
+            @NonNull String appPackageName,
+            @NonNull ComponentName service,
+            @NonNull String serviceCertDigest,
             @NonNull byte[] queryData) {
         this.mQueryId = queryId;
         this.mTimeMillis = timeMillis;
-        this.mServicePackageName = servicePackageName;
+        this.mAppPackageName = appPackageName;
         AnnotationValidations.validate(
-                NonNull.class, null, mServicePackageName);
+                NonNull.class, null, mAppPackageName);
+        this.mService = service;
+        AnnotationValidations.validate(
+                NonNull.class, null, mService);
+        this.mServiceCertDigest = serviceCertDigest;
+        AnnotationValidations.validate(
+                NonNull.class, null, mServiceCertDigest);
         this.mQueryData = queryData;
         AnnotationValidations.validate(
                 NonNull.class, null, mQueryData);
@@ -94,11 +113,27 @@ public class Query {
     }
 
     /**
-     * Name of the package that handled the request
+     * Package name of the app the made the request
      */
     @DataClass.Generated.Member
-    public @NonNull String getServicePackageName() {
-        return mServicePackageName;
+    public @NonNull String getAppPackageName() {
+        return mAppPackageName;
+    }
+
+    /**
+     * Name of the service that handled the request
+     */
+    @DataClass.Generated.Member
+    public @NonNull ComponentName getService() {
+        return mService;
+    }
+
+    /**
+     * CertDigest of the service that handled the request
+     */
+    @DataClass.Generated.Member
+    public @NonNull String getServiceCertDigest() {
+        return mServiceCertDigest;
     }
 
     /**
@@ -107,39 +142,6 @@ public class Query {
     @DataClass.Generated.Member
     public @NonNull byte[] getQueryData() {
         return mQueryData;
-    }
-
-    @Override
-    @DataClass.Generated.Member
-    public boolean equals(@Nullable Object o) {
-        // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(Query other) { ... }
-        // boolean fieldNameEquals(FieldType otherValue) { ... }
-
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        @SuppressWarnings("unchecked")
-        Query that = (Query) o;
-        //noinspection PointlessBooleanExpression
-        return true
-                && mQueryId == that.mQueryId
-                && mTimeMillis == that.mTimeMillis
-                && java.util.Objects.equals(mServicePackageName, that.mServicePackageName)
-                && java.util.Arrays.equals(mQueryData, that.mQueryData);
-    }
-
-    @Override
-    @DataClass.Generated.Member
-    public int hashCode() {
-        // You can override field hashCode logic by defining methods like:
-        // int fieldNameHashCode() { ... }
-
-        int _hash = 1;
-        _hash = 31 * _hash + Long.hashCode(mQueryId);
-        _hash = 31 * _hash + Long.hashCode(mTimeMillis);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mServicePackageName);
-        _hash = 31 * _hash + java.util.Arrays.hashCode(mQueryData);
-        return _hash;
     }
 
     /**
@@ -151,36 +153,43 @@ public class Query {
 
         private long mQueryId;
         private long mTimeMillis;
-        private @NonNull String mServicePackageName;
+        private @NonNull String mAppPackageName;
+        private @NonNull ComponentName mService;
+        private @NonNull String mServiceCertDigest;
         private @NonNull byte[] mQueryData;
 
         private long mBuilderFieldsSet = 0L;
 
-        public Builder() {
-        }
-
         /**
          * Creates a new Builder.
          *
-         * @param queryId
-         *   The id of the query.
          * @param timeMillis
          *   Time of the query in milliseconds.
-         * @param servicePackageName
-         *   Name of the package that handled the request
+         * @param appPackageName
+         *   Package name of the app the made the request
+         * @param service
+         *   Name of the service that handled the request
+         * @param serviceCertDigest
+         *   CertDigest of the service that handled the request
          * @param queryData
          *   Blob representing the query.
          */
         public Builder(
-                long queryId,
                 long timeMillis,
-                @NonNull String servicePackageName,
+                @NonNull String appPackageName,
+                @NonNull ComponentName service,
+                @NonNull String serviceCertDigest,
                 @NonNull byte[] queryData) {
-            mQueryId = queryId;
             mTimeMillis = timeMillis;
-            mServicePackageName = servicePackageName;
+            mAppPackageName = appPackageName;
             AnnotationValidations.validate(
-                    NonNull.class, null, mServicePackageName);
+                    NonNull.class, null, mAppPackageName);
+            mService = service;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mService);
+            mServiceCertDigest = serviceCertDigest;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mServiceCertDigest);
             mQueryData = queryData;
             AnnotationValidations.validate(
                     NonNull.class, null, mQueryData);
@@ -209,13 +218,35 @@ public class Query {
         }
 
         /**
-         * Name of the package that handled the request
+         * Package name of the app the made the request
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setServicePackageName(@NonNull String value) {
+        public @NonNull Builder setAppPackageName(@NonNull String value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4;
-            mServicePackageName = value;
+            mAppPackageName = value;
+            return this;
+        }
+
+        /**
+         * Name of the service that handled the request
+         */
+        @DataClass.Generated.Member
+        public @NonNull Builder setService(@NonNull ComponentName value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x8;
+            mService = value;
+            return this;
+        }
+
+        /**
+         * CertDigest of the service that handled the request
+         */
+        @DataClass.Generated.Member
+        public @NonNull Builder setServiceCertDigest(@NonNull String value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x10;
+            mServiceCertDigest = value;
             return this;
         }
 
@@ -225,7 +256,7 @@ public class Query {
         @DataClass.Generated.Member
         public @NonNull Builder setQueryData(@NonNull byte... value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x8;
+            mBuilderFieldsSet |= 0x20;
             mQueryData = value;
             return this;
         }
@@ -233,18 +264,23 @@ public class Query {
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull Query build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x10; // Mark builder used
+            mBuilderFieldsSet |= 0x40; // Mark builder used
 
+            if ((mBuilderFieldsSet & 0x1) == 0) {
+                mQueryId = 0;
+            }
             Query o = new Query(
                     mQueryId,
                     mTimeMillis,
-                    mServicePackageName,
+                    mAppPackageName,
+                    mService,
+                    mServiceCertDigest,
                     mQueryData);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x10) != 0) {
+            if ((mBuilderFieldsSet & 0x40) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -252,10 +288,10 @@ public class Query {
     }
 
     @DataClass.Generated(
-            time = 1680018439034L,
+            time = 1712096323408L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/data/events/Query.java",
-            inputSignatures = "private final  long mQueryId\nprivate final  long mTimeMillis\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final @android.annotation.NonNull byte[] mQueryData\nclass Query extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private  long mQueryId\nprivate final  long mTimeMillis\nprivate final @android.annotation.NonNull java.lang.String mAppPackageName\nprivate final @android.annotation.NonNull android.content.ComponentName mService\nprivate final @android.annotation.NonNull java.lang.String mServiceCertDigest\nprivate final @android.annotation.NonNull byte[] mQueryData\npublic  java.lang.String getServiceName()\nclass Query extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true)")
     @Deprecated
     private void __metadata() {}
 

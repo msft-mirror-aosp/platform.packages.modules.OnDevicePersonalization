@@ -20,7 +20,7 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_
 
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 
-import java.util.HashMap;
+import java.util.Map;
 
 /** Class to hold FederatedCompute http request. */
 public final class FederatedComputeHttpRequest {
@@ -30,11 +30,11 @@ public final class FederatedComputeHttpRequest {
 
     private String mUri;
     private HttpMethod mHttpMethod;
-    private HashMap<String, String> mExtraHeaders;
+    private Map<String, String> mExtraHeaders;
     private byte[] mBody;
 
     private FederatedComputeHttpRequest(
-            String uri, HttpMethod httpMethod, HashMap<String, String> extraHeaders, byte[] body) {
+            String uri, HttpMethod httpMethod, Map<String, String> extraHeaders, byte[] body) {
         this.mUri = uri;
         this.mHttpMethod = httpMethod;
         this.mExtraHeaders = extraHeaders;
@@ -43,7 +43,7 @@ public final class FederatedComputeHttpRequest {
 
     /** Creates a {@link FederatedComputeHttpRequest} based on given inputs. */
     public static FederatedComputeHttpRequest create(
-            String uri, HttpMethod httpMethod, HashMap<String, String> extraHeaders, byte[] body) {
+            String uri, HttpMethod httpMethod, Map<String, String> extraHeaders, byte[] body) {
         if (!uri.startsWith(HTTPS_SCHEMA) && !uri.startsWith(LOCAL_HOST_URI)) {
             throw new IllegalArgumentException("Non-HTTPS URIs are not supported: " + uri);
         }
@@ -72,7 +72,7 @@ public final class FederatedComputeHttpRequest {
         return mHttpMethod;
     }
 
-    public HashMap<String, String> getExtraHeaders() {
+    public Map<String, String> getExtraHeaders() {
         return mExtraHeaders;
     }
 }

@@ -29,6 +29,8 @@ import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.content.pm.SigningInfo;
 
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
+
 import libcore.util.HexEncoding;
 
 import java.security.MessageDigest;
@@ -74,6 +76,26 @@ public class PackageUtils {
     @Nullable
     public static String getCertDigest(@NonNull Context context, @NonNull String packageName) throws
             PackageManager.NameNotFoundException {
+        PackageInfo sdkPackageInfo = context.getPackageManager().getPackageInfo(packageName,
+                PackageManager.PackageInfoFlags.of(
+                        GET_SIGNING_CERTIFICATES | MATCH_STATIC_SHARED_AND_SDK_LIBRARIES));
+        SigningInfo signingInfo = sdkPackageInfo.signingInfo;
+        Signature[] signatures =
+                signingInfo != null ? signingInfo.getSigningCertificateHistory() : null;
+        byte[] digest = PackageUtils.computeSha256DigestBytes(signatures[0].toByteArray());
+        return new String(HexEncoding.encode(digest));
+    }
+
+    /**
+     * Retrieves the certDigest of the given packageName
+     *
+     * @param packageName Package name owning the certDigest
+     * @return certDigest of the given packageName
+     */
+    @Nullable
+    public static String getCertDigest(@NonNull String packageName) throws
+            PackageManager.NameNotFoundException {
+        Context context = OnDevicePersonalizationApplication.getAppContext();
         PackageInfo sdkPackageInfo = context.getPackageManager().getPackageInfo(packageName,
                 PackageManager.PackageInfoFlags.of(
                         GET_SIGNING_CERTIFICATES | MATCH_STATIC_SHARED_AND_SDK_LIBRARIES));

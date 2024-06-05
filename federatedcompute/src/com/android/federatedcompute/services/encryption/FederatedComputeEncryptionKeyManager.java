@@ -34,6 +34,7 @@ import com.android.federatedcompute.services.http.HttpClientUtil;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.Futures;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -46,6 +47,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /** Class to manage key fetch. */
 public class FederatedComputeEncryptionKeyManager {
@@ -142,14 +144,21 @@ public class FederatedComputeEncryptionKeyManager {
             @FederatedComputeEncryptionKey.KeyType int keyType, boolean isScheduledJob) {
         String fetchUri = mFlags.getEncryptionKeyFetchUrl();
         if (fetchUri == null) {
-            throw new IllegalArgumentException("Url to fetch active encryption keys is null");
+            return FluentFuture.from(Futures.immediateFailedFuture(
+                    new IllegalArgumentException("Url to fetch active encryption keys is null")));
         }
-        FederatedComputeHttpRequest request =
-                FederatedComputeHttpRequest.create(
-                        fetchUri,
-                        HttpClientUtil.HttpMethod.GET,
-                        new HashMap<String, String>(),
-                        HttpClientUtil.EMPTY_BODY);
+
+        FederatedComputeHttpRequest request;
+        try {
+            request =
+                    FederatedComputeHttpRequest.create(
+                            fetchUri,
+                            HttpClientUtil.HttpMethod.GET,
+                            new HashMap<String, String>(),
+                            HttpClientUtil.EMPTY_BODY);
+        } catch (Exception e) {
+            return FluentFuture.from(Futures.immediateFailedFuture(e));
+        }
 
         return FluentFuture.from(mHttpClient.performRequestAsyncWithRetry(request))
                 .transform(
@@ -161,8 +170,8 @@ public class FederatedComputeEncryptionKeyManager {
                         result -> {
                             result.forEach(mEncryptionKeyDao::insertEncryptionKey);
                             if (isScheduledJob) {
-                                // When the job is a background scheduled job, delete the expired
-                                // keys, otherwise, only fetch from the key server.
+                                // When the job is a background scheduled job, delete the
+                                // expired keys, otherwise, only fetch from the key server.
                                 mEncryptionKeyDao.deleteExpiredKeys();
                             }
                             return result;
@@ -296,11 +305,14 @@ public class FederatedComputeEncryptionKeyManager {
         }
         try {
             var fetchedKeysUnused = fetchAndPersistActiveKeys(keyType,
-                    /* isScheduledJob= */ false).get(1, TimeUnit.SECONDS);
+                    /* isScheduledJob= */ false).get(/* timeout= */ 5, TimeUnit.SECONDS);
             activeKeys = mEncryptionKeyDao.getLatestExpiryNKeys(keyCount);
             if (activeKeys.size() > 0) {
                 return activeKeys;
             }
+        } catch (TimeoutException e) {
+            LogUtil.e(TAG, "Time out when forcing encryption key fetch: "
+                    + e.getMessage());
         } catch (Exception e) {
             LogUtil.e(TAG, "Exception encountered when forcing encryption key fetch: "
                     + e.getMessage());

@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.download.mdd;
 
 import static android.content.pm.PackageManager.GET_META_DATA;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -28,6 +29,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
@@ -182,7 +184,10 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
     private static String addDownloadUrlQueryParameters(Uri uri, String packageName,
             Context context)
             throws PackageManager.NameNotFoundException {
-        long syncToken = OnDevicePersonalizationVendorDataDao.getInstance(context, packageName,
+        String serviceClass = AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                context, packageName);
+        ComponentName service = ComponentName.createRelative(packageName, serviceClass);
+        long syncToken = OnDevicePersonalizationVendorDataDao.getInstance(context, service,
                 PackageUtils.getCertDigest(context, packageName)).getSyncToken();
         if (syncToken != -1) {
             uri = uri.buildUpon().appendQueryParameter("syncToken",
@@ -206,11 +211,19 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                     for (PackageInfo packageInfo : mContext.getPackageManager()
                             .getInstalledPackages(
                                     PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
+                        String packageName = packageInfo.packageName;
                         if (AppManifestConfigHelper.manifestContainsOdpSettings(
-                                mContext, packageInfo.packageName)) {
+                                mContext, packageName)) {
+                            if (!PartnerEnrollmentChecker.isIsolatedServiceEnrolled(packageName)) {
+                                sLogger.d(TAG + ": service %s has ODP manifest, "
+                                        + "but not enrolled", packageName);
+                                continue;
+                            }
+                            sLogger.d(TAG + ": service %s has ODP manifest and is enrolled",
+                                    packageName);
                             try {
                                 String groupName = createPackageFileGroupName(
-                                        packageInfo.packageName,
+                                        packageName,
                                         mContext);
                                 fileGroupsToRemove.remove(groupName);
                                 String ownerPackage = mContext.getPackageName();
@@ -218,7 +231,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                                 int byteSize = 0;
                                 String checksum = "";
                                 ChecksumType checksumType = ChecksumType.NONE;
-                                String downloadUrl = createDownloadUrl(packageInfo.packageName,
+                                String downloadUrl = createDownloadUrl(packageName,
                                         mContext);
                                 DeviceNetworkPolicy deviceNetworkPolicy =
                                         DeviceNetworkPolicy.DOWNLOAD_ONLY_ON_WIFI;
@@ -236,7 +249,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                                                 dataFileGroup).build()));
                             } catch (Exception e) {
                                 sLogger.e(TAG + ": Failed to create file group for "
-                                        + packageInfo.packageName, e);
+                                        + packageName, e);
                             }
                         }
                     }

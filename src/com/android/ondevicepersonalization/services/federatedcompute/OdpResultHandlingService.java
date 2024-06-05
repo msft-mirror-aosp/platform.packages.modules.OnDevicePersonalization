@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.federatedcompute;
 
 import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
 
+import android.content.ComponentName;
 import android.federatedcompute.ResultHandlingService;
 import android.federatedcompute.common.ClientConstants;
 import android.federatedcompute.common.ExampleConsumption;
@@ -49,11 +50,12 @@ public class OdpResultHandlingService extends ResultHandlingService {
                     ContextData.fromByteArray(
                             Objects.requireNonNull(
                                     params.getByteArray(ClientConstants.EXTRA_CONTEXT_DATA)));
-            String packageName = contextData.getPackageName();
+            ComponentName service =
+                    ComponentName.createRelative(
+                            contextData.getPackageName(), contextData.getClassName());
             String populationName =
                     Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
-            String taskName =
-                    Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_NAME));
+            String taskId = Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_ID));
             int computationResult = params.getInt(ClientConstants.EXTRA_COMPUTATION_RESULT);
             ArrayList<ExampleConsumption> consumptionList =
                     Objects.requireNonNull(
@@ -71,7 +73,7 @@ public class OdpResultHandlingService extends ResultHandlingService {
                     Futures.submit(
                             () ->
                                     processExampleConsumptions(
-                                            consumptionList, populationName, taskName, packageName),
+                                            consumptionList, populationName, taskId, service),
                             OnDevicePersonalizationExecutors.getBackgroundExecutor());
             Futures.addCallback(
                     result,
@@ -102,17 +104,17 @@ public class OdpResultHandlingService extends ResultHandlingService {
     private Boolean processExampleConsumptions(
             List<ExampleConsumption> exampleConsumptions,
             String populationName,
-            String taskName,
-            String packageName) {
+            String taskId,
+            ComponentName service) {
         List<EventState> eventStates = new ArrayList<>();
         for (ExampleConsumption consumption : exampleConsumptions) {
             String taskIdentifier =
-                    OdpExampleStoreService.getTaskIdentifier(populationName, taskName);
+                    OdpExampleStoreService.getTaskIdentifier(populationName, taskId);
             byte[] resumptionToken = consumption.getResumptionToken();
             if (resumptionToken != null) {
                 eventStates.add(
                         new EventState.Builder()
-                                .setServicePackageName(packageName)
+                                .setService(service)
                                 .setTaskIdentifier(taskIdentifier)
                                 .setToken(resumptionToken)
                                 .build());

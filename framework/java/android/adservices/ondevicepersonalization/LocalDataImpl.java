@@ -23,10 +23,10 @@ import android.annotation.Nullable;
 import android.os.Bundle;
 import android.os.RemoteException;
 
-
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -47,51 +47,95 @@ public class LocalDataImpl implements MutableKeyValueStore {
 
     @Override @Nullable
     public byte[] get(@NonNull String key) {
+        final long startTimeMillis = System.currentTimeMillis();
         Objects.requireNonNull(key);
         Bundle params = new Bundle();
-        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{key});
-        return handleLookupRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP, key, params);
+        params.putString(Constants.EXTRA_LOOKUP_KEYS, key);
+        return handleLookupRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP, params,
+                Constants.API_NAME_LOCAL_DATA_GET, startTimeMillis);
     }
 
     @Override @Nullable
     public byte[] put(@NonNull String key, byte[] value) {
+        final long startTimeMillis = System.currentTimeMillis();
         Objects.requireNonNull(key);
         Bundle params = new Bundle();
-        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{key});
-        params.putByteArray(Constants.EXTRA_VALUE, value);
-        return handleLookupRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT, key, params);
+        params.putString(Constants.EXTRA_LOOKUP_KEYS, key);
+        params.putParcelable(Constants.EXTRA_VALUE, new ByteArrayParceledSlice(value));
+        return handleLookupRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT, params,
+                Constants.API_NAME_LOCAL_DATA_PUT, startTimeMillis);
     }
 
     @Override @Nullable
     public byte[] remove(@NonNull String key) {
+        final long startTimeMillis = System.currentTimeMillis();
         Objects.requireNonNull(key);
         Bundle params = new Bundle();
-        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{key});
-        return handleLookupRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE, key, params);
+        params.putString(Constants.EXTRA_LOOKUP_KEYS, key);
+        return handleLookupRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE, params,
+                Constants.API_NAME_LOCAL_DATA_REMOVE, startTimeMillis);
     }
 
-    private byte[] handleLookupRequest(int op, String key, Bundle params) {
-        Bundle result = handleAsyncRequest(op, params);
-        HashMap<String, byte[]> data = result.getSerializable(
-                Constants.EXTRA_RESULT, HashMap.class);
-        if (null == data) {
-            sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
-            throw new IllegalStateException("Bundle missing EXTRA_RESULT.");
+    private byte[] handleLookupRequest(
+            int op, Bundle params, int apiName, long startTimeMillis) {
+        int responseCode = Constants.STATUS_SUCCESS;
+        try {
+            Bundle result = handleAsyncRequest(op, params);
+            ByteArrayParceledSlice data = result.getParcelable(
+                    Constants.EXTRA_RESULT, ByteArrayParceledSlice.class);
+            if (null == data) {
+                return null;
+            }
+            return data.getByteArray();
+        } catch (RuntimeException e) {
+            responseCode = Constants.STATUS_INTERNAL_ERROR;
+            throw e;
+        } finally {
+            try {
+                mDataAccessService.logApiCallStats(
+                        apiName,
+                        System.currentTimeMillis() - startTimeMillis,
+                        responseCode);
+            } catch (Exception e) {
+                sLogger.d(e, TAG + ": failed to log metrics");
+            }
         }
-        return data.get(key);
     }
 
     @Override @NonNull
     public Set<String> keySet() {
-        Bundle result = handleAsyncRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET,
-                Bundle.EMPTY);
-        HashSet<String> resultSet =
-                result.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
-        if (null == resultSet) {
-            sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
-            throw new IllegalStateException("Bundle missing EXTRA_RESULT.");
+        final long startTimeMillis = System.currentTimeMillis();
+        int responseCode = Constants.STATUS_SUCCESS;
+        try {
+            Bundle result = handleAsyncRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET,
+                    Bundle.EMPTY);
+            HashSet<String> resultSet =
+                    result.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
+            if (null == resultSet) {
+                return Collections.emptySet();
+            }
+            return resultSet;
+        } catch (RuntimeException e) {
+            responseCode = Constants.STATUS_INTERNAL_ERROR;
+            throw e;
+        } finally {
+            try {
+                mDataAccessService.logApiCallStats(
+                        Constants.API_NAME_LOCAL_DATA_KEYSET,
+                        System.currentTimeMillis() - startTimeMillis,
+                        responseCode);
+            } catch (Exception e) {
+                sLogger.d(e, TAG + ": failed to log metrics");
+            }
         }
-        return resultSet;
+    }
+
+    @Override
+    public int getTableId() {
+        return ModelId.TABLE_ID_LOCAL_DATA;
     }
 
     private Bundle handleAsyncRequest(int op, Bundle params) {

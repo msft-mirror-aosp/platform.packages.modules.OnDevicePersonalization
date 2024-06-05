@@ -16,7 +16,7 @@
 
 package android.federatedcompute;
 
-import static android.federatedcompute.common.ClientConstants.EXTRA_TASK_NAME;
+import static android.federatedcompute.common.ClientConstants.EXTRA_TASK_ID;
 import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ERROR;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -82,7 +82,7 @@ public class ExampleStoreServiceTest {
     @Test
     public void testStartQuerySuccess() throws Exception {
         Bundle bundle = new Bundle();
-        bundle.putString(EXTRA_TASK_NAME, EXPECTED_TASK_NAME);
+        bundle.putString(EXTRA_TASK_ID, EXPECTED_TASK_NAME);
         mBinder.startQuery(bundle, new TestJavaExampleStoreServiceCallback());
         mLatch.await();
         assertTrue(mStartQueryCalled);
@@ -92,7 +92,7 @@ public class ExampleStoreServiceTest {
     @Test
     public void testStartQueryFailure() throws Exception {
         Bundle bundle = new Bundle();
-        bundle.putString(EXTRA_TASK_NAME, "wrong_taskName");
+        bundle.putString(EXTRA_TASK_ID, "wrong_taskName");
         mBinder.startQuery(bundle, new TestJavaExampleStoreServiceCallback());
         mLatch.await();
         assertTrue(mStartQueryCalled);
@@ -104,7 +104,7 @@ public class ExampleStoreServiceTest {
         @Override
         public void startQuery(@Nonnull Bundle params, @Nonnull QueryCallback callback) {
             mStartQueryCalled = true;
-            String taskName = params.getString(EXTRA_TASK_NAME);
+            String taskName = params.getString(EXTRA_TASK_ID);
             if (!taskName.equals(EXPECTED_TASK_NAME)) {
                 callback.onStartQueryFailure(STATUS_INTERNAL_ERROR);
                 return;

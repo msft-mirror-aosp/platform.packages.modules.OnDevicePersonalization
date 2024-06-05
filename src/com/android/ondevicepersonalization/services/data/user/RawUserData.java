@@ -20,13 +20,7 @@ import android.adservices.ondevicepersonalization.UserData;
 import android.content.res.Configuration;
 import android.net.NetworkCapabilities;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
-/**
- * A singleton class that holds all most recent in-memory user signals.
- */
+/** A singleton class that holds all most recent in-memory user signals. */
 public final class RawUserData {
 
     private static RawUserData sUserData = null;
@@ -50,22 +44,7 @@ public final class RawUserData {
 
     @UserData.NetworkType public int dataNetworkType;
 
-    // installed packages.
-    public List<AppInfo> appsInfo = new ArrayList<>();
-
-    // A histogram of app usage: total times used per app in the last 30 days.
-    public HashMap<String, Long> appUsageHistory = new HashMap<>();
-
-    // User's most recently available location information.
-    public LocationInfo currentLocation = new LocationInfo();
-
-    /**
-     * A histogram of location history: total time spent per location in the last 30 days.
-     * Default precision level of locations is set to E4.
-     */
-    public HashMap<LocationInfo, Long> locationHistory = new HashMap<>();
-
-    private RawUserData() { }
+    private RawUserData() {}
 
     /** Returns an instance of UserData. */
     public static RawUserData getInstance() {

@@ -20,6 +20,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.database.Cursor;
 
@@ -52,6 +53,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
     private OnDevicePersonalizationFileGroupPopulator mPopulator;
     private MobileDataDownload mMdd;
     private String mPackageName;
+    private ComponentName mService;
     private final VendorData mContent1 = new VendorData.Builder()
             .setKey("key1")
             .setData("dGVzdGRhdGEx".getBytes())
@@ -65,6 +67,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
     @Before
     public void setup() throws Exception {
         mPackageName = mContext.getPackageName();
+        mService = ComponentName.createRelative(
+                mPackageName, "com.test.TestPersonalizationService");
         mMdd = MobileDataDownloadFactory.getMdd(mContext);
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
@@ -72,7 +76,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
         MobileDataDownloadFactory.getMdd(mContext).removeFileGroupsByFilter(request).get();
 
         // Initialize the DB as a test instance
-        OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
+        OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mService,
                 PackageUtils.getCertDigest(mContext, mPackageName));
     }
 
@@ -89,7 +93,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
                 new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
         callable.call().get();
         OnDevicePersonalizationVendorDataDao dao =
-                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
+                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mService,
                         PackageUtils.getCertDigest(mContext, mPackageName));
         Cursor cursor = dao.readAllVendorData();
         List<VendorData> vendorDataList = new ArrayList<>();

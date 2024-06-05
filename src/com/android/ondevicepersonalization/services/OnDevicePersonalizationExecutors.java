@@ -36,6 +36,26 @@ import java.util.concurrent.ThreadFactory;
  * All executors of the OnDevicePersonalization module.
  */
 public final class OnDevicePersonalizationExecutors {
+    private static final ListeningExecutorService sHighPriorityBackgroundExecutor =
+            MoreExecutors.listeningDecorator(
+                    Executors.newFixedThreadPool(
+                            /* nThreads */ 2,
+                            createThreadFactory(
+                                    "HPBG Thread",
+                                    Process.THREAD_PRIORITY_BACKGROUND
+                                            + Process.THREAD_PRIORITY_MORE_FAVORABLE,
+                                    Optional.of(getIoThreadPolicy()))));
+
+    private static final ListeningExecutorService sLowPriorityBackgroundExecutor =
+            MoreExecutors.listeningDecorator(
+                    Executors.newFixedThreadPool(
+                            /* nThreads */ 2,
+                            createThreadFactory(
+                                    "LPBG Thread",
+                                    Process.THREAD_PRIORITY_BACKGROUND
+                                            + Process.THREAD_PRIORITY_LESS_FAVORABLE,
+                                    Optional.of(getIoThreadPolicy()))));
+
     private static final ListeningExecutorService sBackgroundExecutor =
             MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(
                     /* nThreads */ 4,
@@ -62,6 +82,24 @@ public final class OnDevicePersonalizationExecutors {
     private static final Handler sHandlerForMainThread = new Handler(Looper.getMainLooper());
 
     private OnDevicePersonalizationExecutors() {
+    }
+
+
+    /**
+     * Returns the higher priority BG executor.
+     */
+    @NonNull
+    public static ListeningExecutorService getHighPriorityBackgroundExecutor() {
+        return sHighPriorityBackgroundExecutor;
+    }
+
+
+    /**
+     * Returns the lower priority BG executor.
+     */
+    @NonNull
+    public static ListeningExecutorService getLowPriorityBackgroundExecutor() {
+        return sLowPriorityBackgroundExecutor;
     }
 
     /**

@@ -20,6 +20,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
+import android.content.ComponentName;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -31,7 +33,7 @@ public class EventTest {
     @Test
     public void testBuilderAndEquals() {
         byte[] eventData = "data".getBytes();
-        String servicePackageName = "servicePackageName";
+        ComponentName service = new ComponentName("servicePkg", "cls");
         long queryId = 1;
         long timeMillis = 1;
         long eventId = 1;
@@ -39,7 +41,7 @@ public class EventTest {
         Event event1 = new Event.Builder()
                 .setType(EVENT_TYPE)
                 .setEventData(eventData)
-                .setServicePackageName(servicePackageName)
+                .setService(service)
                 .setQueryId(queryId)
                 .setTimeMillis(timeMillis)
                 .setRowIndex(rowIndex)
@@ -48,14 +50,14 @@ public class EventTest {
 
         assertEquals(event1.getType(), EVENT_TYPE);
         assertArrayEquals(event1.getEventData(), eventData);
-        assertEquals(event1.getServicePackageName(), servicePackageName);
+        assertEquals(event1.getService(), service);
         assertEquals(event1.getQueryId(), queryId);
         assertEquals(event1.getTimeMillis(), timeMillis);
         assertEquals(event1.getRowIndex(), rowIndex);
         assertEquals(event1.getEventId(), eventId);
 
         Event event2 = new Event.Builder(
-                eventId, queryId, rowIndex, servicePackageName, EVENT_TYPE, timeMillis, eventData)
+                eventId, queryId, rowIndex, service, EVENT_TYPE, timeMillis, eventData)
                 .build();
         assertEquals(event1, event2);
         assertEquals(event1.hashCode(), event2.hashCode());
@@ -64,7 +66,7 @@ public class EventTest {
     @Test
     public void testBuildTwiceThrows() {
         byte[] eventData = "data".getBytes();
-        String servicePackageName = "servicePackageName";
+        ComponentName service = new ComponentName("servicePkg", "cls");
         long queryId = 1;
         long timeMillis = 1;
         long eventId = 1;
@@ -72,7 +74,7 @@ public class EventTest {
         Event.Builder builder = new Event.Builder()
                 .setType(EVENT_TYPE)
                 .setEventData(eventData)
-                .setServicePackageName(servicePackageName)
+                .setService(service)
                 .setQueryId(queryId)
                 .setTimeMillis(timeMillis)
                 .setRowIndex(rowIndex)

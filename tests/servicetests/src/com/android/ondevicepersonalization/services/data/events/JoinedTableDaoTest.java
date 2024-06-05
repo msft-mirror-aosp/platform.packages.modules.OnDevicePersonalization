@@ -20,12 +20,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 
@@ -41,14 +43,17 @@ import java.util.List;
 @RunWith(JUnit4.class)
 public class JoinedTableDaoTest {
 
+    private static final String SERVICE_CLASS = "TestClass";
     private static final int EVENT_TYPE_B2D = 1;
     private static final int EVENT_TYPE_CLICK = 2;
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private EventsDao mDao;
+    private ComponentName mService;
 
     @Before
     public void setup() {
         mDao = EventsDao.getInstanceForTest(mContext);
+        mService = new ComponentName(mContext.getPackageName(), SERVICE_CLASS);
     }
 
     @After
@@ -64,7 +69,7 @@ public class JoinedTableDaoTest {
     public void invalidProvidedColumns() {
         List<ColumnSchema> columnSchemaList = new ArrayList<>();
         columnSchemaList.add(new ColumnSchema.Builder().setName(
-                JoinedTableDao.SERVICE_PACKAGE_NAME_COL).setType(
+                JoinedTableDao.SERVICE_NAME_COL).setType(
                 ColumnSchema.SQL_DATA_TYPE_INTEGER).build());
         assertThrows(IllegalArgumentException.class,
                 () -> new JoinedTableDao(columnSchemaList, 0, 0, mContext));
@@ -110,8 +115,8 @@ public class JoinedTableDaoTest {
             assertEquals(4, cursor.getCount());
             for (int i = 0; i < 4; i++) {
                 cursor.moveToNext();
-                String servicePackageName = cursor.getString(
-                        cursor.getColumnIndexOrThrow(JoinedTableDao.SERVICE_PACKAGE_NAME_COL));
+                String serviceName = cursor.getString(
+                        cursor.getColumnIndexOrThrow(JoinedTableDao.SERVICE_NAME_COL));
                 int type = cursor.getInt(cursor.getColumnIndexOrThrow(JoinedTableDao.TYPE_COL));
                 long eventTimeMillis = cursor.getLong(
                         cursor.getColumnIndexOrThrow(JoinedTableDao.EVENT_TIME_MILLIS_COL));
@@ -127,8 +132,9 @@ public class JoinedTableDaoTest {
                         () -> cursor.getColumnIndexOrThrow("random"));
                 assertThrows(IllegalArgumentException.class,
                         () -> cursor.getColumnIndexOrThrow("someCol"));
+                String expectedServiceName = DbUtils.toTableValue(mService);
                 if (i == 0) {
-                    assertEquals(mContext.getPackageName(), servicePackageName);
+                    assertEquals(expectedServiceName, serviceName);
                     assertEquals(EVENT_TYPE_B2D, type);
                     assertEquals(1L, eventTimeMillis);
                     assertEquals(1L, queryTimeMillis);
@@ -137,7 +143,7 @@ public class JoinedTableDaoTest {
                     assertEquals(0.0, eventCol4, 0.001);
                     assertEquals(1, queryCol1);
                 } else if (i == 1) {
-                    assertEquals(mContext.getPackageName(), servicePackageName);
+                    assertEquals(expectedServiceName, serviceName);
                     assertEquals(EVENT_TYPE_CLICK, type);
                     assertEquals(2L, eventTimeMillis);
                     assertEquals(1L, queryTimeMillis);
@@ -146,7 +152,7 @@ public class JoinedTableDaoTest {
                     assertEquals(2.0, eventCol4, 0.001);
                     assertEquals(2, queryCol1);
                 } else if (i == 2) {
-                    assertEquals(mContext.getPackageName(), servicePackageName);
+                    assertEquals(expectedServiceName, serviceName);
                     assertEquals(0L, type);
                     assertEquals(0L, eventTimeMillis);
                     assertEquals(1L, queryTimeMillis);
@@ -155,7 +161,7 @@ public class JoinedTableDaoTest {
                     assertEquals(0.0, eventCol4, 0.001);
                     assertEquals(1, queryCol1);
                 } else if (i == 3) {
-                    assertEquals(mContext.getPackageName(), servicePackageName);
+                    assertEquals(expectedServiceName, serviceName);
                     assertEquals(0L, type);
                     assertEquals(0L, eventTimeMillis);
                     assertEquals(1L, queryTimeMillis);
@@ -176,11 +182,9 @@ public class JoinedTableDaoTest {
         row = new ContentValues();
         row.put("queryCol1", 2);
         rows.add(row);
-        Query query = new Query.Builder()
-                .setTimeMillis(1L)
-                .setServicePackageName(mContext.getPackageName())
-                .setQueryData(OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                        mContext.getPackageName(), "AABBCCDD", rows))
+        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
+                DbUtils.toTableValue(mService), "AABBCCDD", rows);
+        Query query = new Query.Builder(1L, "com.app", mService, "AABBCCDD", queryData)
                 .build();
         long queryId = mDao.insertQuery(query);
 
@@ -193,7 +197,7 @@ public class JoinedTableDaoTest {
         Event event1 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData(OnDevicePersonalizationFlatbufferUtils.createEventData(eventData))
-                .setServicePackageName(mContext.getPackageName())
+                .setService(mService)
                 .setQueryId(queryId)
                 .setTimeMillis(1L)
                 .setRowIndex(0)
@@ -209,7 +213,7 @@ public class JoinedTableDaoTest {
         Event event2 = new Event.Builder()
                 .setType(EVENT_TYPE_CLICK)
                 .setEventData(OnDevicePersonalizationFlatbufferUtils.createEventData(eventData2))
-                .setServicePackageName(mContext.getPackageName())
+                .setService(mService)
                 .setQueryId(queryId)
                 .setTimeMillis(2L)
                 .setRowIndex(1)

@@ -18,6 +18,9 @@ package {
 
 android_test {
     name: "OnDevicePersonalizationManagingServicesTests",
+    defaults: [
+        "modules-utils-testable-device-config-defaults",
+    ],
     srcs: [
         "src/**/*.java",
         "src/**/*.kt",
@@ -29,11 +32,12 @@ android_test {
     libs: [
         "android.test.base",
         "android.test.runner",
+        "framework-adservices", // For user consent
         "framework-annotations-lib",
         "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
         "kotlin-annotations",
-        "truth-prebuilt",
+        "truth",
         "framework-ondevicepersonalization.impl",
         "framework-statsd.stubs.module_lib", // For WW logging
     ],
@@ -53,12 +57,13 @@ android_test {
         "flatbuffers-java",
         "owasp-java-encoder",
         "compatibility-device-util-axt",
+        "tensorflowlite_java",
+        "adservices-shared-spe",
     ],
     sdk_version: "module_current",
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",
     compile_multilib: "both",
-    certificate: "platform",
     test_suites: [
         "general-tests",
         "mts-ondevicepersonalization",
@@ -69,5 +74,6 @@ android_test {
     jni_libs: [
         "libdexmakerjvmtiagent",
         "libstaticjvmtiagent",
+        "libfcp_cpp_dep_jni",
     ],
 }

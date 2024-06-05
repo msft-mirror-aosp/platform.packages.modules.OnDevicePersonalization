@@ -60,12 +60,15 @@ public class DisplayHelperTest {
     private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationVendorDataDao mDao;
+    private ComponentName mService;
 
     @Before
     public void setup() throws Exception {
+        mService = ComponentName.createRelative(
+                mContext.getPackageName(), "com.test.TestPersonalizationService");
         mDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(
                 mContext,
-                mContext.getPackageName(),
+                mService,
                 PackageUtils.getCertDigest(mContext, mContext.getPackageName()));
     }
 
@@ -76,7 +79,7 @@ public class DisplayHelperTest {
                 .setContent("html").build();
         RenderOutputParcel resultParcel = new RenderOutputParcel(renderContentResult);
         assertEquals("html", displayHelper.generateHtml(resultParcel,
-                mContext.getPackageName()));
+                mService));
     }
 
     @Test
@@ -101,7 +104,7 @@ public class DisplayHelperTest {
         RenderOutputParcel resultParcel = new RenderOutputParcel(renderContentResult);
         String expected = "Hello odp! I am 100.";
         assertEquals(expected, displayHelper.generateHtml(resultParcel,
-                mContext.getPackageName()));
+                mService));
     }
 
     @Test

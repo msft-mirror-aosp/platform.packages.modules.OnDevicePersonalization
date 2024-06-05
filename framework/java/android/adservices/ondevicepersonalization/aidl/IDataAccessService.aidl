@@ -26,4 +26,10 @@ interface IDataAccessService {
             in Bundle params,
             in IDataAccessServiceCallback callback
     );
+
+    void logApiCallStats(
+            in int apiName,
+            in long latencyMillis,
+            in int responseCode
+    );
 }

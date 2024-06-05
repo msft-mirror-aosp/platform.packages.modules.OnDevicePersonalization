@@ -34,7 +34,7 @@ import java.util.List;
 public final class WebTriggerOutputParcel implements Parcelable {
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}
+     * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, android.os.OutcomeReceiver)}
      * completes. If null, no persistent data will be written.
      */
     @Nullable private RequestLogRecord mRequestLogRecord = null;
@@ -75,7 +75,7 @@ public final class WebTriggerOutputParcel implements Parcelable {
      *
      * @param requestLogRecord
      *   Persistent data to be written to the REQUESTS table after
-     *   {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}
+     *   {@link IsolatedWorker#onWebTrigger(WebTriggerInput, android.os.OutcomeReceiver)}
      *   completes. If null, no persistent data will be written.
      * @param eventLogRecords
      *   A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
@@ -98,7 +98,7 @@ public final class WebTriggerOutputParcel implements Parcelable {
 
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}
+     * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, android.os.OutcomeReceiver)}
      * completes. If null, no persistent data will be written.
      */
     @DataClass.Generated.Member

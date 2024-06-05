@@ -40,7 +40,7 @@ public final class ExampleConsumptionTest {
                 IllegalArgumentException.class,
                 () ->
                         new ExampleConsumption.Builder()
-                                .setTaskName("")
+                                .setTaskId("")
                                 .setExampleCount(10)
                                 .setSelectionCriteria(new byte[] {10, 0, 1})
                                 .build());
@@ -52,7 +52,7 @@ public final class ExampleConsumptionTest {
                 IllegalArgumentException.class,
                 () ->
                         new ExampleConsumption.Builder()
-                                .setTaskName(null)
+                                .setTaskId(null)
                                 .setExampleCount(10)
                                 .setSelectionCriteria(new byte[] {10, 0, 1})
                                 .build());
@@ -60,12 +60,12 @@ public final class ExampleConsumptionTest {
 
     @Test
     public void testBuilder_normalCaseWithoutResumptionToken() {
-        String taskName = "my_task";
+        String taskId = "my_task";
         byte[] selectionCriteria = new byte[] {10, 0, 1};
         int exampleCount = 10;
         ExampleConsumption consumption =
-                createExampleConsumption(taskName, selectionCriteria, exampleCount, null);
-        assertThat(consumption.getTaskName()).isEqualTo(taskName);
+                createExampleConsumption(taskId, selectionCriteria, exampleCount, null);
+        assertThat(consumption.getTaskId()).isEqualTo(taskId);
         assertThat(consumption.getExampleCount()).isEqualTo(exampleCount);
         assertThat(ByteString.copyFrom(consumption.getSelectionCriteria()))
                 .isEqualTo(ByteString.copyFrom(selectionCriteria));
@@ -74,14 +74,13 @@ public final class ExampleConsumptionTest {
 
     @Test
     public void testBuilder_normalCaseWithResumptionToken() {
-        String taskName = "my_task";
+        String taskId = "my_task";
         byte[] selectionCriteria = new byte[] {10, 0, 1};
         int exampleCount = 10;
         byte[] resumptionToken = new byte[] {25, 10, 4, 56};
         ExampleConsumption consumption =
-                createExampleConsumption(
-                        taskName, selectionCriteria, exampleCount, resumptionToken);
-        assertThat(consumption.getTaskName()).isEqualTo(taskName);
+                createExampleConsumption(taskId, selectionCriteria, exampleCount, resumptionToken);
+        assertThat(consumption.getTaskId()).isEqualTo(taskId);
         assertThat(consumption.getExampleCount()).isEqualTo(exampleCount);
         assertThat(ByteString.copyFrom(consumption.getSelectionCriteria()))
                 .isEqualTo(ByteString.copyFrom(selectionCriteria));
@@ -91,13 +90,12 @@ public final class ExampleConsumptionTest {
 
     @Test
     public void testWriteToParcel() {
-        String taskName = "my_task";
+        String taskId = "my_task";
         byte[] selectionCriteria = new byte[] {10, 0, 1};
         int exampleCount = 10;
         byte[] resumptionToken = new byte[] {25, 10, 4, 56};
         ExampleConsumption consumption =
-                createExampleConsumption(
-                        taskName, selectionCriteria, exampleCount, resumptionToken);
+                createExampleConsumption(taskId, selectionCriteria, exampleCount, resumptionToken);
 
         Parcel parcel = Parcel.obtain();
         consumption.writeToParcel(parcel, 0);
@@ -106,7 +104,7 @@ public final class ExampleConsumptionTest {
         parcel.setDataPosition(0);
         ExampleConsumption recoveredConsumption =
                 ExampleConsumption.CREATOR.createFromParcel(parcel);
-        assertThat(recoveredConsumption.getTaskName()).isEqualTo(taskName);
+        assertThat(recoveredConsumption.getTaskId()).isEqualTo(taskId);
         assertThat(recoveredConsumption.getExampleCount()).isEqualTo(exampleCount);
         assertThat(ByteString.copyFrom(recoveredConsumption.getSelectionCriteria()))
                 .isEqualTo(ByteString.copyFrom(selectionCriteria));
@@ -115,13 +113,13 @@ public final class ExampleConsumptionTest {
     }
 
     private static ExampleConsumption createExampleConsumption(
-            String taskName,
+            String taskId,
             byte[] selectionCriteria,
             int exampleCount,
             @Nullable byte[] resumptionToken) {
         ExampleConsumption.Builder builder =
                 new ExampleConsumption.Builder()
-                        .setTaskName(taskName)
+                        .setTaskId(taskId)
                         .setSelectionCriteria(selectionCriteria)
                         .setExampleCount(exampleCount);
         if (resumptionToken != null) {

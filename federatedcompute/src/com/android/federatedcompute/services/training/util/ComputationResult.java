@@ -20,6 +20,7 @@ import android.federatedcompute.common.ExampleConsumption;
 
 import com.google.intelligence.fcp.client.FLRunnerResult;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
+import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultRequest.Result;
 
 import java.util.ArrayList;
 
@@ -52,5 +53,16 @@ public class ComputationResult {
 
     public boolean isResultSuccess() {
         return mFlRunnerResult.getContributionResult() == ContributionResult.SUCCESS;
+    }
+
+    /** Convert {@link ContributionResult} to {@link Result}. */
+    public Result convertToResult() {
+        if (mFlRunnerResult.getContributionResult() == ContributionResult.SUCCESS) {
+            return Result.COMPLETED;
+        }
+        if (mFlRunnerResult.getErrorStatus() == FLRunnerResult.ErrorStatus.NOT_ELIGIBLE) {
+            return Result.NOT_ELIGIBLE;
+        }
+        return Result.FAILED;
     }
 }

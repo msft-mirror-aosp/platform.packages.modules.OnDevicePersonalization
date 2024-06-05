@@ -35,23 +35,4 @@ public val USER_DATA_GENERATED_DTD: DataTypeDescriptor = dataTypeDescriptor(name
         "packageName" to FieldType.String
         "installed" to FieldType.Boolean
       })
-      "appUsageHistory" to FieldType.List(dataTypeDescriptor(name = "chronicle_dtd.AppUsageStatus",
-          cls = AppUsageStatus::class) {
-        "packageName" to FieldType.String
-        "totalTimeUsedMillis" to FieldType.Long
-      })
-      "currentLocation" to dataTypeDescriptor(name = "chronicle_dtd.Location", cls =
-          Location::class) {
-        "timeSec" to FieldType.Long
-        "latitude" to FieldType.Double
-        "longitude" to FieldType.Double
-        "locationProvider" to FieldType.Integer
-        "preciseLocation" to FieldType.Boolean
-      }
-      "locationHistory" to FieldType.List(dataTypeDescriptor(name = "chronicle_dtd.LocationStatus",
-          cls = LocationStatus::class) {
-        "latitude" to FieldType.Double
-        "longitude" to FieldType.Double
-        "durationMillis" to FieldType.Long
-      })
     }

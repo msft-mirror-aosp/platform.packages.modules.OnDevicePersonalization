@@ -67,10 +67,10 @@ public class ResultCallbackHelper {
      * Publishes the training result and example list to client implemented ResultHandlingService.
      */
     public ListenableFuture<CallbackResult> callHandleResult(
-            String taskName, FederatedTrainingTask task, ComputationResult result) {
+            String taskId, FederatedTrainingTask task, ComputationResult result) {
         Bundle input = new Bundle();
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, task.populationName());
-        input.putString(ClientConstants.EXTRA_TASK_NAME, taskName);
+        input.putString(ClientConstants.EXTRA_TASK_ID, taskId);
         input.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA, task.contextData());
         input.putInt(
                 ClientConstants.EXTRA_COMPUTATION_RESULT,

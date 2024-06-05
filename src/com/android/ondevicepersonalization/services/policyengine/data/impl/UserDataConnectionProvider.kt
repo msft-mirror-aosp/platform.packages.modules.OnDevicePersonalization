@@ -17,13 +17,6 @@
 package com.android.ondevicepersonalization.services.policyengine.data.impl
 
 import android.adservices.ondevicepersonalization.UserData
-import android.adservices.ondevicepersonalization.Location
-import android.adservices.ondevicepersonalization.AppInfo
-import android.adservices.ondevicepersonalization.AppUsageStatus
-import android.adservices.ondevicepersonalization.LocationStatus
-import android.util.ArrayMap
-
-import com.android.ondevicepersonalization.services.data.user.RawUserData
 import com.android.libraries.pcc.chronicle.api.Connection
 import com.android.libraries.pcc.chronicle.api.ConnectionProvider
 import com.android.libraries.pcc.chronicle.api.ConnectionRequest
@@ -31,10 +24,9 @@ import com.android.libraries.pcc.chronicle.api.DataType
 import com.android.libraries.pcc.chronicle.api.ManagedDataType
 import com.android.libraries.pcc.chronicle.api.ManagementStrategy
 import com.android.libraries.pcc.chronicle.api.StorageMedia
-
+import com.android.ondevicepersonalization.services.data.user.RawUserData
 import com.android.ondevicepersonalization.services.policyengine.data.USER_DATA_GENERATED_DTD
 import com.android.ondevicepersonalization.services.policyengine.data.UserDataReader
-
 import java.time.Duration
 
 /** [ConnectionProvider] implementation for ODA use data. */
@@ -54,6 +46,8 @@ class UserDataConnectionProvider() : ConnectionProvider {
         override fun readUserData(): UserData? {
             val rawUserData: RawUserData = RawUserData.getInstance() ?: return null
             // TODO(b/267013762): more privacy-preserving processing may be needed
+            // TODO(b/335448697): Not set app install info when return user data and will add it
+            //  back after label DP is added.
             val builder: UserData.Builder = UserData.Builder()
                     .setTimezoneUtcOffsetMins(rawUserData.utcOffset)
                     .setOrientation(rawUserData.orientation)
@@ -61,55 +55,12 @@ class UserDataConnectionProvider() : ConnectionProvider {
                     .setBatteryPercentage(rawUserData.batteryPercentage)
                     .setCarrier(rawUserData.carrier.toString())
                     .setDataNetworkType(rawUserData.dataNetworkType)
-                    .setCurrentLocation(Location.Builder()
-                            .setTimestampSeconds(rawUserData.currentLocation.timeMillis / 1000)
-                            .setLatitude(rawUserData.currentLocation.latitude)
-                            .setLongitude(rawUserData.currentLocation.longitude)
-                            .setLocationProvider(rawUserData.currentLocation.provider.ordinal)
-                            .setPreciseLocation(rawUserData.currentLocation.isPreciseLocation)
-                            .build())
-                    .setAppInfos(getAppInfos(rawUserData))
-                    .setAppUsageHistory(getAppUsageHistory(rawUserData))
-                    .setLocationHistory(getLocationHistory(rawUserData))
+
             // TODO (b/299683848): follow up the codegen bug
             if (rawUserData.networkCapabilities != null) {
                 builder.setNetworkCapabilities(rawUserData.networkCapabilities)
             }
             return builder.build()
-        }
-
-        private fun getAppInfos(rawUserData: RawUserData): Map<String, AppInfo> {
-            var res = ArrayMap<String, AppInfo>()
-            for (appInfo in rawUserData.appsInfo) {
-                res.put(appInfo.packageName,
-                        AppInfo.Builder()
-                            .setInstalled(appInfo.installed)
-                            .build())
-            }
-            return res
-        }
-
-        private fun getAppUsageHistory(rawUserData: RawUserData): List<AppUsageStatus> {
-            var res = ArrayList<AppUsageStatus>()
-            rawUserData.appUsageHistory.forEach {
-                (key, value) -> res.add(AppUsageStatus.Builder()
-                        .setPackageName(key)
-                        .setTotalTimeUsedInMillis(value)
-                        .build())
-            }
-            return res.sortedWith(compareBy({ it.getTotalTimeUsedInMillis() }))
-        }
-
-        private fun getLocationHistory(rawUserData: RawUserData): List<LocationStatus> {
-            var res = ArrayList<LocationStatus>()
-            rawUserData.locationHistory.forEach {
-                (key, value) -> res.add(LocationStatus.Builder()
-                        .setLatitude(key.latitude)
-                        .setLongitude(key.longitude)
-                        .setDurationMillis(value)
-                        .build())
-            }
-            return res.sortedWith(compareBy({ it.getDurationMillis() }))
         }
     }
 }

@@ -62,9 +62,7 @@ public class PhFlagsTestUtil {
                 /* makeDefault */ false);
     }
 
-    /**
-     * Enable scheduling the background key fetch job.
-     */
+    /** Enable scheduling the background key fetch job. */
     public static void enableScheduleBackgroundKeyFetchJob() {
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -73,9 +71,7 @@ public class PhFlagsTestUtil {
                 /* makeDefault= */ false);
     }
 
-    /**
-     * Disable scheduling the background key fetch job.
-     */
+    /** Disable scheduling the background key fetch job. */
     public static void disableScheduleBackgroundKeyFetchJob() {
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -83,5 +79,4 @@ public class PhFlagsTestUtil {
                 Boolean.toString(false),
                 /* makeDefault= */ false);
     }
-
 }

@@ -16,14 +16,15 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
-import android.text.TextUtils;
+import android.net.NetworkCapabilities;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -33,11 +34,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.List;
 import java.util.TimeZone;
 
 @RunWith(JUnit4.class)
@@ -66,16 +62,6 @@ public class UserDataCollectorTest {
         assertTrue(mUserData.batteryPercentage <= 100);
         assertNotNull(mUserData.networkCapabilities);
         assertTrue(UserDataCollector.ALLOWED_NETWORK_TYPE.contains(mUserData.dataNetworkType));
-
-        List<AppInfo> appsInfo = new ArrayList();
-        mCollector.getInstalledApps(appsInfo);
-        assertTrue(mUserData.appsInfo.size() > 0);
-        assertEquals(mUserData.appsInfo.size(), appsInfo.size());
-        for (int i = 0; i < mUserData.appsInfo.size(); ++i) {
-            assertFalse(TextUtils.isEmpty(mUserData.appsInfo.get(i).packageName));
-            assertEquals(mUserData.appsInfo.get(i).packageName, appsInfo.get(i).packageName);
-            assertEquals(mUserData.appsInfo.get(i).installed, appsInfo.get(i).installed);
-        }
     }
 
     @Test
@@ -89,81 +75,26 @@ public class UserDataCollectorTest {
     }
 
     @Test
-    public void testRecoveryFromSystemCrash() {
-        mCollector.updateUserData(mUserData);
-        // Backup sample answer.
-        final HashMap<String, Long> refAppUsageHistogram =
-                copyAppUsageMap(mUserData.appUsageHistory);
-        final HashMap<LocationInfo, Long> refLocationHistogram =
-                copyLocationMap(mUserData.locationHistory);
-        final Deque<AppUsageEntry> refAllowedAppUsageEntries =
-                copyAppUsageEntries(mCollector.getAllowedAppUsageEntries());
-        final Deque<LocationInfo> refAllowedLocationEntries =
-                copyLocationEntries(mCollector.getAllowedLocationEntries());
-        final long refLastTimeAppUsageCollected = mCollector.getLastTimeMillisAppUsageCollected();
-
-        // Mock system crash scenario.
-        mCollector.clearUserData(mUserData);
-        mCollector.clearMetadata();
-        mCollector.recoverAppUsageHistogram(mUserData.appUsageHistory);
-        mCollector.recoverLocationHistogram(mUserData.locationHistory);
-
-        assertEquals(refAppUsageHistogram.size(), mUserData.appUsageHistory.size());
-        for (String key: refAppUsageHistogram.keySet()) {
-            assertTrue(mUserData.appUsageHistory.containsKey(key));
-            assertEquals(refAppUsageHistogram.get(key), mUserData.appUsageHistory.get(key));
-        }
-        assertEquals(refLastTimeAppUsageCollected,
-                mCollector.getLastTimeMillisAppUsageCollected());
-        assertEquals(refAllowedAppUsageEntries.size(),
-                mCollector.getAllowedAppUsageEntries().size());
-
-        assertEquals(refLocationHistogram.size(), mUserData.locationHistory.size());
-        for (LocationInfo locationInfo: refLocationHistogram.keySet()) {
-            assertTrue(mUserData.locationHistory.containsKey(locationInfo));
-            assertEquals(refLocationHistogram.get(locationInfo),
-                    mUserData.locationHistory.get(locationInfo));
-        }
-        assertEquals(refAllowedLocationEntries.size(),
-                mCollector.getAllowedLocationEntries().size());
-    }
-
-    private HashMap<String, Long> copyAppUsageMap(HashMap<String, Long> other) {
-        HashMap<String, Long> copy = new HashMap<>();
-        for (String key: other.keySet()) {
-            copy.put(key, (long) other.get(key));
-        }
-        return copy;
-    }
-
-    private HashMap<LocationInfo, Long> copyLocationMap(HashMap<LocationInfo, Long> other) {
-        HashMap<LocationInfo, Long> copy = new HashMap<>();
-        for (LocationInfo key: other.keySet()) {
-            copy.put(new LocationInfo(key), (long) other.get(key));
-        }
-        return copy;
-    }
-
-    private Deque<AppUsageEntry> copyAppUsageEntries(Deque<AppUsageEntry> other) {
-        Deque<AppUsageEntry> copy = new ArrayDeque<>();
-        for (AppUsageEntry entry: other) {
-            copy.add(new AppUsageEntry(entry));
-        }
-        return copy;
-    }
-
-    private Deque<LocationInfo> copyLocationEntries(Deque<LocationInfo> other) {
-        Deque<LocationInfo> copy = new ArrayDeque<>();
-        for (LocationInfo entry: other) {
-            copy.add(new LocationInfo(entry));
-        }
-        return copy;
+    public void testFilterNetworkCapabilities() {
+        NetworkCapabilities cap = new NetworkCapabilities.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_TRUSTED)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+                .setLinkDownstreamBandwidthKbps(100)
+                .setLinkUpstreamBandwidthKbps(10)
+                .setSsid("myssid")
+                .build();
+        NetworkCapabilities filteredCap = UserDataCollector.getFilteredNetworkCapabilities(cap);
+        assertEquals(100, filteredCap.getLinkDownstreamBandwidthKbps());
+        assertEquals(10, filteredCap.getLinkUpstreamBandwidthKbps());
+        assertNull(filteredCap.getSsid());
+        assertArrayEquals(
+                new int[]{NetworkCapabilities.NET_CAPABILITY_NOT_METERED},
+                filteredCap.getCapabilities());
     }
 
     @After
     public void cleanUp() {
         mCollector.clearUserData(mUserData);
         mCollector.clearMetadata();
-        mCollector.clearDatabase();
     }
 }

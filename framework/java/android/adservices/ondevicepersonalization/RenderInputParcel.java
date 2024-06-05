@@ -35,7 +35,7 @@ public final class RenderInputParcel implements Parcelable {
 
     /**
      * A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
      */
     @Nullable RenderingConfig mRenderingConfig = null;
 
@@ -84,7 +84,7 @@ public final class RenderInputParcel implements Parcelable {
 
     /**
      * A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
      */
     @DataClass.Generated.Member
     public @Nullable RenderingConfig getRenderingConfig() {
@@ -183,7 +183,7 @@ public final class RenderInputParcel implements Parcelable {
 
         /**
          * A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
-         * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+         * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
          */
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setRenderingConfig(@android.annotation.NonNull RenderingConfig value) {

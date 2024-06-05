@@ -18,12 +18,12 @@ package android.federatedcompute;
 
 import android.annotation.CallbackExecutor;
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.content.Context;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IFederatedComputeService;
 import android.federatedcompute.common.ScheduleFederatedComputeRequest;
 import android.os.OutcomeReceiver;
-import android.os.RemoteException;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.federatedcompute.internal.util.LogUtil;
@@ -109,8 +109,8 @@ public final class FederatedComputeManager {
                     mContext.getPackageName(),
                     request.getTrainingOptions(),
                     federatedComputeCallback);
-        } catch (RemoteException e) {
-            LogUtil.e(TAG, e, "Remote Exception");
+        } catch (Exception e) {
+            LogUtil.e(TAG, e, "Exception when schedule federated job");
             executor.execute(() -> callback.onError(e));
             unbindFromService();
         }
@@ -122,6 +122,7 @@ public final class FederatedComputeManager {
      * @hide
      */
     public void cancel(
+            @NonNull ComponentName ownerComponent,
             @NonNull String populationName,
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<Object, Exception> callback) {
@@ -150,9 +151,9 @@ public final class FederatedComputeManager {
                             unbindFromService();
                         }
                     };
-            service.cancel(mContext.getPackageName(), populationName, federatedComputeCallback);
-        } catch (RemoteException e) {
-            LogUtil.e(TAG, e, "Remote Exception");
+            service.cancel(ownerComponent, populationName, federatedComputeCallback);
+        } catch (Exception e) {
+            LogUtil.e(TAG, e, "Exception when cancel federated job %s", populationName);
             executor.execute(() -> callback.onError(e));
             unbindFromService();
         }

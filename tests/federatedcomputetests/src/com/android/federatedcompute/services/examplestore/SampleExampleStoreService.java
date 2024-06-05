@@ -17,14 +17,12 @@
 package com.android.federatedcompute.services.examplestore;
 
 import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESULT;
-import static android.federatedcompute.common.ClientConstants.EXTRA_TASK_NAME;
+import static android.federatedcompute.common.ClientConstants.EXTRA_TASK_ID;
 import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ERROR;
 
 import android.annotation.NonNull;
 import android.federatedcompute.ExampleStoreIterator;
-import android.federatedcompute.ExampleStoreIterator.IteratorCallback;
 import android.federatedcompute.ExampleStoreService;
-import android.federatedcompute.ExampleStoreService.QueryCallback;
 import android.os.Bundle;
 
 import com.google.common.collect.ImmutableList;
@@ -58,7 +56,7 @@ public class SampleExampleStoreService extends ExampleStoreService {
 
     @Override
     public void startQuery(@NonNull Bundle params, @NonNull QueryCallback callback) {
-        String collection = params.getString(EXTRA_TASK_NAME);
+        String collection = params.getString(EXTRA_TASK_ID);
         if (!collection.equals(EXPECTED_TASK_NAME)) {
             callback.onStartQueryFailure(STATUS_INTERNAL_ERROR);
             return;

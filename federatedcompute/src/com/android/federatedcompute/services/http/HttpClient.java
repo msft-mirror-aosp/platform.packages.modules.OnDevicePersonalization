@@ -23,6 +23,8 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 
 import com.android.federatedcompute.internal.util.LogUtil;
+import com.android.federatedcompute.services.common.Flags;
+import com.android.federatedcompute.services.common.PhFlags;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
@@ -45,11 +47,13 @@ import java.util.concurrent.TimeUnit;
  */
 public class HttpClient {
     private static final String TAG = HttpClient.class.getSimpleName();
-    private static final int RETRY_LIMIT = 3;
     private static final int NETWORK_CONNECT_TIMEOUT_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final int NETWORK_READ_TIMEOUT_MS = (int) TimeUnit.SECONDS.toMillis(30);
+    private final Flags mFlags;
 
-    public HttpClient() {}
+    public HttpClient() {
+        mFlags = PhFlags.getInstance();
+    }
 
     @NonNull
     @VisibleForTesting
@@ -81,7 +85,8 @@ public class HttpClient {
             throws IOException {
         int count = 0;
         FederatedComputeHttpResponse response = null;
-        while (count < RETRY_LIMIT) {
+        int retryLimit = mFlags.getHttpRequestRetryLimit();
+        while (count < retryLimit) {
             try {
                 response = performRequest(request);
                 if (HTTP_OK_STATUS.contains(response.getStatusCode())) {
@@ -90,7 +95,7 @@ public class HttpClient {
                 // we want to continue retry in case it is IO exception.
             } catch (IOException e) {
                 // propagate IO exception after RETRY_LIMIT times attempt.
-                if (count >= RETRY_LIMIT - 1) {
+                if (count >= retryLimit - 1) {
                     throw e;
                 }
             } finally {

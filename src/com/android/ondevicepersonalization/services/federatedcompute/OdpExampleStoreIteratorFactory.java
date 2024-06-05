@@ -16,20 +16,17 @@
 
 package com.android.ondevicepersonalization.services.federatedcompute;
 
+import android.adservices.ondevicepersonalization.TrainingExampleRecord;
+
 import java.util.List;
 
-/**
- * Factory for creating iterators
- */
+/** Factory for creating iterators */
 public class OdpExampleStoreIteratorFactory {
     private static volatile OdpExampleStoreIteratorFactory sSingleton;
 
-    private OdpExampleStoreIteratorFactory() {
-    }
+    private OdpExampleStoreIteratorFactory() {}
 
-    /**
-     * Returns an instance of OdpExampleStoreIteratorFactory
-     */
+    /** Returns an instance of OdpExampleStoreIteratorFactory */
     public static OdpExampleStoreIteratorFactory getInstance() {
         if (null == sSingleton) {
             synchronized (OdpExampleStoreIteratorFactory.class) {
@@ -41,11 +38,8 @@ public class OdpExampleStoreIteratorFactory {
         return sSingleton;
     }
 
-    /**
-     * Creates an OdpExampleStoreIterator
-     */
-    public OdpExampleStoreIterator createIterator(List<byte[]> exampleList,
-            List<byte[]> resumptionTokens) {
-        return new OdpExampleStoreIterator(exampleList, resumptionTokens);
+    /** Creates an OdpExampleStoreIterator */
+    public OdpExampleStoreIterator createIterator(List<TrainingExampleRecord> exampleRecordList) {
+        return new OdpExampleStoreIterator(exampleRecordList);
     }
 }

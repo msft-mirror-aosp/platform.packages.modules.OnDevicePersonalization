@@ -20,14 +20,11 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
-import android.security.keystore.StrongBoxUnavailableException;
 import android.util.Base64;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.internal.annotations.VisibleForTesting;
 
-import java.io.IOException;
-import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -35,7 +32,6 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.security.spec.ECGenParameterSpec;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,8 +72,9 @@ public class KeyAttestation {
         if (sSingletonInstance == null) {
             synchronized (KeyAttestation.class) {
                 if (sSingletonInstance == null) {
-                    boolean useStrongBox = context.getPackageManager()
-                            .hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE);
+                    boolean useStrongBox =
+                            context.getPackageManager()
+                                    .hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE);
                     sSingletonInstance = new KeyAttestation(useStrongBox, new Injector());
                 }
             }
@@ -94,8 +91,9 @@ public class KeyAttestation {
         if (sSingletonInstance == null) {
             synchronized (KeyAttestation.class) {
                 if (sSingletonInstance == null) {
-                    boolean useStrongBox = context.getPackageManager()
-                            .hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE);
+                    boolean useStrongBox =
+                            context.getPackageManager()
+                                    .hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE);
                     return new KeyAttestation(useStrongBox, injector);
                 }
             }
@@ -133,17 +131,9 @@ public class KeyAttestation {
                             .setDevicePropertiesAttestationIncluded(false)
                             .setIsStrongBoxBacked(mUseStrongBox)
                             .build());
-            LogUtil.e(TAG, keyPairGenerator.getAlgorithm());
             return keyPairGenerator.generateKeyPair();
-        } catch (NoSuchAlgorithmException
-                | NoSuchProviderException
-                | InvalidAlgorithmParameterException e) {
-            LogUtil.e(TAG, "Failed to generate EC key for attestation: " + e.getMessage());
-        } catch (StrongBoxUnavailableException e) {
-            LogUtil.e(
-                    TAG,
-                    "Strong box not available on device but isStrongBox is set to true: "
-                            + e.getMessage());
+        } catch (Exception e) {
+            LogUtil.e(TAG, e, "Failed to generate hybrid key attestation.");
         }
         return null;
     }
@@ -163,25 +153,8 @@ public class KeyAttestation {
                         Base64.encodeToString(certificate.getEncoded(), Base64.NO_WRAP));
             }
             return attestationRecord;
-        } catch (CertificateException e) {
-            LogUtil.e(
-                    TAG,
-                    "CertificateException when"
-                            + "generate certs for attestation: " + e.getMessage());
-        } catch (IOException e) {
-            LogUtil.e(
-                    TAG, "IOException when "
-                            + "generate certs for attestation: " + e.getMessage());
-        } catch (KeyStoreException e) {
-            LogUtil.e(
-                    TAG,
-                    "KeystoreException when "
-                            + "generate certs for attestation: " + e.getMessage());
-        } catch (NoSuchAlgorithmException e) {
-            LogUtil.e(
-                    TAG,
-                    "NoSuchAlgorithmException when"
-                            + "generate certs for attestation: " + e.getMessage());
+        } catch (Exception e) {
+            LogUtil.e(TAG, e, "Got exception when generate attestation record");
         }
         return new ArrayList<>();
     }

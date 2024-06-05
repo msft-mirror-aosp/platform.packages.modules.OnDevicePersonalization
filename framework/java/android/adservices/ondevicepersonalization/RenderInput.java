@@ -16,21 +16,19 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
  * The input data for
- * {@link IsolatedWorker#onRender(RenderInput, java.util.function.Consumer)}.
+ * {@link IsolatedWorker#onRender(RenderInput, android.os.OutcomeReceiver)}.
  *
- * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 @DataClass(genBuilder = false, genHiddenConstructor = true, genEqualsHashCode = true)
 public final class RenderInput {
     /** The width of the slot. */
@@ -41,7 +39,7 @@ public final class RenderInput {
 
     /**
      * A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
      */
     @Nullable RenderingConfig mRenderingConfig = null;
 
@@ -74,7 +72,7 @@ public final class RenderInput {
      *   The height of the slot.
      * @param renderingConfig
      *   A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
-     *   {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+     *   {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
      * @hide
      */
     @DataClass.Generated.Member
@@ -107,7 +105,7 @@ public final class RenderInput {
 
     /**
      * A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
      */
     @DataClass.Generated.Member
     public @Nullable RenderingConfig getRenderingConfig() {

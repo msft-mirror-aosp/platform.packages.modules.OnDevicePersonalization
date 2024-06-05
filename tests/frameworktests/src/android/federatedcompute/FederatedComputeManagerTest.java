@@ -26,6 +26,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
@@ -61,6 +62,9 @@ public class FederatedComputeManagerTest {
 
     private final Context mContext =
             spy(new MyTestContext(ApplicationProvider.getApplicationContext()));
+
+    private static final ComponentName OWNER_COMPONENT =
+            ComponentName.createRelative("com.android.package.name", "com.android.class.name");
 
     @Parameterized.Parameter(0)
     public String scenario;
@@ -221,17 +225,32 @@ public class FederatedComputeManagerTest {
             case "cancel-allNull":
                 assertThrows(
                         NullPointerException.class,
-                        () -> manager.cancel(populationName, null, null));
+                        () ->
+                                manager.cancel(
+                                        OWNER_COMPONENT,
+                                        populationName,
+                                        null,
+                                        null));
                 break;
             case "cancel-default-iService":
-                manager.cancel(populationName, Executors.newSingleThreadExecutor(), null);
+                manager.cancel(
+                        OWNER_COMPONENT,
+                        populationName,
+                        Executors.newSingleThreadExecutor(),
+                        null);
                 break;
             case "cancel-mockIService-RemoteException":
                 when(mMockIBinder.queryLocalInterface(any())).thenReturn(mMockIService);
-                doThrow(new RemoteException()).when(mMockIService).cancel(any(), any(), any());
+                doThrow(new RemoteException())
+                        .when(mMockIService)
+                        .cancel(any(), any(), any());
                 spyCallback = spy(new MyTestCallback());
 
-                manager.cancel(populationName, Runnable::run, spyCallback);
+                manager.cancel(
+                        OWNER_COMPONENT,
+                        populationName,
+                        Runnable::run,
+                        spyCallback);
 
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
                 verify(spyCallback, times(1)).onError(any(RemoteException.class));
@@ -250,7 +269,11 @@ public class FederatedComputeManagerTest {
                         .cancel(any(), any(), any());
                 spyCallback = spy(new MyTestCallback());
 
-                manager.cancel(populationName, Runnable::run, spyCallback);
+                manager.cancel(
+                        OWNER_COMPONENT,
+                        populationName,
+                        Runnable::run,
+                        spyCallback);
 
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
                 verify(spyCallback, times(1)).onResult(isNull());
@@ -269,7 +292,11 @@ public class FederatedComputeManagerTest {
                         .cancel(any(), any(), any());
                 spyCallback = spy(new MyTestCallback());
 
-                manager.cancel(populationName, Runnable::run, spyCallback);
+                manager.cancel(
+                        OWNER_COMPONENT,
+                        populationName,
+                        Runnable::run,
+                        spyCallback);
 
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
                 verify(spyCallback, times(1)).onError(any(FederatedComputeException.class));

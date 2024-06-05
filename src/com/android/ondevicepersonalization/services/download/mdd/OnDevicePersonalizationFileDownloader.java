@@ -145,7 +145,7 @@ public class OnDevicePersonalizationFileDownloader implements FileDownloader {
 
         Uri uriToDownload = Uri.parse(urlToDownload);
         if (uriToDownload == null || fileUri == null) {
-            sLogger.e(TAG + ": : Invalid urlToDownload " + urlToDownload);
+            sLogger.e(TAG + ": Invalid urlToDownload " + urlToDownload);
             return immediateFailedFuture(new IllegalArgumentException("Invalid urlToDownload"));
         }
 

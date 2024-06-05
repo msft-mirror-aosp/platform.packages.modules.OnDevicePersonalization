@@ -26,7 +26,7 @@ import androidx.annotation.NonNull;
 public class HpkeJni {
 
     static {
-        System.loadLibrary("fcp_cpp_dep_jni");
+        System.loadLibrary("fcp_hpke_jni");
     }
 
     /**
