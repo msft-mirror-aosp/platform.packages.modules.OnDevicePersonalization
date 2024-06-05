@@ -56,7 +56,8 @@ public final class FederatedTrainingTaskDaoTest {
     private static final String TASK_ID = "task_id";
     private static final String SERVER_ADDRESS = "https://server.uri/";
     private static final int JOB_ID = 123;
-    private static final String OWNER_ID = "com.android.pckg.name/com.android.class.name";
+    private static final String OWNER_PACKAGE = "com.android.pckg.name";
+    private static final String OWNER_CLASS = "com.android.class.name";
     private static final String OWNER_ID_CERT_DIGEST = "123SOME45DIGEST78";
     private static final Long CREATION_TIME = 1233L;
     private static final Long LAST_SCHEDULE_TIME = 1230L;
@@ -215,7 +216,7 @@ public final class FederatedTrainingTaskDaoTest {
         FederatedTrainingTask task3 =
                 createDefaultFederatedTrainingTask().toBuilder()
                         .jobId(457)
-                        .ownerId(OWNER_ID + "_2")
+                        .ownerPackageName(OWNER_PACKAGE + "_2")
                         .build();
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task3);
         FederatedTrainingTask task4 =
@@ -228,7 +229,7 @@ public final class FederatedTrainingTaskDaoTest {
 
         FederatedTrainingTask removedTask =
                 mTrainingTaskDao.findAndRemoveTaskByPopulationNameAndOwnerId(
-                        POPULATION_NAME, OWNER_ID, OWNER_ID_CERT_DIGEST);
+                        POPULATION_NAME, OWNER_PACKAGE, OWNER_CLASS, OWNER_ID_CERT_DIGEST);
 
         assertThat(DataTestUtil.isEqualTask(removedTask, task)).isTrue();
         assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(3);
@@ -238,7 +239,7 @@ public final class FederatedTrainingTaskDaoTest {
     public void findAndRemoveTaskByPopulationNameAndOwnerId_nonExist() {
         FederatedTrainingTask removedTask =
                 mTrainingTaskDao.findAndRemoveTaskByPopulationNameAndOwnerId(
-                        POPULATION_NAME, OWNER_ID, OWNER_ID_CERT_DIGEST);
+                        POPULATION_NAME, OWNER_PACKAGE, OWNER_CLASS, OWNER_ID_CERT_DIGEST);
 
         assertThat(removedTask).isNull();
     }
@@ -335,7 +336,8 @@ public final class FederatedTrainingTaskDaoTest {
         return FederatedTrainingTask.builder()
                 .appPackageName(PACKAGE_NAME)
                 .jobId(JOB_ID)
-                .ownerId(OWNER_ID)
+                .ownerPackageName(OWNER_PACKAGE)
+                .ownerClassName(OWNER_CLASS)
                 .ownerIdCertDigest(OWNER_ID_CERT_DIGEST)
                 .populationName(POPULATION_NAME)
                 .serverAddress(SERVER_ADDRESS)
