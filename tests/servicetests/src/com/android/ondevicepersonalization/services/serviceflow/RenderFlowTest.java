@@ -128,7 +128,7 @@ public class RenderFlowTest {
         doReturn(false).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
 
         mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
-                100, 50, new TestRenderFlowCallback(), mContext, 100L);
+                100, 50, new TestRenderFlowCallback(), mContext, 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -138,7 +138,7 @@ public class RenderFlowTest {
     @Test
     public void testRunRenderFlow_InvalidToken() throws Exception {
         mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
-                100, 50, new TestRenderFlowCallback(), mContext, 100L);
+                100, 50, new TestRenderFlowCallback(), mContext, 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -159,7 +159,7 @@ public class RenderFlowTest {
                 .when(() -> CryptUtils.decrypt("token"));
 
         mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
-                100, 50, new TestRenderFlowCallback(), mContext, 100L);
+                100, 50, new TestRenderFlowCallback(), mContext, 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
