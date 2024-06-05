@@ -21,6 +21,7 @@ import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAU
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_ENABLE_ELIGIBILITY_TASK;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_FCP_MODULE_JOB_POLICY;
+import static com.android.federatedcompute.services.common.Flags.DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_SCHEDULING_PERIOD_SECS;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_SPE_PILOT_JOB_ENABLED;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_THERMAL_STATUS_TO_THROTTLE;
@@ -54,6 +55,7 @@ import static com.android.federatedcompute.services.common.PhFlags.FCP_MODULE_JO
 import static com.android.federatedcompute.services.common.PhFlags.FCP_RECURRENT_RESCHEDULE_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_RESCHEDULE_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_SPE_PILOT_JOB_ENABLED;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL;
 import static com.android.federatedcompute.services.common.PhFlags.HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
@@ -198,6 +200,11 @@ public class PhFlagsTest {
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME,
                 Long.toString(FCP_DEFAULT_MEMORY_SIZE_LIMIT),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME,
+                Integer.toString(DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE),
                 /* makeDefault= */ false);
     }
 
@@ -668,6 +675,29 @@ public class PhFlagsTest {
 
         Flags phFlags = FlagsFactory.getFlags();
         assertThat(phFlags.getFcpMemorySizeLimit()).isEqualTo(overrideFcpMemLimit);
+    }
+
+    @Test
+    public void testGetFcpTaskCountPerPackage() {
+        // Without Overriding
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME,
+                Integer.toString(DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getFcpTaskLimitPerPackage())
+                .isEqualTo(DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE);
+
+        // Now overriding the value from PH.
+        int overrideFcpTaskLimit = 1000;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME,
+                Integer.toString(overrideFcpTaskLimit),
+                /* makeDefault= */ false);
+
+        Flags phFlags = FlagsFactory.getFlags();
+        assertThat(phFlags.getFcpTaskLimitPerPackage()).isEqualTo(overrideFcpTaskLimit);
     }
 
     @Test

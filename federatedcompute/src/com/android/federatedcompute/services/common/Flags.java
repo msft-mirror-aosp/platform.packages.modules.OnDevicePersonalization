@@ -261,4 +261,10 @@ public interface Flags extends ModuleSharedFlags {
     default boolean getSpePilotJobEnabled() {
         return DEFAULT_SPE_PILOT_JOB_ENABLED;
     }
+
+    @ConfigFlag int DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE = 50;
+
+    default int getFcpTaskLimitPerPackage() {
+        return DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE;
+    }
 }
