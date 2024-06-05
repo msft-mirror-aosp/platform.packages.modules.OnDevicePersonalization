@@ -76,6 +76,7 @@ public final class PhFlags implements Flags {
     static final String FCP_RECURRENT_RESCHEDULE_LIMIT_CONFIG_NAME = "recurrent_reschedule_limit";
 
     static final String FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME = "memory_size_limit";
+    static final String FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME = "task_limit_per_package";
     static final String FCP_ENABLE_CLIENT_ERROR_LOGGING = "fcp_enable_client_error_logging";
     static final String FCP_ENABLE_BACKGROUND_JOBS_LOGGING = "fcp_enable_background_jobs_logging";
     static final String FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE =
@@ -90,6 +91,7 @@ public final class PhFlags implements Flags {
             "example_store_service_timeout_sec";
     static final String FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME = "tf_error_reschedule_seconds";
     static final String EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC = "example_iterator_next_timeout_sec";
+    static final int FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE = 10;
 
     private static final PhFlags sSingleton = new PhFlags();
 
@@ -290,7 +292,7 @@ public final class PhFlags implements Flags {
         return DeviceConfig.getInt(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE,
-                /* defaultValue= */ BACKGROUND_JOB_SAMPLING_LOGGING_RATE);
+                /* defaultValue= */ FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE);
     }
 
     @Override
@@ -355,5 +357,13 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME,
                 /* defaultValue= */ FCP_DEFAULT_MEMORY_SIZE_LIMIT);
+    }
+
+    @Override
+    public int getFcpTaskLimitPerPackage() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME,
+                /* defaultValue= */ DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE);
     }
 }
