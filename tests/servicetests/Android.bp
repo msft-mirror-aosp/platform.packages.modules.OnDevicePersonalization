@@ -28,6 +28,7 @@ android_test {
         ":ondevicepersonalization-fbs",
         ":chronicle-sources",
         ":statslog-ondevicepersonalization-java-gen",
+        ":common-ondevicepersonalization-sources",
     ],
     libs: [
         "android.test.base",
@@ -36,6 +37,7 @@ android_test {
         "framework-annotations-lib",
         "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
+        "framework-location.stubs.module_lib",
         "kotlin-annotations",
         "truth",
         "framework-ondevicepersonalization.impl",

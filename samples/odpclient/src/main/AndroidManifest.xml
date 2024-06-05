@@ -17,7 +17,10 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.example.odpclient"
-          android:versionName="1.1.0" >
+          android:versionName="1.1.1" >
+          <queries>
+              <package android:name="com.example.odpsamplenetwork" />
+          </queries>>
     <application
         android:label="@string/title_activity_main">
 

@@ -29,10 +29,13 @@ import android.content.Context;
 import android.os.Bundle;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.DataAccessPermission;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
@@ -40,8 +43,6 @@ import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
-import com.android.ondevicepersonalization.services.util.Clock;
-import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
@@ -63,6 +64,8 @@ public class WebViewFlow implements ServiceFlow<EventOutputParcel> {
     private static final String TAG = WebViewFlow.class.getSimpleName();
 
     public static final String TASK_NAME = "ComputeEventMetrics";
+
+    private static final Object sDedupLock = new Object();
 
     @NonNull
     private final Context mContext;
@@ -137,7 +140,8 @@ public class WebViewFlow implements ServiceFlow<EventOutputParcel> {
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER,
                 new DataAccessServiceImpl(
                         mService, mContext,
-                        /* includeLocalData */ true, /* includeEventData */ true));
+                        /* localDataPermission */ DataAccessPermission.READ_WRITE,
+                        /* eventDataPermission */ DataAccessPermission.READ_ONLY));
         serviceParams.putParcelable(Constants.EXTRA_INPUT,
                 new EventInputParcel.Builder()
                         .setParameters(mPayload.getEventParams())
@@ -239,6 +243,7 @@ public class WebViewFlow implements ServiceFlow<EventOutputParcel> {
                 sLogger.w(TAG + ": rowOffset out of range");
                 return Futures.immediateFuture(null);
             }
+
             byte[] data = OnDevicePersonalizationFlatbufferUtils.createEventData(
                     eventData.getData());
             Event event = new Event.Builder()
@@ -249,8 +254,16 @@ public class WebViewFlow implements ServiceFlow<EventOutputParcel> {
                     .setRowIndex(eventData.getRowIndex())
                     .setEventData(data)
                     .build();
-            if (-1 == EventsDao.getInstance(mContext).insertEvent(event)) {
-                sLogger.e(TAG + ": Failed to insert event: " + event);
+            EventsDao dao = EventsDao.getInstance(mContext);
+            synchronized (sDedupLock) {
+                // Do not insert duplicate event.
+                // TODO(b/340264727): Enforce this constraint in DB.
+                if (!dao.hasEvent(
+                        mQueryId, eventData.getType(), eventData.getRowIndex(), mService)) {
+                    if (-1 == dao.insertEvent(event)) {
+                        sLogger.e(TAG + ": Failed to insert event: " + event);
+                    }
+                }
             }
             return Futures.immediateFuture(null);
         } catch (Exception e) {

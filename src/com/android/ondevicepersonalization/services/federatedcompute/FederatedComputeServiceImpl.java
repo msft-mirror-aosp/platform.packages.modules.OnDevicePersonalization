@@ -32,13 +32,13 @@ import android.os.SystemProperties;
 import android.provider.DeviceConfig;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
-import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 
@@ -89,12 +89,6 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
     private void handleSchedule(
             TrainingOptions trainingOptions, IFederatedComputeCallback callback) {
         try {
-            if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
-                sLogger.d(TAG + ": personalization is disabled.");
-                sendError(callback);
-                return;
-            }
-
             if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
                 sLogger.d(TAG + ": measurement control is revoked.");
                 sendError(callback);

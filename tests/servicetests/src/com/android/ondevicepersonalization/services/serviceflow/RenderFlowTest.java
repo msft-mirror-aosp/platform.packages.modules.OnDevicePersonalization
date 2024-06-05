@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 
+import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
@@ -110,7 +111,6 @@ public class RenderFlowTest {
         setUpTestDate();
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
         doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
 
         mSfo = new ServiceFlowOrchestrator();
@@ -124,23 +124,11 @@ public class RenderFlowTest {
     }
 
     @Test
-    public void testRenderFlow_PersonalizationDisabled() throws Exception {
-        doReturn(false).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
-
-        mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
-                100, 50, new TestRenderFlowCallback(), mContext, 100L);
-        mLatch.await();
-
-        assertTrue(mCallbackError);
-        assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
-    }
-
-    @Test
     public void testRenderFlow_TargetingControlRevoked() throws Exception {
         doReturn(false).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
 
         mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
-                100, 50, new TestRenderFlowCallback(), mContext, 100L);
+                100, 50, new TestRenderFlowCallback(), mContext, 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -150,7 +138,7 @@ public class RenderFlowTest {
     @Test
     public void testRunRenderFlow_InvalidToken() throws Exception {
         mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
-                100, 50, new TestRenderFlowCallback(), mContext, 100L);
+                100, 50, new TestRenderFlowCallback(), mContext, 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -171,7 +159,7 @@ public class RenderFlowTest {
                 .when(() -> CryptUtils.decrypt("token"));
 
         mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
-                100, 50, new TestRenderFlowCallback(), mContext, 100L);
+                100, 50, new TestRenderFlowCallback(), mContext, 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
@@ -196,12 +184,14 @@ public class RenderFlowTest {
     }
 
     class TestRenderFlowCallback extends IRequestSurfacePackageCallback.Stub {
-        @Override public void onSuccess(SurfacePackage surfacePackage) {
+        @Override public void onSuccess(SurfacePackage surfacePackage,
+                CalleeMetadata calleeMetadata) {
             mCallbackSuccess = true;
             mLatch.countDown();
         }
         @Override public void onError(
-                int errorCode, int isolatedServiceErrorCode, String message) {
+                int errorCode, int isolatedServiceErrorCode, String message,
+                CalleeMetadata calleeMetadata) {
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;

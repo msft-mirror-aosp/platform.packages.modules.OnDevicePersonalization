@@ -30,9 +30,11 @@ import static com.android.federatedcompute.services.common.FileUtils.createTempF
 import static com.android.federatedcompute.services.common.FileUtils.createTempFileDescriptor;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_NOT_CONFIGURED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_COMPLETE;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ComponentName;
 import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.aidl.IExampleStoreService;
@@ -52,7 +54,6 @@ import com.android.federatedcompute.services.common.ExampleStats;
 import com.android.federatedcompute.services.common.FileUtils;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
-import com.android.federatedcompute.services.common.PackageUtils;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
@@ -72,11 +73,13 @@ import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.federatedcompute.services.training.aidl.IIsolatedTrainingService;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
 import com.android.federatedcompute.services.training.util.ComputationResult;
+import com.android.federatedcompute.services.training.util.EligibilityResult;
 import com.android.federatedcompute.services.training.util.ListenableSupplier;
 import com.android.federatedcompute.services.training.util.TrainingConditionsChecker;
 import com.android.federatedcompute.services.training.util.TrainingConditionsChecker.Condition;
 import com.android.internal.annotations.GuardedBy;
 import com.android.internal.util.Preconditions;
+import com.android.odp.module.common.PackageUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.FluentFuture;
@@ -206,11 +209,16 @@ public class FederatedComputeWorker {
             Trace.beginAsyncSection(TRACE_WORKER_START_TRAINING_RUN, jobId);
             TrainingRun run = new TrainingRun(jobId, trainingTask, trainingEventLogger, callback);
             mActiveRun = run;
+            long startTimeMs = SystemClock.elapsedRealtime();
             ListenableFuture<FLRunnerResult> runCompletedFuture = doTraining(run);
             var unused =
                     Futures.whenAllComplete(runCompletedFuture)
                             .call(
                                     () -> {
+                                        long duration = SystemClock.elapsedRealtime() - startTimeMs;
+                                        run.mTrainingEventLogger.logEventWithDuration(
+                                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_COMPLETE,
+                                                duration);
                                         unBindServicesIfNecessary(run);
                                         Trace.endAsyncSection(
                                                 TRACE_WORKER_START_TRAINING_RUN, jobId);
@@ -234,6 +242,10 @@ public class FederatedComputeWorker {
             return null;
         }
         trainingEventLogger.setPopulationName(trainingTask.populationName());
+        String taskCallingPackageName = trainingTask.ownerPackageName();
+        if (taskCallingPackageName != null) {
+            trainingEventLogger.setSdkPackageName(taskCallingPackageName);
+        }
         if (!checkTrainingConditions(trainingTask.getTrainingConstraints())) {
             trainingEventLogger.logTaskNotStarted();
             performFinishRoutines(
@@ -284,7 +296,12 @@ public class FederatedComputeWorker {
             // (UNAUTHENTICATED). The second would not allow 401 (UNAUTHENTICATED).
             AuthorizationContext authContext =
                     mInjector.createAuthContext(
-                            mContext, run.mTask.ownerId(), run.mTask.ownerIdCertDigest());
+                            mContext,
+                            ComponentName.createRelative(
+                                            run.mTask.ownerPackageName(),
+                                            run.mTask.ownerClassName())
+                                    .flattenToString(),
+                            run.mTask.ownerIdCertDigest());
             return FluentFuture.from(mHttpFederatedProtocol.createTaskAssignment(authContext))
                     .transformAsync(
                             taskAssignmentResponse -> {
@@ -383,11 +400,12 @@ public class FederatedComputeWorker {
             run.mTrainingEventLogger.logEventKind(
                     FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_NOT_CONFIGURED);
         }
+        EligibilityResult eligibleResult;
         if (createTaskAssignmentResponse.getTaskAssignment().hasEligibilityTaskInfo()
                 && mInjector.isEligibilityTaskEnabled()) {
-            boolean eligibleResult = checkEligibility(createTaskAssignmentResponse, run);
+            eligibleResult = checkEligibility(createTaskAssignmentResponse, run);
             // If device is not eligible to execute task, report failure result to server.
-            if (!eligibleResult) {
+            if (!eligibleResult.isEligible()) {
                 reportFailureResultToServer(
                         new ComputationResult(
                                 null,
@@ -397,7 +415,12 @@ public class FederatedComputeWorker {
                                         .build(),
                                 null),
                         AuthorizationContext.create(
-                                mContext, run.mTask.ownerId(), run.mTask.ownerIdCertDigest()),
+                                mContext,
+                                ComponentName.createRelative(
+                                                run.mTask.ownerPackageName(),
+                                                run.mTask.ownerClassName())
+                                        .flattenToString(),
+                                run.mTask.ownerIdCertDigest()),
                         run.mTrainingEventLogger);
                 // Reschedule the job.
                 performFinishRoutines(
@@ -406,20 +429,23 @@ public class FederatedComputeWorker {
                         run.mTask.jobId(),
                         run.mTask.populationName(),
                         run.mTask.getTrainingIntervalOptions(),
-                        /* taskRetry= */ null);
+                        /* taskRetry= */ null,
+                        /* enableFailuresTracking= */ false);
                 return Futures.immediateFuture(null);
             }
+        } else {
+            eligibleResult = null;
         }
 
         return FluentFuture.from(
                         mHttpFederatedProtocol.downloadTaskAssignment(
                                 createTaskAssignmentResponse.getTaskAssignment()))
                 .transformAsync(
-                        checkinResult -> doFederatedComputation(run, checkinResult),
+                        checkinResult -> doFederatedComputation(run, checkinResult, eligibleResult),
                         getBackgroundExecutor());
     }
 
-    private boolean checkEligibility(
+    private EligibilityResult checkEligibility(
             CreateTaskAssignmentResponse createTaskAssignmentResponse, TrainingRun run) {
         TaskAssignment taskAssignment = createTaskAssignmentResponse.getTaskAssignment();
         LogUtil.d(
@@ -428,20 +454,25 @@ public class FederatedComputeWorker {
                 run.mTask.populationName(),
                 taskAssignment.getTaskId());
         EligibilityDecider eligibilityDecider = mInjector.getEligibilityDecider(this.mContext);
-        boolean eligibleResult =
+        EligibilityResult eligibleResult =
                 eligibilityDecider.computeEligibility(
                         run.mTask,
                         taskAssignment.getTaskId(),
                         taskAssignment.getEligibilityTaskInfo(),
                         this.mContext,
-                        run.mTrainingEventLogger);
-        LogUtil.i(TAG, "eligibility task result %s %b", taskAssignment.getTaskId(), eligibleResult);
+                        run.mTrainingEventLogger,
+                        taskAssignment.getExampleSelector());
+        LogUtil.d(
+                TAG,
+                "eligibility task result %s %b",
+                taskAssignment.getTaskId(),
+                eligibleResult.isEligible());
         return eligibleResult;
     }
 
     @NonNull
     private ListenableFuture<FLRunnerResult> doFederatedComputation(
-            TrainingRun run, CheckinResult checkinResult) {
+            TrainingRun run, CheckinResult checkinResult, EligibilityResult eligibilityResult) {
         // 3. Fetch Active keys to encrypt the computation result.
         List<FederatedComputeEncryptionKey> activeKeys =
                 mEncryptionKeyManager.getOrFetchActiveKeys(
@@ -454,46 +485,45 @@ public class FederatedComputeWorker {
                         : activeKeys.get(new Random().nextInt(activeKeys.size()));
         if (encryptionKey == null) {
             // no active keys to encrypt the FL/FA computation results, stop the computation run.
-            LogUtil.d(TAG, "No active key available on device.");
-            ComputationResult failedComputationResult =
-                    new ComputationResult(
-                            null,
-                            FLRunnerResult.newBuilder()
-                                    .setContributionResult(ContributionResult.FAIL)
-                                    .setErrorMessage("No active key available on device.")
-                                    .build(),
-                            null);
-            try {
-                reportFailureResultToServer(
-                        failedComputationResult,
-                        AuthorizationContext.create(
-                                mContext, run.mTask.ownerId(), run.mTask.ownerIdCertDigest()),
-                        run.mTrainingEventLogger);
-            } catch (Exception e) {
-                return Futures.immediateFailedFuture(
-                        new IllegalStateException(
-                                "No active key available on device and failed to report."));
-            }
+            reportFailureResultToServer(run);
             return Futures.immediateFailedFuture(
                     new IllegalStateException("No active key available on device."));
         }
 
-        // 4. Bind to client app implemented ExampleStoreService based on ExampleSelector.
-        // Set active run's task name.
-        ListenableFuture<IExampleStoreIterator> iteratorFuture =
-                getExampleStoreIterator(run, getExampleSelector(checkinResult));
+        // 4. Bind to client app implemented ExampleStoreService based on ExampleSelector if we
+        // didn't get ExampleIterator from eligibility task (not configured).
+        IExampleStoreIterator iterator;
+        if (eligibilityResult != null && eligibilityResult.getExampleStoreIterator() != null) {
+            iterator = eligibilityResult.getExampleStoreIterator();
+        } else {
+            iterator =
+                    getExampleStoreIterator(
+                            run, checkinResult.getTaskAssignment().getExampleSelector());
+        }
+
+        if (iterator == null) {
+            reportFailureResultToServer(run);
+            return Futures.immediateFailedFuture(
+                    new IllegalStateException(
+                            String.format(
+                                    "Can't get ExampleIterator for %s %s.",
+                                    run.mTask.populationName(), run.mTaskId)));
+        }
 
         // 5. Run federated learning or federated analytic depends on task type. Federated
         // learning job will start a new isolated process to run TFLite training.
-        FluentFuture<ComputationResult> computationResultFuture =
-                FluentFuture.from(iteratorFuture)
-                        .transformAsync(
-                                iterator -> runFederatedComputation(checkinResult, run, iterator),
-                                mInjector.getBgExecutor());
+        ListenableFuture<ComputationResult> computationResultFuture =
+                runFederatedComputation(checkinResult, run, iterator);
+
         // Report failure to server if computation failed with any exception.
         ListenableFuture<ComputationResult> computationResultAndCallbackFuture =
                 CallbackToFutureAdapter.getFuture(
                         completer -> {
+                            String ownerId =
+                                    ComponentName.createRelative(
+                                                    run.mTask.ownerPackageName(),
+                                                    run.mTask.ownerClassName())
+                                            .flattenToString();
                             Futures.addCallback(
                                     computationResultFuture,
                                     new ReportFailureToServerCallback(run.mTrainingEventLogger)
@@ -501,7 +531,7 @@ public class FederatedComputeWorker {
                                                     completer,
                                                     AuthorizationContext.create(
                                                             mContext,
-                                                            run.mTask.ownerId(),
+                                                            ownerId,
                                                             run.mTask.ownerIdCertDigest())),
                                     getLightweightExecutor());
                             return "Report computation result failure to the server.";
@@ -511,15 +541,19 @@ public class FederatedComputeWorker {
         ListenableFuture<RejectionInfo> reportToServerFuture =
                 Futures.transformAsync(
                         computationResultAndCallbackFuture,
-                        result ->
-                                reportResultWithAuthentication(
-                                        result,
-                                        encryptionKey,
-                                        mInjector.createAuthContext(
-                                                mContext,
-                                                run.mTask.ownerId(),
-                                                run.mTask.ownerIdCertDigest()),
-                                        run.mTrainingEventLogger),
+                        result -> {
+                            String ownerId =
+                                    ComponentName.createRelative(
+                                                    run.mTask.ownerPackageName(),
+                                                    run.mTask.ownerClassName())
+                                            .flattenToString();
+                            return reportResultWithAuthentication(
+                                    result,
+                                    encryptionKey,
+                                    mInjector.createAuthContext(
+                                            mContext, ownerId, run.mTask.ownerIdCertDigest()),
+                                    run.mTrainingEventLogger);
+                        },
                         getLightweightExecutor());
 
         return Futures.whenAllSucceed(reportToServerFuture, computationResultAndCallbackFuture)
@@ -553,7 +587,8 @@ public class FederatedComputeWorker {
                                         run.mTask.jobId(),
                                         run.mTask.populationName(),
                                         run.mTask.getTrainingIntervalOptions(),
-                                        buildTaskRetry(reportToServer));
+                                        buildTaskRetry(reportToServer),
+                                        /* enableFailuresTracking= */ false);
                                 return null;
                             }
 
@@ -578,6 +613,30 @@ public class FederatedComputeWorker {
                         mInjector.getBgExecutor());
     }
 
+    private void reportFailureResultToServer(TrainingRun run) {
+        ComputationResult failedComputationResult =
+                new ComputationResult(
+                        null,
+                        FLRunnerResult.newBuilder()
+                                .setContributionResult(ContributionResult.FAIL)
+                                .build(),
+                        null);
+        try {
+            reportFailureResultToServer(
+                    failedComputationResult,
+                    AuthorizationContext.create(
+                            mContext,
+                            ComponentName.createRelative(
+                                            run.mTask.ownerPackageName(),
+                                            run.mTask.ownerClassName())
+                                    .flattenToString(),
+                            run.mTask.ownerIdCertDigest()),
+                    run.mTrainingEventLogger);
+        } catch (Exception e) {
+            LogUtil.e(TAG, e, "Failed to report failure result to server.");
+        }
+    }
+
     private static TaskRetry buildTaskRetry(RejectionInfo rejectionInfo) {
         TaskRetry.Builder taskRetryBuilder = TaskRetry.newBuilder();
         if (rejectionInfo.hasRetryWindow()) {
@@ -594,7 +653,7 @@ public class FederatedComputeWorker {
         return taskRetryBuilder.build();
     }
 
-    private ListenableFuture<IExampleStoreIterator> getExampleStoreIterator(
+    private IExampleStoreIterator getExampleStoreIterator(
             TrainingRun run, ExampleSelector exampleSelector) {
         try {
             long startTimeNanos = SystemClock.elapsedRealtimeNanos();
@@ -603,24 +662,23 @@ public class FederatedComputeWorker {
                             run.mTask.appPackageName(), mContext);
             if (exampleStoreService == null) {
                 run.mTrainingEventLogger.logComputationExampleIteratorError(new ExampleStats());
-                return Futures.immediateFailedFuture(
-                        new IllegalStateException(
-                                "Could not bind to ExampleStoreService "
-                                        + run.mTask.appPackageName()));
+                return null;
             }
             run.mExampleStats.mBindToExampleStoreLatencyNanos.addAndGet(
                     SystemClock.elapsedRealtimeNanos() - startTimeNanos);
             run.mExampleStoreService = exampleStoreService;
-            return mExampleStoreServiceProvider.getExampleStoreIterator(
-                    run.mExampleStoreService,
-                    run.mTask,
-                    run.mTaskId,
-                    exampleSelector,
-                    run.mExampleStats);
+            startTimeNanos = SystemClock.elapsedRealtimeNanos();
+
+            IExampleStoreIterator iterator =
+                    mExampleStoreServiceProvider.getExampleIterator(
+                            run.mExampleStoreService, run.mTask, run.mTaskId, 0, exampleSelector);
+            run.mExampleStats.mStartQueryLatencyNanos.addAndGet(
+                    SystemClock.elapsedRealtimeNanos() - startTimeNanos);
+            return iterator;
         } catch (Exception e) {
             run.mTrainingEventLogger.logComputationExampleIteratorError(new ExampleStats());
             LogUtil.e(TAG, "StartQuery failure: " + e.getMessage());
-            return Futures.immediateFailedFuture(e);
+            return null;
         }
     }
 
@@ -686,6 +744,7 @@ public class FederatedComputeWorker {
             mActiveRun = null;
         }
     }
+
     private void performFinishRoutines(
             FederatedJobService.OnJobFinishedCallback callback,
             ContributionResult contributionResult,
@@ -734,26 +793,6 @@ public class FederatedComputeWorker {
         }
     }
 
-    private ExampleSelector getExampleSelector(CheckinResult checkinResult) {
-        ClientOnlyPlan clientPlan = checkinResult.getPlanData();
-        switch (clientPlan.getPhase().getSpecCase()) {
-            case EXAMPLE_QUERY_SPEC:
-                // Only support one FA query for now.
-                return clientPlan
-                        .getPhase()
-                        .getExampleQuerySpec()
-                        .getExampleQueries(0)
-                        .getExampleSelector();
-            case TENSORFLOW_SPEC:
-                return clientPlan.getPhase().getTensorflowSpec().getExampleSelector();
-            default:
-                throw new IllegalArgumentException(
-                        String.format(
-                                "Client plan spec is not supported %s",
-                                clientPlan.getPhase().getSpecCase().toString()));
-        }
-    }
-
     private boolean checkTrainingConditions(TrainingConstraints constraints) {
         Set<Condition> conditions =
                 mTrainingConditionsChecker.checkAllConditionsForFlTraining(constraints);
@@ -764,6 +803,9 @@ public class FederatedComputeWorker {
                     break;
                 case BATTERY_NOT_OK:
                     LogUtil.e(TAG, "training job service interrupt battery not ok");
+                    break;
+                case MEM_NOT_OK:
+                    LogUtil.e(TAG, "training job service interrupt memory space not ok");
                     break;
             }
         }
@@ -777,6 +819,7 @@ public class FederatedComputeWorker {
             String outputCheckpointFile,
             IExampleStoreIterator iterator) {
         Trace.beginAsyncSection(TRACE_WORKER_RUN_FL_COMPUTATION, 0);
+        long startTimeMs = SystemClock.elapsedRealtime();
         ParcelFileDescriptor outputCheckpointFd =
                 createTempFileDescriptor(
                         outputCheckpointFile, ParcelFileDescriptor.MODE_READ_WRITE);
@@ -784,7 +827,7 @@ public class FederatedComputeWorker {
                 createTempFileDescriptor(
                         checkinResult.getInputCheckpointFile(),
                         ParcelFileDescriptor.MODE_READ_ONLY);
-        ExampleSelector exampleSelector = getExampleSelector(checkinResult);
+        ExampleSelector exampleSelector = checkinResult.getTaskAssignment().getExampleSelector();
         ClientOnlyPlan clientPlan = checkinResult.getPlanData();
         if (clientPlan.getTfliteGraph().isEmpty()) {
             LogUtil.e(
@@ -833,7 +876,7 @@ public class FederatedComputeWorker {
                             result -> {
                                 ComputationResult computationResult =
                                         processIsolatedTrainingResult(
-                                                outputCheckpointFile, result, run);
+                                                outputCheckpointFile, result, run, startTimeMs);
                                 // Close opened file descriptor.
                                 try {
                                     if (outputCheckpointFd != null) {
@@ -906,7 +949,7 @@ public class FederatedComputeWorker {
     }
 
     private ComputationResult processIsolatedTrainingResult(
-            String outputCheckpoint, Bundle result, TrainingRun run) {
+            String outputCheckpoint, Bundle result, TrainingRun run, long startTimeMs) {
         byte[] resultBytes =
                 Objects.requireNonNull(result.getByteArray(Constants.EXTRA_FL_RUNNER_RESULT));
         FLRunnerResult flRunnerResult;
@@ -915,7 +958,7 @@ public class FederatedComputeWorker {
         } catch (InvalidProtocolBufferException e) {
             throw new IllegalArgumentException(e);
         }
-        logComputationResult(flRunnerResult, run);
+        logComputationResult(flRunnerResult, run, startTimeMs);
         if (flRunnerResult.getContributionResult() == ContributionResult.FAIL) {
             return new ComputationResult(outputCheckpoint, flRunnerResult, new ArrayList<>());
         }
@@ -929,12 +972,13 @@ public class FederatedComputeWorker {
         return new ComputationResult(outputCheckpoint, flRunnerResult, exampleList);
     }
 
-    private void logComputationResult(FLRunnerResult result, TrainingRun run) {
+    private void logComputationResult(FLRunnerResult result, TrainingRun run, long startTimeMs) {
         run.mExampleStats.mExampleCount.addAndGet(result.getExampleStats().getExampleCount());
         run.mExampleStats.mExampleSizeBytes.addAndGet(
                 result.getExampleStats().getExampleSizeBytes());
         if (result.getContributionResult() == ContributionResult.SUCCESS) {
-            run.mTrainingEventLogger.logComputationCompleted(run.mExampleStats);
+            run.mTrainingEventLogger.logComputationCompleted(
+                    run.mExampleStats, SystemClock.elapsedRealtime() - startTimeMs);
             return;
         }
         switch (result.getErrorStatus()) {
@@ -1008,25 +1052,31 @@ public class FederatedComputeWorker {
             CheckinResult checkinResult,
             String outputCheckpointFile,
             IExampleStoreIterator exampleStoreIterator) {
-        ExampleSelector exampleSelector = getExampleSelector(checkinResult);
-        ClientOnlyPlan clientPlan = checkinResult.getPlanData();
-        // The federated analytic runs in main process which has permission to file system.
-        ExampleConsumptionRecorder recorder = mInjector.getExampleConsumptionRecorder();
-        FLRunnerResult runResult =
-                mComputationRunner.runTaskWithNativeRunner(
-                        run.mTaskId,
-                        run.mTask.populationName(),
-                        checkinResult.getInputCheckpointFile(),
-                        outputCheckpointFile,
-                        clientPlan,
-                        exampleSelector,
-                        recorder,
-                        exampleStoreIterator,
-                        mInterruptSupplier);
-        logComputationResult(runResult, run);
-        ArrayList<ExampleConsumption> exampleConsumptions = recorder.finishRecordingAndGet();
-        return Futures.immediateFuture(
-                new ComputationResult(outputCheckpointFile, runResult, exampleConsumptions));
+        try {
+            ExampleSelector exampleSelector =
+                    checkinResult.getTaskAssignment().getExampleSelector();
+            ClientOnlyPlan clientPlan = checkinResult.getPlanData();
+            // The federated analytic runs in main process which has permission to file system.
+            ExampleConsumptionRecorder recorder = mInjector.getExampleConsumptionRecorder();
+            long startTimeMs = SystemClock.elapsedRealtime();
+            FLRunnerResult runResult =
+                    mComputationRunner.runTaskWithNativeRunner(
+                            run.mTaskId,
+                            run.mTask.populationName(),
+                            checkinResult.getInputCheckpointFile(),
+                            outputCheckpointFile,
+                            clientPlan,
+                            exampleSelector,
+                            recorder,
+                            exampleStoreIterator,
+                            mInterruptSupplier);
+            logComputationResult(runResult, run, SystemClock.elapsedRealtime() - startTimeMs);
+            ArrayList<ExampleConsumption> exampleConsumptions = recorder.finishRecordingAndGet();
+            return Futures.immediateFuture(
+                    new ComputationResult(outputCheckpointFile, runResult, exampleConsumptions));
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
+        }
     }
 
     private FluentFuture<RejectionInfo> reportResultWithAuthentication(

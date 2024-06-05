@@ -31,13 +31,16 @@ import android.content.pm.PackageManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.os.Trace;
 
+import com.android.odp.module.common.DeviceUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlowOrchestrator;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlowType;
-import com.android.ondevicepersonalization.services.util.DeviceUtils;
+import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
+import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 
 import java.util.Objects;
 
@@ -72,6 +75,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
         if (!DeviceUtils.isOdpSupported(mContext)) {
             throw new IllegalStateException("Device not supported.");
         }
+        long serviceEntryTimeMillis = SystemClock.elapsedRealtime();
 
         Trace.beginSection("OdpManagingServiceDelegate#Execute");
         Objects.requireNonNull(callingPackageName);
@@ -97,7 +101,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
 
         sSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW,
                 callingPackageName, handler, wrappedParams,
-                callback, mContext, metadata.getStartTimeMillis());
+                callback, mContext, metadata.getStartTimeMillis(), serviceEntryTimeMillis);
         Trace.endSection();
     }
 
@@ -117,6 +121,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
         if (!DeviceUtils.isOdpSupported(mContext)) {
             throw new IllegalStateException("Device not supported.");
         }
+        long serviceEntryTimeMillis = SystemClock.elapsedRealtime();
 
         Trace.beginSection("OdpManagingServiceDelegate#RequestSurfacePackage");
         Objects.requireNonNull(slotResultToken);
@@ -137,7 +142,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
         sSfo.schedule(ServiceFlowType.RENDER_FLOW,
                 slotResultToken, hostToken, displayId,
                 width, height, callback,
-                mContext, metadata.getStartTimeMillis());
+                mContext, metadata.getStartTimeMillis(), serviceEntryTimeMillis);
         Trace.endSection();
     }
 
@@ -162,6 +167,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new SecurityException("Permission denied: " + NOTIFY_MEASUREMENT_EVENT);
         }
 
+        long serviceEntryTimeMillis = SystemClock.elapsedRealtime();
         Trace.beginSection("OdpManagingServiceDelegate#RegisterMeasurementEvent");
         if (measurementEventType
                 != Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER) {
@@ -173,8 +179,40 @@ public class OnDevicePersonalizationManagingServiceDelegate
 
         sSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW,
                 params, mContext,
-                callback, metadata.getStartTimeMillis());
+                callback, metadata.getStartTimeMillis(), serviceEntryTimeMillis);
         Trace.endSection();
+    }
+
+    @Override
+    public void logApiCallStats(
+            String sdkPackageName, int apiName, long latencyMillis, long rpcCallLatencyMillis,
+            long rpcReturnLatencyMillis, int responseCode) {
+        final int uid = Binder.getCallingUid();
+        OnDevicePersonalizationExecutors.getBackgroundExecutor()
+                .execute(
+                        () ->
+                                handleLogApiCallStats(uid, sdkPackageName, apiName, latencyMillis,
+                                        rpcCallLatencyMillis, rpcReturnLatencyMillis,
+                                        responseCode));
+    }
+
+    private void handleLogApiCallStats(int appUid, String sdkPackageName, int apiName,
+            long latencyMillis, long rpcCallLatencyMillis, long rpcReturnLatencyMillis,
+            int responseCode) {
+        try {
+            OdpStatsdLogger.getInstance()
+                    .logApiCallStats(
+                            new ApiCallStats.Builder(apiName)
+                                    .setResponseCode(responseCode)
+                                    .setAppUid(appUid)
+                                    .setSdkPackageName(sdkPackageName == null ? "" : sdkPackageName)
+                                    .setLatencyMillis((int) latencyMillis)
+                                    .setRpcCallLatencyMillis((int) rpcCallLatencyMillis)
+                                    .setRpcReturnLatencyMillis((int) rpcReturnLatencyMillis)
+                                    .build());
+        } catch (Exception e) {
+            sLogger.e(e, TAG + ": error logging api call stats");
+        }
     }
 
     private boolean getGlobalKillSwitch() {
@@ -200,7 +238,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
     }
 
     private void enforceEnrollment(@NonNull String callingPackageName,
-                                   @NonNull ComponentName service) {
+            @NonNull ComponentName service) {
         long origId = Binder.clearCallingIdentity();
 
         try {

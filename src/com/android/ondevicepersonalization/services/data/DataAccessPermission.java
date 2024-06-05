@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.android.adservices.ondevicepersonalization.flags;
+package com.android.ondevicepersonalization.services.data;
 
- /** @hide */
-public class Flags {
-    public static final String FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED =
-            "com.android.adservices.ondevicepersonalization.flags."
-            + "on_device_personalization_apis_enabled";
-
-    private Flags() {}
+/**
+ * Access permission levels on ODP database tables.
+ */
+public enum DataAccessPermission {
+    DENIED,
+    READ_ONLY,
+    READ_WRITE
 }

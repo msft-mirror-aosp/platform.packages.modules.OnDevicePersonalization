@@ -14,15 +14,19 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.util;
+package com.android.odp.module.common;
 
 import android.annotation.NonNull;
 import android.content.Context;
 import android.content.pm.PackageManager;
 
-/** Device properties. */
+/**
+ * Device properties.
+ *
+ * @hide
+ */
 public class DeviceUtils {
-    /** Returns true if the device supports ODP. */
+    /** Returns true if the device supports FCP. */
     public static boolean isOdpSupported(@NonNull Context context) {
         final PackageManager pm = context.getPackageManager();
         return !pm.hasSystemFeature(PackageManager.FEATURE_WATCH)

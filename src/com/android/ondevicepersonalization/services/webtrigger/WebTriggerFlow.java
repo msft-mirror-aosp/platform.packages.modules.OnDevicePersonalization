@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.webtrigger;
 
+import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParamsParcel;
 import android.adservices.ondevicepersonalization.WebTriggerInputParcel;
@@ -28,12 +29,17 @@ import android.content.Context;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.RemoteException;
+import android.os.SystemClock;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.DataAccessPermission;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
@@ -41,10 +47,8 @@ import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
-import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.LogUtils;
-import com.android.ondevicepersonalization.services.util.MonotonicClock;
-import com.android.ondevicepersonalization.services.util.PackageUtils;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
@@ -65,6 +69,7 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
     private static final String TAG = "WebTriggerFlow";
     private final IRegisterMeasurementEventCallback mCallback;
     private final long mStartTimeMillis;
+    private final long mServiceEntryTimeMillis;
     private long mStartServiceTimeMillis;
 
     @VisibleForTesting
@@ -97,8 +102,9 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
             @NonNull Bundle params,
             @NonNull Context context,
             @NonNull IRegisterMeasurementEventCallback callback,
-            long startTimeMillis) {
-        this(params, context, callback, startTimeMillis, new Injector());
+            long startTimeMillis,
+            long serviceEntryTimeMillis) {
+        this(params, context, callback, startTimeMillis, serviceEntryTimeMillis, new Injector());
     }
 
     @VisibleForTesting
@@ -107,11 +113,13 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
             @NonNull Context context,
             @NonNull IRegisterMeasurementEventCallback callback,
             long startTimeMillis,
+            long serviceEntryTimeMillis,
             @NonNull Injector injector) {
         mParams = params;
         mContext = Objects.requireNonNull(context);
         mCallback = callback;
         mStartTimeMillis = startTimeMillis;
+        mServiceEntryTimeMillis = serviceEntryTimeMillis;
         mInjector = Objects.requireNonNull(injector);
     }
 
@@ -123,12 +131,6 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
         try {
             if (getGlobalKillSwitch()) {
                 sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
-                return false;
-            }
-
-            if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
-                sLogger.d(TAG + ": Personalization is disabled.");
-                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
                 return false;
             }
 
@@ -202,8 +204,8 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER,
                 new DataAccessServiceImpl(
                     mServiceParcel.getIsolatedService(),
-                    mContext, /* includeLocalData */ true,
-                    /* includeEventData */ true));
+                    mContext, /* localDataPermission */ DataAccessPermission.READ_WRITE,
+                    /* eventDataPermission */ DataAccessPermission.READ_ONLY));
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA,
                 new UserDataAccessor().getUserData());
 
@@ -215,7 +217,30 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
     }
 
     @Override
-    public void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {}
+    public void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {
+        var unused = FluentFuture.from(runServiceFuture)
+                .transform(
+                        val -> {
+                            StatsUtils.writeServiceRequestMetrics(
+                                    Constants.API_NAME_SERVICE_ON_WEB_TRIGGER,
+                                    val, mInjector.getClock(),
+                                    Constants.STATUS_SUCCESS, mStartServiceTimeMillis);
+                            return val;
+                        },
+                        mInjector.getExecutor()
+                )
+                .catchingAsync(
+                        Exception.class,
+                        e -> {
+                            StatsUtils.writeServiceRequestMetrics(
+                                    Constants.API_NAME_SERVICE_ON_WEB_TRIGGER, /* result= */ null,
+                                    mInjector.getClock(),
+                                    Constants.STATUS_INTERNAL_ERROR, mStartServiceTimeMillis);
+                            return Futures.immediateFailedFuture(e);
+                        },
+                        mInjector.getExecutor()
+                );
+    }
 
     @Override
     public ListenableFuture<WebTriggerOutputParcel> getServiceFlowResultFuture(
@@ -287,7 +312,10 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
     private void sendSuccessResult(WebTriggerOutputParcel result) {
         int responseCode = Constants.STATUS_SUCCESS;
         try {
-            mCallback.onSuccess();
+            mCallback.onSuccess(
+                    new CalleeMetadata.Builder()
+                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
+                            .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
@@ -298,7 +326,11 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
 
     private void sendErrorResult(int errorCode) {
         try {
-            mCallback.onError(errorCode);
+            mCallback.onError(
+                    errorCode,
+                    new CalleeMetadata.Builder()
+                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
+                            .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         } finally {

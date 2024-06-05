@@ -25,14 +25,15 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.DeviceUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
-import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
-import com.android.ondevicepersonalization.services.util.DeviceUtils;
+import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.concurrent.Executor;
 
@@ -85,15 +86,10 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
             sLogger.d(TAG + ": Received unexpected intent " + intent.getAction());
             return;
         }
-
-        // Schedule maintenance task
-        OnDevicePersonalizationMaintenanceJobService.schedule(context);
-        // Schedule user data collection task
-        UserDataCollectionJobService.schedule(context);
         final PendingResult pendingResult = goAsync();
         // Schedule MDD to download scripts periodically.
         Futures.addCallback(
-                MobileDataDownloadFactory.getMdd(context).schedulePeriodicBackgroundTasks(),
+                restoreOdpJobs(context, mExecutor),
                 new FutureCallback<Void>() {
                     @Override
                     public void onSuccess(Void result) {
@@ -107,5 +103,28 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
                     }
                 },
                 mExecutor);
+    }
+
+    /**
+     * Restores periodic jobs scheduling.
+     */
+    public static ListenableFuture<Void> restoreOdpJobs(Context context, Executor executor) {
+        if (FlagsFactory.getFlags().getGlobalKillSwitch() || !DeviceUtils.isOdpSupported(context)) {
+            sLogger.d(TAG + ": ODP disabled or unsupported device");
+            return null;
+        }
+
+        var unused =
+                Futures.submit(
+                        () -> {
+                            // Schedule maintenance task
+                            OnDevicePersonalizationMaintenanceJob.schedule(context);
+                            // Schedule user data collection task
+                            UserDataCollectionJobService.schedule(context);
+                        },
+                        executor);
+
+        // Schedule MDD to download scripts periodically.
+        return MobileDataDownloadFactory.getMdd(context).schedulePeriodicBackgroundTasks();
     }
 }

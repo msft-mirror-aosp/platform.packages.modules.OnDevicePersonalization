@@ -16,6 +16,9 @@
 
 package com.android.ondevicepersonalization.services.data;
 
+import static android.adservices.ondevicepersonalization.Constants.API_NAME_LOCAL_DATA_GET;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_SUCCESS;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -25,6 +28,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.verify;
 
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.EventLogRecord;
@@ -42,6 +46,7 @@ import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 import com.android.ondevicepersonalization.services.data.events.Event;
@@ -53,9 +58,10 @@ import com.android.ondevicepersonalization.services.data.vendor.LocalData;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
+import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
+import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.IoUtils;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
-import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -65,6 +71,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -98,8 +107,11 @@ public class DataAccessServiceImplTest {
     private IDataAccessService mServiceProxy;
     private ComponentName mService;
 
+    @Mock private OdpStatsdLogger mMockOdpStatsdLogger;
+
     @Before
     public void setup() throws Exception {
+        MockitoAnnotations.initMocks(this);
         mService = ComponentName.createRelative(mApplicationContext.getPackageName(),
                 "serviceClass");
         mInjector = new TestInjector();
@@ -117,7 +129,7 @@ public class DataAccessServiceImplTest {
 
         mServiceImpl = new DataAccessServiceImpl(
                 mService, mApplicationContext, null,
-                true, true, mInjector);
+                DataAccessPermission.READ_WRITE, DataAccessPermission.READ_WRITE, mInjector);
 
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
     }
@@ -146,7 +158,7 @@ public class DataAccessServiceImplTest {
         overrideData.put("key2", "helloworld2".getBytes());
         mServiceImpl = new DataAccessServiceImpl(
                 mService, mApplicationContext, overrideData,
-                true, true, mInjector);
+                DataAccessPermission.READ_WRITE, DataAccessPermission.READ_WRITE, mInjector);
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         addTestData();
         Bundle params = new Bundle();
@@ -187,7 +199,7 @@ public class DataAccessServiceImplTest {
         overrideData.put("key2", "helloworld2".getBytes());
         mServiceImpl = new DataAccessServiceImpl(
                 mService, mApplicationContext, overrideData,
-                true, true, mInjector);
+                DataAccessPermission.READ_WRITE, DataAccessPermission.READ_WRITE, mInjector);
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         addTestData();
         Bundle params = new Bundle();
@@ -336,7 +348,9 @@ public class DataAccessServiceImplTest {
     @Test
     public void testLocalDataThrowsNotIncluded() {
         mServiceImpl = new DataAccessServiceImpl(
-                mService, mApplicationContext, null, false, true,
+                mService, mApplicationContext, null,
+                /* localDataPermission */ DataAccessPermission.DENIED,
+                /* eventDataPermission */ DataAccessPermission.READ_WRITE,
                 mInjector);
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         Bundle params = new Bundle();
@@ -358,7 +372,27 @@ public class DataAccessServiceImplTest {
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE,
                 params,
                 new TestCallback()));
+    }
 
+    @Test
+    public void testLocalDataThrowsReadOnly() {
+        mServiceImpl = new DataAccessServiceImpl(
+                mService, mApplicationContext, null,
+                /* localDataPermission */ DataAccessPermission.READ_ONLY,
+                /* eventDataPermission */ DataAccessPermission.READ_WRITE,
+                mInjector);
+        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
+        Bundle params = new Bundle();
+        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
+        params.putByteArray(Constants.EXTRA_VALUE, new byte[100]);
+        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT,
+                params,
+                new TestCallback()));
+        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE,
+                params,
+                new TestCallback()));
     }
 
     @Test
@@ -427,7 +461,9 @@ public class DataAccessServiceImplTest {
     @Test
     public void testEventDataThrowsNotIncluded() {
         mServiceImpl = new DataAccessServiceImpl(
-                mService, mApplicationContext, null, true, false,
+                mService, mApplicationContext, null,
+                /* localDataPermission */ DataAccessPermission.READ_WRITE,
+                /* eventDataPermission */ DataAccessPermission.DENIED,
                 mInjector);
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         Bundle params = new Bundle();
@@ -524,6 +560,29 @@ public class DataAccessServiceImplTest {
         mLatch.await();
         assertTrue(mOnErrorCalled);
         assertThat(mErrorCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
+    }
+
+    @Test
+    public void testLogApiCallStats() {
+        Map<String, byte[]> overrideData = new HashMap<>();
+        overrideData.put("key1", "helloworld1".getBytes());
+        overrideData.put("key2", "helloworld2".getBytes());
+        mServiceImpl =
+                new DataAccessServiceImpl(
+                        mService,
+                        mApplicationContext,
+                        overrideData,
+                        DataAccessPermission.READ_WRITE,
+                        DataAccessPermission.READ_WRITE,
+                        mInjector);
+        mServiceImpl.logApiCallStats(API_NAME_LOCAL_DATA_GET, 10, STATUS_SUCCESS);
+
+        ArgumentCaptor<ApiCallStats> captor = ArgumentCaptor.forClass(ApiCallStats.class);
+        verify(mMockOdpStatsdLogger).logApiCallStats(captor.capture());
+        ApiCallStats callStats = captor.getValue();
+        assertThat(callStats.getSdkPackageName()).isEqualTo(mService.getPackageName());
+        assertThat(callStats.getAppUid()).isEqualTo(0);
+        assertThat(callStats.getApiName()).isEqualTo(API_NAME_LOCAL_DATA_GET);
     }
 
     private void addTestData() {
@@ -676,6 +735,11 @@ public class DataAccessServiceImplTest {
                 Context context
         ) {
             return EventsDao.getInstanceForTest(context);
+        }
+
+        @Override
+        OdpStatsdLogger getOdpStatsdLogger() {
+            return mMockOdpStatsdLogger;
         }
     }
 }
