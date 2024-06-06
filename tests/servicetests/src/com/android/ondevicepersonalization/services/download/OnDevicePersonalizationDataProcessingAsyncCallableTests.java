@@ -20,6 +20,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.DownloadCompletedOutputParcel;
 import android.content.ComponentName;
@@ -29,9 +31,11 @@ import android.database.Cursor;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.odp.module.common.PackageUtils;
+import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
@@ -56,6 +60,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
@@ -104,9 +109,12 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         );
     }
 
+    @Spy
+    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .mockStatic(FlagsFactory.class)
             .setStrictness(Strictness.LENIENT)
             .build();
 
@@ -128,8 +136,10 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mService,
                 PackageUtils.getCertDigest(mContext, mPackageName));
 
+        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
+        when(mSpyFlags.isSharedIsolatedProcessFeatureEnabled())
+                .thenReturn(SdkLevel.isAtLeastU() && mIsSipFeatureEnabled);
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
-        PhFlagsTestUtil.setSharedIsolatedProcessFeatureEnabled(mIsSipFeatureEnabled);
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
 
         mLatch = new CountDownLatch(1);
