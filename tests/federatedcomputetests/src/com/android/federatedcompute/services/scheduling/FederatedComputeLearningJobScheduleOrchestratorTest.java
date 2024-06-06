@@ -90,7 +90,8 @@ public class FederatedComputeLearningJobScheduleOrchestratorTest {
                 FederatedTrainingTask.builder()
                         .jobId(123)
                         .appPackageName(CALLING_PACKAGE_NAME)
-                        .ownerId(CALLING_PACKAGE_NAME + "/" + CALLING_CLASS_NAME)
+                        .ownerPackageName(CALLING_PACKAGE_NAME)
+                        .ownerClassName(CALLING_CLASS_NAME)
                         .ownerIdCertDigest(
                                 PackageUtils.getCertDigest(mContext, mContext.getPackageName()))
                         .populationName(POPULATION_NAME)
@@ -105,7 +106,8 @@ public class FederatedComputeLearningJobScheduleOrchestratorTest {
                 FederatedTrainingTask.builder()
                         .jobId(213)
                         .appPackageName(CALLING_PACKAGE_NAME)
-                        .ownerId(CALLING_PACKAGE_NAME + "/" + CALLING_CLASS_NAME)
+                        .ownerPackageName(CALLING_PACKAGE_NAME)
+                        .ownerClassName(CALLING_CLASS_NAME)
                         .ownerIdCertDigest(
                                 PackageUtils.getCertDigest(mContext, mContext.getPackageName()))
                         .populationName(POPULATION_NAME)

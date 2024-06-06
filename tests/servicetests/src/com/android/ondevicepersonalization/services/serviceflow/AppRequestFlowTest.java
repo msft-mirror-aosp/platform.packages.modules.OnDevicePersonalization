@@ -124,7 +124,7 @@ public class AppRequestFlowTest {
 
         mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
+                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L, 110L);
         mLatch.await();
         assertTrue(mCallbackSuccess);
         assertFalse(mExecuteCallback.isEmpty());
@@ -139,7 +139,7 @@ public class AppRequestFlowTest {
 
         mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
+                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L, 110L);
         mLatch.await();
         assertTrue(mCallbackSuccess);
         assertTrue(mExecuteCallback.isEmpty());
@@ -151,7 +151,7 @@ public class AppRequestFlowTest {
 
         mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
+                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
@@ -167,7 +167,7 @@ public class AppRequestFlowTest {
 
         mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
+                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
