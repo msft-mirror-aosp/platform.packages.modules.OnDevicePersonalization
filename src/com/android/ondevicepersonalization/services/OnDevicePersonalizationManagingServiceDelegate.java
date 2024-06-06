@@ -167,6 +167,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new SecurityException("Permission denied: " + NOTIFY_MEASUREMENT_EVENT);
         }
 
+        long serviceEntryTimeMillis = SystemClock.elapsedRealtime();
         Trace.beginSection("OdpManagingServiceDelegate#RegisterMeasurementEvent");
         if (measurementEventType
                 != Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER) {
@@ -178,7 +179,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
 
         sSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW,
                 params, mContext,
-                callback, metadata.getStartTimeMillis());
+                callback, metadata.getStartTimeMillis(), serviceEntryTimeMillis);
         Trace.endSection();
     }
 
