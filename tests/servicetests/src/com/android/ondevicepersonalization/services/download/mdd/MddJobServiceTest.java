@@ -34,6 +34,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import android.app.job.JobInfo;
 import android.app.job.JobParameters;
@@ -46,7 +47,8 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.modules.utils.testing.TestableDeviceConfig;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
@@ -59,6 +61,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 @RunWith(JUnit4.class)
@@ -69,9 +72,12 @@ public class MddJobServiceTest {
     private MddJobService mSpyService;
     private UserPrivacyStatus mUserPrivacyStatus;
 
+    @Spy
+    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .mockStatic(FlagsFactory.class)
             .spyStatic(UserPrivacyStatus.class)
             .spyStatic(OnDevicePersonalizationExecutors.class)
             .setStrictness(Strictness.LENIENT)
@@ -80,7 +86,8 @@ public class MddJobServiceTest {
     @Before
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
-        PhFlagsTestUtil.disableGlobalKillSwitch();
+        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
+        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
         mUserPrivacyStatus = spy(UserPrivacyStatus.getInstance());
         ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
         MobileDataDownloadFactory.getMdd(mContext, executorService, executorService);
@@ -123,7 +130,7 @@ public class MddJobServiceTest {
 
     @Test
     public void onStartJobTestKillSwitchEnabled() {
-        PhFlagsTestUtil.enableGlobalKillSwitch();
+        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(true);
         JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
         PersistableBundle extras = new PersistableBundle();
         extras.putString(MDD_TASK_TAG_KEY, WIFI_CHARGING_PERIODIC_TASK);
