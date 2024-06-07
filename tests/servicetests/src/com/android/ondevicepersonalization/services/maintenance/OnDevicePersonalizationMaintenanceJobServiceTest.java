@@ -33,7 +33,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import android.app.job.JobParameters;
 import android.app.job.JobScheduler;
@@ -42,14 +41,14 @@ import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.odp.module.common.PackageUtils;
-import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.Event;
@@ -69,7 +68,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.io.File;
@@ -93,12 +91,9 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     private EventsDao mEventsDao;
     private OnDevicePersonalizationMaintenanceJobService mSpyService;
 
-    @Spy
-    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
-
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .mockStatic(FlagsFactory.class)
+            .addStaticMockFixtures(TestableDeviceConfig::new)
             .spyStatic(OnDevicePersonalizationExecutors.class)
             .setStrictness(Strictness.LENIENT)
             .build();
@@ -149,12 +144,12 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
     @Before
     public void setup() throws Exception {
-        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
-        when(mSpyFlags.getPersonalizationStatusOverrideValue()).thenReturn(false);
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.disableGlobalKillSwitch();
+        PhFlagsTestUtil.disablePersonalizationStatusOverride();
 
         // By default, disable SPE.
-        when(mSpyFlags.getSpePilotJobEnabled()).thenReturn(false);
+        PhFlagsTestUtil.setSpePilotJobEnabled(false);
 
         // Clean data up directories
         File vendorDir = new File(mContext.getFilesDir(), "VendorData");
@@ -198,7 +193,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
     @Test
     public void onStartJobTestKillSwitchEnabled() {
-        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(true);
+        PhFlagsTestUtil.enableGlobalKillSwitch();
         doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
         mSpyService.schedule(mContext, /* forceSchedule= */ false);
         assertTrue(
@@ -217,7 +212,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     @MockStatic(OdpJobScheduler.class)
     public void onStartJobSpeEnabled() {
         // Enable SPE.
-        when(mSpyFlags.getSpePilotJobEnabled()).thenReturn(true);
+        PhFlagsTestUtil.setSpePilotJobEnabled(true);
         // Mock OdpJobScheduler to not actually schedule the job.
         OdpJobScheduler mockedScheduler = mock(OdpJobScheduler.class);
         doReturn(mockedScheduler).when(() -> OdpJobScheduler.getInstance(any()));
@@ -226,6 +221,9 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
         // Verify SPE scheduler has rescheduled the job.
         verify(mockedScheduler).schedule(any(), any());
+
+        // Revert SPE flag.
+        PhFlagsTestUtil.setSpePilotJobEnabled(false);
     }
 
     @Test
@@ -244,9 +242,10 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
         var originalIsolatedServiceAllowList =
                 FlagsFactory.getFlags().getIsolatedServiceAllowList();
-        when(mSpyFlags.getIsolatedServiceAllowList()).thenReturn(mContext.getPackageName());
+        PhFlagsTestUtil.setIsolatedServiceAllowList(
+                mContext.getPackageName());
         OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
-        when(mSpyFlags.getIsolatedServiceAllowList()).thenReturn(originalIsolatedServiceAllowList);
+        PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
         File dir = new File(OnDevicePersonalizationVendorDataDao.getFileDir(
                 OnDevicePersonalizationVendorDataDao.getTableName(
                         mService,
@@ -274,10 +273,10 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
         originalIsolatedServiceAllowList =
                 FlagsFactory.getFlags().getIsolatedServiceAllowList();
-        when(mSpyFlags.getIsolatedServiceAllowList()).thenReturn(
+        PhFlagsTestUtil.setIsolatedServiceAllowList(
                 "com.android.ondevicepersonalization.servicetests");
         OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
-        when(mSpyFlags.getIsolatedServiceAllowList()).thenReturn(originalIsolatedServiceAllowList);
+        PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
         assertEquals(2, dir.listFiles().length);
         assertTrue(new File(dir, "large_" + (timestamp + 20)).exists());
         assertTrue(new File(dir, "large2_" + (timestamp + 20)).exists());
@@ -332,10 +331,10 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
         var originalIsolatedServiceAllowList =
                 FlagsFactory.getFlags().getIsolatedServiceAllowList();
-        when(mSpyFlags.getIsolatedServiceAllowList()).thenReturn(
+        PhFlagsTestUtil.setIsolatedServiceAllowList(
                 "com.android.ondevicepersonalization.servicetests");
         OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
-        when(mSpyFlags.getIsolatedServiceAllowList()).thenReturn(originalIsolatedServiceAllowList);
+        PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
         assertEquals(1, vendorDir.listFiles().length);
         assertEquals(1, localDir.listFiles().length);
     }

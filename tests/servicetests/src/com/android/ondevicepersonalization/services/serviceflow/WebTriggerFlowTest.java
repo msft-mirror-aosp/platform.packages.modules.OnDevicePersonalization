@@ -19,8 +19,7 @@ package com.android.ondevicepersonalization.services.serviceflow;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
+//import static org.mockito.Mockito.spy;
 
 import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
@@ -37,8 +36,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.ondevicepersonalization.services.Flags;
-import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
@@ -54,7 +52,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
@@ -75,12 +72,9 @@ public class WebTriggerFlowTest {
 
     @Mock UserPrivacyStatus mUserPrivacyStatus;
 
-    @Spy
-    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
-
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .mockStatic(FlagsFactory.class)
+            .addStaticMockFixtures(TestableDeviceConfig::new)
             .spyStatic(UserPrivacyStatus.class)
             .setStrictness(Strictness.LENIENT)
             .build();
@@ -89,8 +83,7 @@ public class WebTriggerFlowTest {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
-        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
+        PhFlagsTestUtil.disableGlobalKillSwitch();
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
         doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
@@ -109,7 +102,7 @@ public class WebTriggerFlowTest {
 
     @Test
     public void testWebTriggerFlow_GlobalKillswitchOn() throws Exception {
-        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(true);
+        PhFlagsTestUtil.enableGlobalKillSwitch();
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
                 new TestWebCallback(), 100L, 110L);
