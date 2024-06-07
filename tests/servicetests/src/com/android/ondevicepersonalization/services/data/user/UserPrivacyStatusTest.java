@@ -23,14 +23,11 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.when;
 
-import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.ondevicepersonalization.services.Flags;
-import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.modules.utils.testing.TestableDeviceConfig;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
 
 import org.junit.After;
@@ -39,7 +36,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 @RunWith(JUnit4.class)
@@ -47,21 +43,18 @@ public final class UserPrivacyStatusTest {
     private UserPrivacyStatus mUserPrivacyStatus;
     private static final int CONTROL_RESET_STATUS_CODE = 5;
 
-    @Spy
-    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
-
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .mockStatic(FlagsFactory.class)
+            .addStaticMockFixtures(TestableDeviceConfig::new)
             .spyStatic(ResetDataJobService.class)
             .setStrictness(Strictness.LENIENT)
             .build();
 
     @Before
     public void setup() throws Exception {
-        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
-        when(mSpyFlags.getPersonalizationStatusOverrideValue()).thenReturn(false);
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.disableGlobalKillSwitch();
+        PhFlagsTestUtil.disablePersonalizationStatusOverride();
         mUserPrivacyStatus = UserPrivacyStatus.getInstance();
         doReturn(RESULT_SUCCESS).when(ResetDataJobService::schedule);
     }
