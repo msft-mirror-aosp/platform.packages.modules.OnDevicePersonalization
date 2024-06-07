@@ -9,3 +9,10 @@ flag {
     bug: "320156647"
     description: "Enter a description per b/320156647"
 }
+
+flag {
+    name: "fcp_model_version_enabled"
+    namespace: "on_device_personalization"
+    bug: "335080565"
+    description: "Enable model version support for federated compute"
+}

@@ -182,7 +182,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                             .setPopulationName(populationName)
                             .setTaskName(taskId);
             if (isCollectionUriPresent(collectionUri)) {
-                input.setCollectionUri(collectionUri);
+                input.setCollectionName(collectionUri);
             }
 
             String className =

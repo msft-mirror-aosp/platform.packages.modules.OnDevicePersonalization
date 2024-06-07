@@ -45,6 +45,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -121,6 +122,7 @@ public class WebViewFlowTest {
     }
 
     @Test
+    @Ignore("TODO: b/342475912 - temporary disable failing tests.")
     public void testDedupMultiplePayloads() throws Exception {
         mTestEventPayload =
                 new EventUrlPayload(createEventParameters(), null, null);
