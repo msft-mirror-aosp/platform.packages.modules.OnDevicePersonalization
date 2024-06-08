@@ -31,7 +31,6 @@ import static org.mockito.Mockito.times;
 import android.app.job.JobParameters;
 
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 
 import com.google.common.util.concurrent.MoreExecutors;
@@ -49,7 +48,6 @@ public class ResetDataJobServiceTest {
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .addStaticMockFixtures(TestableDeviceConfig::new)
             .spyStatic(OnDevicePersonalizationExecutors.class)
             .spyStatic(ResetDataTask.class)
             .setStrictness(Strictness.LENIENT)
