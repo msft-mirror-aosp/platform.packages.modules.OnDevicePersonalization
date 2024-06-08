@@ -54,7 +54,6 @@ import androidx.test.rule.ServiceTestRule;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.odp.module.common.DeviceUtils;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
@@ -71,6 +70,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.util.concurrent.CountDownLatch;
@@ -87,9 +87,11 @@ public class OnDevicePersonalizationManagingServiceTest {
     @Mock
     private UserPrivacyStatus mUserPrivacyStatus;
     @Mock private MobileDataDownload mMockMdd;
+    @Spy
+    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .mockStatic(FlagsFactory.class)
             .spyStatic(UserPrivacyStatus.class)
             .spyStatic(DeviceUtils.class)
             .spyStatic(OnDevicePersonalizationMaintenanceJobService.class)
@@ -100,13 +102,13 @@ public class OnDevicePersonalizationManagingServiceTest {
 
     @Before
     public void setup() throws Exception {
+        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
+        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
-        PhFlagsTestUtil.disableGlobalKillSwitch();
         ExtendedMockito.doReturn(true).when(() -> DeviceUtils.isOdpSupported(any()));
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
         doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
         doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
-        // mService = new OnDevicePersonalizationManagingServiceDelegate(mContext);
         when(mContext.checkCallingPermission(NOTIFY_MEASUREMENT_EVENT))
                 .thenReturn(PackageManager.PERMISSION_GRANTED);
 
@@ -127,24 +129,20 @@ public class OnDevicePersonalizationManagingServiceTest {
 
     @Test
     public void testEnabledGlobalKillSwitchOnExecute() throws Exception {
-        PhFlagsTestUtil.enableGlobalKillSwitch();
-        try {
-            var callback = new ExecuteCallback();
-            assertThrows(
-                    IllegalStateException.class,
-                    () ->
-                            mService.execute(
-                                    mContext.getPackageName(),
-                                    new ComponentName(
-                                            mContext.getPackageName(),
-                                            "com.test.TestPersonalizationHandler"),
-                                    createWrappedAppParams(),
-                                    new CallerMetadata.Builder().build(),
-                                    callback
-                            ));
-        } finally {
-            PhFlagsTestUtil.disableGlobalKillSwitch();
-        }
+        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(true);
+        var callback = new ExecuteCallback();
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        mService.execute(
+                                mContext.getPackageName(),
+                                new ComponentName(
+                                        mContext.getPackageName(),
+                                        "com.test.TestPersonalizationHandler"),
+                                createWrappedAppParams(),
+                                new CallerMetadata.Builder().build(),
+                                callback
+                        ));
     }
 
     @Test
@@ -302,7 +300,7 @@ public class OnDevicePersonalizationManagingServiceTest {
     @Test
     public void testExecuteThrowsIfCallerNotEnrolled() throws Exception {
         var callback = new ExecuteCallback();
-        var originalCallerAppAllowList = FlagsFactory.getFlags().getCallerAppAllowList();
+        var originalCallerAppAllowList = mSpyFlags.getCallerAppAllowList();
         PhFlagsTestUtil.setCallerAppAllowList("");
         try {
             assertThrows(
@@ -346,24 +344,20 @@ public class OnDevicePersonalizationManagingServiceTest {
 
     @Test
     public void testEnabledGlobalKillSwitchOnRequestSurfacePackage() throws Exception {
-        PhFlagsTestUtil.enableGlobalKillSwitch();
-        try {
-            var callback = new RequestSurfacePackageCallback();
-            assertThrows(
-                    IllegalStateException.class,
-                    () ->
-                            mService.requestSurfacePackage(
-                                    "resultToken",
-                                    new Binder(),
-                                    0,
-                                    100,
-                                    50,
-                                    new CallerMetadata.Builder().build(),
-                                    callback
-                            ));
-        } finally {
-            PhFlagsTestUtil.disableGlobalKillSwitch();
-        }
+        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(true);
+        var callback = new RequestSurfacePackageCallback();
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        mService.requestSurfacePackage(
+                                "resultToken",
+                                new Binder(),
+                                0,
+                                100,
+                                50,
+                                new CallerMetadata.Builder().build(),
+                                callback
+                        ));
     }
 
     @Test
@@ -512,19 +506,15 @@ public class OnDevicePersonalizationManagingServiceTest {
 
     @Test
     public void testEnabledGlobalKillSwitchOnRegisterMeasurementEvent() throws Exception {
-        PhFlagsTestUtil.enableGlobalKillSwitch();
-        try {
-            assertThrows(
-                    IllegalStateException.class,
-                    () ->
-                            mService.registerMeasurementEvent(
-                                    Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER,
-                                    Bundle.EMPTY,
-                                    new CallerMetadata.Builder().build(),
-                                    new RegisterMeasurementEventCallback()));
-        } finally {
-            PhFlagsTestUtil.disableGlobalKillSwitch();
-        }
+        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(true);
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        mService.registerMeasurementEvent(
+                                Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER,
+                                Bundle.EMPTY,
+                                new CallerMetadata.Builder().build(),
+                                new RegisterMeasurementEventCallback()));
     }
 
     @Test
