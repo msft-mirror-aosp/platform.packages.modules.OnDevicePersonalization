@@ -19,6 +19,8 @@ package com.android.ondevicepersonalization.services.serviceflow;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
@@ -37,7 +39,8 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.modules.utils.testing.TestableDeviceConfig;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
@@ -55,6 +58,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
@@ -94,9 +98,12 @@ public class RenderFlowTest {
         );
     }
 
+    @Spy
+    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .mockStatic(FlagsFactory.class)
             .spyStatic(UserPrivacyStatus.class)
             .spyStatic(CryptUtils.class)
             .setStrictness(Strictness.LENIENT)
@@ -106,7 +113,8 @@ public class RenderFlowTest {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
-        PhFlagsTestUtil.setSharedIsolatedProcessFeatureEnabled(mIsSipFeatureEnabled);
+        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
+        when(mSpyFlags.isSharedIsolatedProcessFeatureEnabled()).thenReturn(mIsSipFeatureEnabled);
 
         setUpTestDate();
 
@@ -128,7 +136,7 @@ public class RenderFlowTest {
         doReturn(false).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
 
         mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
-                100, 50, new TestRenderFlowCallback(), mContext, 100L);
+                100, 50, new TestRenderFlowCallback(), mContext, 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -138,7 +146,7 @@ public class RenderFlowTest {
     @Test
     public void testRunRenderFlow_InvalidToken() throws Exception {
         mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
-                100, 50, new TestRenderFlowCallback(), mContext, 100L);
+                100, 50, new TestRenderFlowCallback(), mContext, 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -159,7 +167,7 @@ public class RenderFlowTest {
                 .when(() -> CryptUtils.decrypt("token"));
 
         mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
-                100, 50, new TestRenderFlowCallback(), mContext, 100L);
+                100, 50, new TestRenderFlowCallback(), mContext, 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
