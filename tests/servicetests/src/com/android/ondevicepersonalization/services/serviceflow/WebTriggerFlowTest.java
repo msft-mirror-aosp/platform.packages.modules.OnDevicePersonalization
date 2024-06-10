@@ -19,8 +19,10 @@ package com.android.ondevicepersonalization.services.serviceflow;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
-//import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
+import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParamsParcel;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
@@ -35,7 +37,8 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.modules.utils.testing.TestableDeviceConfig;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
@@ -51,6 +54,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
@@ -71,9 +75,12 @@ public class WebTriggerFlowTest {
 
     @Mock UserPrivacyStatus mUserPrivacyStatus;
 
+    @Spy
+    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .mockStatic(FlagsFactory.class)
             .spyStatic(UserPrivacyStatus.class)
             .setStrictness(Strictness.LENIENT)
             .build();
@@ -82,7 +89,8 @@ public class WebTriggerFlowTest {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
-        PhFlagsTestUtil.disableGlobalKillSwitch();
+        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
+        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
         doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
@@ -101,10 +109,10 @@ public class WebTriggerFlowTest {
 
     @Test
     public void testWebTriggerFlow_GlobalKillswitchOn() throws Exception {
-        PhFlagsTestUtil.enableGlobalKillSwitch();
+        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(true);
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -116,7 +124,7 @@ public class WebTriggerFlowTest {
         doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -131,7 +139,7 @@ public class WebTriggerFlowTest {
                 null);
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, emptyWebTriggerParams, mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -151,7 +159,7 @@ public class WebTriggerFlowTest {
                         null, new byte[] {1, 2, 3}));
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, emptyClassParams, mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -171,7 +179,7 @@ public class WebTriggerFlowTest {
                         "randomTestCertDigest", new byte[] {1, 2, 3}));
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, invalidCertDigestParams, mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -191,7 +199,7 @@ public class WebTriggerFlowTest {
                         null, new byte[] {1, 2, 3}));
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, invalidPackageNameParams, mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -201,7 +209,7 @@ public class WebTriggerFlowTest {
     @Test
     public void testWebTriggerFlow_Success() throws Exception {
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
@@ -240,13 +248,13 @@ public class WebTriggerFlowTest {
 
     class TestWebCallback extends IRegisterMeasurementEventCallback.Stub {
         @Override
-        public void onSuccess() {
+        public void onSuccess(CalleeMetadata calleeMetadata) {
             mCallbackSuccess = true;
             mLatch.countDown();
         }
 
         @Override
-        public void onError(int errorCode) {
+        public void onError(int errorCode, CalleeMetadata calleeMetadata) {
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
             mLatch.countDown();
