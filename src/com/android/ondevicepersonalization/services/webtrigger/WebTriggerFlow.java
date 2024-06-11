@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.webtrigger;
 
+import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParamsParcel;
 import android.adservices.ondevicepersonalization.WebTriggerInputParcel;
@@ -28,6 +29,7 @@ import android.content.Context;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.RemoteException;
+import android.os.SystemClock;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.Clock;
@@ -67,6 +69,7 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
     private static final String TAG = "WebTriggerFlow";
     private final IRegisterMeasurementEventCallback mCallback;
     private final long mStartTimeMillis;
+    private final long mServiceEntryTimeMillis;
     private long mStartServiceTimeMillis;
 
     @VisibleForTesting
@@ -99,8 +102,9 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
             @NonNull Bundle params,
             @NonNull Context context,
             @NonNull IRegisterMeasurementEventCallback callback,
-            long startTimeMillis) {
-        this(params, context, callback, startTimeMillis, new Injector());
+            long startTimeMillis,
+            long serviceEntryTimeMillis) {
+        this(params, context, callback, startTimeMillis, serviceEntryTimeMillis, new Injector());
     }
 
     @VisibleForTesting
@@ -109,11 +113,13 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
             @NonNull Context context,
             @NonNull IRegisterMeasurementEventCallback callback,
             long startTimeMillis,
+            long serviceEntryTimeMillis,
             @NonNull Injector injector) {
         mParams = params;
         mContext = Objects.requireNonNull(context);
         mCallback = callback;
         mStartTimeMillis = startTimeMillis;
+        mServiceEntryTimeMillis = serviceEntryTimeMillis;
         mInjector = Objects.requireNonNull(injector);
     }
 
@@ -306,7 +312,10 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
     private void sendSuccessResult(WebTriggerOutputParcel result) {
         int responseCode = Constants.STATUS_SUCCESS;
         try {
-            mCallback.onSuccess();
+            mCallback.onSuccess(
+                    new CalleeMetadata.Builder()
+                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
+                            .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
@@ -317,7 +326,11 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
 
     private void sendErrorResult(int errorCode) {
         try {
-            mCallback.onError(errorCode);
+            mCallback.onError(
+                    errorCode,
+                    new CalleeMetadata.Builder()
+                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
+                            .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         } finally {
