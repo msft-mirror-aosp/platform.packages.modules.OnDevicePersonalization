@@ -102,6 +102,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
     @NonNull
     private final Context mContext;
     private final long mStartTimeMillis;
+    private final long mServiceEntryTimeMillis;
     @NonNull
     private final Injector mInjector;
     @NonNull
@@ -119,9 +120,10 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
             int height,
             @NonNull IRequestSurfacePackageCallback callback,
             @NonNull Context context,
-            long startTimeMillis) {
+            long startTimeMillis,
+            long serviceEntryTimeMillis) {
         this(slotResultToken, hostToken, displayId, width, height,
-                callback, context, startTimeMillis,
+                callback, context, startTimeMillis, serviceEntryTimeMillis,
                 new Injector(),
                 new DisplayHelper(context));
     }
@@ -136,6 +138,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
             @NonNull IRequestSurfacePackageCallback callback,
             @NonNull Context context,
             long startTimeMillis,
+            long serviceEntryTimeMillis,
             @NonNull Injector injector,
             @NonNull DisplayHelper displayHelper) {
         sLogger.d(TAG + ": RenderFlow created.");
@@ -146,6 +149,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
         mHeight = height;
         mCallback = Objects.requireNonNull(callback);
         mStartTimeMillis = startTimeMillis;
+        mServiceEntryTimeMillis = serviceEntryTimeMillis;
         mInjector = Objects.requireNonNull(injector);
         mContext = Objects.requireNonNull(context);
         mDisplayHelper = Objects.requireNonNull(displayHelper);
@@ -308,8 +312,9 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
         try {
             mCallback.onSuccess(
                     surfacePackage,
-                    new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
-                            SystemClock.elapsedRealtime()).build());
+                    new CalleeMetadata.Builder()
+                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
+                            .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
@@ -322,8 +327,9 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                     errorCode,
                     isolatedServiceErrorCode,
                     null,
-                    new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
-                            SystemClock.elapsedRealtime()).build());
+                    new CalleeMetadata.Builder()
+                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
+                            .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         }
@@ -335,8 +341,9 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                     errorCode,
                     0,
                     DebugUtils.getErrorMessage(mContext, t),
-                    new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
-                            SystemClock.elapsedRealtime()).build());
+                    new CalleeMetadata.Builder()
+                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
+                            .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         }
