@@ -20,6 +20,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
+import android.content.ComponentName;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -30,21 +32,21 @@ public class QueryTest {
     public void testBuilderAndEquals() {
         long queryId = 1;
         byte[] queryData = "data".getBytes();
-        String servicePackageName = "servicePackageName";
+        ComponentName service = new ComponentName("servicePkg", "cls");
         long timeMillis = 1;
         Query query1 = new Query.Builder()
                 .setQueryId(queryId)
                 .setQueryData(queryData)
-                .setServicePackageName(servicePackageName)
+                .setService(service)
                 .setTimeMillis(timeMillis)
                 .build();
         assertEquals(query1.getQueryId(), queryId);
         assertArrayEquals(query1.getQueryData(), queryData);
-        assertEquals(query1.getServicePackageName(), servicePackageName);
+        assertEquals(query1.getService(), service);
         assertEquals(query1.getTimeMillis(), timeMillis);
 
         Query query2 = new Query.Builder(
-                queryId, timeMillis, servicePackageName, queryData).build();
+                queryId, timeMillis, service, queryData).build();
         assertEquals(query1, query2);
         assertEquals(query1.hashCode(), query2.hashCode());
     }
@@ -53,12 +55,12 @@ public class QueryTest {
     public void testBuildTwiceThrows() {
         long queryId = 1;
         byte[] queryData = "data".getBytes();
-        String servicePackageName = "servicePackageName";
+        ComponentName service = new ComponentName("servicePkg", "cls");
         long timeMillis = 1;
         Query.Builder builder = new Query.Builder()
                 .setQueryId(queryId)
                 .setQueryData(queryData)
-                .setServicePackageName(servicePackageName)
+                .setService(service)
                 .setTimeMillis(timeMillis);
         builder.build();
         assertThrows(IllegalStateException.class, () -> builder.build());

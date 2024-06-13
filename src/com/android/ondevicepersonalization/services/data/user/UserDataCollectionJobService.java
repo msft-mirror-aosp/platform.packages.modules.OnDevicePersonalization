@@ -18,6 +18,10 @@ package com.android.ondevicepersonalization.services.data.user;
 
 import static android.app.job.JobScheduler.RESULT_FAILURE;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_PERSONALIZATION_NOT_ENABLED;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID;
+
 import android.app.job.JobInfo;
 import android.app.job.JobParameters;
 import android.app.job.JobScheduler;
@@ -25,11 +29,10 @@ import android.app.job.JobService;
 import android.content.ComponentName;
 import android.content.Context;
 
-
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
-import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.statsd.joblogging.OdpJobServiceLogger;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -53,14 +56,14 @@ public class UserDataCollectionJobService extends JobService {
     public static int schedule(Context context) {
         JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
         if (jobScheduler.getPendingJob(
-                OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID) != null) {
+                USER_DATA_COLLECTION_ID) != null) {
             sLogger.d(TAG + ": Job is already scheduled. Doing nothing,");
             return RESULT_FAILURE;
         }
         ComponentName serviceComponent = new ComponentName(context,
                 UserDataCollectionJobService.class);
         JobInfo.Builder builder = new JobInfo.Builder(
-                OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID, serviceComponent);
+                USER_DATA_COLLECTION_ID, serviceComponent);
 
         // Constraints
         builder.setRequiresDeviceIdle(true);
@@ -77,13 +80,18 @@ public class UserDataCollectionJobService extends JobService {
     @Override
     public boolean onStartJob(JobParameters params) {
         sLogger.d(TAG + ": onStartJob()");
+        OdpJobServiceLogger.getInstance(this)
+                .recordOnStartJob(USER_DATA_COLLECTION_ID);
         if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
             sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
-            jobFinished(params, /* wantsReschedule = */ false);
-            return true;
+            return cancelAndFinishJob(params,
+                    AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON);
         }
         if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
             sLogger.d(TAG + ": Personalization is not allowed, finishing job.");
+            OdpJobServiceLogger.getInstance(this).recordJobSkipped(
+                    USER_DATA_COLLECTION_ID,
+                    AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_PERSONALIZATION_NOT_ENABLED);
             jobFinished(params, /* wantsReschedule = */ false);
             return true;
         }
@@ -108,15 +116,27 @@ public class UserDataCollectionJobService extends JobService {
                     @Override
                     public void onSuccess(Void result) {
                         sLogger.d(TAG + ": User data collection job completed.");
-                        jobFinished(params, /* wantsReschedule = */ false);
+                        boolean wantsReschedule = false;
+                        OdpJobServiceLogger.getInstance(UserDataCollectionJobService.this)
+                                .recordJobFinished(
+                                        USER_DATA_COLLECTION_ID,
+                                        /* isSuccessful= */ true,
+                                        wantsReschedule);
+                        jobFinished(params, wantsReschedule);
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
                         sLogger.e(TAG + ": Failed to handle JobService: " + params.getJobId(), t);
+                        boolean wantsReschedule = false;
+                        OdpJobServiceLogger.getInstance(UserDataCollectionJobService.this)
+                                .recordJobFinished(
+                                        USER_DATA_COLLECTION_ID,
+                                        /* isSuccessful= */ false,
+                                        wantsReschedule);
                         //  When failure, also tell the JobScheduler that the job has completed and
                         // does not need to be rescheduled.
-                        jobFinished(params, /* wantsReschedule = */ false);
+                        jobFinished(params, wantsReschedule);
                     }
                 },
                 OnDevicePersonalizationExecutors.getBackgroundExecutor());
@@ -130,6 +150,24 @@ public class UserDataCollectionJobService extends JobService {
             mFuture.cancel(true);
         }
         // Reschedule the job since it ended before finishing
+        boolean wantsReschedule = true;
+        OdpJobServiceLogger.getInstance(this)
+                .recordOnStopJob(
+                        params,
+                        USER_DATA_COLLECTION_ID,
+                        wantsReschedule);
+        return wantsReschedule;
+    }
+
+    private boolean cancelAndFinishJob(final JobParameters params, int skipReason) {
+        JobScheduler jobScheduler = this.getSystemService(JobScheduler.class);
+        if (jobScheduler != null) {
+            jobScheduler.cancel(USER_DATA_COLLECTION_ID);
+        }
+        OdpJobServiceLogger.getInstance(this).recordJobSkipped(
+                USER_DATA_COLLECTION_ID,
+                skipReason);
+        jobFinished(params, /* wantsReschedule = */ false);
         return true;
     }
 }

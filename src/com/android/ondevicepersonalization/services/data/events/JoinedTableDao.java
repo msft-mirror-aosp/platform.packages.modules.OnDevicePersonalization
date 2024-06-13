@@ -39,7 +39,7 @@ public class JoinedTableDao {
     /** Map of column name to {@link ColumnSchema} of columns provided by OnDevicePersonalization */
     public static final Map<String, ColumnSchema> ODP_PROVIDED_COLUMNS;
     // TODO(298682670): Finalize provided column and table names.
-    public static final String SERVICE_PACKAGE_NAME_COL = "servicePackageName";
+    public static final String SERVICE_NAME_COL = "serviceName";
     public static final String TYPE_COL = "type";
     public static final String EVENT_TIME_MILLIS_COL = "eventTimeMillis";
     public static final String QUERY_TIME_MILLIS_COL = "queryTimeMillis";
@@ -49,8 +49,8 @@ public class JoinedTableDao {
 
     static {
         ODP_PROVIDED_COLUMNS = new HashMap<>();
-        ODP_PROVIDED_COLUMNS.put(SERVICE_PACKAGE_NAME_COL, new ColumnSchema.Builder().setName(
-                SERVICE_PACKAGE_NAME_COL).setType(ColumnSchema.SQL_DATA_TYPE_TEXT).build());
+        ODP_PROVIDED_COLUMNS.put(SERVICE_NAME_COL, new ColumnSchema.Builder().setName(
+                SERVICE_NAME_COL).setType(ColumnSchema.SQL_DATA_TYPE_TEXT).build());
         ODP_PROVIDED_COLUMNS.put(TYPE_COL, new ColumnSchema.Builder().setName(TYPE_COL).setType(
                 ColumnSchema.SQL_DATA_TYPE_INTEGER).build());
         ODP_PROVIDED_COLUMNS.put(EVENT_TIME_MILLIS_COL, new ColumnSchema.Builder().setName(
@@ -201,9 +201,9 @@ public class JoinedTableDao {
 
     private ContentValues addProvidedColumns(JoinedEvent joinedEvent) {
         ContentValues result = new ContentValues();
-        if (mColumns.containsKey(SERVICE_PACKAGE_NAME_COL)) {
-            result.put(SERVICE_PACKAGE_NAME_COL,
-                    joinedEvent.getServicePackageName());
+        if (mColumns.containsKey(SERVICE_NAME_COL)) {
+            result.put(SERVICE_NAME_COL,
+                    joinedEvent.getServiceName());
         }
         if (mColumns.containsKey(TYPE_COL)) {
             result.put(TYPE_COL, joinedEvent.getType());

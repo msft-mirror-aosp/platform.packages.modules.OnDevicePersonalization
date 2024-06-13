@@ -54,22 +54,6 @@ class DataIngressPolicy {
                     "packageName" {rawUsage(UsageType.ANY)}
                     "installed" {rawUsage(UsageType.ANY)}
                 }
-                "appUsageHistory" {
-                    "packageName" {rawUsage(UsageType.ANY)}
-                    "totalTimeUsedMillis" {rawUsage(UsageType.ANY)}
-                }
-                "currentLocation" {
-                    "timeSec" {rawUsage(UsageType.ANY)}
-                    "latitude" {rawUsage(UsageType.ANY)}
-                    "longitude" {rawUsage(UsageType.ANY)}
-                    "locationProvider" {rawUsage(UsageType.ANY)}
-                    "preciseLocation" {rawUsage(UsageType.ANY)}
-                }
-                "locationHistory" {
-                    "latitude" {rawUsage(UsageType.ANY)}
-                    "longitude" {rawUsage(UsageType.ANY)}
-                    "durationMillis" {rawUsage(UsageType.ANY)}
-                }
             }
 
             allowedContext = not(UnicornAccount) and not(UserOptsInLimitedAdsTracking)
