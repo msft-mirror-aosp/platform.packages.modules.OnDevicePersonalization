@@ -28,14 +28,17 @@ public class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
     private Exception mException = null;
     private boolean mSuccess = false;
     private boolean mError = false;
+    private boolean mCalled = false;
 
     @Override public void onResult(T result) {
+        mCalled = true;
         mSuccess = true;
         mResult = result;
         mLatch.countDown();
     }
 
     @Override public void onError(Exception e) {
+        mCalled = true;
         mError = true;
         mException = e;
         mLatch.countDown();
@@ -63,6 +66,12 @@ public class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
     public boolean isError() throws InterruptedException {
         mLatch.await();
         return mError;
+    }
+
+    /** Returns true if onResult() or onError() was called. */
+    public boolean isCalled() throws InterruptedException {
+        mLatch.await();
+        return mCalled;
     }
 
     /** Returns the exception message. */

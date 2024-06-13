@@ -68,6 +68,15 @@ public class OnDevicePersonalizationManager {
 
     private static final String ALT_ODP_MANAGING_SERVICE_PACKAGE_SUFFIX =
             "com.google.android.ondevicepersonalization.services";
+
+    private static final String ODP_INTERNAL_ERROR_MESSAGE =
+            "Internal error in the OnDevicePersonalizationService.";
+
+    private static final String ISOLATED_SERVICE_ERROR_MESSAGE = "Error in the IsolatedService.";
+
+    private static final String ODP_DISABLED_ERROR_MESSAGE =
+            "Personalization disabled by device configuration.";
+
     private static final String TAG = OnDevicePersonalizationManager.class.getSimpleName();
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private final AbstractServiceBinder<IOnDevicePersonalizationManagingService> mServiceBinder;
@@ -436,11 +445,28 @@ public class OnDevicePersonalizationManager {
         }
     }
 
-    private Exception createException(
-            int errorCode, int isolatedServiceErrorCode, String message) {
-        if (message == null || message.isBlank()) {
-            message = "Error: " + errorCode;
+    private static String convertMessage(int errorCode, String message) {
+        // Defer to existing message received from service callback if it is non-empty, else
+        // translate the internal error codes into error messages.
+        if (message != null && !message.isBlank()) {
+            return message;
         }
+
+        switch (errorCode) {
+            case Constants.STATUS_INTERNAL_ERROR:
+                return ODP_INTERNAL_ERROR_MESSAGE;
+            case Constants.STATUS_SERVICE_FAILED:
+                return ISOLATED_SERVICE_ERROR_MESSAGE;
+            case Constants.STATUS_PERSONALIZATION_DISABLED:
+                return ODP_DISABLED_ERROR_MESSAGE;
+            default:
+                sLogger.w(TAG + "Unexpected error code while creating exception: " + errorCode);
+                return "";
+        }
+    }
+
+    private static Exception createException(
+            int errorCode, int isolatedServiceErrorCode, String message) {
         if (errorCode == Constants.STATUS_NAME_NOT_FOUND) {
             return new PackageManager.NameNotFoundException();
         } else if (errorCode == Constants.STATUS_CLASS_NOT_FOUND) {
@@ -451,16 +477,16 @@ public class OnDevicePersonalizationManager {
                         OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
                         new IsolatedServiceException(isolatedServiceErrorCode));
             } else {
-            return new OnDevicePersonalizationException(
-                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
-                    message);
+                return new OnDevicePersonalizationException(
+                        OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                        convertMessage(errorCode, message));
             }
         } else if (errorCode == Constants.STATUS_PERSONALIZATION_DISABLED) {
             return new OnDevicePersonalizationException(
                     OnDevicePersonalizationException.ERROR_PERSONALIZATION_DISABLED,
-                    message);
+                    convertMessage(errorCode, message));
         } else {
-            return new IllegalStateException(message);
+            return new IllegalStateException(convertMessage(errorCode, message));
         }
     }
 

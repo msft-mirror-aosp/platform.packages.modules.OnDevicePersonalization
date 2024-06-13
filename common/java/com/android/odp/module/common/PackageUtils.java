@@ -19,7 +19,9 @@ package com.android.odp.module.common;
 import static android.content.pm.PackageManager.GET_META_DATA;
 import static android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES;
 import static android.content.pm.PackageManager.MATCH_STATIC_SHARED_AND_SDK_LIBRARIES;
+import static android.federatedcompute.common.ClientConstants.ODP_AOSP_BUILT_APEX_NAME;
 import static android.federatedcompute.common.ClientConstants.ODP_APEX_KEYWORD;
+import static android.federatedcompute.common.ClientConstants.ODP_MAINLINE_SIGNED_APEX_NAME;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -108,22 +110,33 @@ public class PackageUtils {
      * Get the apex version of OnDevicePersonalization.
      *
      * @param context The context of the calling process.
-     * @return The apex version of OnDevicePersonalization in string. If there is no name match,
-     *     then return -1.
+     * @return The long version code of OnDevicePersonalization apex. If there is no name match,
+     *     then return -1L.
      */
     public static long getApexVersion(Context context) {
-        PackageManager packageManager = context.getPackageManager();
+        try {
+            PackageInfo odpMainlineApexInfo = context.getPackageManager()
+                    .getPackageInfo(ODP_MAINLINE_SIGNED_APEX_NAME, PackageManager.MATCH_APEX);
+            if (odpMainlineApexInfo != null && odpMainlineApexInfo.isApex) {
+                return odpMainlineApexInfo.getLongVersionCode();
+            }
+
+            PackageInfo odpAospApexInfo = context.getPackageManager()
+                    .getPackageInfo(ODP_AOSP_BUILT_APEX_NAME, PackageManager.MATCH_APEX);
+            if (odpAospApexInfo != null && odpAospApexInfo.isApex) {
+                return odpAospApexInfo.getLongVersionCode();
+            }
+        } catch (PackageManager.NameNotFoundException e) {
+        }
 
         List<PackageInfo> installedPackages =
-                packageManager.getInstalledPackages(
+                context.getPackageManager().getInstalledPackages(
                         PackageManager.PackageInfoFlags.of(PackageManager.MATCH_APEX));
-
-        long apexVersion = -1L;
         for (PackageInfo pkg : installedPackages) {
             if (pkg.packageName.contains(ODP_APEX_KEYWORD) && pkg.isApex) {
-                apexVersion = pkg.getLongVersionCode();
+                return pkg.getLongVersionCode();
             }
         }
-        return apexVersion;
+        return -1L;
     }
 }
