@@ -67,6 +67,8 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Handles a surface package request from an app or SDK.
@@ -86,9 +88,12 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     private final Context mContext;
     private final long mStartTimeMillis;
     private final long mServiceEntryTimeMillis;
+
     @NonNull
-    private IsolatedModelServiceProvider mModelServiceProvider;
-    private long mStartServiceTimeMillis;
+    private AtomicReference<IsolatedModelServiceProvider> mModelServiceProvider =
+            new AtomicReference<>(null);
+
+    private AtomicLong mStartServiceTimeMillis = new AtomicLong();
     private byte[] mSerializedAppParams;
 
     @VisibleForTesting
@@ -155,7 +160,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
 
     @Override
     public boolean isServiceFlowReady() {
-        mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
+        mStartServiceTimeMillis.set(mInjector.getClock().elapsedRealtime());
 
         try {
             ByteArrayParceledSlice paramsBuffer = Objects.requireNonNull(
@@ -219,8 +224,8 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         serviceParams.putParcelable(
                 Constants.EXTRA_USER_DATA,
                 new UserDataAccessor().getUserData());
-        mModelServiceProvider = new IsolatedModelServiceProvider();
-        IIsolatedModelService modelService = mModelServiceProvider.getModelService(mContext);
+        mModelServiceProvider.set(new IsolatedModelServiceProvider());
+        IIsolatedModelService modelService = mModelServiceProvider.get().getModelService(mContext);
         serviceParams.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, modelService.asBinder());
 
         return serviceParams;
@@ -228,28 +233,31 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
 
     @Override
     public void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {
-        var unused = FluentFuture.from(runServiceFuture)
-                .transform(
-                        val -> {
-                            StatsUtils.writeServiceRequestMetrics(
-                                    Constants.API_NAME_SERVICE_ON_EXECUTE,
-                                    val, mInjector.getClock(),
-                                    Constants.STATUS_SUCCESS, mStartServiceTimeMillis);
-                            return val;
-                        },
-                        mInjector.getExecutor()
-                )
-                .catchingAsync(
-                        Exception.class,
-                        e -> {
-                            StatsUtils.writeServiceRequestMetrics(
-                                    Constants.API_NAME_SERVICE_ON_EXECUTE, /* result= */ null,
-                                    mInjector.getClock(),
-                                    Constants.STATUS_INTERNAL_ERROR, mStartServiceTimeMillis);
-                            return Futures.immediateFailedFuture(e);
-                        },
-                        mInjector.getExecutor()
-                );
+        var unused =
+                FluentFuture.from(runServiceFuture)
+                        .transform(
+                                val -> {
+                                    StatsUtils.writeServiceRequestMetrics(
+                                            Constants.API_NAME_SERVICE_ON_EXECUTE,
+                                            val,
+                                            mInjector.getClock(),
+                                            Constants.STATUS_SUCCESS,
+                                            mStartServiceTimeMillis.get());
+                                    return val;
+                                },
+                                mInjector.getExecutor())
+                        .catchingAsync(
+                                Exception.class,
+                                e -> {
+                                    StatsUtils.writeServiceRequestMetrics(
+                                            Constants.API_NAME_SERVICE_ON_EXECUTE,
+                                            /* result= */ null,
+                                            mInjector.getClock(),
+                                            Constants.STATUS_INTERNAL_ERROR,
+                                            mStartServiceTimeMillis.get());
+                                    return Futures.immediateFailedFuture(e);
+                                },
+                                mInjector.getExecutor());
     }
 
     @Override
@@ -309,7 +317,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
 
     @Override
     public void cleanUpServiceParams() {
-        mModelServiceProvider.unBindFromModelService();
+        mModelServiceProvider.get().unBindFromModelService();
     }
 
     private ListenableFuture<ExecuteOutputParcel> validateExecuteOutput(
@@ -442,5 +450,3 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         }
     }
 }
-
-
