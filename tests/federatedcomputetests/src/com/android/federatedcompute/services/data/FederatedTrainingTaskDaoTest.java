@@ -16,15 +16,10 @@
 
 package com.android.federatedcompute.services.data;
 
-import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE;
-import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
-
 import static com.google.common.truth.Truth.assertThat;
 
 import static junit.framework.Assert.assertTrue;
 
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.content.Context;
@@ -61,7 +56,8 @@ public final class FederatedTrainingTaskDaoTest {
     private static final String TASK_ID = "task_id";
     private static final String SERVER_ADDRESS = "https://server.uri/";
     private static final int JOB_ID = 123;
-    private static final String OWNER_ID = "com.android.pckg.name/com.android.class.name";
+    private static final String OWNER_PACKAGE = "com.android.pckg.name";
+    private static final String OWNER_CLASS = "com.android.class.name";
     private static final String OWNER_ID_CERT_DIGEST = "123SOME45DIGEST78";
     private static final Long CREATION_TIME = 1233L;
     private static final Long LAST_SCHEDULE_TIME = 1230L;
@@ -121,10 +117,6 @@ public final class FederatedTrainingTaskDaoTest {
         FederatedTrainingTask removedTask = mTrainingTaskDao.findAndRemoveTaskByJobId(JOB_ID);
 
         assertThat(removedTask).isNull();
-        verify(mMockClientErrorLogger)
-                .logError(
-                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE),
-                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
     }
 
     @Test
@@ -147,15 +139,28 @@ public final class FederatedTrainingTaskDaoTest {
     }
 
     @Test
+    public void testGetNumberOfFederatedTrainingTasksPerOwnerPackage() {
+        FederatedTrainingTask task = createDefaultFederatedTrainingTask();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task);
+        FederatedTrainingTask task2 =
+                createDefaultFederatedTrainingTask().toBuilder()
+                        .jobId(456)
+                        .populationName(POPULATION_NAME + "_2")
+                        .build();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task2);
+
+        int numberOfTasksPerPackage =
+                mTrainingTaskDao.getTotalTrainingTaskPerOwnerPackage(OWNER_PACKAGE);
+
+        assertThat(numberOfTasksPerPackage).isEqualTo(2);
+    }
+
+    @Test
     public void findAndRemoveTaskByPopulationNameAndJobId_nonExist() {
         FederatedTrainingTask removedTask =
                 mTrainingTaskDao.findAndRemoveTaskByPopulationAndJobId(POPULATION_NAME, JOB_ID);
 
         assertThat(removedTask).isNull();
-        verify(mMockClientErrorLogger)
-                .logError(
-                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE),
-                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
     }
 
     @Test
@@ -204,10 +209,6 @@ public final class FederatedTrainingTaskDaoTest {
                 mTrainingTaskDao.findAndRemoveTaskByPopulationName(POPULATION_NAME);
 
         assertThat(removedTask).isNull();
-        verify(mMockClientErrorLogger)
-                .logError(
-                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE),
-                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
     }
 
     @Test
@@ -217,10 +218,6 @@ public final class FederatedTrainingTaskDaoTest {
                         POPULATION_NAME, PACKAGE_NAME);
 
         assertThat(removedTask).isNull();
-        verify(mMockClientErrorLogger)
-                .logError(
-                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE),
-                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
     }
 
     @Test
@@ -236,7 +233,7 @@ public final class FederatedTrainingTaskDaoTest {
         FederatedTrainingTask task3 =
                 createDefaultFederatedTrainingTask().toBuilder()
                         .jobId(457)
-                        .ownerId(OWNER_ID + "_2")
+                        .ownerPackageName(OWNER_PACKAGE + "_2")
                         .build();
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task3);
         FederatedTrainingTask task4 =
@@ -249,7 +246,7 @@ public final class FederatedTrainingTaskDaoTest {
 
         FederatedTrainingTask removedTask =
                 mTrainingTaskDao.findAndRemoveTaskByPopulationNameAndOwnerId(
-                        POPULATION_NAME, OWNER_ID, OWNER_ID_CERT_DIGEST);
+                        POPULATION_NAME, OWNER_PACKAGE, OWNER_CLASS, OWNER_ID_CERT_DIGEST);
 
         assertThat(DataTestUtil.isEqualTask(removedTask, task)).isTrue();
         assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(3);
@@ -259,13 +256,9 @@ public final class FederatedTrainingTaskDaoTest {
     public void findAndRemoveTaskByPopulationNameAndOwnerId_nonExist() {
         FederatedTrainingTask removedTask =
                 mTrainingTaskDao.findAndRemoveTaskByPopulationNameAndOwnerId(
-                        POPULATION_NAME, OWNER_ID, OWNER_ID_CERT_DIGEST);
+                        POPULATION_NAME, OWNER_PACKAGE, OWNER_CLASS, OWNER_ID_CERT_DIGEST);
 
         assertThat(removedTask).isNull();
-        verify(mMockClientErrorLogger)
-                .logError(
-                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE),
-                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
     }
 
     @Test
@@ -360,7 +353,8 @@ public final class FederatedTrainingTaskDaoTest {
         return FederatedTrainingTask.builder()
                 .appPackageName(PACKAGE_NAME)
                 .jobId(JOB_ID)
-                .ownerId(OWNER_ID)
+                .ownerPackageName(OWNER_PACKAGE)
+                .ownerClassName(OWNER_CLASS)
                 .ownerIdCertDigest(OWNER_ID_CERT_DIGEST)
                 .populationName(POPULATION_NAME)
                 .serverAddress(SERVER_ADDRESS)

@@ -141,6 +141,9 @@ public class EventsDao {
             values.put(QueriesContract.QueriesEntry.SERVICE_NAME,
                     query.getServiceName());
             values.put(QueriesContract.QueriesEntry.QUERY_DATA, query.getQueryData());
+            values.put(QueriesContract.QueriesEntry.APP_PACKAGE_NAME, query.getAppPackageName());
+            values.put(QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST,
+                    query.getServiceCertDigest());
             return db.insert(QueriesContract.QueriesEntry.TABLE_NAME, null,
                     values);
         } catch (SQLiteException e) {
@@ -320,13 +323,15 @@ public class EventsDao {
                 String serviceName = cursor.getString(
                         cursor.getColumnIndexOrThrow(
                                 QueriesContract.QueriesEntry.SERVICE_NAME));
-                queries.add(new Query.Builder()
+                String appPackageName = cursor.getString(cursor.getColumnIndexOrThrow(
+                        QueriesContract.QueriesEntry.APP_PACKAGE_NAME));
+                String certDigest = cursor.getString(cursor.getColumnIndexOrThrow(
+                        QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST));
+                queries.add(new Query.Builder(
+                        timeMillis, appPackageName, DbUtils.fromTableValue(serviceName),
+                                certDigest, queryData)
                         .setQueryId(queryId)
-                        .setQueryData(queryData)
-                        .setTimeMillis(timeMillis)
-                        .setService(DbUtils.fromTableValue(serviceName))
-                        .build()
-                );
+                        .build());
             }
         } catch (IllegalArgumentException e) {
             sLogger.e(e, TAG + ": Failed parse resulting query");
@@ -511,6 +516,42 @@ public class EventsDao {
         return idList;
     }
 
+    /**
+     * Returns whether an event with (queryId, type, rowIndex, service) exists.
+     */
+    public boolean hasEvent(long queryId, int type, int rowIndex, ComponentName service) {
+        try {
+            int count = 0;
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+            String[] projection = {EventsContract.EventsEntry.EVENT_ID};
+            String selection = EventsContract.EventsEntry.QUERY_ID + " = ?"
+                    + " AND " + EventsContract.EventsEntry.TYPE + " = ?"
+                    + " AND " + EventsContract.EventsEntry.ROW_INDEX + " = ?"
+                    + " AND " + EventsContract.EventsEntry.SERVICE_NAME + " = ?";
+            String[] selectionArgs = {
+                    String.valueOf(queryId),
+                    String.valueOf(type),
+                    String.valueOf(rowIndex),
+                    DbUtils.toTableValue(service)
+            };
+            try (Cursor cursor = db.query(
+                    EventsContract.EventsEntry.TABLE_NAME,
+                    projection,
+                    selection,
+                    selectionArgs,
+                    /* groupBy= */ null,
+                    /* having= */ null,
+                    null
+            )) {
+                if (cursor.moveToNext()) {
+                    return true;
+                }
+            }
+        } catch (SQLiteException e) {
+            sLogger.e(TAG + ": Failed to read event ids for specified queryid", e);
+        }
+        return false;
+    }
 
     /**
      * Reads all ids in the event table associated with the specified queryId
@@ -580,14 +621,16 @@ public class EventsDao {
                         cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.QUERY_DATA));
                 long timeMillis = cursor.getLong(
                         cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.TIME_MILLIS));
+                String appPackageName = cursor.getString(cursor.getColumnIndexOrThrow(
+                        QueriesContract.QueriesEntry.APP_PACKAGE_NAME));
+                String certDigest = cursor.getString(cursor.getColumnIndexOrThrow(
+                        QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST));
                 String serviceName = cursor.getString(
                         cursor.getColumnIndexOrThrow(
                                 QueriesContract.QueriesEntry.SERVICE_NAME));
-                return new Query.Builder()
+                return new Query.Builder(
+                        timeMillis, appPackageName, service, certDigest, queryData)
                         .setQueryId(id)
-                        .setQueryData(queryData)
-                        .setTimeMillis(timeMillis)
-                        .setService(service)
                         .build();
             }
         } catch (SQLiteException e) {

@@ -17,6 +17,7 @@
 package com.android.federatedcompute.services;
 
 import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ERROR;
+import static android.federatedcompute.common.ClientConstants.STATUS_KILL_SWITCH_ENABLED;
 import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
 
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL;
@@ -32,13 +33,13 @@ import android.os.Binder;
 import android.os.RemoteException;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FlagsFactory;
-import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
 import com.android.federatedcompute.services.statsd.ApiCallStats;
 import com.android.federatedcompute.services.statsd.FederatedComputeStatsdLogger;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -87,8 +88,19 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
         try {
             long origId = Binder.clearCallingIdentity();
             if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
-                throw new IllegalStateException(
-                        "FederatedComputeService skipped as the global kill switch is on.");
+                trainingOptions.getOwnerComponentName().getPackageName();
+                ApiCallStats.Builder apiCallStatsBuilder = new ApiCallStats.Builder()
+                        .setApiName(FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE)
+                        .setResponseCode(STATUS_KILL_SWITCH_ENABLED);
+                if (trainingOptions.getOwnerComponentName() != null) {
+                    apiCallStatsBuilder.setSdkPackageName(
+                            trainingOptions.getOwnerComponentName().getPackageName());
+                } else {
+                    apiCallStatsBuilder.setSdkPackageName("");
+                }
+                mFcStatsdLogger.logApiCallStats(apiCallStatsBuilder.build());
+                sendResult(callback, STATUS_KILL_SWITCH_ENABLED);
+                return;
             }
             Binder.restoreCallingIdentity(origId);
 
@@ -112,16 +124,25 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
                                     sendResult(callback, resultCode);
                                     int serviceLatency =
                                             (int) (mClock.elapsedRealtime() - startServiceTime);
-                                    mFcStatsdLogger.logApiCallStats(
+                                    trainingOptions.getOwnerComponentName().getPackageName();
+                                    ApiCallStats.Builder apiCallStatsBuilder =
                                             new ApiCallStats.Builder()
                                                     .setApiName(
-                                                FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE)
+                                                            FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE)
                                                     .setLatencyMillis(serviceLatency)
-                                                    .setResponseCode(resultCode)
-                                                    .build());
+                                                    .setResponseCode(resultCode);
+                                    if (trainingOptions.getOwnerComponentName() != null) {
+                                        apiCallStatsBuilder.setSdkPackageName(
+                                                trainingOptions
+                                                        .getOwnerComponentName()
+                                                        .getPackageName());
+                                    } else {
+                                        apiCallStatsBuilder.setSdkPackageName("");
+                                    }
+                                    mFcStatsdLogger.logApiCallStats(apiCallStatsBuilder.build());
                                 }
                             });
-        } catch (NullPointerException | IllegalArgumentException | IllegalStateException ex) {
+        } catch (NullPointerException | IllegalArgumentException ex) {
             LogUtil.e(TAG, ex, "Got exception for schedule()");
             throw ex;
         } catch (Exception e) {
@@ -138,13 +159,21 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
         // Use FederatedCompute instead of caller permission to read experiment flags. It requires
         // READ_DEVICE_CONFIG permission.
         try {
+            Objects.requireNonNull(ownerComponent);
             long origId = Binder.clearCallingIdentity();
             if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
-                throw new IllegalStateException("Service skipped as the global kill switch is on.");
+                mFcStatsdLogger.logApiCallStats(
+                        new ApiCallStats.Builder()
+                                .setApiName(FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL)
+                                .setResponseCode(STATUS_KILL_SWITCH_ENABLED)
+                                .setSdkPackageName(ownerComponent.getPackageName())
+                                .build());
+                sendResult(callback, STATUS_KILL_SWITCH_ENABLED);
+                return;
             }
             Binder.restoreCallingIdentity(origId);
 
-            Objects.requireNonNull(ownerComponent);
+
             Objects.requireNonNull(callback);
             Objects.requireNonNull(populationName);
 
@@ -174,17 +203,19 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
                                     mFcStatsdLogger.logApiCallStats(
                                             new ApiCallStats.Builder()
                                                     .setApiName(
-                                                    FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL)
+                                                            FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL)
                                                     .setLatencyMillis(serviceLatency)
                                                     .setResponseCode(resultCode)
+                                                    .setSdkPackageName(
+                                                            ownerComponent.getPackageName())
                                                     .build());
                                 }
                             });
-        } catch (NullPointerException | IllegalArgumentException | IllegalStateException ex) {
-            LogUtil.e(TAG, ex, "Got exception for schedule()");
+        } catch (NullPointerException | IllegalArgumentException ex) {
+            LogUtil.e(TAG, ex, "Got exception for cancel()");
             throw ex;
         } catch (Exception e) {
-            LogUtil.e(TAG, e, "Got exception for schedule()");
+            LogUtil.e(TAG, e, "Got exception for cancel()");
             sendResult(callback, STATUS_INTERNAL_ERROR);
         }
     }

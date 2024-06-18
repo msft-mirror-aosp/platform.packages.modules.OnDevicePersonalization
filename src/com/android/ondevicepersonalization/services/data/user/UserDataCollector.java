@@ -16,7 +16,7 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
-import static android.content.pm.PackageManager.MATCH_UNINSTALLED_PACKAGES;
+import static android.content.pm.PackageManager.GET_META_DATA;
 
 import android.content.Context;
 import android.content.Intent;
@@ -34,28 +34,30 @@ import android.telephony.TelephonyManager;
 import androidx.annotation.NonNull;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
 /**
- * A collector for getting user data signals.
- * This class only exposes two public operations: periodic update, and
- * real-time update.
- * Periodic update operation will be run every 4 hours in the background,
- * given several on-device resource constraints are satisfied.
- * Real-time update operation will be run before any ads serving request
- * and update a few time-sensitive signals in UserData to the latest version.
+ * A collector for getting user data signals. This class only exposes two public operations:
+ * periodic update, and real-time update. Periodic update operation will be run every 4 hours in the
+ * background, given several on-device resource constraints are satisfied. Real-time update
+ * operation will be run before any ads serving request and update a few time-sensitive signals in
+ * UserData to the latest version.
  */
 public class UserDataCollector {
     private static final int MILLISECONDS_IN_MINUTE = 60000;
 
     private static volatile UserDataCollector sUserDataCollector = null;
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
-    private static final String TAG = "UserDataCollector";
+    private static final String TAG = UserDataCollector.class.getSimpleName();
 
     @VisibleForTesting
     public static final Set<Integer> ALLOWED_NETWORK_TYPE =
@@ -78,21 +80,18 @@ public class UserDataCollector {
                     TelephonyManager.NETWORK_TYPE_GSM,
                     TelephonyManager.NETWORK_TYPE_TD_SCDMA,
                     TelephonyManager.NETWORK_TYPE_IWLAN,
-                    TelephonyManager.NETWORK_TYPE_NR
-            );
+                    TelephonyManager.NETWORK_TYPE_NR);
 
-    @NonNull
-    private final Context mContext;
-    @NonNull
-    private final TelephonyManager mTelephonyManager;
+    @NonNull private final Context mContext;
+    @NonNull private final TelephonyManager mTelephonyManager;
     @NonNull final ConnectivityManager mConnectivityManager;
     // Metadata to track whether UserData has been initialized.
-    @NonNull
-    private boolean mInitialized;
+    @NonNull private boolean mInitialized;
+    private final UserDataDao mUserDataDao;
 
-    private UserDataCollector(Context context) {
+    private UserDataCollector(Context context, UserDataDao userDataDao) {
         mContext = context;
-
+        mUserDataDao = userDataDao;
         mTelephonyManager = mContext.getSystemService(TelephonyManager.class);
         mConnectivityManager = mContext.getSystemService(ConnectivityManager.class);
         mInitialized = false;
@@ -103,8 +102,10 @@ public class UserDataCollector {
         if (sUserDataCollector == null) {
             synchronized (UserDataCollector.class) {
                 if (sUserDataCollector == null) {
-                    sUserDataCollector = new UserDataCollector(
-                            context.getApplicationContext());
+                    sUserDataCollector =
+                            new UserDataCollector(
+                                    context.getApplicationContext(),
+                                    UserDataDao.getInstance(context));
                 }
             }
         }
@@ -112,14 +113,21 @@ public class UserDataCollector {
     }
 
     /**
-     * Returns an instance of the UserDataCollector given a context. This is used
-     * for testing only.
+     * Returns an instance of the UserDataCollector which is not a singleton instance. It's only for
+     * testing purpose.
      */
+    @VisibleForTesting
+    public static UserDataCollector getInstanceForTest(Context context, UserDataDao userDataDao) {
+        return new UserDataCollector(context, userDataDao);
+    }
+
+    /** Returns a singleton instance of the UserDataCollector. It's only for testing purpose. */
     @VisibleForTesting
     public static UserDataCollector getInstanceForTest(Context context) {
         synchronized (UserDataCollector.class) {
             if (sUserDataCollector == null) {
-                sUserDataCollector = new UserDataCollector(context);
+                sUserDataCollector =
+                        new UserDataCollector(context, UserDataDao.getInstanceForTest(context));
             }
             return sUserDataCollector;
         }
@@ -128,9 +136,9 @@ public class UserDataCollector {
     /** Update real-time user data to the latest per request. */
     public void getRealTimeData(@NonNull RawUserData userData) {
         /**
-         * Ads serving requires real-time latency. If user data has not been initialized,
-         * we will skip user data collection for the incoming request and wait until the first
-         * {@link UserDataCollectionJobService} to be scheduled.
+         * Ads serving requires real-time latency. If user data has not been initialized, we will
+         * skip user data collection for the incoming request and wait until the first {@link
+         * UserDataCollectionJobService} to be scheduled.
          */
         if (!mInitialized) {
             return;
@@ -150,13 +158,12 @@ public class UserDataCollector {
         getCarrier(userData);
         getNetworkCapabilities(userData);
         getDataNetworkType(userData);
-
-        getInstalledApps(userData.appsInfo);
+        updateInstalledApps(userData);
     }
 
     /**
-     * Collects in-memory user data signals and stores in a UserData object
-     * for the schedule of {@link UserDataCollectionJobService}
+     * Collects in-memory user data signals and stores in a UserData object for the schedule of
+     * {@link UserDataCollectionJobService}
      */
     private void initializeUserData(@NonNull RawUserData userData) {
         getUtcOffset(userData);
@@ -166,8 +173,7 @@ public class UserDataCollector {
         getCarrier(userData);
         getNetworkCapabilities(userData);
         getDataNetworkType(userData);
-
-        getInstalledApps(userData.appsInfo);
+        initialInstalledApp(userData);
 
         mInitialized = true;
     }
@@ -176,10 +182,11 @@ public class UserDataCollector {
     @VisibleForTesting
     public void getUtcOffset(RawUserData userData) {
         try {
-            userData.utcOffset = TimeZone.getDefault().getOffset(System.currentTimeMillis())
-                    / MILLISECONDS_IN_MINUTE;
+            userData.utcOffset =
+                    TimeZone.getDefault().getOffset(System.currentTimeMillis())
+                            / MILLISECONDS_IN_MINUTE;
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect timezone offset.");
+            sLogger.w(TAG + ": Failed to collect timezone offset.", e);
         }
     }
 
@@ -189,7 +196,7 @@ public class UserDataCollector {
         try {
             userData.orientation = mContext.getResources().getConfiguration().orientation;
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect device orientation.");
+            sLogger.w(TAG + ": Failed to collect device orientation.", e);
         }
     }
 
@@ -200,7 +207,7 @@ public class UserDataCollector {
             StatFs statFs = new StatFs(Environment.getDataDirectory().getPath());
             userData.availableStorageBytes = statFs.getAvailableBytes();
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect availableStorageBytes.");
+            sLogger.w(TAG + ": Failed to collect availableStorageBytes.", e);
         }
     }
 
@@ -217,7 +224,7 @@ public class UserDataCollector {
                 userData.batteryPercentage = Math.round(level * 100.0f / (float) scale);
             }
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect batteryPercentage.");
+            sLogger.w(TAG + ": Failed to collect batteryPercentage.", e);
         }
     }
 
@@ -258,7 +265,7 @@ public class UserDataCollector {
                 default -> userData.carrier = Carrier.UNKNOWN;
             }
         } catch (Exception e) {
-            sLogger.w(TAG + "Failed to collect carrier info.");
+            sLogger.w(TAG + "Failed to collect carrier info.", e);
         }
     }
 
@@ -266,11 +273,12 @@ public class UserDataCollector {
     @VisibleForTesting
     public void getNetworkCapabilities(RawUserData userData) {
         try {
-            NetworkCapabilities networkCapabilities = mConnectivityManager.getNetworkCapabilities(
-                    mConnectivityManager.getActiveNetwork());
+            NetworkCapabilities networkCapabilities =
+                    mConnectivityManager.getNetworkCapabilities(
+                            mConnectivityManager.getActiveNetwork());
             userData.networkCapabilities = getFilteredNetworkCapabilities(networkCapabilities);
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect networkCapabilities.");
+            sLogger.w(TAG + ": Failed to collect networkCapabilities.", e);
         }
     }
 
@@ -284,36 +292,11 @@ public class UserDataCollector {
                 userData.dataNetworkType = dataNetworkType;
             }
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect data network type.");
+            sLogger.w(TAG + ": Failed to collect data network type.", e);
         }
     }
 
-    /** Get app install and uninstall record. */
-    @VisibleForTesting
-    public void getInstalledApps(@NonNull List<AppInfo> appsInfo) {
-        try {
-            appsInfo.clear();
-            PackageManager packageManager = mContext.getPackageManager();
-            for (ApplicationInfo appInfo :
-                    packageManager.getInstalledApplications(MATCH_UNINSTALLED_PACKAGES)) {
-                AppInfo app = new AppInfo();
-                app.packageName = appInfo.packageName;
-                if ((appInfo.flags & ApplicationInfo.FLAG_INSTALLED) != 0) {
-                    app.installed = true;
-                } else {
-                    app.installed = false;
-                }
-                appsInfo.add(app);
-            }
-            sLogger.d(TAG + ": Finished collecting AppInfo.");
-        } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect installed AppInfo.");
-        }
-    }
-
-    /**
-     * Util to reset all fields in [UserData] to default for testing purpose
-     */
+    /** Util to reset all fields in [UserData] to default for testing purpose */
     public void clearUserData(@NonNull RawUserData userData) {
         userData.utcOffset = 0;
         userData.orientation = Configuration.ORIENTATION_PORTRAIT;
@@ -321,12 +304,10 @@ public class UserDataCollector {
         userData.batteryPercentage = 0;
         userData.carrier = Carrier.UNKNOWN;
         userData.networkCapabilities = null;
-        userData.appsInfo.clear();
+        userData.installedApps.clear();
     }
 
-    /**
-     * Util to reset all in-memory metadata for testing purpose.
-     */
+    /** Util to reset all in-memory metadata for testing purpose. */
     public void clearMetadata() {
         mInitialized = false;
     }
@@ -341,14 +322,65 @@ public class UserDataCollector {
             NetworkCapabilities networkCapabilities) {
         NetworkCapabilities.Builder builder =
                 NetworkCapabilities.Builder.withoutDefaultCapabilities()
-                    .setLinkDownstreamBandwidthKbps(
-                            networkCapabilities.getLinkDownstreamBandwidthKbps())
-                    .setLinkUpstreamBandwidthKbps(
-                            networkCapabilities.getLinkUpstreamBandwidthKbps());
-        if (networkCapabilities.hasCapability(
-                NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) {
+                        .setLinkDownstreamBandwidthKbps(
+                                networkCapabilities.getLinkDownstreamBandwidthKbps())
+                        .setLinkUpstreamBandwidthKbps(
+                                networkCapabilities.getLinkUpstreamBandwidthKbps());
+        if (networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) {
             builder.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
         }
         return builder.build();
+    }
+
+    /** Initials the installed app list by reading from database. */
+    public void initialInstalledApp(RawUserData userData) {
+        Map<String, Long> existingInstallApps = mUserDataDao.getAppInstallMap();
+        userData.installedApps = existingInstallApps.keySet();
+    }
+
+    /** Updates app installed list if necessary. */
+    @VisibleForTesting
+    public void updateInstalledApps(RawUserData userData) {
+        try {
+            Map<String, Long> existingInstallApps = mUserDataDao.getAppInstallMap();
+            PackageManager packageManager = mContext.getPackageManager();
+
+            List<ApplicationInfo> installAppList =
+                    packageManager.getInstalledApplications(
+                            PackageManager.ApplicationInfoFlags.of(GET_META_DATA));
+            Map<String, Long> currentAppInstall =
+                    updateExistingAppInstall(installAppList, existingInstallApps);
+            userData.installedApps = currentAppInstall.keySet();
+            mUserDataDao.insertAppInstall(currentAppInstall);
+            sLogger.d(TAG + ": Update RawUserData installAppList " + userData.installedApps);
+        } catch (Exception e) {
+            sLogger.w(e, TAG + ": Failed to collect installed app list.");
+        }
+    }
+
+    @VisibleForTesting
+    Map<String, Long> updateExistingAppInstall(
+            List<ApplicationInfo> installAppList, Map<String, Long> existingInstallApps) {
+        Map<String, Long> currentAppInstallMap = new HashMap<>();
+        long currentTime = MonotonicClock.getInstance().currentTimeMillis();
+
+        // Get current install apps and update existing app list.
+        for (ApplicationInfo appInfo : installAppList) {
+            String packageName = appInfo.packageName;
+            currentAppInstallMap.put(packageName, currentTime);
+        }
+
+        // Iterator the new app install list and remove expired apps over 30 days (ttl).
+        long ttl = FlagsFactory.getFlags().getAppInstallHistoryTtlInMillis();
+        for (Map.Entry<String, Long> entry : existingInstallApps.entrySet()) {
+            String packageName = entry.getKey();
+            if (currentAppInstallMap.containsKey(packageName)) continue;
+
+            long lastUpdateTime = entry.getValue();
+            if (lastUpdateTime >= currentTime - ttl) {
+                currentAppInstallMap.put(packageName, lastUpdateTime);
+            }
+        }
+        return currentAppInstallMap;
     }
 }

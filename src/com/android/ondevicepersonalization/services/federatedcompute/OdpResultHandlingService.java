@@ -109,7 +109,11 @@ public class OdpResultHandlingService extends ResultHandlingService {
         List<EventState> eventStates = new ArrayList<>();
         for (ExampleConsumption consumption : exampleConsumptions) {
             String taskIdentifier =
-                    OdpExampleStoreService.getTaskIdentifier(populationName, taskId);
+                    consumption.getCollectionUri() != null
+                                    && !consumption.getCollectionUri().isEmpty()
+                            ? OdpExampleStoreService.getTaskIdentifier(
+                                    populationName, taskId, consumption.getCollectionUri())
+                            : OdpExampleStoreService.getTaskIdentifier(populationName, taskId);
             byte[] resumptionToken = consumption.getResumptionToken();
             if (resumptionToken != null) {
                 eventStates.add(

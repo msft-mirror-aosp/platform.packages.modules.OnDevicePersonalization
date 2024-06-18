@@ -15,6 +15,7 @@
  */
 package com.android.ondevicepersonalization.cts.e2e;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -91,6 +92,15 @@ public class CtsOdpManagerTests {
                         + "isolated_service_allow_list "
                         + "com.android.ondevicepersonalization.testing.sampleservice,"
                         + "com.example.odptargetingapp2");
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "isolated_service_debugging_enabled "
+                        + true);
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "output_data_allow_list "
+                        + mContext.getPackageName()
+                        + ";com.android.ondevicepersonalization.testing.sampleservice");
     }
 
     @After
@@ -99,12 +109,11 @@ public class CtsOdpManagerTests {
                 "device_config put on_device_personalization "
                         + "isolated_service_allow_list "
                         + "null");
+        ShellUtils.runShellCommand("device_config delete output_data_allow_list");
 
         ShellUtils.runShellCommand(
                 "am force-stop com.google.android.ondevicepersonalization.services");
-        ShellUtils.runShellCommand(
-                "am force-stop com.android.ondevicepersonalization.services");
-
+        ShellUtils.runShellCommand("am force-stop com.android.ondevicepersonalization.services");
     }
 
     @Test
@@ -260,7 +269,7 @@ public class CtsOdpManagerTests {
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.isSuccess());
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
         assertNull(token);
     }
@@ -283,7 +292,7 @@ public class CtsOdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.isSuccess());
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
         assertNotNull(token);
     }
@@ -302,9 +311,61 @@ public class CtsOdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.isSuccess());
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
         assertNotNull(token);
+    }
+
+    @Test
+    public void testExecuteWithOutputData() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(
+                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RETURN_OUTPUT_DATA);
+        appParams.putString(
+                SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(new byte[] {'A'}, 0));
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertArrayEquals(new byte[] {'A'}, receiver.getResult().getOutputData());
+    }
+
+    @Test
+    public void testExecuteReadRemoteData() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_REMOTE_DATA);
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+    }
+
+    @Test
+    public void testExecuteReadUserData() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_USER_DATA);
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
     }
 
     @Test
@@ -324,9 +385,48 @@ public class CtsOdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.isSuccess());
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
         assertNull(token);
+    }
+
+    @Test
+    public void testExecuteReadLog() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        final long now = System.currentTimeMillis();
+
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RENDER_AND_LOG);
+            PersistableBundle logData = new PersistableBundle();
+            logData.putLong(SampleServiceApi.KEY_EXPECTED_LOG_DATA_KEY, now);
+            appParams.putPersistableBundle(SampleServiceApi.KEY_LOG_DATA, logData);
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        }
+
+        Thread.sleep(DELAY_MILLIS);
+
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOG);
+            appParams.putLong(SampleServiceApi.KEY_EXPECTED_LOG_DATA_VALUE, now);
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        }
     }
 
     @Test
@@ -395,7 +495,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
 
         Thread.sleep(DELAY_MILLIS);
@@ -414,8 +514,10 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
+
+        Thread.sleep(DELAY_MILLIS);
 
         // Remove.
         {
@@ -429,7 +531,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
 
         Thread.sleep(DELAY_MILLIS);
@@ -446,7 +548,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
     }
 
@@ -472,7 +574,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
 
         Thread.sleep(DELAY_MILLIS);
@@ -492,8 +594,10 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
+
+        Thread.sleep(DELAY_MILLIS);
 
         // Remove.
         {
@@ -507,7 +611,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
 
         Thread.sleep(DELAY_MILLIS);
@@ -524,7 +628,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
     }
 
@@ -549,7 +653,7 @@ public class CtsOdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.isSuccess());
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
     }
 
     @Test
@@ -587,7 +691,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
 
         Thread.sleep(DELAY_MILLIS);
@@ -605,7 +709,43 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
+    }
+
+    @Test
+    public void testExecuteWithScheduleFederatedJob() throws Exception {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(
+                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB);
+        appParams.putString(SampleServiceApi.KEY_POPULATION_NAME, "criteo_app_test_task");
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+    }
+
+    @Test
+    public void testExecuteWithCancelFederatedJob() throws Exception {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(
+                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_CANCEL_FEDERATED_JOB);
+        appParams.putString(SampleServiceApi.KEY_POPULATION_NAME, "criteo_app_test_task");
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
     }
 }

@@ -20,12 +20,10 @@ import android.adservices.ondevicepersonalization.UserData;
 import android.content.res.Configuration;
 import android.net.NetworkCapabilities;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
-/**
- * A singleton class that holds all most recent in-memory user signals.
- */
+/** A singleton class that holds all most recent in-memory user signals. */
 public final class RawUserData {
 
     private static RawUserData sUserData = null;
@@ -49,10 +47,10 @@ public final class RawUserData {
 
     @UserData.NetworkType public int dataNetworkType;
 
-    // installed packages.
-    public List<AppInfo> appsInfo = new ArrayList<>();
+    // The list of installed package names in last 30 days.
+    public Set<String> installedApps = new HashSet<>();
 
-    private RawUserData() { }
+    private RawUserData() {}
 
     /** Returns an instance of UserData. */
     public static RawUserData getInstance() {

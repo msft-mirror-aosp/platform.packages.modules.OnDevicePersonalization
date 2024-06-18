@@ -19,8 +19,6 @@ package com.android.ondevicepersonalization.services.policyengine.data.impl
 import android.adservices.ondevicepersonalization.AppInfo
 import android.adservices.ondevicepersonalization.UserData
 import android.util.ArrayMap
-
-import com.android.ondevicepersonalization.services.data.user.RawUserData
 import com.android.libraries.pcc.chronicle.api.Connection
 import com.android.libraries.pcc.chronicle.api.ConnectionProvider
 import com.android.libraries.pcc.chronicle.api.ConnectionRequest
@@ -28,10 +26,9 @@ import com.android.libraries.pcc.chronicle.api.DataType
 import com.android.libraries.pcc.chronicle.api.ManagedDataType
 import com.android.libraries.pcc.chronicle.api.ManagementStrategy
 import com.android.libraries.pcc.chronicle.api.StorageMedia
-
+import com.android.ondevicepersonalization.services.data.user.RawUserData
 import com.android.ondevicepersonalization.services.policyengine.data.USER_DATA_GENERATED_DTD
 import com.android.ondevicepersonalization.services.policyengine.data.UserDataReader
-
 import java.time.Duration
 
 /** [ConnectionProvider] implementation for ODA use data. */
@@ -49,6 +46,14 @@ class UserDataConnectionProvider() : ConnectionProvider {
 
     class UserDataReaderImpl : UserDataReader {
         override fun readUserData(): UserData? {
+            return getUserData(false);
+        }
+
+        override fun readUserDataWithAppInstall(): UserData? {
+            return getUserData(true);
+        }
+
+        private fun getUserData(appInstall: Boolean): UserData? {
             val rawUserData: RawUserData = RawUserData.getInstance() ?: return null
             // TODO(b/267013762): more privacy-preserving processing may be needed
             val builder: UserData.Builder = UserData.Builder()
@@ -58,21 +63,23 @@ class UserDataConnectionProvider() : ConnectionProvider {
                     .setBatteryPercentage(rawUserData.batteryPercentage)
                     .setCarrier(rawUserData.carrier.toString())
                     .setDataNetworkType(rawUserData.dataNetworkType)
-                    .setAppInfos(getAppInfos(rawUserData))
+
             // TODO (b/299683848): follow up the codegen bug
             if (rawUserData.networkCapabilities != null) {
                 builder.setNetworkCapabilities(rawUserData.networkCapabilities)
             }
+            if (appInstall) {
+                builder.setAppInfos(getInstallApps(rawUserData.installedApps))
+            }
             return builder.build()
         }
 
-        private fun getAppInfos(rawUserData: RawUserData): Map<String, AppInfo> {
+        private fun getInstallApps(installedApps: Set<String>): Map<String, AppInfo> {
             var res = ArrayMap<String, AppInfo>()
-            for (appInfo in rawUserData.appsInfo) {
-                res.put(appInfo.packageName,
-                        AppInfo.Builder()
-                            .setInstalled(appInfo.installed)
-                            .build())
+            for (appName in installedApps) {
+                res[appName] = AppInfo.Builder()
+                        .setInstalled(true)
+                        .build()
             }
             return res
         }
