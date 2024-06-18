@@ -20,6 +20,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
+import android.content.ComponentName;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -28,22 +30,22 @@ import org.junit.runners.JUnit4;
 public class EventStateTest {
     @Test
     public void testBuilderAndEquals() {
-        String servicePackageName = "servicePackageName";
+        ComponentName service = new ComponentName("servicePkg", "cls");
         String taskIdentifier = "taskIdentifier";
         byte[] token = new byte[] {1};
 
         EventState eventState1 = new EventState.Builder()
                 .setTaskIdentifier(taskIdentifier)
-                .setServicePackageName(servicePackageName)
+                .setService(service)
                 .setToken(token)
                 .build();
 
         assertEquals(eventState1.getTaskIdentifier(), taskIdentifier);
-        assertEquals(eventState1.getServicePackageName(), servicePackageName);
+        assertEquals(eventState1.getService(), service);
         assertArrayEquals(eventState1.getToken(), token);
 
         EventState eventState2 = new EventState.Builder(
-                token, servicePackageName, taskIdentifier)
+                token, service, taskIdentifier)
                 .build();
         assertEquals(eventState1, eventState2);
         assertEquals(eventState1.hashCode(), eventState2.hashCode());
@@ -51,12 +53,12 @@ public class EventStateTest {
 
     @Test
     public void testBuildTwiceThrows() {
-        String servicePackageName = "servicePackageName";
+        ComponentName service = new ComponentName("servicePkg", "cls");
         String taskIdentifier = "taskIdentifier";
         byte[] token = new byte[] {1};
         EventState.Builder builder = new EventState.Builder()
                 .setTaskIdentifier(taskIdentifier)
-                .setServicePackageName(servicePackageName)
+                .setService(service)
                 .setToken(token);
 
         builder.build();

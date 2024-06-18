@@ -16,17 +16,16 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /** The input data for {@link FederatedComputeScheduler#schedule}. */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public final class FederatedComputeInput {
     // TODO(b/300461799): add federated compute server document.
     /**
@@ -49,7 +48,7 @@ public final class FederatedComputeInput {
     // @formatter:off
 
     @DataClass.Generated.Member
-    /* package-private */ FederatedComputeInput(@NonNull String populationName) {
+        /* package-private */ FederatedComputeInput(@NonNull String populationName) {
         this.mPopulationName = populationName;
         AnnotationValidations.validate(NonNull.class, null, mPopulationName);
 
@@ -92,7 +91,6 @@ public final class FederatedComputeInput {
     }
 
     /** A builder for {@link FederatedComputeInput} */
-    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {

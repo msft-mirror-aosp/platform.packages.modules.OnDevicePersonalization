@@ -25,6 +25,7 @@ import android.Manifest;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderOutputParcel;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.content.ComponentName;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
 import android.os.PersistableBundle;
@@ -56,15 +57,18 @@ import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
 public class DisplayHelperTest {
-
+    private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationVendorDataDao mDao;
+    private ComponentName mService;
 
     @Before
     public void setup() throws Exception {
+        mService = ComponentName.createRelative(
+                mContext.getPackageName(), "com.test.TestPersonalizationService");
         mDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(
                 mContext,
-                mContext.getPackageName(),
+                mService,
                 PackageUtils.getCertDigest(mContext, mContext.getPackageName()));
     }
 
@@ -75,7 +79,7 @@ public class DisplayHelperTest {
                 .setContent("html").build();
         RenderOutputParcel resultParcel = new RenderOutputParcel(renderContentResult);
         assertEquals("html", displayHelper.generateHtml(resultParcel,
-                mContext.getPackageName()));
+                mService));
     }
 
     @Test
@@ -100,7 +104,7 @@ public class DisplayHelperTest {
         RenderOutputParcel resultParcel = new RenderOutputParcel(renderContentResult);
         String expected = "Hello odp! I am 100.";
         assertEquals(expected, displayHelper.generateHtml(resultParcel,
-                mContext.getPackageName()));
+                mService));
     }
 
     @Test
@@ -118,7 +122,8 @@ public class DisplayHelperTest {
         final Display primaryDisplay = dm.getDisplay(DEFAULT_DISPLAY);
         final Context windowContext = mContext.createDisplayContext(primaryDisplay);
         ListenableFuture<SurfaceControlViewHost.SurfacePackage> result =
-                displayHelper.displayHtml("html", logRecord, 0, mContext.getPackageName(),
+                displayHelper.displayHtml("html", logRecord, 0,
+                        ComponentName.createRelative(mContext.getPackageName(), SERVICE_CLASS),
                         surfaceView.getHostToken(), windowContext.getDisplay().getDisplayId(),
                         surfaceView.getWidth(), surfaceView.getHeight());
         // Give 2 minutes to create the webview. Should normally be ~25s.

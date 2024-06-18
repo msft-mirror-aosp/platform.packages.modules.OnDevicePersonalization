@@ -17,10 +17,11 @@
 package android.adservices.ondevicepersonalization;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.os.Parcelable;
-import android.os.PersistableBundle;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
@@ -35,10 +36,10 @@ public final class ExecuteInputParcel implements Parcelable {
     @NonNull String mAppPackageName = "";
 
     /**
-     * The parameters provided by the app to the {@link IsolatedService}. The service
-     * defines the expected keys in this {@link PersistableBundle}.
+     * Serialized app params.
+     * @hide
      */
-    @NonNull PersistableBundle mAppParams = PersistableBundle.EMPTY;
+    @Nullable ByteArrayParceledSlice mSerializedAppParams = null;
 
 
 
@@ -58,13 +59,11 @@ public final class ExecuteInputParcel implements Parcelable {
     @DataClass.Generated.Member
     /* package-private */ ExecuteInputParcel(
             @NonNull String appPackageName,
-            @NonNull PersistableBundle appParams) {
+            @Nullable ByteArrayParceledSlice serializedAppParams) {
         this.mAppPackageName = appPackageName;
         AnnotationValidations.validate(
                 NonNull.class, null, mAppPackageName);
-        this.mAppParams = appParams;
-        AnnotationValidations.validate(
-                NonNull.class, null, mAppParams);
+        this.mSerializedAppParams = serializedAppParams;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -78,12 +77,13 @@ public final class ExecuteInputParcel implements Parcelable {
     }
 
     /**
-     * The parameters provided by the app to the {@link IsolatedService}. The service
-     * defines the expected keys in this {@link PersistableBundle}.
+     * Serialized app params.
+     *
+     * @hide
      */
     @DataClass.Generated.Member
-    public @NonNull PersistableBundle getAppParams() {
-        return mAppParams;
+    public @Nullable ByteArrayParceledSlice getSerializedAppParams() {
+        return mSerializedAppParams;
     }
 
     @Override
@@ -92,8 +92,11 @@ public final class ExecuteInputParcel implements Parcelable {
         // You can override field parcelling by defining methods like:
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
+        byte flg = 0;
+        if (mSerializedAppParams != null) flg |= 0x2;
+        dest.writeByte(flg);
         dest.writeString(mAppPackageName);
-        dest.writeTypedObject(mAppParams, flags);
+        if (mSerializedAppParams != null) dest.writeTypedObject(mSerializedAppParams, flags);
     }
 
     @Override
@@ -107,15 +110,14 @@ public final class ExecuteInputParcel implements Parcelable {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
+        byte flg = in.readByte();
         String appPackageName = in.readString();
-        PersistableBundle appParams = (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
+        ByteArrayParceledSlice serializedAppParams = (flg & 0x2) == 0 ? null : (ByteArrayParceledSlice) in.readTypedObject(ByteArrayParceledSlice.CREATOR);
 
         this.mAppPackageName = appPackageName;
         AnnotationValidations.validate(
                 NonNull.class, null, mAppPackageName);
-        this.mAppParams = appParams;
-        AnnotationValidations.validate(
-                NonNull.class, null, mAppParams);
+        this.mSerializedAppParams = serializedAppParams;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -143,7 +145,7 @@ public final class ExecuteInputParcel implements Parcelable {
     public static final class Builder {
 
         private @NonNull String mAppPackageName;
-        private @NonNull PersistableBundle mAppParams;
+        private @Nullable ByteArrayParceledSlice mSerializedAppParams;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -162,14 +164,15 @@ public final class ExecuteInputParcel implements Parcelable {
         }
 
         /**
-         * The parameters provided by the app to the {@link IsolatedService}. The service
-         * defines the expected keys in this {@link PersistableBundle}.
+         * Serialized app params.
+         *
+         * @hide
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setAppParams(@NonNull PersistableBundle value) {
+        public @NonNull Builder setSerializedAppParams(@NonNull ByteArrayParceledSlice value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
-            mAppParams = value;
+            mSerializedAppParams = value;
             return this;
         }
 
@@ -182,11 +185,11 @@ public final class ExecuteInputParcel implements Parcelable {
                 mAppPackageName = "";
             }
             if ((mBuilderFieldsSet & 0x2) == 0) {
-                mAppParams = PersistableBundle.EMPTY;
+                mSerializedAppParams = null;
             }
             ExecuteInputParcel o = new ExecuteInputParcel(
                     mAppPackageName,
-                    mAppParams);
+                    mSerializedAppParams);
             return o;
         }
 
@@ -199,10 +202,10 @@ public final class ExecuteInputParcel implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1698868678877L,
+            time = 1708120245903L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteInputParcel.java",
-            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.NonNull android.os.PersistableBundle mAppParams\nclass ExecuteInputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genHiddenBuilder=true)")
+            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.Nullable com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice mSerializedAppParams\nclass ExecuteInputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genHiddenBuilder=true)")
     @Deprecated
     private void __metadata() {}
 

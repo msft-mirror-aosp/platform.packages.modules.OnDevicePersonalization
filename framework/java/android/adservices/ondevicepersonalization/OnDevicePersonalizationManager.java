@@ -16,28 +16,31 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.Binder;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
-import android.os.RemoteException;
 import android.os.SystemClock;
 import android.view.SurfaceControlViewHost;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executor;
@@ -53,7 +56,7 @@ import java.util.concurrent.Executor;
  * cross-device statistical analysis or by Federated Learning for model training. The displayed
  * content and the persistent output are both not directly accessible by the calling app.
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class OnDevicePersonalizationManager {
     /** @hide */
     public static final String ON_DEVICE_PERSONALIZATION_SERVICE =
@@ -68,10 +71,47 @@ public class OnDevicePersonalizationManager {
     private final AbstractServiceBinder<IOnDevicePersonalizationManagingService> mServiceBinder;
     private final Context mContext;
 
+    /**
+     * The result of a call to {@link OnDevicePersonalizationManager#execute(ComponentName,
+     * PersistableBundle, Executor, OutcomeReceiver)}
+     */
+    public static class ExecuteResult {
+        @Nullable private final SurfacePackageToken mSurfacePackageToken;
+        @Nullable private final byte[] mOutputData;
+
+        /** @hide */
+        ExecuteResult(
+                @Nullable SurfacePackageToken surfacePackageToken,
+                @Nullable byte[] outputData) {
+            mSurfacePackageToken = surfacePackageToken;
+            mOutputData = outputData;
+        }
+
+        /**
+         * Returns a {@link SurfacePackageToken}, which is an opaque reference to content that
+         * can be displayed in a {@link android.view.SurfaceView}. This may be null if the
+         * {@link IsolatedService} has not generated any content to be displayed within the
+         * calling app.
+         */
+        @Nullable public SurfacePackageToken getSurfacePackageToken() {
+            return mSurfacePackageToken;
+        }
+
+        /**
+         * Returns the output data that was returned by the {@link IsolatedService}. This will be
+         * non-null if the {@link IsolatedService} returns any results to the caller, and the
+         * egress of data from the {@link IsolatedService} to the specific calling app is allowed
+         * by policy as well as an allowlist.
+         */
+        @Nullable public byte[] getOutputData() {
+            return mOutputData;
+        }
+    }
+
     /** @hide */
     public OnDevicePersonalizationManager(Context context) {
-        mContext = context;
-        this.mServiceBinder =
+        this(
+                context,
                 AbstractServiceBinder.getServiceBinderByIntent(
                         context,
                         INTENT_FILTER_ACTION,
@@ -79,32 +119,44 @@ public class OnDevicePersonalizationManager {
                                 ODP_MANAGING_SERVICE_PACKAGE_SUFFIX,
                                 ALT_ODP_MANAGING_SERVICE_PACKAGE_SUFFIX),
                         SdkLevel.isAtLeastU() ? Context.BIND_ALLOW_ACTIVITY_STARTS : 0,
-                        IOnDevicePersonalizationManagingService.Stub::asInterface);
+                        IOnDevicePersonalizationManagingService.Stub::asInterface));
+    }
+
+    /** @hide */
+    @VisibleForTesting
+    public OnDevicePersonalizationManager(
+            Context context,
+            AbstractServiceBinder<IOnDevicePersonalizationManagingService> serviceBinder) {
+        mContext = context;
+        mServiceBinder = serviceBinder;
     }
 
     /**
      * Executes an {@link IsolatedService} in the OnDevicePersonalization sandbox. The
      * platform binds to the specified {@link IsolatedService} in an isolated process
-     * and calls {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * and calls {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
      * with the caller-provided parameters. When the {@link IsolatedService} finishes execution,
      * the platform returns tokens that refer to the results from the service to the caller.
      * These tokens can be subsequently used to display results in a
      * {@link android.view.SurfaceView} within the calling app.
      *
-     * @param handler The {@link ComponentName} of the {@link IsolatedService}.
+     * @param service The {@link ComponentName} of the {@link IsolatedService}.
      * @param params a {@link PersistableBundle} that is passed from the calling app to the
      *     {@link IsolatedService}. The expected contents of this parameter are defined
      *     by the{@link IsolatedService}. The platform does not interpret this parameter.
      * @param executor the {@link Executor} on which to invoke the callback.
-     * @param receiver This returns a list of {@link SurfacePackageToken} objects, each of which is
-     *     an opaque reference to a {@link RenderingConfig} returned by an
-     *     {@link IsolatedService}, or an {@link Exception} on failure. The returned
-     *     {@link SurfacePackageToken} objects can be used in a subsequent
+     * @param receiver This returns a {@link ExecuteResult} object on success or an
+     *     {@link Exception} on failure. If the
+     *     {@link IsolatedService} returned a {@link RenderingConfig} to be displayed,
+     *     {@link ExecuteResult#getSurfacePackageToken()} will return a non-null
+     *     {@link SurfacePackageToken}.
+     *     The {@link SurfacePackageToken} object can be used in a subsequent
      *     {@link #requestSurfacePackage(SurfacePackageToken, IBinder, int, int, int, Executor,
-     *     OutcomeReceiver)} call to display the result in a view. The calling app and
-     *     the {@link IsolatedService} must agree on the expected size of this list.
-     *     An entry in the returned list of {@link SurfacePackageToken} objects may be null to
-     *     indicate that the service has no output for that specific surface.
+     *     OutcomeReceiver)} call to display the result in a view. The returned
+     *     {@link SurfacePackageToken} may be null to indicate that no output is expected to be
+     *     displayed for this request. If the {@link IsolatedService} has returned any output data
+     *     and the calling app is allowlisted to receive data from this service, the
+     *     {@link ExecuteResult#getOutputData()} will return a non-null byte array.
      *
      *     In case of an error, the receiver returns one of the following exceptions:
      *     Returns a {@link android.content.pm.PackageManager.NameNotFoundException} if the handler
@@ -113,58 +165,76 @@ public class OnDevicePersonalizationManager {
      *     Returns an {@link OnDevicePersonalizationException} if execution of the handler fails.
      */
     public void execute(
-            @NonNull ComponentName handler,
+            @NonNull ComponentName service,
             @NonNull PersistableBundle params,
             @NonNull @CallbackExecutor Executor executor,
-            @NonNull OutcomeReceiver<List<SurfacePackageToken>, Exception> receiver
+            @NonNull OutcomeReceiver<ExecuteResult, Exception> receiver
     ) {
-        Objects.requireNonNull(handler);
+        Objects.requireNonNull(service);
         Objects.requireNonNull(params);
         Objects.requireNonNull(executor);
         Objects.requireNonNull(receiver);
         long startTimeMillis = SystemClock.elapsedRealtime();
 
         try {
-            final IOnDevicePersonalizationManagingService service =
+            final IOnDevicePersonalizationManagingService odpService =
                     mServiceBinder.getService(executor);
 
             IExecuteCallback callbackWrapper = new IExecuteCallback.Stub() {
                 @Override
                 public void onSuccess(
-                        @NonNull List<String> tokenStrings) {
-                    executor.execute(() -> {
-                        try {
-                            ArrayList<SurfacePackageToken> tokens =
-                                    new ArrayList<>(tokenStrings.size());
-                            for (String tokenString : tokenStrings) {
-                                if (tokenString == null) {
-                                    tokens.add(null);
-                                } else {
-                                    tokens.add(new SurfacePackageToken(tokenString));
+                        Bundle callbackResult) {
+                    final long token = Binder.clearCallingIdentity();
+                    try {
+                        executor.execute(() -> {
+                            try {
+                                SurfacePackageToken surfacePackageToken = null;
+                                if (callbackResult != null) {
+                                    String tokenString = callbackResult.getString(
+                                            Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING);
+                                    if (tokenString != null && !tokenString.isBlank()) {
+                                        surfacePackageToken = new SurfacePackageToken(tokenString);
+                                    }
                                 }
+                                byte[] data = callbackResult.getByteArray(
+                                        Constants.EXTRA_OUTPUT_DATA);
+                                receiver.onResult(new ExecuteResult(surfacePackageToken, data));
+                            } catch (Exception e) {
+                                receiver.onError(e);
                             }
-                            receiver.onResult(tokens);
-                        } catch (Exception e) {
-                            receiver.onError(e);
-                        }
-                    });
+                        });
+                    } finally {
+                        Binder.restoreCallingIdentity(token);
+                    }
                 }
 
                 @Override
-                public void onError(int errorCode) {
-                    executor.execute(() -> receiver.onError(createException(errorCode)));
+                public void onError(int errorCode, int isolatedServiceErrorCode) {
+                    final long token = Binder.clearCallingIdentity();
+                    try {
+                        executor.execute(() -> receiver.onError(
+                                createException(errorCode, isolatedServiceErrorCode)));
+                    } finally {
+                        Binder.restoreCallingIdentity(token);
+                    }
                 }
             };
 
-            service.execute(
+            Bundle wrappedParams = new Bundle();
+            wrappedParams.putParcelable(
+                    Constants.EXTRA_APP_PARAMS_SERIALIZED,
+                    new ByteArrayParceledSlice(PersistableBundleUtils.toByteArray(params)));
+            odpService.execute(
                     mContext.getPackageName(),
-                    handler,
-                    params,
+                    service,
+                    wrappedParams,
                     new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
                     callbackWrapper);
 
-        } catch (RemoteException e) {
-            receiver.onError(new IllegalStateException(e));
+        } catch (IllegalArgumentException | NullPointerException  e) {
+            throw e;
+        } catch (Exception e) {
+            receiver.onError(e);
         }
     }
 
@@ -217,14 +287,27 @@ public class OnDevicePersonalizationManager {
                         @Override
                         public void onSuccess(
                                 @NonNull SurfaceControlViewHost.SurfacePackage surfacePackage) {
-                            executor.execute(() -> {
-                                receiver.onResult(surfacePackage);
-                            });
+                            final long token = Binder.clearCallingIdentity();
+                            try {
+                                executor.execute(() -> {
+                                    receiver.onResult(surfacePackage);
+                                });
+                            } finally {
+                                Binder.restoreCallingIdentity(token);
+                            }
                         }
 
                         @Override
-                        public void onError(int errorCode) {
-                            executor.execute(() -> receiver.onError(createException(errorCode)));
+                        public void onError(
+                                int errorCode, int isolatedServiceErrorCode) {
+                            final long token = Binder.clearCallingIdentity();
+                            try {
+                                executor.execute(
+                                        () -> receiver.onError(createException(
+                                                errorCode, isolatedServiceErrorCode)));
+                            } finally {
+                                Binder.restoreCallingIdentity(token);
+                            }
                         }
                     };
 
@@ -237,19 +320,28 @@ public class OnDevicePersonalizationManager {
                     new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
                     callbackWrapper);
 
-        } catch (RemoteException e) {
-            receiver.onError(new IllegalStateException(e));
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw e;
+        } catch (Exception e) {
+            receiver.onError(e);
         }
     }
 
-    private Exception createException(int errorCode) {
+    private Exception createException(
+            int errorCode, int isolatedServiceErrorCode) {
         if (errorCode == Constants.STATUS_NAME_NOT_FOUND) {
             return new PackageManager.NameNotFoundException();
         } else if (errorCode == Constants.STATUS_CLASS_NOT_FOUND) {
             return new ClassNotFoundException();
         } else if (errorCode == Constants.STATUS_SERVICE_FAILED) {
+            if (isolatedServiceErrorCode > 0 && isolatedServiceErrorCode < 128) {
+                return new OnDevicePersonalizationException(
+                        OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                        new IsolatedServiceException(isolatedServiceErrorCode));
+            } else {
             return new OnDevicePersonalizationException(
                     OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
+            }
         } else if (errorCode == Constants.STATUS_PERSONALIZATION_DISABLED) {
             return new OnDevicePersonalizationException(
                     OnDevicePersonalizationException.ERROR_PERSONALIZATION_DISABLED);

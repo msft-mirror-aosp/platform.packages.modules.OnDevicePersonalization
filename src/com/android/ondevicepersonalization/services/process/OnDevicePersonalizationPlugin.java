@@ -56,21 +56,21 @@ public class OnDevicePersonalizationPlugin implements Plugin {
         mPluginContext = pluginContext;
 
         try {
-            String className = input.getString(ProcessRunner.PARAM_CLASS_NAME_KEY);
+            String className = input.getString(PluginProcessRunner.PARAM_CLASS_NAME_KEY);
             if (className == null || className.isEmpty()) {
                 sLogger.e(TAG + ": className missing.");
                 sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
                 return;
             }
 
-            int operation = input.getInt(ProcessRunner.PARAM_OPERATION_KEY);
+            int operation = input.getInt(PluginProcessRunner.PARAM_OPERATION_KEY);
             if (operation == 0) {
                 sLogger.e(TAG + ": operation missing or invalid.");
                 sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
                 return;
             }
 
-            Bundle serviceParams = input.getParcelable(ProcessRunner.PARAM_SERVICE_INPUT,
+            Bundle serviceParams = input.getParcelable(PluginProcessRunner.PARAM_SERVICE_INPUT,
                     Bundle.class);
             if (serviceParams == null) {
                 sLogger.e(TAG + ": Missing service input.");
@@ -95,7 +95,8 @@ public class OnDevicePersonalizationPlugin implements Plugin {
                                 sLogger.e(TAG + ": Callback error.", e);
                             }
                         }
-                        @Override public void onError(int errorCode) {
+                        @Override public void onError(
+                                int errorCode, int isolatedServiceErrorCode) {
                             try {
                                 mPluginCallback.onFailure(FailureType.ERROR_EXECUTING_PLUGIN);
                             } catch (RemoteException e) {

@@ -21,7 +21,10 @@ package {
 
 android_test {
     name: "FrameworkOnDevicePersonalizationTests",
-    srcs: ["**/*.java"],
+    srcs: [
+        "**/*.java",
+        "**/*.aidl"
+    ],
     defaults: ["framework-ondevicepersonalization-test-defaults"],
     min_sdk_version: "Tiramisu",
     sdk_version: "module_current",
@@ -35,7 +38,9 @@ android_test {
         "libprotobuf-java-lite",
         "tensorflow_core_proto_java_lite",
         "mockito-target-minus-junit4",
+        "ondevicepersonalization-testing-utils",
         "truth",
+        "compatibility-device-util-axt",
     ],
     libs: [
         "android.test.runner.stubs",

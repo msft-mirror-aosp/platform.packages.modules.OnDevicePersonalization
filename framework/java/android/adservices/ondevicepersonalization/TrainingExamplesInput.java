@@ -16,17 +16,16 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /** The input data for {@link IsolatedWorker#onTrainingExamples}. */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 @DataClass(genBuilder = false, genHiddenConstructor = true, genEqualsHashCode = true)
 public final class TrainingExamplesInput {
     /**
@@ -45,8 +44,8 @@ public final class TrainingExamplesInput {
     /**
      * Token used to support the resumption of training. If client app wants to use resumption token
      * to track what examples are already used in previous federated compute jobs, it need set
-     * {@link TrainingExamplesOutput.Builder#setResumptionTokens}, OnDevicePersonalization will
-     * store it and pass it here for generating new training examples.
+     * {@link TrainingExampleRecord.Builder#setResumptionToken}, OnDevicePersonalization will store
+     * it and pass it here for generating new training examples.
      */
     @Nullable private byte[] mResumptionToken = null;
 
@@ -113,8 +112,8 @@ public final class TrainingExamplesInput {
     /**
      * Token used to support the resumption of training. If client app wants to use resumption token
      * to track what examples are already used in previous federated compute jobs, it need set
-     * {@link TrainingExamplesOutput.Builder#setResumptionTokens}, OnDevicePersonalization will
-     * store it and pass it here for generating new training examples.
+     * {@link TrainingExampleRecord.Builder#setResumptionToken}, OnDevicePersonalization will store
+     * it and pass it here for generating new training examples.
      */
     @DataClass.Generated.Member
     public @Nullable byte[] getResumptionToken() {

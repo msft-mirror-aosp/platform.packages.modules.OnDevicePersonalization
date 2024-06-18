@@ -16,17 +16,16 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.annotation.FlaggedApi;
 import android.annotation.Nullable;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- *  The result returned by {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}.
+ *  The result returned by {@link IsolatedWorker#onEvent(EventInput, android.os.OutcomeReceiver)}.
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class EventOutput {
     /**
@@ -34,6 +33,7 @@ public final class EventOutput {
      * {@link EventLogRecord} is associated with a row in an existing {@link RequestLogRecord} that
      * has been written to the REQUESTS table.
      */
+    @DataClass.MaySetToNull
     @Nullable EventLogRecord mEventLogRecord = null;
 
 
@@ -99,7 +99,6 @@ public final class EventOutput {
     /**
      * A builder for {@link EventOutput}
      */
-    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
@@ -117,7 +116,7 @@ public final class EventOutput {
          * has been written to the REQUESTS table.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setEventLogRecord(@android.annotation.NonNull EventLogRecord value) {
+        public @android.annotation.NonNull Builder setEventLogRecord(@Nullable EventLogRecord value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mEventLogRecord = value;
@@ -146,10 +145,10 @@ public final class EventOutput {
     }
 
     @DataClass.Generated(
-            time = 1698882423016L,
+            time = 1707253681044L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventOutput.java",
-            inputSignatures = " @android.annotation.Nullable android.adservices.ondevicepersonalization.EventLogRecord mEventLogRecord\nclass EventOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @com.android.ondevicepersonalization.internal.util.DataClass.MaySetToNull @android.annotation.Nullable android.adservices.ondevicepersonalization.EventLogRecord mEventLogRecord\nclass EventOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

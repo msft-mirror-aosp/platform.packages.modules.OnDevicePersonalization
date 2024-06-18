@@ -23,6 +23,8 @@
         <property android:name="android.ondevicepersonalization.ON_DEVICE_PERSONALIZATION_CONFIG"
                   android:resource="@xml/OdpSettings"></property>
         <service android:name="com.android.ondevicepersonalization.testing.sampleservice.SampleService"
-                android:exported="true" android:isolatedProcess="true" />
+                 android:exported="true"
+                 android:isolatedProcess="true"
+                 android:allowSharedIsolatedProcess="true" />
     </application>
 </manifest>
