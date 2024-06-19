@@ -367,7 +367,6 @@ public final class HttpFederatedProtocol {
             mTrainingEventLogger.logCheckinInvalidPayload(networkStats);
             throw new IllegalStateException("Could not parse ClientOnlyPlan proto", e);
         }
-        mTrainingEventLogger.logCheckinFinished(networkStats);
 
         // Process download checkpoint resource.
         String inputCheckpointFile = createTempFile("input", ".ckp");
@@ -377,7 +376,18 @@ public final class HttpFederatedProtocol {
                 || checkpointDataResponse.isResponseCompressed()) {
             checkpointData = uncompressWithGzip(checkpointData);
         }
+        if (checkpointData.length > FlagsFactory.getFlags().getFcpCheckpointFileSizeLimit()) {
+            LogUtil.e(
+                    TAG,
+                    "CheckPoint data is too large: %d, which more than a limit: %d",
+                    checkpointData.length,
+                    FlagsFactory.getFlags().getFcpCheckpointFileSizeLimit());
+            Trace.endAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
+            mTrainingEventLogger.logCheckinInvalidPayload(networkStats);
+            return null;
+        }
         writeToFile(inputCheckpointFile, checkpointData);
+        mTrainingEventLogger.logCheckinFinished(networkStats);
         Trace.endAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
         return new CheckinResult(inputCheckpointFile, clientOnlyPlan, taskAssignment);
     }
