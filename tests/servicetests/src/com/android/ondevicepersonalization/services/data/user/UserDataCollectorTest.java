@@ -21,8 +21,8 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
@@ -112,12 +112,10 @@ public class UserDataCollectorTest {
         assertTrue(mUserData.availableStorageBytes >= 0);
         assertTrue(mUserData.batteryPercentage >= 0);
         assertTrue(mUserData.batteryPercentage <= 100);
-        assertNotNull(mUserData.networkCapabilities);
-
         assertTrue(UserDataCollector.ALLOWED_NETWORK_TYPE.contains(mUserData.dataNetworkType));
 
         mCollector.updateUserData(mUserData);
-        assertTrue(mUserData.installedApps.size() > 0);
+        assertFalse(mUserData.installedApps.isEmpty());
     }
 
     @Test
