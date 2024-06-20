@@ -24,7 +24,6 @@ import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IFederatedComputeService;
 import android.federatedcompute.common.ScheduleFederatedComputeRequest;
 import android.os.OutcomeReceiver;
-import android.os.RemoteException;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.federatedcompute.internal.util.LogUtil;
@@ -110,8 +109,8 @@ public final class FederatedComputeManager {
                     mContext.getPackageName(),
                     request.getTrainingOptions(),
                     federatedComputeCallback);
-        } catch (RemoteException e) {
-            LogUtil.e(TAG, e, "Remote Exception");
+        } catch (Exception e) {
+            LogUtil.e(TAG, e, "Exception when schedule federated job");
             executor.execute(() -> callback.onError(e));
             unbindFromService();
         }
@@ -153,8 +152,8 @@ public final class FederatedComputeManager {
                         }
                     };
             service.cancel(ownerComponent, populationName, federatedComputeCallback);
-        } catch (RemoteException e) {
-            LogUtil.e(TAG, e, "Remote Exception");
+        } catch (Exception e) {
+            LogUtil.e(TAG, e, "Exception when cancel federated job %s", populationName);
             executor.execute(() -> callback.onError(e));
             unbindFromService();
         }

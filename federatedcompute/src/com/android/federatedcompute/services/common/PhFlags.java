@@ -73,10 +73,25 @@ public final class PhFlags implements Flags {
     static final String TASK_HISTORY_TTL_MILLIS = "task_history_ttl_millis";
 
     static final String FCP_RESCHEDULE_LIMIT_CONFIG_NAME = "reschedule_limit";
+    static final String FCP_RECURRENT_RESCHEDULE_LIMIT_CONFIG_NAME = "recurrent_reschedule_limit";
+
+    static final String FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME = "memory_size_limit";
+    static final String FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME = "task_limit_per_package";
     static final String FCP_ENABLE_CLIENT_ERROR_LOGGING = "fcp_enable_client_error_logging";
     static final String FCP_ENABLE_BACKGROUND_JOBS_LOGGING = "fcp_enable_background_jobs_logging";
     static final String FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE =
             "fcp_background_job_logging_sampling_rate";
+    static final String FCP_JOB_SCHEDULING_LOGGING_ENABLED = "fcp_job_scheduling_logging_enabled";
+
+    static final String FCP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE =
+            "fcp_job_scheduling_logging_sampling_rate";
+    static final String FCP_MODULE_JOB_POLICY = "fcp_module_job_policy";
+    static final String FCP_SPE_PILOT_JOB_ENABLED = "fcp_spe_pilot_job_enabled";
+    static final String EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC =
+            "example_store_service_timeout_sec";
+    static final String FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME = "tf_error_reschedule_seconds";
+    static final String EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC = "example_iterator_next_timeout_sec";
+    static final int FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE = 10;
 
     private static final PhFlags sSingleton = new PhFlags();
 
@@ -235,6 +250,14 @@ public final class PhFlags implements Flags {
     }
 
     @Override
+    public int getFcpRecurrentRescheduleLimit() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_RECURRENT_RESCHEDULE_LIMIT_CONFIG_NAME,
+                /* defaultValue= */ FCP_RECURRENT_RESCHEDULE_LIMIT);
+    }
+
+    @Override
     public long getTaskHistoryTtl() {
         return DeviceConfig.getLong(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -260,7 +283,7 @@ public final class PhFlags implements Flags {
                             return DeviceConfig.getBoolean(
                                     /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                                     /* name= */ FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
-                                    /* defaultValue= */ DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED);
+                                    /* defaultValue= */ BACKGROUND_JOB_LOGGING_ENABLED);
                         });
     }
 
@@ -269,6 +292,78 @@ public final class PhFlags implements Flags {
         return DeviceConfig.getInt(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE,
-                /* defaultValue= */ DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE);
+                /* defaultValue= */ FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE);
+    }
+
+    @Override
+    public boolean getJobSchedulingLoggingEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_JOB_SCHEDULING_LOGGING_ENABLED,
+                /* defaultValue= */ DEFAULT_JOB_SCHEDULING_LOGGING_ENABLED);
+    }
+
+    @Override
+    public int getJobSchedulingLoggingSamplingRate() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE,
+                /* defaultValue= */ DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE);
+    }
+
+    @Override
+    public String getFcpModuleJobPolicy() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name */ FCP_MODULE_JOB_POLICY,
+                /* defaultValue */ DEFAULT_FCP_MODULE_JOB_POLICY);
+    }
+
+    @Override
+    public boolean getSpePilotJobEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_SPE_PILOT_JOB_ENABLED,
+                /* defaultValue= */ DEFAULT_SPE_PILOT_JOB_ENABLED);
+    }
+
+    @Override
+    public int getExampleStoreServiceCallbackTimeoutSec() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC,
+                /* defaultValue= */ DEFAULT_EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC);
+    }
+
+    @Override
+    public long getFcpTfErrorRescheduleSeconds() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME,
+                /* defaultValue= */ FCP_TF_ERROR_RESCHEDULE_SECONDS);
+    }
+
+    @Override
+    public int getExampleIteratorNextTimeoutSec() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC,
+                /* defaultValue= */ DEFAULT_EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC);
+    }
+
+    @Override
+    public long getFcpMemorySizeLimit() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME,
+                /* defaultValue= */ FCP_DEFAULT_MEMORY_SIZE_LIMIT);
+    }
+
+    @Override
+    public int getFcpTaskLimitPerPackage() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME,
+                /* defaultValue= */ DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE);
     }
 }

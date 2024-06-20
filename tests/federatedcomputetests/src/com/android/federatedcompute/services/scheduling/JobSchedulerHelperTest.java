@@ -30,12 +30,12 @@ import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
 import com.android.federatedcompute.services.data.fbs.SchedulingReason;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
+import com.android.odp.module.common.Clock;
 
 import com.google.common.collect.Iterables;
 import com.google.flatbuffers.FlatBufferBuilder;
@@ -51,8 +51,8 @@ public class JobSchedulerHelperTest {
     private static final String PACKAGE_NAME = "foo.federatedcompute";
     private static final String TRAINING_JOB_SERVICE =
             "com.android.federatedcompute.services.training.FederatedJobService";
-    private static final String OWNER_ID =
-            "com.android.pckg.name/com.android.class.name";
+    private static final String OWNER_PACKAGE = "com.android.pckg.name";
+    private static final String OWNER_CLASS = "com.android.class.name";
     private static final String OWNER_ID_CERT_DIGEST = "123SOME45DIGEST78";
     private static final String POPULATION_NAME = "population";
     private static final String SERVER_ADDRESS = "https://server.uri/";
@@ -75,7 +75,8 @@ public class JobSchedulerHelperTest {
                     .lastScheduledTime(CURRENT_TIME_MILLIS)
                     .schedulingReason(SCHEDULING_REASON)
                     .jobId(JOB_ID)
-                    .ownerId(OWNER_ID)
+                    .ownerPackageName(OWNER_PACKAGE)
+                    .ownerClassName(OWNER_CLASS)
                     .ownerIdCertDigest(OWNER_ID_CERT_DIGEST)
                     .serverAddress(SERVER_ADDRESS)
                     .earliestNextRunTime(NEXT_RUNTIME_MILLSECONDS)

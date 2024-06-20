@@ -16,8 +16,6 @@
 
 package com.android.ondevicepersonalization.services.federatedcompute;
 
-import static com.android.ondevicepersonalization.services.statsd.ApiCallStats.API_SERVICE_ON_TRAINING_EXAMPLE;
-
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.TrainingExampleRecord;
 import android.adservices.ondevicepersonalization.TrainingExamplesInputParcel;
@@ -32,22 +30,24 @@ import android.federatedcompute.common.ClientConstants;
 import android.os.Bundle;
 import android.os.OutcomeReceiver;
 
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.DataAccessPermission;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.PluginProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
-import com.android.ondevicepersonalization.services.util.Clock;
-import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
@@ -56,7 +56,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
-import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -94,6 +93,16 @@ public final class OdpExampleStoreService extends ExampleStoreService {
         return populationName + "_" + taskId;
     }
 
+    /** Generates a unique task identifier from the given strings */
+    public static String getTaskIdentifier(
+            String populationName, String taskId, String collectionUri) {
+        return populationName + "_" + taskId + "_" + collectionUri;
+    }
+
+    private static boolean isCollectionUriPresent(String collectionUri) {
+        return collectionUri != null && !collectionUri.isEmpty();
+    }
+
     @Override
     public void startQuery(@NonNull Bundle params, @NonNull QueryCallback callback) {
         try {
@@ -106,15 +115,25 @@ public final class OdpExampleStoreService extends ExampleStoreService {
             String populationName =
                     Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
             String taskId = Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_ID));
+            String collectionUri = params.getString(ClientConstants.EXTRA_COLLECTION_URI);
+            int eligibilityMinExample =
+                    params.getInt(ClientConstants.EXTRA_ELIGIBILITY_MIN_EXAMPLE);
 
             EventsDao eventDao = EventsDao.getInstance(getContext());
+
+            boolean privacyStatusEligible = true;
+
+            if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
+                privacyStatusEligible = false;
+                sLogger.w(TAG + ": Measurement control is not given.");
+            }
 
             // Cancel job if on longer valid. This is written to the table during scheduling
             // via {@link FederatedComputeServiceImpl} and deleted either during cancel or
             // during maintenance for uninstalled packages.
             ComponentName owner = ComponentName.createRelative(packageName, ownerClassName);
             EventState eventStatePopulation = eventDao.getEventState(populationName, owner);
-            if (eventStatePopulation == null) {
+            if (!privacyStatusEligible || eventStatePopulation == null) {
                 sLogger.w("Job was either cancelled or package was uninstalled");
                 // Cancel job.
                 FederatedComputeManager FCManager =
@@ -147,18 +166,24 @@ public final class OdpExampleStoreService extends ExampleStoreService {
 
             // Get resumptionToken
             EventState eventState =
-                    eventDao.getEventState(getTaskIdentifier(populationName, taskId), owner);
+                    eventDao.getEventState(
+                            isCollectionUriPresent(collectionUri)
+                                    ? getTaskIdentifier(populationName, taskId, collectionUri)
+                                    : getTaskIdentifier(populationName, taskId),
+                            owner);
             byte[] resumptionToken = null;
             if (eventState != null) {
                 resumptionToken = eventState.getToken();
             }
 
-            TrainingExamplesInputParcel input =
+            TrainingExamplesInputParcel.Builder input =
                     new TrainingExamplesInputParcel.Builder()
                             .setResumptionToken(resumptionToken)
                             .setPopulationName(populationName)
-                            .setTaskName(taskId)
-                            .build();
+                            .setTaskName(taskId);
+            if (isCollectionUriPresent(collectionUri)) {
+                input.setCollectionName(collectionUri);
+            }
 
             String className =
                     AppManifestConfigHelper.getServiceNameFromOdpSettings(
@@ -172,7 +197,9 @@ public final class OdpExampleStoreService extends ExampleStoreService {
             ListenableFuture<TrainingExamplesOutputParcel> resultFuture =
                     FluentFuture.from(loadFuture)
                             .transformAsync(
-                                    result -> executeOnTrainingExamples(result, input, packageName),
+                                    result ->
+                                            executeOnTrainingExamples(
+                                                    result, input.build(), packageName),
                                     OnDevicePersonalizationExecutors.getBackgroundExecutor())
                             .transform(
                                     result -> {
@@ -196,10 +223,10 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                                     trainingExamplesOutputParcel.getTrainingExampleRecords();
 
                             if (trainingExampleRecordList == null
-                                    || trainingExampleRecordList.getList().isEmpty()) {
-                                callback.onStartQuerySuccess(
-                                        OdpExampleStoreIteratorFactory.getInstance()
-                                                .createIterator(new ArrayList<>()));
+                                    || trainingExampleRecordList.getList().size()
+                                            < eligibilityMinExample) {
+                                callback.onStartQueryFailure(
+                                        ClientConstants.STATUS_NOT_ENOUGH_DATA);
                             } else {
                                 callback.onStartQuerySuccess(
                                         OdpExampleStoreIteratorFactory.getInstance()
@@ -243,11 +270,13 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                 new DataAccessServiceImpl(
                         ComponentName.createRelative(packageName, serviceClass),
                         getContext(),
-                        /* includeLocalData= */ true,
-                        /* includeEventData= */ true);
+                        // ODP provides accurate user signal in training flow, so we disable write
+                        // access of databases to prevent leak.
+                        /* localDataPermission */ DataAccessPermission.READ_ONLY,
+                        /* eventDataPermission */ DataAccessPermission.READ_ONLY);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
-        UserData userData = userDataAccessor.getUserData();
+        UserData userData = userDataAccessor.getUserDataWithAppInstall();
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
         ListenableFuture<Bundle> result =
                 mInjector
@@ -258,7 +287,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                 .transform(
                         val -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    API_SERVICE_ON_TRAINING_EXAMPLE,
+                                    Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
                                     val, mInjector.getClock(),
                                     Constants.STATUS_SUCCESS,
                                     isolatedServiceInfo.getStartTimeMillis());
@@ -269,7 +298,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                         Exception.class,
                         e -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    API_SERVICE_ON_TRAINING_EXAMPLE,
+                                    Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
                                     /* result= */ null, mInjector.getClock(),
                                     Constants.STATUS_INTERNAL_ERROR,
                                     isolatedServiceInfo.getStartTimeMillis());

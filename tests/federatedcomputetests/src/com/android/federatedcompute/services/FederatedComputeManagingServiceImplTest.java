@@ -18,8 +18,10 @@ package com.android.federatedcompute.services;
 
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import android.content.Intent;
 import android.os.IBinder;
@@ -28,14 +30,19 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService;
-import com.android.federatedcompute.services.scheduling.DeleteExpiredJobService;
+import com.android.federatedcompute.services.scheduling.DeleteExpiredJob;
+import com.android.federatedcompute.services.scheduling.FederatedComputeLearningJobScheduleOrchestrator;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.MockitoSession;
 
 public final class FederatedComputeManagingServiceImplTest {
+
+    @Mock FederatedComputeLearningJobScheduleOrchestrator mMockOrchestrator;
+
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
@@ -46,15 +53,18 @@ public final class FederatedComputeManagingServiceImplTest {
         MockitoSession session =
                 ExtendedMockito.mockitoSession()
                         .spyStatic(BackgroundKeyFetchJobService.class)
-                        .spyStatic(DeleteExpiredJobService.class)
+                        .spyStatic(DeleteExpiredJob.class)
+                        .spyStatic(FederatedComputeLearningJobScheduleOrchestrator.class)
                         .startMocking();
         ExtendedMockito.doReturn(true)
                 .when(() -> BackgroundKeyFetchJobService.scheduleJobIfNeeded(any(), any()));
-        ExtendedMockito.doReturn(true)
-                .when(() -> DeleteExpiredJobService.scheduleJobIfNeeded(any(), any()));
+        ExtendedMockito.doNothing().when(() -> DeleteExpiredJob.schedule(any(), any()));
+        ExtendedMockito.doReturn(mMockOrchestrator)
+                .when(() -> FederatedComputeLearningJobScheduleOrchestrator.getInstance(any()));
+        doNothing().when(mMockOrchestrator).checkAndSchedule();
         try {
             FederatedComputeManagingServiceImpl spyFcpService =
-                    spy(new FederatedComputeManagingServiceImpl());
+                    spy(new FederatedComputeManagingServiceImpl(Runnable::run));
             spyFcpService.onCreate();
             Intent intent =
                     new Intent(
@@ -63,8 +73,8 @@ public final class FederatedComputeManagingServiceImplTest {
             IBinder binder = spyFcpService.onBind(intent);
             ExtendedMockito.verify(
                     () -> BackgroundKeyFetchJobService.scheduleJobIfNeeded(any(), any()), times(1));
-            ExtendedMockito.verify(
-                    () -> DeleteExpiredJobService.scheduleJobIfNeeded(any(), any()), times(1));
+            ExtendedMockito.verify(() -> DeleteExpiredJob.schedule(any(), any()));
+            verify(mMockOrchestrator).checkAndSchedule();
             assertNotNull(binder);
         } finally {
             session.finishMocking();

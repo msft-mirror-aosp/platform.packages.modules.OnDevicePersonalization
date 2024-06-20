@@ -20,6 +20,7 @@ import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.os.Bundle;
 
+import com.android.odp.module.common.Clock;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 
@@ -42,9 +43,10 @@ public class StatsUtils {
     }
 
     /** Writes app request usage to statsd. */
-    public static void writeAppRequestMetrics(Clock clock, int responseCode, long startTimeMillis) {
+    public static void writeAppRequestMetrics(
+            int apiName, Clock clock, int responseCode, long startTimeMillis) {
         int latencyMillis = (int) (clock.elapsedRealtime() - startTimeMillis);
-        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_EXECUTE)
+        ApiCallStats callStats = new ApiCallStats.Builder(apiName)
                 .setLatencyMillis(latencyMillis)
                 .setResponseCode(responseCode)
                 .build();

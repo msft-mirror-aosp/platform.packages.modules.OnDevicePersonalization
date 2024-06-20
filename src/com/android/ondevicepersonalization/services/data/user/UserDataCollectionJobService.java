@@ -87,8 +87,14 @@ public class UserDataCollectionJobService extends JobService {
             return cancelAndFinishJob(params,
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON);
         }
-        if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
-            sLogger.d(TAG + ": Personalization is not allowed, finishing job.");
+        if (!UserPrivacyStatus.getInstance().isProtectedAudienceEnabled()
+                        && !UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
+            sLogger.d(TAG + ": user control is revoked, "
+                            + "deleting existing user data and finishing job.");
+            mUserDataCollector = UserDataCollector.getInstance(this);
+            mUserData = RawUserData.getInstance();
+            mUserDataCollector.clearUserData(mUserData);
+            mUserDataCollector.clearMetadata();
             OdpJobServiceLogger.getInstance(this).recordJobSkipped(
                     USER_DATA_COLLECTION_ID,
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_PERSONALIZATION_NOT_ENABLED);

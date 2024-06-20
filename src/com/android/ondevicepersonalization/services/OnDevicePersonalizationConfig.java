@@ -76,6 +76,10 @@ public class OnDevicePersonalizationConfig {
     public static final String USER_DATA_COLLECTION_JOB_NAME =
             "USER_DATA_COLLECTION_JOB";
 
+    /** Job ID for Reset Task ({@link ResetDataJobService}) */
+    public static final int RESET_DATA_JOB_ID = 1007;
+    public static final String RESET_DATA_JOB_NAME = "RESET_JOB";
+
     public static final Map<Integer, String> JOB_ID_TO_NAME_MAP = Map.of(
             MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID,
             MDD_MAINTENANCE_PERIODIC_TASK_JOB_NAME,
@@ -90,6 +94,8 @@ public class OnDevicePersonalizationConfig {
             MAINTENANCE_TASK_JOB_ID,
             MAINTENANCE_TASK_JOB_NAME,
             USER_DATA_COLLECTION_ID,
-            USER_DATA_COLLECTION_JOB_NAME
+            USER_DATA_COLLECTION_JOB_NAME,
+            RESET_DATA_JOB_ID,
+            RESET_DATA_JOB_NAME
     );
 }
