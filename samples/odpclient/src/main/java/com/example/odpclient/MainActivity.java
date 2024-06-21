@@ -114,7 +114,7 @@ public class MainActivity extends Activity {
         mReportConversionButton.setOnClickListener(v -> reportConversion());
     }
 
-    private OnDevicePersonalizationManager getOdpManager() {
+    private OnDevicePersonalizationManager getOdpManager() throws NoClassDefFoundError {
         return mContext.getSystemService(OnDevicePersonalizationManager.class);
     }
 
@@ -192,6 +192,8 @@ public class MainActivity extends Activity {
                             makeToast("requestSurfacePackage() error: " + e.toString());
                         }
                     });
+        } catch (NoClassDefFoundError err) {
+            Log.e(TAG, "NoClassDefFound", err);
         } catch (Exception e) {
             Log.e(TAG, "Error", e);
         }
@@ -250,6 +252,8 @@ public class MainActivity extends Activity {
                     });
             latch.await();
             Log.d(TAG, "scheduleTraining:odpManager.execute wait success");
+        } catch (NoClassDefFoundError err) {
+            Log.e(TAG, "NoClassDefFound", err);
         } catch (Exception e) {
             Log.e(TAG, "Error", e);
         }
@@ -297,6 +301,8 @@ public class MainActivity extends Activity {
                     });
             latch.await();
             Log.d(TAG, "cancelTraining:odpManager.execute wait success");
+        } catch (NoClassDefFoundError err) {
+            Log.e(TAG, "NoClassDefFound", err);
         } catch (Exception e) {
             Log.e(TAG, "Error", e);
         }
@@ -338,6 +344,8 @@ public class MainActivity extends Activity {
                     });
             latch.await();
             Log.d(TAG, "reportConversion:odpManager.execute wait success");
+        } catch (NoClassDefFoundError err) {
+            Log.e(TAG, "NoClassDefFound", err);
         } catch (Exception e) {
             Log.e(TAG, "Error", e);
         }
