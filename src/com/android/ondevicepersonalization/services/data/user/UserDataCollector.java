@@ -276,6 +276,11 @@ public class UserDataCollector {
             NetworkCapabilities networkCapabilities =
                     mConnectivityManager.getNetworkCapabilities(
                             mConnectivityManager.getActiveNetwork());
+            // Returns null if network is unknown.
+            if (networkCapabilities == null) {
+                sLogger.w(TAG + ": networkCapabilities is null");
+                return;
+            }
             userData.networkCapabilities = getFilteredNetworkCapabilities(networkCapabilities);
         } catch (Exception e) {
             sLogger.w(TAG + ": Failed to collect networkCapabilities.", e);
