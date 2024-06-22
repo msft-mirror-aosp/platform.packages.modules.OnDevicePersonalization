@@ -271,7 +271,11 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
         synchronized (mLock) {
             if (mServiceConnection != null) {
                 LogUtil.d(TAG, "unbinding %s...", mServiceIntentActionOrName);
-                mContext.unbindService(mServiceConnection);
+                try {
+                    mContext.unbindService(mServiceConnection);
+                } catch (IllegalArgumentException e) {
+                    LogUtil.e(TAG, e, "unbinding failed %s", mServiceIntentActionOrName);
+                }
             }
             mServiceConnection = null;
             mService = null;
