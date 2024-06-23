@@ -24,6 +24,7 @@ import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 import com.google.internal.federatedcompute.v1.ForwardingInfo;
 
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A helper class to create FederatedComputeHttpRequest with base uri, request headers and
@@ -65,7 +66,7 @@ public final class ProtocolRequestCreator {
     public FederatedComputeHttpRequest createProtoRequest(
             String uri,
             HttpMethod httpMethod,
-            HashMap<String, String> extraHeaders,
+            Map<String, String> extraHeaders,
             byte[] requestBody,
             boolean isProtobufEncoded) {
         HashMap<String, String> requestHeader = new HashMap<>();

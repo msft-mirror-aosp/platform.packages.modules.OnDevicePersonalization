@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services.federatedcompute;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import android.adservices.ondevicepersonalization.TrainingExampleRecord;
 import android.content.Context;
 import android.federatedcompute.ExampleStoreIterator;
 import android.os.Bundle;
@@ -49,12 +50,15 @@ public class OdpExampleStoreIteratorFactoryTest {
 
     @Test
     public void testNext() {
-        List<byte[]> exampleList = new ArrayList<>();
-        exampleList.add(new byte[] {1});
-        List<byte[]> tokenList = new ArrayList<>();
-        tokenList.add(new byte[] {2});
+        TrainingExampleRecord record =
+                new TrainingExampleRecord.Builder()
+                        .setTrainingExample(new byte[] {1})
+                        .setResumptionToken(new byte[] {2})
+                        .build();
+        List<TrainingExampleRecord> exampleList = new ArrayList<>();
+        exampleList.add(record);
         OdpExampleStoreIterator it =
-                OdpExampleStoreIteratorFactory.getInstance().createIterator(exampleList, tokenList);
+                OdpExampleStoreIteratorFactory.getInstance().createIterator(exampleList);
         it.next(new TestIteratorCallback());
         assertTrue(mIteratorCallbackOnSuccessCalled);
         assertFalse(mIteratorCallbackOnFailureCalled);
