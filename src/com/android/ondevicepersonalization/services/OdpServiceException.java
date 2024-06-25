@@ -31,7 +31,7 @@ public class OdpServiceException extends Exception {
     }
 
     public OdpServiceException(int errorCode, @NonNull String errorMessage) {
-        super("Error code: " + errorCode + " message: " + errorMessage);
+        super(errorMessage);
         mErrorCode = errorCode;
     }
 
@@ -41,7 +41,7 @@ public class OdpServiceException extends Exception {
 
     public OdpServiceException(
             int errorCode, @NonNull String errorMessage, @NonNull Throwable cause) {
-        super("Error code: " + errorCode + " message: " + errorMessage, cause);
+        super(errorMessage, cause);
         mErrorCode = errorCode;
     }
 

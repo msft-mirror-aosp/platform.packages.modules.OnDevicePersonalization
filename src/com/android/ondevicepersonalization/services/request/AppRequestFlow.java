@@ -169,7 +169,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             mSerializedAppParams = Objects.requireNonNull(paramsBuffer.getByteArray());
         } catch (Exception e) {
             sLogger.d(TAG + ": Failed to extract app params.", e);
-            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, e);
+            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0, e);
             return false;
         }
 
@@ -180,13 +180,13 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                             mContext, mService.getPackageName()));
         } catch (Exception e) {
             sLogger.d(TAG + ": Failed to read manifest.", e);
-            sendErrorResult(Constants.STATUS_NAME_NOT_FOUND, e);
+            sendErrorResult(Constants.STATUS_NAME_NOT_FOUND, 0, e);
             return false;
         }
 
         if (!mService.getClassName().equals(config.getServiceName())) {
             sLogger.d(TAG + ": service class not found");
-            sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND, 0);
+            sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND, 0, null);
             return false;
         }
 
@@ -303,12 +303,14 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                         sLogger.w(TAG + ": Request failed.", t);
                         if (t instanceof OdpServiceException) {
                             OdpServiceException e = (OdpServiceException) t;
+
                             sendErrorResult(
                                     e.getErrorCode(),
                                     DebugUtils.getIsolatedServiceExceptionCode(
-                                        mContext, mService, e));
+                                        mContext, mService, e),
+                                    t);
                         } else {
-                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, t);
+                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0, t);
                         }
                     }
                 },
@@ -422,26 +424,12 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         }
     }
 
-    private void sendErrorResult(int errorCode, int isolatedServiceErrorCode) {
+    private void sendErrorResult(int errorCode, int isolatedServiceErrorCode, Throwable t) {
         try {
             mCallback.onError(
                     errorCode,
                     isolatedServiceErrorCode,
-                    null,
-                    new CalleeMetadata.Builder()
-                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
-                            .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
-        } catch (RemoteException e) {
-            sLogger.w(TAG + ": Callback error", e);
-        }
-    }
-
-    private void sendErrorResult(int errorCode, Throwable t) {
-        try {
-            mCallback.onError(
-                    errorCode,
-                    0,
-                    DebugUtils.getErrorMessage(mContext, t),
+                    DebugUtils.serializeExceptionInfo(mService, t),
                     new CalleeMetadata.Builder()
                             .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
                             .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());

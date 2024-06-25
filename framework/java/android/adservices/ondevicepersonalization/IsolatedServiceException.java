@@ -39,7 +39,12 @@ public final class IsolatedServiceException extends Exception {
      * @param errorCode An error code defined by the {@link IsolatedService}.
      */
     public IsolatedServiceException(@IntRange(from = 1, to = 127) int errorCode) {
-        super("IsolatedServiceException: Error " + errorCode);
+        this(errorCode, null);
+    }
+
+    /** @hide */
+    public IsolatedServiceException(@IntRange(from = 1, to = 127) int errorCode, Throwable cause) {
+        super("IsolatedServiceException: Error " + errorCode, cause);
         mErrorCode = errorCode;
     }
 

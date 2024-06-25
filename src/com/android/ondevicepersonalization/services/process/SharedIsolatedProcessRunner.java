@@ -37,6 +37,7 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
 import com.android.odp.module.common.PackageUtils;
+import com.android.ondevicepersonalization.internal.util.ExceptionInfo;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
@@ -146,19 +147,19 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
 
                                         // TO-DO (323882182): Granular isolated servce failures.
                                         @Override public void onError(
-                                                int errorCode, int isolatedServiceErrorCode) {
+                                                int errorCode,
+                                                int isolatedServiceErrorCode,
+                                                byte[] serializedExceptionInfo) {
+                                            Exception cause = ExceptionInfo.fromByteArray(
+                                                    serializedExceptionInfo);
                                             if (isolatedServiceErrorCode > 0
-                                                        && isolatedServiceErrorCode < 128) {
-                                                completer.setException(
-                                                        new OdpServiceException(
-                                                                Constants.STATUS_SERVICE_FAILED,
-                                                                new IsolatedServiceException(
-                                                                    isolatedServiceErrorCode)));
-                                            } else {
-                                                completer.setException(
-                                                        new OdpServiceException(
-                                                                Constants.STATUS_SERVICE_FAILED));
+                                                    && isolatedServiceErrorCode < 128) {
+                                                cause = new IsolatedServiceException(
+                                                        isolatedServiceErrorCode, cause);
                                             }
+                                            completer.setException(
+                                                    new OdpServiceException(
+                                                        Constants.STATUS_SERVICE_FAILED, cause));
                                         }
                                     });
                     return null;

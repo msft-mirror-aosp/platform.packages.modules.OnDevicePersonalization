@@ -79,7 +79,7 @@ public class RenderFlowTest {
     private boolean mCallbackError;
     private int mCallbackErrorCode;
     private int mIsolatedServiceErrorCode;
-    private String mErrorMessage;
+    private byte[] mSerializedException;
     private Bundle mCallbackResult;
     private ServiceFlowOrchestrator mSfo;
 
@@ -198,12 +198,13 @@ public class RenderFlowTest {
             mLatch.countDown();
         }
         @Override public void onError(
-                int errorCode, int isolatedServiceErrorCode, String message,
+                int errorCode, int isolatedServiceErrorCode,
+                byte[] serializedException,
                 CalleeMetadata calleeMetadata) {
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;
-            mErrorMessage = message;
+            mSerializedException = serializedException;
             mLatch.countDown();
         }
     }

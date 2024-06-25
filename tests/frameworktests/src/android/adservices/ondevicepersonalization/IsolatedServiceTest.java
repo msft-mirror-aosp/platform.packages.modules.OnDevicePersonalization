@@ -70,6 +70,7 @@ public class IsolatedServiceTest {
     private Bundle mCallbackResult;
     private int mCallbackErrorCode;
     private int mIsolatedServiceErrorCode;
+    private byte[] mSerializedExceptionInfo;
 
     @Before
     public void setUp() {
@@ -742,9 +743,13 @@ public class IsolatedServiceTest {
         }
 
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode) {
+        public void onError(
+                int errorCode,
+                int isolatedServiceErrorCode,
+                byte[] serializedExceptionInfo) {
             mCallbackErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;
+            mSerializedExceptionInfo = serializedExceptionInfo;
             mLatch.countDown();
         }
     }
