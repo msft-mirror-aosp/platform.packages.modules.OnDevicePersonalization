@@ -465,9 +465,18 @@ public class OnDevicePersonalizationManager {
         Exception cause = ExceptionInfo.fromByteArray(
                 serializedExceptionInfo);
         if (errorCode == Constants.STATUS_NAME_NOT_FOUND) {
-            return new PackageManager.NameNotFoundException();
+            Exception e = new PackageManager.NameNotFoundException();
+            try {
+                // NameNotFoundException does not have a constructor that takes a Throwable.
+                if (cause != null) {
+                    e.initCause(cause);
+                }
+            } catch (Exception e2) {
+                sLogger.i(TAG + ": could not update cause", e2);
+            }
+            return e;
         } else if (errorCode == Constants.STATUS_CLASS_NOT_FOUND) {
-            return new ClassNotFoundException();
+            return new ClassNotFoundException("", cause);
         } else if (errorCode == Constants.STATUS_SERVICE_FAILED) {
             if (isolatedServiceErrorCode > 0 && isolatedServiceErrorCode < 128) {
                 return new OnDevicePersonalizationException(
