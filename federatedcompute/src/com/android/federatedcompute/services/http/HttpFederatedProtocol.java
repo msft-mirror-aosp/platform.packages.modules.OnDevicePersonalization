@@ -138,7 +138,7 @@ public final class HttpFederatedProtocol {
                         getLightweightExecutor());
     }
 
-    /** Donwloads model checkpoint and federated compute plan from remote server. */
+    /** Downloads model checkpoint and federated compute plan from remote server. */
     public ListenableFuture<CheckinResult> downloadTaskAssignment(TaskAssignment taskAssignment) {
         NetworkStats networkStats = new NetworkStats();
         networkStats.recordStartTimeNow();
@@ -161,7 +161,7 @@ public final class HttpFederatedProtocol {
                         getBackgroundExecutor());
     }
 
-    /** Helper functions to reporting result and upload result. */
+    /** Helper functions to report and upload result. */
     public FluentFuture<RejectionInfo> reportResult(
             ComputationResult computationResult,
             FederatedComputeEncryptionKey encryptionKey,
@@ -194,7 +194,6 @@ public final class HttpFederatedProtocol {
                                     return Futures.immediateFuture(
                                             reportResultResponse.getRejectionInfo());
                                 }
-                                // TODO (b/328789639): add a event to track ReportResult success.
                                 NetworkStats uploadStats = new NetworkStats();
                                 return FluentFuture.from(
                                                 processReportResultResponseAndUploadResult(
