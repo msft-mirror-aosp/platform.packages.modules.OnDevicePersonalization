@@ -96,8 +96,10 @@ public class OnDevicePersonalizationPlugin implements Plugin {
                             }
                         }
                         @Override public void onError(
-                                int errorCode, int isolatedServiceErrorCode) {
+                                int errorCode, int isolatedServiceErrorCode,
+                                byte[] serializedExceptionInfo) {
                             try {
+                                // TODO(b/326455045): Support detailed error return in plugin.
                                 mPluginCallback.onFailure(FailureType.ERROR_EXECUTING_PLUGIN);
                             } catch (RemoteException e) {
                                 sLogger.e(TAG + ": Callback error.", e);

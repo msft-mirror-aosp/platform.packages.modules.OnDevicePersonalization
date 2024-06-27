@@ -182,6 +182,7 @@ public class IsolatedWorkerTest {
                 OutcomeReceiver<TrainingExamplesOutput, IsolatedServiceException> receiver) {
             assertEquals("pop", input.getPopulationName());
             assertEquals("task", input.getTaskName());
+            assertEquals("collection_uri", input.getCollectionName());
             assertArrayEquals(new byte[]{1}, input.getResumptionToken());
             TrainingExampleRecord data = new TrainingExampleRecord.Builder()
                     .setTrainingExample(new byte[]{'A'})
