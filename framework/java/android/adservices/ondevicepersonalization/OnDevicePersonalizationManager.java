@@ -39,6 +39,7 @@ import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.ExceptionInfo;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 
@@ -68,6 +69,15 @@ public class OnDevicePersonalizationManager {
 
     private static final String ALT_ODP_MANAGING_SERVICE_PACKAGE_SUFFIX =
             "com.google.android.ondevicepersonalization.services";
+
+    private static final String ODP_INTERNAL_ERROR_MESSAGE =
+            "Internal error in the OnDevicePersonalizationService.";
+
+    private static final String ISOLATED_SERVICE_ERROR_MESSAGE = "Error in the IsolatedService.";
+
+    private static final String ODP_DISABLED_ERROR_MESSAGE =
+            "Personalization disabled by device configuration.";
+
     private static final String TAG = OnDevicePersonalizationManager.class.getSimpleName();
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private final AbstractServiceBinder<IOnDevicePersonalizationManagingService> mServiceBinder;
@@ -240,16 +250,16 @@ public class OnDevicePersonalizationManager {
 
                             @Override
                             public void onError(int errorCode, int isolatedServiceErrorCode,
-                                    String message, CalleeMetadata calleeMetadata) {
+                                    byte[] serializedExceptionInfo,
+                                    CalleeMetadata calleeMetadata) {
                                 final long token = Binder.clearCallingIdentity();
                                 try {
                                     executor.execute(
-                                            () ->
-                                                    receiver.onError(
-                                                            createException(
-                                                                    errorCode,
-                                                                    isolatedServiceErrorCode,
-                                                                    message)));
+                                            () -> {
+                                                receiver.onError(createException(
+                                                        errorCode, isolatedServiceErrorCode,
+                                                        serializedExceptionInfo));
+                                            });
                                 } finally {
                                     Binder.restoreCallingIdentity(token);
                                     logApiCallStats(
@@ -378,7 +388,7 @@ public class OnDevicePersonalizationManager {
 
                             @Override
                             public void onError(int errorCode, int isolatedServiceErrorCode,
-                                    String message, CalleeMetadata calleeMetadata) {
+                                    byte[] serializedExceptionInfo, CalleeMetadata calleeMetadata) {
                                 final long token = Binder.clearCallingIdentity();
                                 try {
                                     executor.execute(
@@ -387,7 +397,7 @@ public class OnDevicePersonalizationManager {
                                                             createException(
                                                                     errorCode,
                                                                     isolatedServiceErrorCode,
-                                                                    message)));
+                                                                    serializedExceptionInfo)));
                                 } finally {
                                     Binder.restoreCallingIdentity(token);
                                     logApiCallStats(
@@ -436,31 +446,55 @@ public class OnDevicePersonalizationManager {
         }
     }
 
-    private Exception createException(
-            int errorCode, int isolatedServiceErrorCode, String message) {
-        if (message == null || message.isBlank()) {
-            message = "Error: " + errorCode;
+    private static String convertMessage(int errorCode) {
+        switch (errorCode) {
+            case Constants.STATUS_INTERNAL_ERROR:
+                return ODP_INTERNAL_ERROR_MESSAGE;
+            case Constants.STATUS_SERVICE_FAILED:
+                return ISOLATED_SERVICE_ERROR_MESSAGE;
+            case Constants.STATUS_PERSONALIZATION_DISABLED:
+                return ODP_DISABLED_ERROR_MESSAGE;
+            default:
+                sLogger.w(TAG + "Unexpected error code while creating exception: " + errorCode);
+                return "";
         }
+    }
+
+    private static Exception createException(
+            int errorCode, int isolatedServiceErrorCode, byte[] serializedExceptionInfo) {
+        Exception cause = ExceptionInfo.fromByteArray(
+                serializedExceptionInfo);
         if (errorCode == Constants.STATUS_NAME_NOT_FOUND) {
-            return new PackageManager.NameNotFoundException();
+            Exception e = new PackageManager.NameNotFoundException();
+            try {
+                // NameNotFoundException does not have a constructor that takes a Throwable.
+                if (cause != null) {
+                    e.initCause(cause);
+                }
+            } catch (Exception e2) {
+                sLogger.i(TAG + ": could not update cause", e2);
+            }
+            return e;
         } else if (errorCode == Constants.STATUS_CLASS_NOT_FOUND) {
-            return new ClassNotFoundException();
+            return new ClassNotFoundException("", cause);
         } else if (errorCode == Constants.STATUS_SERVICE_FAILED) {
             if (isolatedServiceErrorCode > 0 && isolatedServiceErrorCode < 128) {
                 return new OnDevicePersonalizationException(
                         OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
                         new IsolatedServiceException(isolatedServiceErrorCode));
             } else {
-            return new OnDevicePersonalizationException(
-                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
-                    message);
+                return new OnDevicePersonalizationException(
+                        OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                        convertMessage(errorCode),
+                        cause);
             }
         } else if (errorCode == Constants.STATUS_PERSONALIZATION_DISABLED) {
             return new OnDevicePersonalizationException(
                     OnDevicePersonalizationException.ERROR_PERSONALIZATION_DISABLED,
-                    message);
+                    convertMessage(errorCode),
+                    cause);
         } else {
-            return new IllegalStateException(message);
+            return new IllegalStateException(convertMessage(errorCode), cause);
         }
     }
 
