@@ -921,6 +921,12 @@ public class SampleHandler implements IsolatedWorker {
                                 public void onResult(InferenceOutput result) {
                                     completer.set(result);
                                 }
+
+                                @Override
+                                public void onError(Exception e) {
+                                    Log.e(TAG, "modelManager.run() exception", e);
+                                    completer.set(null);
+                                }
                             });
                     // Used only for debugging.
                     return "getModelInferenceResultFuture";

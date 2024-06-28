@@ -162,7 +162,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
         try {
             if (!UserPrivacyStatus.getInstance().isProtectedAudienceEnabled()) {
                 sLogger.d(TAG + ": User control is not given for targeting.");
-                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED, 0);
+                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED, 0, null);
                 return false;
             }
 
@@ -175,7 +175,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                             mContext, servicePackageName));
             mService = ComponentName.createRelative(servicePackageName, serviceClassName);
         } catch (Exception e) {
-            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0);
+            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0, e);
             return false;
         }
         return true;
@@ -286,9 +286,10 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                             sendErrorResult(
                                     e.getErrorCode(),
                                     DebugUtils.getIsolatedServiceExceptionCode(
-                                            mContext, mService, e));
+                                            mContext, mService, e),
+                                    t);
                         } else {
-                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, t);
+                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0, t);
                         }
                     }
                 },
@@ -303,7 +304,10 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
             sendSuccessResult(surfacePackage);
         } else {
             sLogger.w(TAG + ": surfacePackages is null or empty");
-            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0);
+            sendErrorResult(
+                    Constants.STATUS_INTERNAL_ERROR,
+                    0,
+                    new IllegalStateException("missing surfacePackage"));
         }
     }
 
@@ -321,26 +325,12 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
         }
     }
 
-    private void sendErrorResult(int errorCode, int isolatedServiceErrorCode) {
+    private void sendErrorResult(int errorCode, int isolatedServiceErrorCode, Throwable t) {
         try {
             mCallback.onError(
                     errorCode,
                     isolatedServiceErrorCode,
-                    null,
-                    new CalleeMetadata.Builder()
-                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
-                            .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
-        } catch (RemoteException e) {
-            sLogger.w(TAG + ": Callback error", e);
-        }
-    }
-
-    private void sendErrorResult(int errorCode, Throwable t) {
-        try {
-            mCallback.onError(
-                    errorCode,
-                    0,
-                    DebugUtils.getErrorMessage(mContext, t),
+                    DebugUtils.serializeExceptionInfo(mService, t),
                     new CalleeMetadata.Builder()
                             .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
                             .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
