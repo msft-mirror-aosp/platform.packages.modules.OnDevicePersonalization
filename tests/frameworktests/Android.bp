@@ -23,7 +23,7 @@ android_test {
     name: "FrameworkOnDevicePersonalizationTests",
     srcs: [
         "**/*.java",
-        "**/*.aidl"
+        "**/*.aidl",
     ],
     defaults: ["framework-ondevicepersonalization-test-defaults"],
     min_sdk_version: "Tiramisu",
@@ -35,6 +35,7 @@ android_test {
         "androidx.test.rules",
         "frameworks-base-testutils",
         "guava",
+        "hamcrest-library",
         "libprotobuf-java-lite",
         "tensorflow_core_proto_java_lite",
         "mockito-target-minus-junit4",

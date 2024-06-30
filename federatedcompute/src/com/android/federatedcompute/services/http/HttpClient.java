@@ -81,12 +81,12 @@ public class HttpClient {
 
     /** Perform HTTP requests based on given information with retries. */
     @NonNull
-    public FederatedComputeHttpResponse performRequestWithRetry(FederatedComputeHttpRequest request)
+    @VisibleForTesting
+    FederatedComputeHttpResponse performRequestWithRetry(FederatedComputeHttpRequest request)
             throws IOException {
-        int count = 0;
         FederatedComputeHttpResponse response = null;
         int retryLimit = mFlags.getHttpRequestRetryLimit();
-        while (count < retryLimit) {
+        while (retryLimit > 0) {
             try {
                 response = performRequest(request);
                 if (HTTP_OK_STATUS.contains(response.getStatusCode())) {
@@ -95,11 +95,11 @@ public class HttpClient {
                 // we want to continue retry in case it is IO exception.
             } catch (IOException e) {
                 // propagate IO exception after RETRY_LIMIT times attempt.
-                if (count >= retryLimit - 1) {
+                if (retryLimit <= 1) {
                     throw e;
                 }
             } finally {
-                count++;
+                retryLimit--;
             }
         }
         return response;
@@ -107,7 +107,8 @@ public class HttpClient {
 
     /** Perform HTTP requests based on given information. */
     @NonNull
-    public FederatedComputeHttpResponse performRequest(FederatedComputeHttpRequest request)
+    @VisibleForTesting
+    FederatedComputeHttpResponse performRequest(FederatedComputeHttpRequest request)
             throws IOException {
         if (request.getUri() == null || request.getHttpMethod() == null) {
             LogUtil.e(TAG, "Endpoint or http method is empty");
@@ -178,7 +179,8 @@ public class HttpClient {
         }
     }
 
-    private byte[] getByteArray(@Nullable InputStream in, long contentLength) throws IOException {
+    private static byte[] getByteArray(@Nullable InputStream in, long contentLength)
+            throws IOException {
         if (contentLength == 0) {
             return HttpClientUtil.EMPTY_BODY;
         }
