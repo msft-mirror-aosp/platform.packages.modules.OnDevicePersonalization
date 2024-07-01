@@ -243,7 +243,7 @@ public interface Flags extends ModuleSharedFlags {
 
     long FCP_DEFAULT_MEMORY_SIZE_LIMIT = 50000000L; // 50 MBs in bytes
 
-    /** Provides upper limit for FCP temp files. */
+    /** Provides lower limit for FCP temp files. */
     default long getFcpMemorySizeLimit() {
         return FCP_DEFAULT_MEMORY_SIZE_LIMIT;
     }
@@ -260,5 +260,18 @@ public interface Flags extends ModuleSharedFlags {
 
     default boolean getSpePilotJobEnabled() {
         return DEFAULT_SPE_PILOT_JOB_ENABLED;
+    }
+
+    @ConfigFlag int DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE = 50;
+
+    default int getFcpTaskLimitPerPackage() {
+        return DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE;
+    }
+
+    int FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT = 50000000; // 50 MBs in bytes
+
+    /** Provides upper limit for FCP temp files. */
+    default int getFcpCheckpointFileSizeLimit() {
+        return FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT;
     }
 }

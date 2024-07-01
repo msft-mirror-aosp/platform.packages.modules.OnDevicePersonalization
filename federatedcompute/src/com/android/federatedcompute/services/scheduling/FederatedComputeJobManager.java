@@ -189,6 +189,16 @@ public class FederatedComputeJobManager {
         Preconditions.checkStringNotEmpty(trainingOptions.getServerAddress());
 
         if (existingTask == null) {
+            int taskNumber =
+                    mFederatedTrainingTaskDao.getTotalTrainingTaskPerOwnerPackage(packageName);
+            if (taskNumber >= mFlags.getFcpTaskLimitPerPackage()) {
+                LogUtil.e(
+                        TAG,
+                        "Error while scheduling federatedCompute task. "
+                                + "Too mach tasks already created for %s package.",
+                        packageName);
+                return STATUS_INTERNAL_ERROR;
+            }
             int jobId =
                     mJobIdGenerator.generateJobId(this.mContext, populationName, ownerIdentifier);
             FederatedTrainingTask.Builder newTaskBuilder =

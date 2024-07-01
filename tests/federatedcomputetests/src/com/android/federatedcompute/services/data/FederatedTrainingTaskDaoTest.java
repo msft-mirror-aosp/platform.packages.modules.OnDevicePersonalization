@@ -139,6 +139,23 @@ public final class FederatedTrainingTaskDaoTest {
     }
 
     @Test
+    public void testGetNumberOfFederatedTrainingTasksPerOwnerPackage() {
+        FederatedTrainingTask task = createDefaultFederatedTrainingTask();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task);
+        FederatedTrainingTask task2 =
+                createDefaultFederatedTrainingTask().toBuilder()
+                        .jobId(456)
+                        .populationName(POPULATION_NAME + "_2")
+                        .build();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task2);
+
+        int numberOfTasksPerPackage =
+                mTrainingTaskDao.getTotalTrainingTaskPerOwnerPackage(OWNER_PACKAGE);
+
+        assertThat(numberOfTasksPerPackage).isEqualTo(2);
+    }
+
+    @Test
     public void findAndRemoveTaskByPopulationNameAndJobId_nonExist() {
         FederatedTrainingTask removedTask =
                 mTrainingTaskDao.findAndRemoveTaskByPopulationAndJobId(POPULATION_NAME, JOB_ID);

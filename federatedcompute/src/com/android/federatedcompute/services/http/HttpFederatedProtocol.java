@@ -138,7 +138,7 @@ public final class HttpFederatedProtocol {
                         getLightweightExecutor());
     }
 
-    /** Donwloads model checkpoint and federated compute plan from remote server. */
+    /** Downloads model checkpoint and federated compute plan from remote server. */
     public ListenableFuture<CheckinResult> downloadTaskAssignment(TaskAssignment taskAssignment) {
         NetworkStats networkStats = new NetworkStats();
         networkStats.recordStartTimeNow();
@@ -161,7 +161,7 @@ public final class HttpFederatedProtocol {
                         getBackgroundExecutor());
     }
 
-    /** Helper functions to reporting result and upload result. */
+    /** Helper functions to report and upload result. */
     public FluentFuture<RejectionInfo> reportResult(
             ComputationResult computationResult,
             FederatedComputeEncryptionKey encryptionKey,
@@ -194,7 +194,6 @@ public final class HttpFederatedProtocol {
                                     return Futures.immediateFuture(
                                             reportResultResponse.getRejectionInfo());
                                 }
-                                // TODO (b/328789639): add a event to track ReportResult success.
                                 NetworkStats uploadStats = new NetworkStats();
                                 return FluentFuture.from(
                                                 processReportResultResponseAndUploadResult(
@@ -367,7 +366,6 @@ public final class HttpFederatedProtocol {
             mTrainingEventLogger.logCheckinInvalidPayload(networkStats);
             throw new IllegalStateException("Could not parse ClientOnlyPlan proto", e);
         }
-        mTrainingEventLogger.logCheckinFinished(networkStats);
 
         // Process download checkpoint resource.
         String inputCheckpointFile = createTempFile("input", ".ckp");
@@ -377,7 +375,18 @@ public final class HttpFederatedProtocol {
                 || checkpointDataResponse.isResponseCompressed()) {
             checkpointData = uncompressWithGzip(checkpointData);
         }
+        if (checkpointData.length > FlagsFactory.getFlags().getFcpCheckpointFileSizeLimit()) {
+            LogUtil.e(
+                    TAG,
+                    "CheckPoint data is too large: %d, which more than a limit: %d",
+                    checkpointData.length,
+                    FlagsFactory.getFlags().getFcpCheckpointFileSizeLimit());
+            Trace.endAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
+            mTrainingEventLogger.logCheckinInvalidPayload(networkStats);
+            return null;
+        }
         writeToFile(inputCheckpointFile, checkpointData);
+        mTrainingEventLogger.logCheckinFinished(networkStats);
         Trace.endAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
         return new CheckinResult(inputCheckpointFile, clientOnlyPlan, taskAssignment);
     }

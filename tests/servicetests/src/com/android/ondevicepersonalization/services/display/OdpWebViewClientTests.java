@@ -23,8 +23,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.EventOutputParcel;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
@@ -34,6 +36,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.PersistableBundle;
+import android.util.Log;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
@@ -43,8 +46,11 @@ import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.modules.utils.testing.TestableDeviceConfig;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
@@ -65,6 +71,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.net.HttpURLConnection;
@@ -77,6 +84,7 @@ import java.util.concurrent.CountDownLatch;
 
 @RunWith(Parameterized.class)
 public class OdpWebViewClientTests {
+    public final String TAG = OdpWebViewClientTests.class.getSimpleName();
     private static final long QUERY_ID = 1L;
     private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
     private final Context mContext = ApplicationProvider.getApplicationContext();
@@ -112,22 +120,27 @@ public class OdpWebViewClientTests {
         );
     }
 
+    @Spy
+    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .mockStatic(FlagsFactory.class)
             .setStrictness(Strictness.LENIENT)
             .build();
 
     @Before
     public void setup() throws Exception {
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
         mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         mDao = EventsDao.getInstanceForTest(mContext);
         // Insert query for FK constraint
         mDao.insertQuery(mTestQuery);
         mLatch = new CountDownLatch(1);
 
-        PhFlagsTestUtil.setUpDeviceConfigPermissions();
-        PhFlagsTestUtil.setSharedIsolatedProcessFeatureEnabled(mIsSipFeatureEnabled);
+        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
+        when(mSpyFlags.isSharedIsolatedProcessFeatureEnabled())
+                .thenReturn(SdkLevel.isAtLeastU() && mIsSipFeatureEnabled);
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
 
         CountDownLatch latch = new CountDownLatch(1);
@@ -147,6 +160,7 @@ public class OdpWebViewClientTests {
             @Override
             public void onFailure(@NonNull Throwable t) {
                 mCallbackFailure = true;
+                Log.e(TAG, "Callback onFailure called: ", t);
                 mLatch.countDown();
             }
         };
