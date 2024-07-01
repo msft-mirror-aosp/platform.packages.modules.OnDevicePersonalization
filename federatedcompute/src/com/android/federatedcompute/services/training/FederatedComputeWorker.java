@@ -441,7 +441,22 @@ public class FederatedComputeWorker {
                         mHttpFederatedProtocol.downloadTaskAssignment(
                                 createTaskAssignmentResponse.getTaskAssignment()))
                 .transformAsync(
-                        checkinResult -> doFederatedComputation(run, checkinResult, eligibleResult),
+                        checkinResult -> {
+                            if (checkinResult == null) {
+                                LogUtil.w(TAG, "Failed to acquire checkin result!");
+                                // Reschedule the job.
+                                performFinishRoutines(
+                                        run.mCallback,
+                                        ContributionResult.FAIL,
+                                        run.mTask.jobId(),
+                                        run.mTask.populationName(),
+                                        run.mTask.getTrainingIntervalOptions(),
+                                        /* taskRetry= */ null,
+                                        /* enableFailuresTracking= */ true);
+                                return Futures.immediateFuture(null);
+                            }
+                            return doFederatedComputation(run, checkinResult, eligibleResult);
+                        },
                         getBackgroundExecutor());
     }
 
