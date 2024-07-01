@@ -51,6 +51,7 @@ import android.net.Uri;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.NetworkStats;
 import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
@@ -237,6 +238,8 @@ public final class HttpFederatedProtocolTest {
         doNothing().when(mTrainingEventLogger).logTaskAssignmentAuthSucceeded();
         doReturn(true).when(mMocKFlags).isEncryptionEnabled();
         when(PhFlags.getInstance()).thenReturn(mMocKFlags);
+        when(mMocKFlags.getFcpCheckpointFileSizeLimit())
+                .thenReturn(Flags.FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT);
     }
 
     @After
@@ -276,6 +279,46 @@ public final class HttpFederatedProtocolTest {
         assertThat(actualFetchResourceRequest.getExtraHeaders()).isEqualTo(expectedHeaders);
         verify(mTrainingEventLogger).logCheckinStarted();
         verify(mTrainingEventLogger).logCheckinFinished(mNetworkStatsArgumentCaptor.capture());
+        NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
+        assertTrue(networkStats.getDataTransferDurationInMillis() > 0);
+        if (mSupportCompression) {
+            assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(248);
+            assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(124);
+        } else {
+            assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(125);
+            assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(78);
+        }
+    }
+
+    @Test
+    public void testIssueCheckinFailure_checkpointTooBig() throws Exception {
+        when(mMocKFlags.getFcpCheckpointFileSizeLimit()).thenReturn(0);
+        setUpHttpFederatedProtocol();
+
+        CreateTaskAssignmentResponse createTaskAssignmentResponse =
+                mHttpFederatedProtocol.createTaskAssignment(createAuthContext()).get();
+        mHttpFederatedProtocol
+                .downloadTaskAssignment(createTaskAssignmentResponse.getTaskAssignment())
+                .get();
+
+        List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+
+        // Verify task assignment request.
+        FederatedComputeHttpRequest actualStartTaskAssignmentRequest = actualHttpRequests.get(0);
+        checkActualTARequest(actualStartTaskAssignmentRequest, 4);
+
+        // Verify fetch resource request.
+        FederatedComputeHttpRequest actualFetchResourceRequest = actualHttpRequests.get(1);
+        ImmutableSet<String> resourceUris = ImmutableSet.of(PLAN_URI, CHECKPOINT_URI);
+        assertTrue(resourceUris.contains(actualFetchResourceRequest.getUri()));
+        HashMap<String, String> expectedHeaders = new HashMap<>();
+        if (mSupportCompression) {
+            expectedHeaders.put(ACCEPT_ENCODING_HDR, GZIP_ENCODING_HDR);
+        }
+        assertThat(actualFetchResourceRequest.getExtraHeaders()).isEqualTo(expectedHeaders);
+        verify(mTrainingEventLogger).logCheckinStarted();
+        verify(mTrainingEventLogger)
+                .logCheckinInvalidPayload(mNetworkStatsArgumentCaptor.capture());
         NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
         assertTrue(networkStats.getDataTransferDurationInMillis() > 0);
         if (mSupportCompression) {

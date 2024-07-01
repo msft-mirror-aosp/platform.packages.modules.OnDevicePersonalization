@@ -20,6 +20,7 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_IS
 
 import android.os.Bundle;
 
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
@@ -36,11 +37,15 @@ import com.google.common.util.concurrent.ListeningExecutorService;
  * Task object representing a service flow task.
  */
 public class ServiceFlowTask {
+
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+    private static final String TAG = ServiceFlowTask.class.getSimpleName();
+
     private final ServiceFlowType mServiceFlowType;
     private final ServiceFlow mServiceFlow;
     private final ProcessRunner mProcessRunner;
     private volatile boolean mIsCompleted;
-    private Exception mExecutionException;
+    private volatile Exception mExecutionException;
 
     private final ListeningExecutorService mExecutor =
             OnDevicePersonalizationExecutors.getBackgroundExecutor();
@@ -75,7 +80,10 @@ public class ServiceFlowTask {
     /** Executes the given service flow. */
     public void run() {
         try {
-            if (mIsCompleted || !mServiceFlow.isServiceFlowReady()) return;
+            if (mIsCompleted || !mServiceFlow.isServiceFlowReady()) {
+                sLogger.d(TAG + ": Unexpected service flow state for " + mServiceFlowType);
+                return;
+            }
 
             ListenableFuture<IsolatedServiceInfo> loadServiceFuture =
                     mProcessRunner.loadIsolatedService(
@@ -109,6 +117,7 @@ public class ServiceFlowTask {
                                         return unloadServiceFuture;
                                     }, mExecutor);
         } catch (Exception e) {
+            sLogger.w(TAG + ": ServiceFlowTask " + mServiceFlowType + "failed. " + e);
             mExecutionException = e;
         }
     }

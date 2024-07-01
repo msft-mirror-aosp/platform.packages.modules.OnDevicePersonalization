@@ -16,10 +16,12 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
@@ -41,6 +43,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.ExceptionInfo;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
@@ -176,7 +179,12 @@ public final class OnDevicePersonalizationManagerTest {
                 receiver);
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
-        assertEquals("TestErrorMessage", receiver.getException().getMessage());
+        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertEquals(OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        Throwable cause = receiver.getException().getCause();
+        assertNotNull(cause);
+        assertThat(cause.getMessage(), matchesPattern(".*RuntimeException.*TestErrorMessage.*"));
         assertTrue(mLogApiStatsCalled);
     }
 
@@ -265,7 +273,10 @@ public final class OnDevicePersonalizationManagerTest {
                             Constants.STATUS_INTERNAL_ERROR);
                     int serviceErrorCode = params.getInt(KEY_SERVICE_ERROR_CODE, 0);
                     String errorMessage = params.getString(KEY_ERROR_MESSAGE);
-                    callback.onError(statusCode, serviceErrorCode, errorMessage,
+                    callback.onError(
+                            statusCode,
+                            serviceErrorCode,
+                            ExceptionInfo.toByteArray(new RuntimeException(errorMessage), 3),
                             new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
                                     SystemClock.elapsedRealtime()).build());
                 } else if (op.equals("iae")) {
