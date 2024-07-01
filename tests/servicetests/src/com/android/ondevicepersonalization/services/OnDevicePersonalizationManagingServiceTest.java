@@ -593,7 +593,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         public boolean mError = false;
         public int mErrorCode = 0;
         public int mIsolatedServiceErrorCode = 0;
-        public String mErrorMessage = null;
+        public byte[] mSerializedException = null;
         public String mToken = null;
         private final CountDownLatch mLatch = new CountDownLatch(1);
 
@@ -608,13 +608,14 @@ public class OnDevicePersonalizationManagingServiceTest {
         }
 
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode, String message,
+        public void onError(int errorCode, int isolatedServiceErrorCode,
+                byte[] serializedException,
                 CalleeMetadata calleeMetadata) {
             mWasInvoked = true;
             mError = true;
             mErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;
-            mErrorMessage = message;
+            mSerializedException = serializedException;
             mLatch.countDown();
         }
 
@@ -629,7 +630,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         public boolean mError = false;
         public int mErrorCode = 0;
         public int mIsolatedServiceErrorCode = 0;
-        public String mErrorMessage = null;
+        public byte[] mSerializedException = null;
         private final CountDownLatch mLatch = new CountDownLatch(1);
 
         @Override
@@ -641,13 +642,14 @@ public class OnDevicePersonalizationManagingServiceTest {
         }
 
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode, String message,
+        public void onError(int errorCode, int isolatedServiceErrorCode,
+                byte[] serializedException,
                 CalleeMetadata calleeMetadata) {
             mWasInvoked = true;
             mError = true;
             mErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;
-            mErrorMessage = message;
+            mSerializedException = serializedException;
             mLatch.countDown();
         }
 

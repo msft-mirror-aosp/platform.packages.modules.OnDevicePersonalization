@@ -36,6 +36,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.PersistableBundle;
+import android.util.Log;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
@@ -83,6 +84,7 @@ import java.util.concurrent.CountDownLatch;
 
 @RunWith(Parameterized.class)
 public class OdpWebViewClientTests {
+    public final String TAG = OdpWebViewClientTests.class.getSimpleName();
     private static final long QUERY_ID = 1L;
     private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
     private final Context mContext = ApplicationProvider.getApplicationContext();
@@ -158,6 +160,7 @@ public class OdpWebViewClientTests {
             @Override
             public void onFailure(@NonNull Throwable t) {
                 mCallbackFailure = true;
+                Log.e(TAG, "Callback onFailure called: ", t);
                 mLatch.countDown();
             }
         };

@@ -101,15 +101,15 @@ public class ServiceFlowFactoryTest {
         @Override
         public void onSuccess(Bundle bundle, CalleeMetadata calleeMetadata) {}
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode, String message,
-                CalleeMetadata calleeMetadata) {}
+        public void onError(int errorCode, int isolatedServiceErrorCode,
+                byte[] serializedException, CalleeMetadata calleeMetadata) {}
     }
 
     class TestRenderFlowCallback extends IRequestSurfacePackageCallback.Stub {
         @Override public void onSuccess(SurfaceControlViewHost.SurfacePackage surfacePackage,
                 CalleeMetadata calleeMetadata) {}
-        @Override public void onError(int errorCode, int isolatedServiceErrorCode, String message,
-                CalleeMetadata calleeMetadata) {}
+        @Override public void onError(int errorCode, int isolatedServiceErrorCode,
+        byte[] serializedException, CalleeMetadata calleeMetadata) {}
     }
 
     class TestWebCallback extends IRegisterMeasurementEventCallback.Stub {

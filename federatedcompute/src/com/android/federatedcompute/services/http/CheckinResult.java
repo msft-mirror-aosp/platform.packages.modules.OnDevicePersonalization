@@ -25,22 +25,27 @@ import com.google.internal.federatedcompute.v1.RejectionInfo;
 import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
 
 /**
- * The result after client calls TaskAssignemnt API. It includes init checkpoint data and plan data.
+ * The result after client calls TaskAssignment API. It includes init checkpoint data and plan data.
  */
 public class CheckinResult {
-    private String mInputCheckpoint = null;
-    private ClientOnlyPlan mPlanData = null;
-    private TaskAssignment mTaskAssignment = null;
-    private RejectionInfo mRejectionInfo = null;
+    private final String mInputCheckpoint;
+    private final ClientOnlyPlan mPlanData;
+    private final TaskAssignment mTaskAssignment;
+    private final RejectionInfo mRejectionInfo;
+
     public CheckinResult(
             String inputCheckpoint, ClientOnlyPlan planData, TaskAssignment taskAssignment) {
         this.mInputCheckpoint = inputCheckpoint;
         this.mPlanData = planData;
         this.mTaskAssignment = taskAssignment;
+        this.mRejectionInfo = null;
     }
 
     public CheckinResult(RejectionInfo mRejectionInfo) {
         this.mRejectionInfo = mRejectionInfo;
+        this.mInputCheckpoint = null;
+        this.mPlanData = null;
+        this.mTaskAssignment = null;
     }
 
     @Nullable
