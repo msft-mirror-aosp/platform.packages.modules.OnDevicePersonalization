@@ -81,6 +81,9 @@ java_sdk_library {
     aconfig_declarations: [
             "ondevicepersonalization_flags",
     ],
+    lint: {
+        baseline_filename: "lint-baseline.xml",
+    },
 }
 
 java_defaults {

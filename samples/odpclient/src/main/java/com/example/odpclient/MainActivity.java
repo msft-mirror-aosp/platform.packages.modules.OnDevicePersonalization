@@ -41,7 +41,6 @@ import android.widget.Toast;
 
 import com.google.common.util.concurrent.Futures;
 
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -115,7 +114,7 @@ public class MainActivity extends Activity {
         mReportConversionButton.setOnClickListener(v -> reportConversion());
     }
 
-    private OnDevicePersonalizationManager getOdpManager() {
+    private OnDevicePersonalizationManager getOdpManager() throws NoClassDefFoundError {
         return mContext.getSystemService(OnDevicePersonalizationManager.class);
     }
 
@@ -193,6 +192,8 @@ public class MainActivity extends Activity {
                             makeToast("requestSurfacePackage() error: " + e.toString());
                         }
                     });
+        } catch (NoClassDefFoundError err) {
+            Log.e(TAG, "NoClassDefFound", err);
         } catch (Exception e) {
             Log.e(TAG, "Error", e);
         }
@@ -251,6 +252,8 @@ public class MainActivity extends Activity {
                     });
             latch.await();
             Log.d(TAG, "scheduleTraining:odpManager.execute wait success");
+        } catch (NoClassDefFoundError err) {
+            Log.e(TAG, "NoClassDefFound", err);
         } catch (Exception e) {
             Log.e(TAG, "Error", e);
         }
@@ -298,6 +301,8 @@ public class MainActivity extends Activity {
                     });
             latch.await();
             Log.d(TAG, "cancelTraining:odpManager.execute wait success");
+        } catch (NoClassDefFoundError err) {
+            Log.e(TAG, "NoClassDefFound", err);
         } catch (Exception e) {
             Log.e(TAG, "Error", e);
         }
@@ -339,6 +344,8 @@ public class MainActivity extends Activity {
                     });
             latch.await();
             Log.d(TAG, "reportConversion:odpManager.execute wait success");
+        } catch (NoClassDefFoundError err) {
+            Log.e(TAG, "NoClassDefFound", err);
         } catch (Exception e) {
             Log.e(TAG, "Error", e);
         }
@@ -402,18 +409,16 @@ public class MainActivity extends Activity {
     }
 
     private void printApexVersion(String apexName) {
-        List<PackageInfo> installedApexInfo =
-                getPackageManager().getInstalledPackages(
-                        PackageManager.PackageInfoFlags.of(PackageManager.MATCH_APEX));
-
-        for (PackageInfo info: installedApexInfo) {
-            if (apexName.equals(info.packageName) && info.isApex) {
-                Long longVersionCode = info.getLongVersionCode();
-                Log.i(TAG, "apexName: " + apexName + ", longVersionCode: " + longVersionCode);
-                return;
+        try {
+            PackageInfo apexInfo =
+                    getPackageManager().getPackageInfo(apexName, PackageManager.MATCH_APEX);
+            if (apexInfo != null && apexInfo.isApex) {
+                Long apexVersionCode = apexInfo.getLongVersionCode();
+                Log.i(TAG, "apexName: " + apexName + ", longVersionCode: " + apexVersionCode);
             }
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e(TAG, "apex " + apexName + " not found");
         }
-        Log.e(TAG, "apex " + apexName + " not found");
     }
 
 }

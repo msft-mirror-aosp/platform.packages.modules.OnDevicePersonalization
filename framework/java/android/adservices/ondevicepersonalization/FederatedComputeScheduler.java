@@ -95,7 +95,11 @@ public class FederatedComputeScheduler {
                     });
             latch.await();
             if (err[0] != 0) {
-                throw new IllegalStateException("Internal failure occurred while scheduling job");
+                // Fail silently for now. TODO(b/346827691): update schedule/cancel API to return
+                // error status to caller.
+                sLogger.e("Internal failure occurred while scheduling job, error code %d", err[0]);
+                responseCode = Constants.STATUS_INTERNAL_ERROR;
+                return;
             }
             responseCode = Constants.STATUS_SUCCESS;
         } catch (RemoteException | InterruptedException e) {
@@ -145,7 +149,11 @@ public class FederatedComputeScheduler {
                     });
             latch.await();
             if (err[0] != 0) {
-                throw new IllegalStateException("Internal failure occurred while cancelling job");
+                sLogger.e("Internal failure occurred while cancelling job, error code %d", err[0]);
+                responseCode = Constants.STATUS_INTERNAL_ERROR;
+                // Fail silently for now. TODO(b/346827691): update schedule/cancel API to return
+                // error status to caller.
+                return;
             }
             responseCode = Constants.STATUS_SUCCESS;
         } catch (RemoteException | InterruptedException e) {
