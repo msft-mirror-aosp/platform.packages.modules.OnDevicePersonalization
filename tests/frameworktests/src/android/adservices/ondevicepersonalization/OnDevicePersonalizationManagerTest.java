@@ -29,8 +29,10 @@ import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
+import android.compat.testing.PlatformCompatChangeRule;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
@@ -47,10 +49,16 @@ import com.android.ondevicepersonalization.internal.util.ExceptionInfo;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
+import libcore.junit.util.compat.CoreCompatChangeRule.DisableCompatChanges;
+import libcore.junit.util.compat.CoreCompatChangeRule.EnableCompatChanges;
+
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -69,22 +77,22 @@ public final class OnDevicePersonalizationManagerTest {
             IOnDevicePersonalizationManagingService.Stub.asInterface(new TestService()));
     private final OnDevicePersonalizationManager mManager =
             new OnDevicePersonalizationManager(mContext, mTestBinder);
-    private boolean mLogApiStatsCalled = false;
+
+    @Rule public TestRule compatChangeRule = new PlatformCompatChangeRule();
+
+    private volatile boolean mLogApiStatsCalled = false;
 
     @Parameterized.Parameter(0)
     public boolean mIsSipFeatureEnabled;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        return Arrays.asList(
-                new Object[][] {
-                        {true}, {false}
-                }
-        );
+        return Arrays.asList(new Object[][] {{true}, {false}});
     }
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
+        MockitoAnnotations.initMocks(this);
         ShellUtils.runShellCommand(
                 "device_config put on_device_personalization "
                         + "shared_isolated_process_feature_enabled "
@@ -189,6 +197,116 @@ public final class OnDevicePersonalizationManagerTest {
     }
 
     @Test
+    @DisableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
+    public void testExecuteManifestParsingErrorOldTargetSDK() throws Exception {
+        // The manifest parsing failure gets translated back to PackageManager.NameNotFound
+        // when granular exception codes are disabled.
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        params.putInt(KEY_STATUS_CODE, Constants.STATUS_MANIFEST_PARSING_FAILED);
+        params.putString(KEY_ERROR_MESSAGE, "Failed parsing manifest");
+        var receiver = new ResultReceiver<ExecuteResult>();
+
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof PackageManager.NameNotFoundException);
+        Throwable cause = receiver.getException().getCause();
+        assertNotNull(cause);
+        assertThat(cause.getMessage(), matchesPattern(".*RuntimeException.*parsing.*"));
+        assertTrue(mLogApiStatsCalled);
+    }
+
+    @Test
+    @EnableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
+    public void testExecuteManifestParsingErrorNewTargetSDK() throws Exception {
+        // The manifest parsing failure is exposed via the corresponding ODPException
+        // when granular exception codes are enabled.
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        params.putInt(KEY_STATUS_CODE, Constants.STATUS_MANIFEST_PARSING_FAILED);
+        params.putString(KEY_ERROR_MESSAGE, "Failed parsing manifest");
+        var receiver = new ResultReceiver<ExecuteResult>();
+
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertEquals(
+                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
+                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        Throwable cause = receiver.getException().getCause();
+        assertNotNull(cause);
+        assertThat(cause.getMessage(), matchesPattern(".*RuntimeException.*parsing.*"));
+        assertTrue(mLogApiStatsCalled);
+    }
+
+    @Test
+    @DisableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
+    public void testExecuteManifestMisconfigurationErrorOldTargetSDK() throws Exception {
+        // The manifest misconfigured failure gets  translated back to Class not found
+        // when the granular exception codes are disabled.
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        params.putInt(KEY_STATUS_CODE, Constants.STATUS_MANIFEST_MISCONFIGURED);
+        params.putString(KEY_ERROR_MESSAGE, "Failed parsing manifest");
+        var receiver = new ResultReceiver<ExecuteResult>();
+
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof ClassNotFoundException);
+        Throwable cause = receiver.getException().getCause();
+        assertNotNull(cause);
+        assertThat(cause.getMessage(), matchesPattern(".*RuntimeException.*parsing.*"));
+        assertTrue(mLogApiStatsCalled);
+    }
+
+    @Test
+    @EnableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
+    public void testExecuteManifestMisconfigurationErrorNewTargetSDK() throws Exception {
+        // The manifest misconfigured failure gets exposed via corresponding OdpException
+        // when the granular error codes are enabled.
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        params.putInt(KEY_STATUS_CODE, Constants.STATUS_MANIFEST_MISCONFIGURED);
+        params.putString(KEY_ERROR_MESSAGE, "Failed parsing manifest");
+        var receiver = new ResultReceiver<ExecuteResult>();
+
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertEquals(
+                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
+                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        Throwable cause = receiver.getException().getCause();
+        assertNotNull(cause);
+        assertThat(cause.getMessage(), matchesPattern(".*RuntimeException.*parsing.*"));
+        assertTrue(mLogApiStatsCalled);
+    }
+
+    @Test
     public void testExecuteCatchesIaeFromService() throws Exception {
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "iae");
@@ -236,7 +354,7 @@ public final class OnDevicePersonalizationManagerTest {
         assertTrue(mLogApiStatsCalled);
     }
 
-    class TestService extends IOnDevicePersonalizationManagingService.Stub {
+    private class TestService extends IOnDevicePersonalizationManagingService.Stub {
         @Override
         public String getVersion() {
             return "1.0";
@@ -329,7 +447,7 @@ public final class OnDevicePersonalizationManagerTest {
         }
     }
 
-    class TestServiceBinder
+    private static class TestServiceBinder
             extends AbstractServiceBinder<IOnDevicePersonalizationManagingService> {
         private final IOnDevicePersonalizationManagingService mService;
         TestServiceBinder(IOnDevicePersonalizationManagingService service) {
