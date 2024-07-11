@@ -19,8 +19,8 @@ package com.android.ondevicepersonalization.services.serviceflow;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
@@ -79,12 +79,12 @@ public class AppRequestFlowTest {
     private final OnDevicePersonalizationDbHelper mDbHelper =
             OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
 
-    private boolean mCallbackSuccess;
-    private boolean mCallbackError;
-    private int mCallbackErrorCode;
+    private volatile boolean mCallbackSuccess;
+    private volatile boolean mCallbackError;
+    private volatile int mCallbackErrorCode;
     private int mIsolatedServiceErrorCode;
     private byte[] mSerializedException;
-    private Bundle mExecuteCallback;
+    private volatile Bundle mExecuteCallback;
     private ServiceFlowOrchestrator mSfo;
 
     @Mock
@@ -121,6 +121,41 @@ public class AppRequestFlowTest {
         mDbHelper.getWritableDatabase().close();
         mDbHelper.getReadableDatabase().close();
         mDbHelper.close();
+    }
+
+    @Test
+    public void testAppRequestFlow_InvalidService_ErrorManifestMisconfigured()
+            throws InterruptedException {
+        mSfo.schedule(
+                ServiceFlowType.APP_REQUEST_FLOW,
+                mContext.getPackageName(),
+                new ComponentName(mContext.getPackageName(), "com.test.BadService"),
+                createWrappedAppParams(),
+                new TestExecuteCallback(),
+                mContext,
+                100L,
+                110L);
+
+        mLatch.await();
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_MANIFEST_MISCONFIGURED, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testAppRequestFlow_InvalidPackage_ErrorParsingFailed() throws InterruptedException {
+        mSfo.schedule(
+                ServiceFlowType.APP_REQUEST_FLOW,
+                mContext.getPackageName(),
+                new ComponentName("backPackageName", "com.test.TestPersonalizationService"),
+                createWrappedAppParams(),
+                new TestExecuteCallback(),
+                mContext,
+                100L,
+                110L);
+
+        mLatch.await();
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_MANIFEST_PARSING_FAILED, mCallbackErrorCode);
     }
 
     @Test
@@ -227,7 +262,7 @@ public class AppRequestFlowTest {
         );
     }
 
-    private Bundle createWrappedAppParams() {
+    private static Bundle createWrappedAppParams() {
         try {
             Bundle wrappedParams = new Bundle();
             ByteArrayParceledSlice buffer = new ByteArrayParceledSlice(

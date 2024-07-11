@@ -180,18 +180,21 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                             mContext, mService.getPackageName()));
         } catch (Exception e) {
             sLogger.d(TAG + ": Failed to read manifest.", e);
-            sendErrorResult(Constants.STATUS_NAME_NOT_FOUND, 0, e);
+            sendErrorResult(
+                    Constants.STATUS_MANIFEST_PARSING_FAILED, /* isolatedServiceErrorCode= */ 0, e);
             return false;
         }
 
         if (!mService.getClassName().equals(config.getServiceName())) {
             sLogger.d(TAG + ": service class not found");
             sendErrorResult(
-                    Constants.STATUS_CLASS_NOT_FOUND,
-                    0,
+                    Constants.STATUS_MANIFEST_MISCONFIGURED,
+                    /* isolatedServiceErrorCode= */ 0,
                     new ClassNotFoundException(
-                            "Expected: " + mService.getClassName()
-                            + " Found: " + config.getServiceName()));
+                            "Expected: "
+                                    + mService.getClassName()
+                                    + " Found: "
+                                    + config.getServiceName()));
             return false;
         }
 

@@ -33,6 +33,12 @@ public class Constants {
     public static final int STATUS_PERSONALIZATION_DISABLED = 104;
     public static final int STATUS_KEY_NOT_FOUND = 105;
 
+    /** Internal error code that tracks failure to read ODP manifest settings. */
+    public static final int STATUS_MANIFEST_PARSING_FAILED = 106;
+
+    /** Internal error code that tracks misconfigured ODP manifest settings. */
+    public static final int STATUS_MANIFEST_MISCONFIGURED = 107;
+
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
     public static final int OP_DOWNLOAD = 2;

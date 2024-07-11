@@ -34,12 +34,11 @@ public final class AppManifestConfigHelper {
     /**
      * Determines if the given package's manifest contains ODP settings
      *
-     * @param context     the context of the API call.
+     * @param context the context of the API call.
      * @param packageName the packageName of the package whose manifest config will be read
      * @return true if the ODP setting exists, false otherwise
      */
-    public static Boolean manifestContainsOdpSettings(Context context,
-            String packageName) {
+    public static boolean manifestContainsOdpSettings(Context context, String packageName) {
         PackageManager pm = context.getPackageManager();
         try {
             pm.getProperty(ON_DEVICE_PERSONALIZATION_CONFIG_PROPERTY, packageName);
@@ -49,9 +48,14 @@ public final class AppManifestConfigHelper {
         return true;
     }
 
+    /**
+     * Returns the ODP manifest config for a package.
+     *
+     * <p>Throws a {@link RuntimeException} if the package, its ODP settings are not found or cannot
+     * be parsed.
+     */
     /** Returns the ODP manifest config for a package. */
-    public static AppManifestConfig getAppManifestConfig(Context context,
-            String packageName) {
+    public static AppManifestConfig getAppManifestConfig(Context context, String packageName) {
         if (!manifestContainsOdpSettings(context, packageName)) {
             // TODO(b/241941021) Determine correct exception to throw
             throw new IllegalArgumentException(

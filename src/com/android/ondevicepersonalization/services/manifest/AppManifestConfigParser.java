@@ -26,7 +26,7 @@ import org.xmlpull.v1.XmlPullParserException;
 import java.io.IOException;
 
 /** Parser and validator for OnDevicePersonalization app manifest configs. */
-public class AppManifestConfigParser {
+class AppManifestConfigParser {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "AppManifestConfigParser";
     private static final String TAG_ON_DEVICE_PERSONALIZATION_CONFIG = "on-device-personalization";
@@ -45,8 +45,8 @@ public class AppManifestConfigParser {
      *
      * @param parser the XmlParser representing the OnDevicePersonalization app manifest config
      */
-    public static AppManifestConfig getConfig(XmlPullParser parser) throws IOException,
-            XmlPullParserException {
+    static AppManifestConfig getConfig(XmlPullParser parser)
+            throws IOException, XmlPullParserException {
         String downloadUrl = null;
         String serviceName = null;
         String fcServerUrl = null;

@@ -15,6 +15,8 @@
  */
 package com.android.ondevicepersonalization.cts.e2e;
 
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -26,6 +28,7 @@ import android.adservices.ondevicepersonalization.OnDevicePersonalizationExcepti
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
 import android.adservices.ondevicepersonalization.SurfacePackageToken;
+import android.compat.testing.PlatformCompatChangeRule;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -40,10 +43,14 @@ import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServic
 import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
 import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
+import libcore.junit.util.compat.CoreCompatChangeRule.DisableCompatChanges;
+
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -68,6 +75,8 @@ public class CtsOdpManagerTests {
 
     @Parameterized.Parameter(0)
     public boolean mIsSipFeatureEnabled;
+
+    @Rule public TestRule compatChangeRule = new PlatformCompatChangeRule();
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -228,6 +237,7 @@ public class CtsOdpManagerTests {
     }
 
     @Test
+    @DisableCompatChanges({GRANULAR_EXCEPTION_ERROR_CODES})
     public void testExecuteReturnsNameNotFoundIfServiceNotInstalled() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -243,6 +253,7 @@ public class CtsOdpManagerTests {
     }
 
     @Test
+    @DisableCompatChanges({GRANULAR_EXCEPTION_ERROR_CODES})
     public void testExecuteReturnsClassNotFoundIfServiceClassNotFound()
             throws InterruptedException {
         OnDevicePersonalizationManager manager =
