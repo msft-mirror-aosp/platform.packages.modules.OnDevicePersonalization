@@ -44,6 +44,7 @@ import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
 import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
 import libcore.junit.util.compat.CoreCompatChangeRule.DisableCompatChanges;
+import libcore.junit.util.compat.CoreCompatChangeRule.EnableCompatChanges;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -253,6 +254,26 @@ public class CtsOdpManagerTests {
     }
 
     @Test
+    @EnableCompatChanges({GRANULAR_EXCEPTION_ERROR_CODES})
+    public void testExecuteReturnsOdpExceptionIfServiceNotInstalledGranularErrorCodesEnabled()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        manager.execute(
+                new ComponentName("com.example.odptargetingapp2", "someclass"),
+                PersistableBundle.EMPTY,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertNull(receiver.getResult());
+        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertEquals(
+                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
+                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+    }
+
+    @Test
     @DisableCompatChanges({GRANULAR_EXCEPTION_ERROR_CODES})
     public void testExecuteReturnsClassNotFoundIfServiceClassNotFound()
             throws InterruptedException {
@@ -267,6 +288,26 @@ public class CtsOdpManagerTests {
                 receiver);
         assertNull(receiver.getResult());
         assertTrue(receiver.getException() instanceof ClassNotFoundException);
+    }
+
+    @Test
+    @EnableCompatChanges({GRANULAR_EXCEPTION_ERROR_CODES})
+    public void testExecuteReturnsOdpExceptionIfServiceClassNotFoundGranularErrorCodesEnabled()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, "someclass"),
+                PersistableBundle.EMPTY,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertNull(receiver.getResult());
+        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertEquals(
+                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
+                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
     }
 
     @Test
