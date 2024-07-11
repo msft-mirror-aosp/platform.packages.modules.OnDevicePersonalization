@@ -42,6 +42,7 @@ android_test {
         "ondevicepersonalization-testing-utils",
         "truth",
         "compatibility-device-util-axt",
+        "platform-compat-test-rules",
     ],
     libs: [
         "android.test.runner.stubs",
