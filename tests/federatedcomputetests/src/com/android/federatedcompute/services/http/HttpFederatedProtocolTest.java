@@ -37,7 +37,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -286,10 +285,10 @@ public final class HttpFederatedProtocolTest {
         NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
         assertTrue(networkStats.getDataTransferDurationInMillis() > 0);
         if (mSupportCompression) {
-            assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(248);
+            assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(213);
             assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(124);
         } else {
-            assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(125);
+            assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(110);
             assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(78);
         }
     }
@@ -1106,7 +1105,7 @@ public final class HttpFederatedProtocolTest {
                         })
                 .when(mMockHttpClient)
                 .performRequestIntoFileAsyncWithRetry(
-                        mHttpRequestCaptor.capture(), anyInt());
+                        mHttpRequestCaptor.capture());
     }
 
     private HashMap<String, List<String>> compressionHeaderList() {
