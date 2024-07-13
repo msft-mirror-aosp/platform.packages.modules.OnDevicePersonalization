@@ -16,10 +16,13 @@
 
 package com.android.ondevicepersonalization.cts.e2e;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import android.adservices.ondevicepersonalization.AppInfo;
 import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
 import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventOutput;
@@ -299,5 +302,14 @@ public class DataClassesTest {
     @Test
     public void testIsolatedServiceException() {
         assertEquals(42, new IsolatedServiceException(42).getErrorCode());
+    }
+
+    @Test
+    public void testAppInfo() {
+        AppInfo appInfo = new AppInfo.Builder().setInstalled(true).build();
+        assertThat(appInfo.isInstalled()).isTrue();
+
+        appInfo = new AppInfo.Builder().setInstalled(false).build();
+        assertThat(appInfo.isInstalled()).isFalse();
     }
 }
