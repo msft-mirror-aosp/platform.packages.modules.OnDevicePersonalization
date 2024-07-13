@@ -65,6 +65,16 @@ public class FileUtils {
         out.close();
     }
 
+    /** Write the provided data to the file. */
+    public static long writeToFile(String fileName, InputStream inputStream) throws IOException {
+        FileOutputStream out = new FileOutputStream(fileName);
+        try {
+            return inputStream.transferTo(out);
+        } finally {
+            out.close();
+        }
+    }
+
     /** Read the input file content to a byte array. */
     public static byte[] readFileAsByteArray(String filePath) throws IOException {
         File file = new File(filePath);
