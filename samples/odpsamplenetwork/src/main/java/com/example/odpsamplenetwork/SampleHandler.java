@@ -596,7 +596,7 @@ public class SampleHandler implements IsolatedWorker {
             String content =
                     "<img src=\""
                             + impressionUrl
-                            + "\">\n"
+                            + "\" alt=\"\">\n"
                             + "<a href=\""
                             + clickUrl
                             + "\">"
