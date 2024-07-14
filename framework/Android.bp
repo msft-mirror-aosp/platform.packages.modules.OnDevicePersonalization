@@ -50,6 +50,7 @@ java_sdk_library {
         ":framework-ondevicepersonalization-sources",
     ],
     libs: [
+        "app-compat-annotations",
         "modules-utils-preconditions",
         "framework-connectivity.stubs.module_lib",
         "ondevicepersonalization_flags_lib",
@@ -104,4 +105,9 @@ java_defaults {
     libs: [
         "framework-ondevicepersonalization.impl",
     ],
+}
+
+platform_compat_config {
+    name: "ondevicepersonalization-compat-config",
+    src: ":framework-ondevicepersonalization",
 }
