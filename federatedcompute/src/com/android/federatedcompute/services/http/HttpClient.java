@@ -17,6 +17,8 @@
 package com.android.federatedcompute.services.http;
 
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBlockingExecutor;
+import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
+import static com.android.federatedcompute.services.common.FileUtils.writeToFile;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
 
 import android.annotation.NonNull;
@@ -40,12 +42,19 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.GZIPInputStream;
 
 /**
  * The HTTP client to be used by the FederatedCompute to communicate with remote federated servers.
  */
 public class HttpClient {
+
+    interface HttpIOSupplier<T> {
+        T get() throws IOException; // Declares to throw IOException
+    }
+
     private static final String TAG = HttpClient.class.getSimpleName();
     private static final int NETWORK_CONNECT_TIMEOUT_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final int NETWORK_READ_TIMEOUT_MS = (int) TimeUnit.SECONDS.toMillis(30);
@@ -72,8 +81,29 @@ public class HttpClient {
     @NonNull
     public ListenableFuture<FederatedComputeHttpResponse> performRequestAsyncWithRetry(
             FederatedComputeHttpRequest request) {
+        return performCallableAsync(() -> performRequestWithRetry(() -> performRequest(request)));
+    }
+
+    /**
+     * Perform HTTP requests based on given information asynchronously with retries in case http
+     * will return not OK response code. Payload will be saved directly into the file.
+     */
+    @NonNull
+    public ListenableFuture<FederatedComputeHttpResponse> performRequestIntoFileAsyncWithRetry(
+            FederatedComputeHttpRequest request, int fileSizeLimit) {
+        return performCallableAsync(
+                () -> performRequestWithRetry(() -> performRequest(request, true, fileSizeLimit)));
+    }
+
+    /**
+     * Perform HTTP requests based on given information asynchronously with retries in case http
+     * will return not OK response code.
+     */
+    @NonNull
+    public ListenableFuture<FederatedComputeHttpResponse> performCallableAsync(
+            Callable<FederatedComputeHttpResponse> callable) {
         try {
-            return getBlockingExecutor().submit(() -> performRequestWithRetry(request));
+            return getBlockingExecutor().submit(callable);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
@@ -82,13 +112,13 @@ public class HttpClient {
     /** Perform HTTP requests based on given information with retries. */
     @NonNull
     @VisibleForTesting
-    FederatedComputeHttpResponse performRequestWithRetry(FederatedComputeHttpRequest request)
-            throws IOException {
+    FederatedComputeHttpResponse performRequestWithRetry(
+            HttpIOSupplier<FederatedComputeHttpResponse> supplier) throws IOException {
         FederatedComputeHttpResponse response = null;
         int retryLimit = mFlags.getHttpRequestRetryLimit();
         while (retryLimit > 0) {
             try {
-                response = performRequest(request);
+                response = supplier.get();
                 if (HTTP_OK_STATUS.contains(response.getStatusCode())) {
                     return response;
                 }
@@ -109,6 +139,16 @@ public class HttpClient {
     @NonNull
     @VisibleForTesting
     FederatedComputeHttpResponse performRequest(FederatedComputeHttpRequest request)
+            throws IOException {
+        return performRequest(request, false, 0);
+    }
+
+    /** Perform HTTP requests based on given information. */
+    @NonNull
+    @VisibleForTesting
+    FederatedComputeHttpResponse performRequest(FederatedComputeHttpRequest request,
+            boolean savePayloadIntoFile,
+            int fileSizeLimit)
             throws IOException {
         if (request.getUri() == null || request.getHttpMethod() == null) {
             LogUtil.e(TAG, "Endpoint or http method is empty");
@@ -151,14 +191,25 @@ public class HttpClient {
 
             int responseCode = urlConnection.getResponseCode();
             if (HTTP_OK_STATUS.contains(responseCode)) {
-                return new FederatedComputeHttpResponse.Builder()
-                        .setPayload(
-                                getByteArray(
-                                        urlConnection.getInputStream(),
-                                        urlConnection.getContentLengthLong()))
-                        .setHeaders(urlConnection.getHeaderFields())
-                        .setStatusCode(responseCode)
-                        .build();
+                FederatedComputeHttpResponse.Builder builder =
+                        new FederatedComputeHttpResponse.Builder()
+                                .setHeaders(urlConnection.getHeaderFields())
+                                .setStatusCode(responseCode);
+                if (savePayloadIntoFile) {
+                    boolean isCompressed = builder.isResponseCompressed();
+                    builder.setPayloadFileName(
+                            saveIntoFile(
+                                    urlConnection.getInputStream(),
+                                    urlConnection.getContentLengthLong(),
+                                    isCompressed,
+                                    fileSizeLimit));
+                } else {
+                    builder.setPayload(
+                            getByteArray(
+                                    urlConnection.getInputStream(),
+                                    urlConnection.getContentLengthLong()));
+                }
+                return builder.build();
             } else {
                 return new FederatedComputeHttpResponse.Builder()
                         .setPayload(
@@ -176,6 +227,37 @@ public class HttpClient {
             if (urlConnection != null) {
                 urlConnection.disconnect();
             }
+        }
+    }
+
+    private static String saveIntoFile(
+            @Nullable InputStream in, long contentLength, boolean isCompressed, int fileSizeLimit)
+            throws IOException {
+        if (contentLength == 0) {
+            return null;
+        }
+
+        InputStream inputStream = in;
+        try {
+            // Process download checkpoint resource.
+            String inputCheckpointFile = createTempFile("input", ".ckp");
+            if (isCompressed) {
+                inputStream = new GZIPInputStream(inputStream);
+            }
+
+            long fileSize = writeToFile(inputCheckpointFile, inputStream);
+            LogUtil.d(TAG, "CheckPoint data file size: %d", fileSize);
+            if (fileSizeLimit > 0 && fileSize > fileSizeLimit) {
+                LogUtil.e(
+                        TAG,
+                        "Downloaded file is too large: %d, which more than a limit: %d",
+                        fileSize,
+                        fileSizeLimit);
+                return null;
+            }
+            return inputCheckpointFile;
+        } finally {
+            inputStream.close();
         }
     }
 
