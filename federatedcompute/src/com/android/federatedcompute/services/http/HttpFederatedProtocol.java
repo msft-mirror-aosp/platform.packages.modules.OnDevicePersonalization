@@ -20,9 +20,7 @@ import static com.android.federatedcompute.services.common.Constants.TRACE_HTTP_
 import static com.android.federatedcompute.services.common.Constants.TRACE_HTTP_REPORT_RESULT;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBackgroundExecutor;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getLightweightExecutor;
-import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
 import static com.android.federatedcompute.services.common.FileUtils.readFileAsByteArray;
-import static com.android.federatedcompute.services.common.FileUtils.writeToFile;
 import static com.android.federatedcompute.services.common.TrainingEventLogger.getTaskIdForLogging;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.FCP_OWNER_ID_DIGEST;
@@ -145,7 +143,11 @@ public final class HttpFederatedProtocol {
         ListenableFuture<FederatedComputeHttpResponse> planDataResponseFuture =
                 fetchTaskResource(taskAssignment.getPlan(), networkStats);
         ListenableFuture<FederatedComputeHttpResponse> checkpointDataResponseFuture =
-                fetchTaskResource(taskAssignment.getInitCheckpoint(), networkStats);
+                fetchTaskResource(
+                        taskAssignment.getInitCheckpoint(),
+                        networkStats,
+                        true,
+                        FlagsFactory.getFlags().getFcpCheckpointFileSizeLimit());
         return Futures.whenAllSucceed(planDataResponseFuture, checkpointDataResponseFuture)
                 .call(
                         new Callable<CheckinResult>() {
@@ -366,29 +368,16 @@ public final class HttpFederatedProtocol {
             mTrainingEventLogger.logCheckinInvalidPayload(networkStats);
             throw new IllegalStateException("Could not parse ClientOnlyPlan proto", e);
         }
-
-        // Process download checkpoint resource.
-        String inputCheckpointFile = createTempFile("input", ".ckp");
-        byte[] checkpointData = checkpointDataResponse.getPayload();
-        if (taskAssignment.getInitCheckpoint().getCompressionFormat()
-                        == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP
-                || checkpointDataResponse.isResponseCompressed()) {
-            checkpointData = uncompressWithGzip(checkpointData);
-        }
-        if (checkpointData.length > FlagsFactory.getFlags().getFcpCheckpointFileSizeLimit()) {
-            LogUtil.e(
-                    TAG,
-                    "CheckPoint data is too large: %d, which more than a limit: %d",
-                    checkpointData.length,
-                    FlagsFactory.getFlags().getFcpCheckpointFileSizeLimit());
+        if (checkpointDataResponse.getPayloadFileName() == null) {
             Trace.endAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
             mTrainingEventLogger.logCheckinInvalidPayload(networkStats);
             return null;
         }
-        writeToFile(inputCheckpointFile, checkpointData);
+
         mTrainingEventLogger.logCheckinFinished(networkStats);
         Trace.endAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
-        return new CheckinResult(inputCheckpointFile, clientOnlyPlan, taskAssignment);
+        return new CheckinResult(
+                checkpointDataResponse.getPayloadFileName(), clientOnlyPlan, taskAssignment);
     }
 
     private ListenableFuture<FederatedComputeHttpResponse> performReportResult(
@@ -535,13 +524,22 @@ public final class HttpFederatedProtocol {
 
     private ListenableFuture<FederatedComputeHttpResponse> fetchTaskResource(
             Resource resource, NetworkStats networkStats) {
+        return fetchTaskResource(resource, networkStats, false, 0);
+    }
+
+    private ListenableFuture<FederatedComputeHttpResponse> fetchTaskResource(
+            Resource resource,
+            NetworkStats networkStats,
+            boolean payloadIntoFileEnabled,
+            int fileSizeLimit) {
         switch (resource.getResourceCase()) {
             case URI:
                 Preconditions.checkArgument(
                         !resource.getUri().isEmpty(), "Resource.uri must be non-empty when set");
                 HashMap<String, String> headerList = new HashMap<>();
-                if (resource.getCompressionFormat()
-                        == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP) {
+                boolean gZipCompressionEnabled = resource.getCompressionFormat()
+                        == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP;
+                if (gZipCompressionEnabled) {
                     // Set this header to disable decompressive transcoding when download from
                     // Google Cloud Storage.
                     // https://cloud.google.com/storage/docs/transcoding#decompressive_transcoding
@@ -555,6 +553,10 @@ public final class HttpFederatedProtocol {
                                 headerList,
                                 HttpClientUtil.EMPTY_BODY);
                 networkStats.addBytesUploaded(getTotalSentBytes(httpRequest));
+                if (payloadIntoFileEnabled) {
+                    return mHttpClient.performRequestIntoFileAsyncWithRetry(
+                            httpRequest, fileSizeLimit);
+                }
                 return mHttpClient.performRequestAsyncWithRetry(httpRequest);
             case INLINE_RESOURCE:
                 return Futures.immediateFailedFuture(
