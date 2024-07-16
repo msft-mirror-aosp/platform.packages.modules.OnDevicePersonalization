@@ -25,7 +25,6 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -156,8 +155,7 @@ public final class HttpClientUtil {
             if (response.getPayload() != null) {
                 totalBytes += response.getPayload().length;
             } else if (response.getPayloadFileName() != null) {
-                File f = new File(response.getPayloadFileName());
-                totalBytes += f.length();
+                totalBytes += response.getDownloadedPayloadSize();
             }
         }
         return totalBytes;

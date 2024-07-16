@@ -20,7 +20,9 @@ import static com.android.federatedcompute.services.common.Constants.TRACE_HTTP_
 import static com.android.federatedcompute.services.common.Constants.TRACE_HTTP_REPORT_RESULT;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBackgroundExecutor;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getLightweightExecutor;
+import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
 import static com.android.federatedcompute.services.common.FileUtils.readFileAsByteArray;
+import static com.android.federatedcompute.services.common.FileUtils.writeToFile;
 import static com.android.federatedcompute.services.common.TrainingEventLogger.getTaskIdForLogging;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.FCP_OWNER_ID_DIGEST;
@@ -70,10 +72,12 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.json.JSONObject;
 
+import java.io.FileInputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.zip.GZIPInputStream;
 
 /** Implements a single session of HTTP-based federated compute protocol. */
 public final class HttpFederatedProtocol {
@@ -143,11 +147,7 @@ public final class HttpFederatedProtocol {
         ListenableFuture<FederatedComputeHttpResponse> planDataResponseFuture =
                 fetchTaskResource(taskAssignment.getPlan(), networkStats);
         ListenableFuture<FederatedComputeHttpResponse> checkpointDataResponseFuture =
-                fetchTaskResource(
-                        taskAssignment.getInitCheckpoint(),
-                        networkStats,
-                        true,
-                        FlagsFactory.getFlags().getFcpCheckpointFileSizeLimit());
+                fetchTaskResource(taskAssignment.getInitCheckpoint(), networkStats, true);
         return Futures.whenAllSucceed(planDataResponseFuture, checkpointDataResponseFuture)
                 .call(
                         new Callable<CheckinResult>() {
@@ -374,10 +374,32 @@ public final class HttpFederatedProtocol {
             return null;
         }
 
+        // Process downloaded checkpoint resource.
+        String payloadFileName = checkpointDataResponse.getPayloadFileName();
+        long checkpointFileSize = checkpointDataResponse.getDownloadedPayloadSize();
+        if (checkpointDataResponse.isResponseCompressed()) {
+            String checkpointFile = createTempFile("input", ".ckp");
+            checkpointFileSize =
+                    writeToFile(
+                            checkpointFile,
+                            new GZIPInputStream(new FileInputStream(payloadFileName)));
+            LogUtil.d(TAG, "Uncompressed checkpoint data file size: %d", checkpointFileSize);
+            payloadFileName = checkpointFile;
+        }
+        if (checkpointFileSize > FlagsFactory.getFlags().getFcpCheckpointFileSizeLimit()) {
+            LogUtil.e(
+                    TAG,
+                    "CheckPoint data is too large: %d, which more than a limit: %d",
+                    checkpointFileSize,
+                    FlagsFactory.getFlags().getFcpCheckpointFileSizeLimit());
+            Trace.endAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
+            mTrainingEventLogger.logCheckinInvalidPayload(networkStats);
+            return null;
+        }
+
         mTrainingEventLogger.logCheckinFinished(networkStats);
         Trace.endAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
-        return new CheckinResult(
-                checkpointDataResponse.getPayloadFileName(), clientOnlyPlan, taskAssignment);
+        return new CheckinResult(payloadFileName, clientOnlyPlan, taskAssignment);
     }
 
     private ListenableFuture<FederatedComputeHttpResponse> performReportResult(
@@ -524,14 +546,13 @@ public final class HttpFederatedProtocol {
 
     private ListenableFuture<FederatedComputeHttpResponse> fetchTaskResource(
             Resource resource, NetworkStats networkStats) {
-        return fetchTaskResource(resource, networkStats, false, 0);
+        return fetchTaskResource(resource, networkStats, false);
     }
 
     private ListenableFuture<FederatedComputeHttpResponse> fetchTaskResource(
             Resource resource,
             NetworkStats networkStats,
-            boolean payloadIntoFileEnabled,
-            int fileSizeLimit) {
+            boolean payloadIntoFileEnabled) {
         switch (resource.getResourceCase()) {
             case URI:
                 Preconditions.checkArgument(
@@ -554,8 +575,7 @@ public final class HttpFederatedProtocol {
                                 HttpClientUtil.EMPTY_BODY);
                 networkStats.addBytesUploaded(getTotalSentBytes(httpRequest));
                 if (payloadIntoFileEnabled) {
-                    return mHttpClient.performRequestIntoFileAsyncWithRetry(
-                            httpRequest, fileSizeLimit);
+                    return mHttpClient.performRequestIntoFileAsyncWithRetry(httpRequest);
                 }
                 return mHttpClient.performRequestAsyncWithRetry(httpRequest);
             case INLINE_RESOURCE:

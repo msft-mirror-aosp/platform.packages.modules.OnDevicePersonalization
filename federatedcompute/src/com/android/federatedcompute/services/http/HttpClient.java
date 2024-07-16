@@ -44,7 +44,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-import java.util.zip.GZIPInputStream;
 
 /**
  * The HTTP client to be used by the FederatedCompute to communicate with remote federated servers.
@@ -90,9 +89,9 @@ public class HttpClient {
      */
     @NonNull
     public ListenableFuture<FederatedComputeHttpResponse> performRequestIntoFileAsyncWithRetry(
-            FederatedComputeHttpRequest request, int fileSizeLimit) {
+            FederatedComputeHttpRequest request) {
         return performCallableAsync(
-                () -> performRequestWithRetry(() -> performRequest(request, true, fileSizeLimit)));
+                () -> performRequestWithRetry(() -> performRequest(request, true)));
     }
 
     /**
@@ -140,15 +139,14 @@ public class HttpClient {
     @VisibleForTesting
     FederatedComputeHttpResponse performRequest(FederatedComputeHttpRequest request)
             throws IOException {
-        return performRequest(request, false, 0);
+        return performRequest(request, false);
     }
 
     /** Perform HTTP requests based on given information. */
     @NonNull
     @VisibleForTesting
     FederatedComputeHttpResponse performRequest(FederatedComputeHttpRequest request,
-            boolean savePayloadIntoFile,
-            int fileSizeLimit)
+            boolean savePayloadIntoFile)
             throws IOException {
         if (request.getUri() == null || request.getHttpMethod() == null) {
             LogUtil.e(TAG, "Endpoint or http method is empty");
@@ -196,13 +194,16 @@ public class HttpClient {
                                 .setHeaders(urlConnection.getHeaderFields())
                                 .setStatusCode(responseCode);
                 if (savePayloadIntoFile) {
-                    boolean isCompressed = builder.isResponseCompressed();
-                    builder.setPayloadFileName(
+                    String inputFile = createTempFile("input", ".tmp");
+                    long downloadedSize =
                             saveIntoFile(
+                                    inputFile,
                                     urlConnection.getInputStream(),
-                                    urlConnection.getContentLengthLong(),
-                                    isCompressed,
-                                    fileSizeLimit));
+                                    urlConnection.getContentLengthLong());
+                    if (downloadedSize != 0) {
+                        builder.setPayloadFileName(inputFile);
+                        builder.setDownloadedPayloadSize(downloadedSize);
+                    }
                 } else {
                     builder.setPayload(
                             getByteArray(
@@ -230,34 +231,17 @@ public class HttpClient {
         }
     }
 
-    private static String saveIntoFile(
-            @Nullable InputStream in, long contentLength, boolean isCompressed, int fileSizeLimit)
+    private static long saveIntoFile(String fileName,
+            @Nullable InputStream in, long contentLength)
             throws IOException {
         if (contentLength == 0) {
-            return null;
+            return 0;
         }
-
-        InputStream inputStream = in;
-        try {
-            // Process download checkpoint resource.
-            String inputCheckpointFile = createTempFile("input", ".ckp");
-            if (isCompressed) {
-                inputStream = new GZIPInputStream(inputStream);
-            }
-
-            long fileSize = writeToFile(inputCheckpointFile, inputStream);
-            LogUtil.d(TAG, "CheckPoint data file size: %d", fileSize);
-            if (fileSizeLimit > 0 && fileSize > fileSizeLimit) {
-                LogUtil.e(
-                        TAG,
-                        "Downloaded file is too large: %d, which more than a limit: %d",
-                        fileSize,
-                        fileSizeLimit);
-                return null;
-            }
-            return inputCheckpointFile;
-        } finally {
-            inputStream.close();
+        try (in) {
+            // Process download resource.
+            long downloadedSize = writeToFile(fileName, in);
+            LogUtil.d(TAG, "Downloaded data file size: %d", downloadedSize);
+            return downloadedSize;
         }
     }
 

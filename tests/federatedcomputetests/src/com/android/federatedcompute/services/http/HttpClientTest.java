@@ -130,7 +130,7 @@ public final class HttpClientTest {
                 .thenReturn((long) successMessage.length());
 
         FederatedComputeHttpResponse response =
-                mHttpClient.performRequest(DEFAULT_GET_REQUEST, true, 50000);
+                mHttpClient.performRequest(DEFAULT_GET_REQUEST, true);
 
         assertThat(response.getStatusCode()).isEqualTo(200);
         assertThat(response.getHeaders()).isEqualTo(mockHeaders);
@@ -140,27 +140,6 @@ public final class HttpClientTest {
                 .isEqualTo(successMessage.getBytes(UTF_8));
     }
 
-    @Test
-    public void testPerformGetRequestPayloadIntoFileFailSizeLimit() throws Exception {
-        String successMessage = "Success!";
-        InputStream mockStream = new ByteArrayInputStream(successMessage.getBytes(UTF_8));
-        Map<String, List<String>> mockHeaders = new HashMap<>();
-        mockHeaders.put("Header1", Arrays.asList("Value1"));
-        when(mMockHttpURLConnection.getInputStream()).thenReturn(mockStream);
-        when(mMockHttpURLConnection.getResponseCode()).thenReturn(200);
-        when(mMockHttpURLConnection.getHeaderFields()).thenReturn(mockHeaders);
-        doReturn(mMockHttpURLConnection).when(mHttpClient).setup(ArgumentMatchers.any());
-        when(mMockHttpURLConnection.getContentLengthLong())
-                .thenReturn((long) successMessage.length());
-
-        FederatedComputeHttpResponse response =
-                mHttpClient.performRequest(DEFAULT_GET_REQUEST, true, 1);
-
-        assertThat(response.getStatusCode()).isEqualTo(200);
-        assertThat(response.getHeaders()).isEqualTo(mockHeaders);
-        assertThat(response.getPayload()).isEqualTo(null);
-        assertThat(response.getPayloadFileName()).isNull();
-    }
 
     @Test
     public void testPerformGetRequestFails() throws Exception {

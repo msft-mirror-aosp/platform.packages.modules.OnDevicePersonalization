@@ -32,6 +32,7 @@ public class FederatedComputeHttpResponse {
     private Map<String, List<String>> mHeaders = new HashMap<>();
     private byte[] mPayload;
     private String mPayloadFileName;
+    private long mDownloadedPayloadSize;
 
     private FederatedComputeHttpResponse() {}
 
@@ -52,6 +53,10 @@ public class FederatedComputeHttpResponse {
     @Nullable
     public String getPayloadFileName() {
         return mPayloadFileName;
+    }
+
+    public long getDownloadedPayloadSize() {
+        return mDownloadedPayloadSize;
     }
 
     /** Returns whether http response body is compressed with gzip. */
@@ -99,12 +104,10 @@ public class FederatedComputeHttpResponse {
             return this;
         }
 
-        /** Returns whether http response body is compressed with gzip. */
-        public boolean isResponseCompressed() {
-            if (mHttpResponse.mHeaders != null) {
-                return mHttpResponse.isResponseCompressed();
-            }
-            return false;
+        /** Set payload file name where payload is saved. */
+        public Builder setDownloadedPayloadSize(long downloadedSize) {
+            mHttpResponse.mDownloadedPayloadSize = downloadedSize;
+            return this;
         }
 
         /** Build {@link FederatedComputeHttpResponse}. */

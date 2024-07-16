@@ -83,6 +83,23 @@ public class JobSchedulerHelperTest {
                     .constraints(TRAINING_CONSTRAINTS)
                     .build();
 
+    private static final FederatedTrainingTask TRAINING_TASK_EARLY_RUN =
+            FederatedTrainingTask.builder()
+                    .appPackageName(PACKAGE_NAME)
+                    .populationName(POPULATION_NAME)
+                    .intervalOptions(INTERVAL_OPTIONS)
+                    .creationTime(CURRENT_TIME_MILLIS)
+                    .lastScheduledTime(CURRENT_TIME_MILLIS)
+                    .schedulingReason(SCHEDULING_REASON)
+                    .jobId(JOB_ID)
+                    .ownerPackageName(OWNER_PACKAGE)
+                    .ownerClassName(OWNER_CLASS)
+                    .ownerIdCertDigest(OWNER_ID_CERT_DIGEST)
+                    .serverAddress(SERVER_ADDRESS)
+                    .earliestNextRunTime(0L)
+                    .constraints(TRAINING_CONSTRAINTS)
+                    .build();
+
     private JobSchedulerHelper mJobSchedulerHelper;
     private JobScheduler mJobScheduler;
     private Context mContext;
@@ -101,6 +118,15 @@ public class JobSchedulerHelperTest {
     @Test
     public void scheduleTask() {
         assertThat(mJobSchedulerHelper.scheduleTask(mContext, TRAINING_TASK)).isTrue();
+
+        JobInfo jobInfo = Iterables.getOnlyElement(mJobScheduler.getAllPendingJobs());
+
+        verifyJobInfo(jobInfo);
+    }
+
+    @Test
+    public void scheduleTaskEarlyRun() {
+        assertThat(mJobSchedulerHelper.scheduleTask(mContext, TRAINING_TASK_EARLY_RUN)).isTrue();
 
         JobInfo jobInfo = Iterables.getOnlyElement(mJobScheduler.getAllPendingJobs());
 
