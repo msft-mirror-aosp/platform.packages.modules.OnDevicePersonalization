@@ -9,6 +9,7 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class DownloadCompletedInput {
+    ctor @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.data_class_missing_ctors_and_getters_enabled") public DownloadCompletedInput(@NonNull android.adservices.ondevicepersonalization.KeyValueStore);
     method @NonNull public android.adservices.ondevicepersonalization.KeyValueStore getDownloadedContents();
   }
 
@@ -24,6 +25,7 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class EventInput {
+    ctor @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.data_class_missing_ctors_and_getters_enabled") public EventInput(@Nullable android.adservices.ondevicepersonalization.RequestLogRecord, @NonNull android.os.PersistableBundle);
     method @NonNull public android.os.PersistableBundle getParameters();
     method @Nullable public android.adservices.ondevicepersonalization.RequestLogRecord getRequestLogRecord();
   }
@@ -64,6 +66,7 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class ExecuteInput {
+    ctor @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.data_class_missing_ctors_and_getters_enabled") public ExecuteInput(@NonNull String, @NonNull android.os.PersistableBundle);
     method @NonNull public String getAppPackageName();
     method @NonNull public android.os.PersistableBundle getAppParams();
   }
@@ -214,6 +217,7 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class RenderInput {
+    ctor @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.data_class_missing_ctors_and_getters_enabled") public RenderInput(int, int, @Nullable android.adservices.ondevicepersonalization.RenderingConfig);
     method public int getHeight();
     method @Nullable public android.adservices.ondevicepersonalization.RenderingConfig getRenderingConfig();
     method public int getWidth();
@@ -284,6 +288,7 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class TrainingExamplesInput {
+    ctor @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.data_class_missing_ctors_and_getters_enabled") public TrainingExamplesInput(@NonNull String, @NonNull String, @Nullable byte[], @Nullable String);
     method @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.fcp_model_version_enabled") @Nullable public String getCollectionName();
     method @NonNull public String getPopulationName();
     method @Nullable public byte[] getResumptionToken();
@@ -330,6 +335,7 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class WebTriggerInput {
+    ctor @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.data_class_missing_ctors_and_getters_enabled") public WebTriggerInput(@NonNull android.net.Uri, @NonNull String, @NonNull byte[]);
     method @NonNull public String getAppPackageName();
     method @NonNull public byte[] getData();
     method @NonNull public android.net.Uri getDestinationUrl();
