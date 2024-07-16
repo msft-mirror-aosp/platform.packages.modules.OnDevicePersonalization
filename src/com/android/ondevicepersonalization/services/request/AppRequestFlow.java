@@ -67,6 +67,8 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Handles a surface package request from an app or SDK.
@@ -86,9 +88,12 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     private final Context mContext;
     private final long mStartTimeMillis;
     private final long mServiceEntryTimeMillis;
+
     @NonNull
-    private IsolatedModelServiceProvider mModelServiceProvider;
-    private long mStartServiceTimeMillis;
+    private AtomicReference<IsolatedModelServiceProvider> mModelServiceProvider =
+            new AtomicReference<>(null);
+
+    private AtomicLong mStartServiceTimeMillis = new AtomicLong();
     private byte[] mSerializedAppParams;
 
     @VisibleForTesting
@@ -155,7 +160,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
 
     @Override
     public boolean isServiceFlowReady() {
-        mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
+        mStartServiceTimeMillis.set(mInjector.getClock().elapsedRealtime());
 
         try {
             ByteArrayParceledSlice paramsBuffer = Objects.requireNonNull(
@@ -164,7 +169,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             mSerializedAppParams = Objects.requireNonNull(paramsBuffer.getByteArray());
         } catch (Exception e) {
             sLogger.d(TAG + ": Failed to extract app params.", e);
-            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, e);
+            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0, e);
             return false;
         }
 
@@ -175,13 +180,21 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                             mContext, mService.getPackageName()));
         } catch (Exception e) {
             sLogger.d(TAG + ": Failed to read manifest.", e);
-            sendErrorResult(Constants.STATUS_NAME_NOT_FOUND, e);
+            sendErrorResult(
+                    Constants.STATUS_MANIFEST_PARSING_FAILED, /* isolatedServiceErrorCode= */ 0, e);
             return false;
         }
 
         if (!mService.getClassName().equals(config.getServiceName())) {
             sLogger.d(TAG + ": service class not found");
-            sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND, 0);
+            sendErrorResult(
+                    Constants.STATUS_MANIFEST_MISCONFIGURED,
+                    /* isolatedServiceErrorCode= */ 0,
+                    new ClassNotFoundException(
+                            "Expected: "
+                                    + mService.getClassName()
+                                    + " Found: "
+                                    + config.getServiceName()));
             return false;
         }
 
@@ -219,8 +232,8 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         serviceParams.putParcelable(
                 Constants.EXTRA_USER_DATA,
                 new UserDataAccessor().getUserData());
-        mModelServiceProvider = new IsolatedModelServiceProvider();
-        IIsolatedModelService modelService = mModelServiceProvider.getModelService(mContext);
+        mModelServiceProvider.set(new IsolatedModelServiceProvider());
+        IIsolatedModelService modelService = mModelServiceProvider.get().getModelService(mContext);
         serviceParams.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, modelService.asBinder());
 
         return serviceParams;
@@ -228,28 +241,31 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
 
     @Override
     public void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {
-        var unused = FluentFuture.from(runServiceFuture)
-                .transform(
-                        val -> {
-                            StatsUtils.writeServiceRequestMetrics(
-                                    Constants.API_NAME_SERVICE_ON_EXECUTE,
-                                    val, mInjector.getClock(),
-                                    Constants.STATUS_SUCCESS, mStartServiceTimeMillis);
-                            return val;
-                        },
-                        mInjector.getExecutor()
-                )
-                .catchingAsync(
-                        Exception.class,
-                        e -> {
-                            StatsUtils.writeServiceRequestMetrics(
-                                    Constants.API_NAME_SERVICE_ON_EXECUTE, /* result= */ null,
-                                    mInjector.getClock(),
-                                    Constants.STATUS_INTERNAL_ERROR, mStartServiceTimeMillis);
-                            return Futures.immediateFailedFuture(e);
-                        },
-                        mInjector.getExecutor()
-                );
+        var unused =
+                FluentFuture.from(runServiceFuture)
+                        .transform(
+                                val -> {
+                                    StatsUtils.writeServiceRequestMetrics(
+                                            Constants.API_NAME_SERVICE_ON_EXECUTE,
+                                            val,
+                                            mInjector.getClock(),
+                                            Constants.STATUS_SUCCESS,
+                                            mStartServiceTimeMillis.get());
+                                    return val;
+                                },
+                                mInjector.getExecutor())
+                        .catchingAsync(
+                                Exception.class,
+                                e -> {
+                                    StatsUtils.writeServiceRequestMetrics(
+                                            Constants.API_NAME_SERVICE_ON_EXECUTE,
+                                            /* result= */ null,
+                                            mInjector.getClock(),
+                                            Constants.STATUS_INTERNAL_ERROR,
+                                            mStartServiceTimeMillis.get());
+                                    return Futures.immediateFailedFuture(e);
+                                },
+                                mInjector.getExecutor());
     }
 
     @Override
@@ -295,12 +311,14 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                         sLogger.w(TAG + ": Request failed.", t);
                         if (t instanceof OdpServiceException) {
                             OdpServiceException e = (OdpServiceException) t;
+
                             sendErrorResult(
                                     e.getErrorCode(),
                                     DebugUtils.getIsolatedServiceExceptionCode(
-                                        mContext, mService, e));
+                                        mContext, mService, e),
+                                    t);
                         } else {
-                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, t);
+                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0, t);
                         }
                     }
                 },
@@ -309,7 +327,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
 
     @Override
     public void cleanUpServiceParams() {
-        mModelServiceProvider.unBindFromModelService();
+        mModelServiceProvider.get().unBindFromModelService();
     }
 
     private ListenableFuture<ExecuteOutputParcel> validateExecuteOutput(
@@ -414,26 +432,12 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         }
     }
 
-    private void sendErrorResult(int errorCode, int isolatedServiceErrorCode) {
+    private void sendErrorResult(int errorCode, int isolatedServiceErrorCode, Throwable t) {
         try {
             mCallback.onError(
                     errorCode,
                     isolatedServiceErrorCode,
-                    null,
-                    new CalleeMetadata.Builder()
-                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
-                            .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
-        } catch (RemoteException e) {
-            sLogger.w(TAG + ": Callback error", e);
-        }
-    }
-
-    private void sendErrorResult(int errorCode, Throwable t) {
-        try {
-            mCallback.onError(
-                    errorCode,
-                    0,
-                    DebugUtils.getErrorMessage(mContext, t),
+                    DebugUtils.serializeExceptionInfo(mService, t),
                     new CalleeMetadata.Builder()
                             .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
                             .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
@@ -442,5 +446,3 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         }
     }
 }
-
-
