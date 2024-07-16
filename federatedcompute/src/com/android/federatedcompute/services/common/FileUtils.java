@@ -67,11 +67,8 @@ public class FileUtils {
 
     /** Write the provided data to the file. */
     public static long writeToFile(String fileName, InputStream inputStream) throws IOException {
-        FileOutputStream out = new FileOutputStream(fileName);
-        try {
+        try (FileOutputStream out = new FileOutputStream(fileName)) {
             return inputStream.transferTo(out);
-        } finally {
-            out.close();
         }
     }
 
