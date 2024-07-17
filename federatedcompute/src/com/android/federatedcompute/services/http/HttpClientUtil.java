@@ -151,8 +151,12 @@ public final class HttpClientUtil {
                 foundContentLengthHdr = true;
             }
         }
-        if (!foundContentLengthHdr && response.getPayload() != null) {
-            totalBytes += response.getPayload().length;
+        if (!foundContentLengthHdr) {
+            if (response.getPayload() != null) {
+                totalBytes += response.getPayload().length;
+            } else if (response.getPayloadFileName() != null) {
+                totalBytes += response.getDownloadedPayloadSize();
+            }
         }
         return totalBytes;
     }

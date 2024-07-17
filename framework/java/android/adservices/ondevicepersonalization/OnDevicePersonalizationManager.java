@@ -16,6 +16,7 @@
 
 package android.adservices.ondevicepersonalization;
 
+
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -23,10 +24,14 @@ import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.app.compat.CompatChanges;
+import android.compat.annotation.ChangeId;
+import android.compat.annotation.EnabledAfter;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
@@ -39,6 +44,7 @@ import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.ExceptionInfo;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 
@@ -62,12 +68,38 @@ public class OnDevicePersonalizationManager {
     /** @hide */
     public static final String ON_DEVICE_PERSONALIZATION_SERVICE =
             "on_device_personalization_service";
+
+    /**
+     * The {@link OnDevicePersonalizationException} returned by the {@link
+     * OnDevicePersonalizationManager} class has additional, more granular error codes.
+     *
+     * <p>{@link OnDevicePersonalizationException#getErrorCode()} can now return additional granular
+     * error codes. Developers should also account for potential future additions to the number of
+     * error codes via appropriate defaults in any error code processing logic.
+     *
+     * @hide
+     */
+    @ChangeId
+    @EnabledAfter(targetSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    public static final long GRANULAR_EXCEPTION_ERROR_CODES = 342672147;
+
     private static final String INTENT_FILTER_ACTION = "android.OnDevicePersonalizationService";
     private static final String ODP_MANAGING_SERVICE_PACKAGE_SUFFIX =
             "com.android.ondevicepersonalization.services";
 
     private static final String ALT_ODP_MANAGING_SERVICE_PACKAGE_SUFFIX =
             "com.google.android.ondevicepersonalization.services";
+
+    private static final String ODP_INTERNAL_ERROR_MESSAGE =
+            "Internal error in the OnDevicePersonalizationService.";
+
+    private static final String ISOLATED_SERVICE_ERROR_MESSAGE = "Error in the IsolatedService.";
+
+    private static final String ODP_DISABLED_ERROR_MESSAGE =
+            "Personalization disabled by device configuration.";
+
+    private static final String ODP_MANIFEST_ERROR_MESSAGE =
+            "OnDevicePersonalization manifest invalid.";
     private static final String TAG = OnDevicePersonalizationManager.class.getSimpleName();
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private final AbstractServiceBinder<IOnDevicePersonalizationManagingService> mServiceBinder;
@@ -231,7 +263,8 @@ public class OnDevicePersonalizationManager {
                                             service.getPackageName(),
                                             Constants.API_NAME_EXECUTE,
                                             SystemClock.elapsedRealtime() - startTimeMillis,
-                                            calleeMetadata.getServiceEntryTimeMillis() - startTimeMillis,
+                                            calleeMetadata.getServiceEntryTimeMillis()
+                                                    - startTimeMillis,
                                             SystemClock.elapsedRealtime()
                                                     - calleeMetadata.getCallbackInvokeTimeMillis(),
                                             Constants.STATUS_SUCCESS);
@@ -239,17 +272,20 @@ public class OnDevicePersonalizationManager {
                             }
 
                             @Override
-                            public void onError(int errorCode, int isolatedServiceErrorCode,
-                                    String message, CalleeMetadata calleeMetadata) {
+                            public void onError(
+                                    int errorCode,
+                                    int isolatedServiceErrorCode,
+                                    byte[] serializedExceptionInfo,
+                                    CalleeMetadata calleeMetadata) {
                                 final long token = Binder.clearCallingIdentity();
                                 try {
                                     executor.execute(
-                                            () ->
-                                                    receiver.onError(
-                                                            createException(
-                                                                    errorCode,
-                                                                    isolatedServiceErrorCode,
-                                                                    message)));
+                                            () -> {
+                                                receiver.onError(
+                                                        createException(
+                                                                errorCode, isolatedServiceErrorCode,
+                                                                serializedExceptionInfo, mContext));
+                                            });
                                 } finally {
                                     Binder.restoreCallingIdentity(token);
                                     logApiCallStats(
@@ -257,7 +293,8 @@ public class OnDevicePersonalizationManager {
                                             service.getPackageName(),
                                             Constants.API_NAME_EXECUTE,
                                             SystemClock.elapsedRealtime() - startTimeMillis,
-                                            calleeMetadata.getServiceEntryTimeMillis() - startTimeMillis,
+                                            calleeMetadata.getServiceEntryTimeMillis()
+                                                    - startTimeMillis,
                                             SystemClock.elapsedRealtime()
                                                     - calleeMetadata.getCallbackInvokeTimeMillis(),
                                             errorCode);
@@ -373,12 +410,14 @@ public class OnDevicePersonalizationManager {
                                                     - calleeMetadata.getCallbackInvokeTimeMillis(),
                                             Constants.STATUS_SUCCESS);
                                 }
-
                             }
 
                             @Override
-                            public void onError(int errorCode, int isolatedServiceErrorCode,
-                                    String message, CalleeMetadata calleeMetadata) {
+                            public void onError(
+                                    int errorCode,
+                                    int isolatedServiceErrorCode,
+                                    byte[] serializedExceptionInfo,
+                                    CalleeMetadata calleeMetadata) {
                                 final long token = Binder.clearCallingIdentity();
                                 try {
                                     executor.execute(
@@ -387,11 +426,13 @@ public class OnDevicePersonalizationManager {
                                                             createException(
                                                                     errorCode,
                                                                     isolatedServiceErrorCode,
-                                                                    message)));
+                                                                    serializedExceptionInfo,
+                                                                    mContext)));
                                 } finally {
                                     Binder.restoreCallingIdentity(token);
                                     logApiCallStats(
-                                            service, "",
+                                            service,
+                                            "",
                                             Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
                                             SystemClock.elapsedRealtime() - startTimeMillis,
                                             0,
@@ -436,35 +477,101 @@ public class OnDevicePersonalizationManager {
         }
     }
 
-    private Exception createException(
-            int errorCode, int isolatedServiceErrorCode, String message) {
-        if (message == null || message.isBlank()) {
-            message = "Error: " + errorCode;
-        }
-        if (errorCode == Constants.STATUS_NAME_NOT_FOUND) {
-            return new PackageManager.NameNotFoundException();
-        } else if (errorCode == Constants.STATUS_CLASS_NOT_FOUND) {
-            return new ClassNotFoundException();
-        } else if (errorCode == Constants.STATUS_SERVICE_FAILED) {
-            if (isolatedServiceErrorCode > 0 && isolatedServiceErrorCode < 128) {
-                return new OnDevicePersonalizationException(
-                        OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
-                        new IsolatedServiceException(isolatedServiceErrorCode));
-            } else {
-            return new OnDevicePersonalizationException(
-                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
-                    message);
-            }
-        } else if (errorCode == Constants.STATUS_PERSONALIZATION_DISABLED) {
-            return new OnDevicePersonalizationException(
-                    OnDevicePersonalizationException.ERROR_PERSONALIZATION_DISABLED,
-                    message);
-        } else {
-            return new IllegalStateException(message);
+    private static String convertMessage(int errorCode) {
+        switch (errorCode) {
+            case Constants.STATUS_INTERNAL_ERROR:
+                return ODP_INTERNAL_ERROR_MESSAGE;
+            case Constants.STATUS_SERVICE_FAILED:
+                return ISOLATED_SERVICE_ERROR_MESSAGE;
+            case Constants.STATUS_PERSONALIZATION_DISABLED:
+                return ODP_DISABLED_ERROR_MESSAGE;
+            case Constants.STATUS_MANIFEST_PARSING_FAILED: // Intentional fallthrough
+            case Constants.STATUS_MANIFEST_MISCONFIGURED:
+                return ODP_MANIFEST_ERROR_MESSAGE;
+            default:
+                sLogger.w(TAG + "Unexpected error code while creating exception: " + errorCode);
+                return "";
         }
     }
 
-    private void logApiCallStats(
+    /**
+     * Convert error codes returned by the ODP Service to match calling package's target sdk
+     * version.
+     */
+    private static int translateErrorCode(int errorCode, Context context) {
+        if (errorCode < Constants.STATUS_MANIFEST_PARSING_FAILED
+                || CompatChanges.isChangeEnabled(GRANULAR_EXCEPTION_ERROR_CODES)) {
+            // Return code unchanged since either the error code does not require translation
+            // (by virtue of being an old/original error code) or the package is targeted to the
+            // appropriate sdk version.
+            return errorCode;
+        }
+        // Translate to appropriate older error code if required.
+        sLogger.d(TAG, "Package " + context.getPackageName() + " has old target sdk version.");
+        // TODO (b/342672147): add translation for newer error codes
+        int translatedCode = Constants.STATUS_INTERNAL_ERROR;
+        switch (errorCode) {
+            case Constants.STATUS_MANIFEST_PARSING_FAILED ->
+                    translatedCode = Constants.STATUS_NAME_NOT_FOUND;
+            case Constants.STATUS_MANIFEST_MISCONFIGURED ->
+                    translatedCode = Constants.STATUS_CLASS_NOT_FOUND;
+        }
+        return translatedCode;
+    }
+
+    private static Exception createException(
+            int errorCode,
+            int isolatedServiceErrorCode,
+            byte[] serializedExceptionInfo,
+            Context context) {
+        errorCode = translateErrorCode(errorCode, context);
+        Exception cause = ExceptionInfo.fromByteArray(serializedExceptionInfo);
+        switch (errorCode) {
+            case Constants.STATUS_NAME_NOT_FOUND:
+                Exception e = new PackageManager.NameNotFoundException();
+                try {
+                    // NameNotFoundException does not have a constructor that takes a Throwable.
+                    if (cause != null) {
+                        e.initCause(cause);
+                    }
+                } catch (Exception e2) {
+                    sLogger.i(TAG + ": could not update cause", e2);
+                }
+                return e;
+            case Constants.STATUS_CLASS_NOT_FOUND:
+                return new ClassNotFoundException("", cause);
+            case Constants.STATUS_SERVICE_FAILED:
+                return (isolatedServiceErrorCode > 0 && isolatedServiceErrorCode < 128)
+                        ? new OnDevicePersonalizationException(
+                                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                                new IsolatedServiceException(isolatedServiceErrorCode))
+                        : new OnDevicePersonalizationException(
+                                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                                convertMessage(errorCode),
+                                cause);
+            case Constants.STATUS_PERSONALIZATION_DISABLED:
+                return new OnDevicePersonalizationException(
+                        OnDevicePersonalizationException.ERROR_PERSONALIZATION_DISABLED,
+                        convertMessage(errorCode),
+                        cause);
+            case Constants.STATUS_MANIFEST_PARSING_FAILED:
+                return new OnDevicePersonalizationException(
+                        OnDevicePersonalizationException
+                                .ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
+                        convertMessage(errorCode),
+                        cause);
+            case Constants.STATUS_MANIFEST_MISCONFIGURED:
+                return new OnDevicePersonalizationException(
+                        OnDevicePersonalizationException
+                                .ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
+                        convertMessage(errorCode),
+                        cause);
+            default:
+                return new IllegalStateException(convertMessage(errorCode), cause);
+        }
+    }
+
+    private static void logApiCallStats(
             IOnDevicePersonalizationManagingService service,
             String sdkPackageName,
             int apiName,

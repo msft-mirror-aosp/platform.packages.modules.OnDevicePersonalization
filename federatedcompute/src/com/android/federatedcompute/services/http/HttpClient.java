@@ -17,6 +17,8 @@
 package com.android.federatedcompute.services.http;
 
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBlockingExecutor;
+import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
+import static com.android.federatedcompute.services.common.FileUtils.writeToFile;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
 
 import android.annotation.NonNull;
@@ -40,12 +42,18 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 /**
  * The HTTP client to be used by the FederatedCompute to communicate with remote federated servers.
  */
 public class HttpClient {
+
+    interface HttpIOSupplier<T> {
+        T get() throws IOException; // Declares to throw IOException
+    }
+
     private static final String TAG = HttpClient.class.getSimpleName();
     private static final int NETWORK_CONNECT_TIMEOUT_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final int NETWORK_READ_TIMEOUT_MS = (int) TimeUnit.SECONDS.toMillis(30);
@@ -72,8 +80,29 @@ public class HttpClient {
     @NonNull
     public ListenableFuture<FederatedComputeHttpResponse> performRequestAsyncWithRetry(
             FederatedComputeHttpRequest request) {
+        return performCallableAsync(() -> performRequestWithRetry(() -> performRequest(request)));
+    }
+
+    /**
+     * Perform HTTP requests based on given information asynchronously with retries in case http
+     * will return not OK response code. Payload will be saved directly into the file.
+     */
+    @NonNull
+    public ListenableFuture<FederatedComputeHttpResponse> performRequestIntoFileAsyncWithRetry(
+            FederatedComputeHttpRequest request) {
+        return performCallableAsync(
+                () -> performRequestWithRetry(() -> performRequest(request, true)));
+    }
+
+    /**
+     * Perform HTTP requests based on given information asynchronously with retries in case http
+     * will return not OK response code.
+     */
+    @NonNull
+    public ListenableFuture<FederatedComputeHttpResponse> performCallableAsync(
+            Callable<FederatedComputeHttpResponse> callable) {
         try {
-            return getBlockingExecutor().submit(() -> performRequestWithRetry(request));
+            return getBlockingExecutor().submit(callable);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
@@ -81,25 +110,25 @@ public class HttpClient {
 
     /** Perform HTTP requests based on given information with retries. */
     @NonNull
-    public FederatedComputeHttpResponse performRequestWithRetry(FederatedComputeHttpRequest request)
-            throws IOException {
-        int count = 0;
+    @VisibleForTesting
+    FederatedComputeHttpResponse performRequestWithRetry(
+            HttpIOSupplier<FederatedComputeHttpResponse> supplier) throws IOException {
         FederatedComputeHttpResponse response = null;
         int retryLimit = mFlags.getHttpRequestRetryLimit();
-        while (count < retryLimit) {
+        while (retryLimit > 0) {
             try {
-                response = performRequest(request);
+                response = supplier.get();
                 if (HTTP_OK_STATUS.contains(response.getStatusCode())) {
                     return response;
                 }
                 // we want to continue retry in case it is IO exception.
             } catch (IOException e) {
                 // propagate IO exception after RETRY_LIMIT times attempt.
-                if (count >= retryLimit - 1) {
+                if (retryLimit <= 1) {
                     throw e;
                 }
             } finally {
-                count++;
+                retryLimit--;
             }
         }
         return response;
@@ -107,7 +136,17 @@ public class HttpClient {
 
     /** Perform HTTP requests based on given information. */
     @NonNull
-    public FederatedComputeHttpResponse performRequest(FederatedComputeHttpRequest request)
+    @VisibleForTesting
+    FederatedComputeHttpResponse performRequest(FederatedComputeHttpRequest request)
+            throws IOException {
+        return performRequest(request, false);
+    }
+
+    /** Perform HTTP requests based on given information. */
+    @NonNull
+    @VisibleForTesting
+    FederatedComputeHttpResponse performRequest(FederatedComputeHttpRequest request,
+            boolean savePayloadIntoFile)
             throws IOException {
         if (request.getUri() == null || request.getHttpMethod() == null) {
             LogUtil.e(TAG, "Endpoint or http method is empty");
@@ -150,14 +189,28 @@ public class HttpClient {
 
             int responseCode = urlConnection.getResponseCode();
             if (HTTP_OK_STATUS.contains(responseCode)) {
-                return new FederatedComputeHttpResponse.Builder()
-                        .setPayload(
-                                getByteArray(
-                                        urlConnection.getInputStream(),
-                                        urlConnection.getContentLengthLong()))
-                        .setHeaders(urlConnection.getHeaderFields())
-                        .setStatusCode(responseCode)
-                        .build();
+                FederatedComputeHttpResponse.Builder builder =
+                        new FederatedComputeHttpResponse.Builder()
+                                .setHeaders(urlConnection.getHeaderFields())
+                                .setStatusCode(responseCode);
+                if (savePayloadIntoFile) {
+                    String inputFile = createTempFile("input", ".tmp");
+                    long downloadedSize =
+                            saveIntoFile(
+                                    inputFile,
+                                    urlConnection.getInputStream(),
+                                    urlConnection.getContentLengthLong());
+                    if (downloadedSize != 0) {
+                        builder.setPayloadFileName(inputFile);
+                        builder.setDownloadedPayloadSize(downloadedSize);
+                    }
+                } else {
+                    builder.setPayload(
+                            getByteArray(
+                                    urlConnection.getInputStream(),
+                                    urlConnection.getContentLengthLong()));
+                }
+                return builder.build();
             } else {
                 return new FederatedComputeHttpResponse.Builder()
                         .setPayload(
@@ -178,7 +231,22 @@ public class HttpClient {
         }
     }
 
-    private byte[] getByteArray(@Nullable InputStream in, long contentLength) throws IOException {
+    private static long saveIntoFile(String fileName,
+            @Nullable InputStream in, long contentLength)
+            throws IOException {
+        if (contentLength == 0) {
+            return 0;
+        }
+        try (in) {
+            // Process download resource.
+            long downloadedSize = writeToFile(fileName, in);
+            LogUtil.d(TAG, "Downloaded data file size: %d", downloadedSize);
+            return downloadedSize;
+        }
+    }
+
+    private static byte[] getByteArray(@Nullable InputStream in, long contentLength)
+            throws IOException {
         if (contentLength == 0) {
             return HttpClientUtil.EMPTY_BODY;
         }

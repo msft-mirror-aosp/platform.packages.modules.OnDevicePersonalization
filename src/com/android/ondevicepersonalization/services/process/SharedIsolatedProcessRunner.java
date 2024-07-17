@@ -37,6 +37,7 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
 import com.android.odp.module.common.PackageUtils;
+import com.android.ondevicepersonalization.internal.util.ExceptionInfo;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
@@ -44,6 +45,7 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationAppli
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.util.AllowListUtils;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -69,7 +71,7 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
     private final Context mApplicationContext;
     private final Injector mInjector;
 
-    static class Injector {
+    private static class Injector {
         Clock getClock() {
             return MonotonicClock.getInstance();
         }
@@ -78,9 +80,9 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
             return OnDevicePersonalizationExecutors.getBackgroundExecutor();
         }
     }
-    SharedIsolatedProcessRunner(
-            @NonNull Context applicationContext,
-            @NonNull Injector injector) {
+
+    private SharedIsolatedProcessRunner(
+            @NonNull Context applicationContext, @NonNull Injector injector) {
         mApplicationContext = Objects.requireNonNull(applicationContext);
         mInjector = Objects.requireNonNull(injector);
     }
@@ -146,19 +148,19 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
 
                                         // TO-DO (323882182): Granular isolated servce failures.
                                         @Override public void onError(
-                                                int errorCode, int isolatedServiceErrorCode) {
+                                                int errorCode,
+                                                int isolatedServiceErrorCode,
+                                                byte[] serializedExceptionInfo) {
+                                            Exception cause = ExceptionInfo.fromByteArray(
+                                                    serializedExceptionInfo);
                                             if (isolatedServiceErrorCode > 0
-                                                        && isolatedServiceErrorCode < 128) {
-                                                completer.setException(
-                                                        new OdpServiceException(
-                                                                Constants.STATUS_SERVICE_FAILED,
-                                                                new IsolatedServiceException(
-                                                                    isolatedServiceErrorCode)));
-                                            } else {
-                                                completer.setException(
-                                                        new OdpServiceException(
-                                                                Constants.STATUS_SERVICE_FAILED));
+                                                    && isolatedServiceErrorCode < 128) {
+                                                cause = new IsolatedServiceException(
+                                                        isolatedServiceErrorCode, cause);
                                             }
+                                            completer.setException(
+                                                    new OdpServiceException(
+                                                        Constants.STATUS_SERVICE_FAILED, cause));
                                         }
                                     });
                     return null;
@@ -194,6 +196,7 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                 instanceName, bindFlag, IIsolatedService.Stub::asInterface);
     }
 
+    @VisibleForTesting
     String getSipInstanceName(String packageName) {
         String partnerAppsList =
                 (String) FlagsFactory.getFlags().getStableFlag(KEY_TRUSTED_PARTNER_APPS_LIST);
@@ -211,7 +214,7 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                     ? sipInstanceName + "_disable_art_image_" : sipInstanceName;
     }
 
-    boolean isSharedIsolatedProcessRequested(ComponentName service) throws Exception {
+    private boolean isSharedIsolatedProcessRequested(ComponentName service) throws Exception {
         if (!SdkLevel.isAtLeastU()) {
             return false;
         }
@@ -220,7 +223,11 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
         ServiceInfo si = pm.getServiceInfo(service, PackageManager.GET_META_DATA);
 
         if ((si.flags & si.FLAG_ISOLATED_PROCESS) == 0) {
-            throw new IllegalArgumentException("ODP client services should run in isolated processes.");
+            sLogger.e(
+                    TAG, "ODP client service not configured to run in isolated process " + service);
+            throw new OdpServiceException(
+                    Constants.STATUS_MANIFEST_PARSING_FAILED,
+                    "ODP client services should run in isolated processes.");
         }
 
         return (si.flags & si.FLAG_ALLOW_SHARED_ISOLATED_PROCESS) != 0;

@@ -596,7 +596,7 @@ public class SampleHandler implements IsolatedWorker {
             String content =
                     "<img src=\""
                             + impressionUrl
-                            + "\">\n"
+                            + "\" alt=\"\">\n"
                             + "<a href=\""
                             + clickUrl
                             + "\">"
@@ -920,6 +920,12 @@ public class SampleHandler implements IsolatedWorker {
                                 @Override
                                 public void onResult(InferenceOutput result) {
                                     completer.set(result);
+                                }
+
+                                @Override
+                                public void onError(Exception e) {
+                                    Log.e(TAG, "modelManager.run() exception", e);
+                                    completer.set(null);
                                 }
                             });
                     // Used only for debugging.
