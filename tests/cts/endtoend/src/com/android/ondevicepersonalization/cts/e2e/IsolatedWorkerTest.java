@@ -97,6 +97,7 @@ public class IsolatedWorkerTest {
         WorkerResultReceiver<DownloadCompletedOutput> receiver = new WorkerResultReceiver<>();
         TestKeyValueStore store = new TestKeyValueStore(
                 Map.of("a", new byte[]{'A'}, "b", new byte[]{'B'}));
+        // TODO(b/353356413): Remove builder usage after new constructor API is public.
         worker.onDownloadCompleted(
                 new DownloadCompletedInput.Builder(store).build(), receiver);
         assertThat(receiver.mResult.getRetainedKeys(), containsInAnyOrder("a", "b"));

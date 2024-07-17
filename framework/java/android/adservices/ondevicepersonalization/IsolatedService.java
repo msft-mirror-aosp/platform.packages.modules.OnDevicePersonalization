@@ -383,9 +383,7 @@ public abstract class IsolatedService extends Service {
                             "Failed to get IDataAccessService binder from the input params!")));
 
                 DownloadCompletedInput input =
-                        new DownloadCompletedInput.Builder()
-                                .setDownloadedContents(downloadedContents)
-                                .build();
+                        new DownloadCompletedInput(downloadedContents);
 
                 IDataAccessService binder = getDataAccessService(params);
 
