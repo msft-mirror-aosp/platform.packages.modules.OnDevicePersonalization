@@ -311,11 +311,170 @@ public class OnDevicePersonalizationManager {
                         service,
                         wrappedParams,
                         new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
+                        ExecuteOptionsParcel.DEFAULT,
                         callbackWrapper);
             } catch (Exception e) {
                 logApiCallStats(
                         odpService,
                         service.getPackageName(),
+                        Constants.API_NAME_EXECUTE,
+                        SystemClock.elapsedRealtime() - startTimeMillis,
+                        0,
+                        0,
+                        Constants.STATUS_INTERNAL_ERROR);
+                receiver.onError(e);
+            }
+
+        } catch (Exception e) {
+            receiver.onError(e);
+        }
+    }
+
+    /**
+     * Executes an {@link IsolatedService} in the OnDevicePersonalization sandbox. The platform
+     * binds to the specified {@link IsolatedService} in an isolated process and calls {@link
+     * IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)} with the caller-provided
+     * parameters. When the {@link IsolatedService} finishes execution, the platform returns tokens
+     * that refer to the results from the service to the caller. These tokens can be subsequently
+     * used to display results in a {@link android.view.SurfaceView} within the calling app.
+     *
+     * @param request the {@link ExecuteInIsolatedServiceRequest} request
+     * @param executor the {@link Executor} on which to invoke the callback.
+     * @param receiver This returns a {@link ExecuteInIsolatedServiceResponse} object on success or
+     *     an {@link Exception} on failure. If the {@link IsolatedService} returned a {@link
+     *     RenderingConfig} to be displayed, {@link ExecuteResult#getSurfacePackageToken()} will
+     *     return a non-null {@link SurfacePackageToken}. The {@link SurfacePackageToken} object can
+     *     be used in a subsequent {@link #requestSurfacePackage(SurfacePackageToken, IBinder, int,
+     *     int, int, Executor, OutcomeReceiver)} call to display the result in a view. The returned
+     *     {@link SurfacePackageToken} may be null to indicate that no output is expected to be
+     *     displayed for this request. If the {@link ExecuteInIsolatedServiceRequest.Options} is set
+     *     to {@link ExecuteInIsolatedServiceRequest.Options#OUTPUT_TYPE_BEST_VALUE} and {@link
+     *     IsolatedService} returns an integer value, {@link
+     *     ExecuteInIsolatedServiceResponse#getBestValue()} will return a positive value.
+     * @hide
+     */
+    public void executeInIsolatedService(
+            @NonNull ExecuteInIsolatedServiceRequest request,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull OutcomeReceiver<ExecuteInIsolatedServiceResponse, Exception> receiver) {
+        Objects.requireNonNull(executor);
+        Objects.requireNonNull(receiver);
+        validateRequest(request);
+        long startTimeMillis = SystemClock.elapsedRealtime();
+
+        try {
+            final IOnDevicePersonalizationManagingService odpService =
+                    mServiceBinder.getService(executor);
+
+            try {
+                IExecuteCallback callbackWrapper =
+                        new IExecuteCallback.Stub() {
+                            @Override
+                            public void onSuccess(
+                                    Bundle callbackResult, CalleeMetadata calleeMetadata) {
+                                final long token = Binder.clearCallingIdentity();
+                                try {
+                                    executor.execute(
+                                            () -> {
+                                                try {
+                                                    SurfacePackageToken surfacePackageToken = null;
+                                                    if (callbackResult != null) {
+                                                        String tokenString =
+                                                                callbackResult.getString(
+                                                                        Constants
+                                                                                .EXTRA_SURFACE_PACKAGE_TOKEN_STRING);
+                                                        if (tokenString != null
+                                                                && !tokenString.isBlank()) {
+                                                            surfacePackageToken =
+                                                                    new SurfacePackageToken(
+                                                                            tokenString);
+                                                        }
+                                                    }
+                                                    int intValue = -1;
+                                                    if (request.getOptions() != null
+                                                            && request.getOptions().getOutputType()
+                                                                    == ExecuteInIsolatedServiceRequest
+                                                                            .Options
+                                                                            .OUTPUT_TYPE_BEST_VALUE) {
+                                                        intValue =
+                                                                callbackResult.getInt(
+                                                                        Constants
+                                                                                .EXTRA_OUTPUT_BEST_VALUE);
+                                                    }
+
+                                                    receiver.onResult(
+                                                            new ExecuteInIsolatedServiceResponse(
+                                                                    surfacePackageToken, intValue));
+                                                } catch (Exception e) {
+                                                    receiver.onError(e);
+                                                }
+                                            });
+                                } finally {
+                                    Binder.restoreCallingIdentity(token);
+                                    logApiCallStats(
+                                            odpService,
+                                            request.getService().getPackageName(),
+                                            Constants.API_NAME_EXECUTE,
+                                            SystemClock.elapsedRealtime() - startTimeMillis,
+                                            calleeMetadata.getServiceEntryTimeMillis()
+                                                    - startTimeMillis,
+                                            SystemClock.elapsedRealtime()
+                                                    - calleeMetadata.getCallbackInvokeTimeMillis(),
+                                            Constants.STATUS_SUCCESS);
+                                }
+                            }
+
+                            @Override
+                            public void onError(
+                                    int errorCode,
+                                    int isolatedServiceErrorCode,
+                                    byte[] serializedExceptionInfo,
+                                    CalleeMetadata calleeMetadata) {
+                                final long token = Binder.clearCallingIdentity();
+                                try {
+                                    executor.execute(
+                                            () -> {
+                                                receiver.onError(
+                                                        // TODO(b/336801193): skip error code
+                                                        // translate.
+                                                        createException(
+                                                                errorCode, isolatedServiceErrorCode,
+                                                                serializedExceptionInfo, mContext));
+                                            });
+                                } finally {
+                                    Binder.restoreCallingIdentity(token);
+                                    logApiCallStats(
+                                            odpService,
+                                            request.getService().getPackageName(),
+                                            Constants.API_NAME_EXECUTE,
+                                            SystemClock.elapsedRealtime() - startTimeMillis,
+                                            calleeMetadata.getServiceEntryTimeMillis()
+                                                    - startTimeMillis,
+                                            SystemClock.elapsedRealtime()
+                                                    - calleeMetadata.getCallbackInvokeTimeMillis(),
+                                            errorCode);
+                                }
+                            }
+                        };
+
+                Bundle wrappedParams = new Bundle();
+                wrappedParams.putParcelable(
+                        Constants.EXTRA_APP_PARAMS_SERIALIZED,
+                        new ByteArrayParceledSlice(
+                                PersistableBundleUtils.toByteArray(request.getParams())));
+                odpService.execute(
+                        mContext.getPackageName(),
+                        request.getService(),
+                        wrappedParams,
+                        new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
+                        request.getOptions() == null
+                                ? ExecuteOptionsParcel.DEFAULT
+                                : new ExecuteOptionsParcel(request.getOptions()),
+                        callbackWrapper);
+            } catch (Exception e) {
+                logApiCallStats(
+                        odpService,
+                        request.getService().getPackageName(),
                         Constants.API_NAME_EXECUTE,
                         SystemClock.elapsedRealtime() - startTimeMillis,
                         0,
@@ -474,6 +633,19 @@ public class OnDevicePersonalizationManager {
 
         } catch (Exception e) {
             receiver.onError(e);
+        }
+    }
+
+    private static void validateRequest(ExecuteInIsolatedServiceRequest request) {
+        Objects.requireNonNull(request.getService());
+        ComponentName service = request.getService();
+        Objects.requireNonNull(service.getPackageName());
+        Objects.requireNonNull(service.getClassName());
+        if (service.getPackageName().isEmpty()) {
+            throw new IllegalArgumentException("missing service package name");
+        }
+        if (service.getClassName().isEmpty()) {
+            throw new IllegalArgumentException("missing service class name");
         }
     }
 
