@@ -76,8 +76,8 @@ public final class TrainingExamplesInput {
      *     OnDevicePersonalization will store it and pass it here for generating new training
      *     examples.
      * @param collectionName The data collection name to use to create training examples.
-     * @hide
      */
+    @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public TrainingExamplesInput(
             @NonNull String populationName,
             @NonNull String taskName,
