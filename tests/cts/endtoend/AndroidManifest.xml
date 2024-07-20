@@ -17,7 +17,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.android.ondevicepersonalization.cts.e2e">
 
-    <application android:label="CtsOnDevicePersonalizationE2ETests">
+    <application android:debuggable="true"
+        android:label="CtsOnDevicePersonalizationE2ETests">
         <uses-library android:name="android.test.runner" />
         <activity
             android:name=".TestActivity"
