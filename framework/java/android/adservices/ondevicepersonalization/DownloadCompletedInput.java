@@ -37,7 +37,11 @@ public final class DownloadCompletedInput {
     @NonNull KeyValueStore mDownloadedContents;
 
 
-    /** @hide */
+    /** Creates a {@link DownloadCompletedInput}
+     *
+     * @param downloadedContents a {@link KeyValueStore} that contains the downloaded contents.
+     */
+    @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public DownloadCompletedInput(
             @NonNull KeyValueStore downloadedContents) {
         this.mDownloadedContents = Objects.requireNonNull(downloadedContents);

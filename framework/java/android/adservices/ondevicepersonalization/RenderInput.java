@@ -56,8 +56,8 @@ public final class RenderInput {
      * @param renderingConfig
      *   A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
      *   {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
-     * @hide
      */
+    @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public RenderInput(
             int width,
             int height,

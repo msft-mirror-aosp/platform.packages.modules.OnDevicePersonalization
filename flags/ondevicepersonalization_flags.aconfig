@@ -16,3 +16,10 @@ flag {
     bug: "335080565"
     description: "Enable model version support for federated compute"
 }
+
+flag {
+    name: "data_class_missing_ctors_and_getters_enabled"
+    namespace: "on_device_personalization"
+    bug: "353356413"
+    description: "Add missing ctors and getters to certain data classes"
+}

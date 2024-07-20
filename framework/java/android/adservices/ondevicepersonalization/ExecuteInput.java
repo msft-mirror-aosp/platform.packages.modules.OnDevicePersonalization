@@ -44,7 +44,13 @@ public final class ExecuteInput {
         mSerializedAppParams = parcel.getSerializedAppParams();
     }
 
-    /** @hide */
+    /** Creates an {@link ExecuteInput}.
+     *
+     * @param appPackageName the package name of the calling app.
+     * @param appParams the parameters provided by the app to the {@link IsolatedService}. The
+     * service defines the expected keys in this {@link PersistableBundle}.
+     */
+    @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public ExecuteInput(@NonNull String appPackageName, @NonNull PersistableBundle appParams) {
         mAppPackageName = Objects.requireNonNull(appPackageName);
         mAppParams = Objects.requireNonNull(appParams);

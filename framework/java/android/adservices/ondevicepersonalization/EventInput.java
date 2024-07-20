@@ -59,8 +59,8 @@ public final class EventInput {
      *   The Event URL parameters that the service passed to {@link
      *   EventUrlProvider#createEventTrackingUrlWithResponse(PersistableBundle, byte[], String)}
      *   or {@link EventUrlProvider#createEventTrackingUrlWithRedirect(PersistableBundle, Uri)}.
-     * @hide
      */
+    @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public EventInput(
             @Nullable RequestLogRecord requestLogRecord,
             @NonNull PersistableBundle parameters) {

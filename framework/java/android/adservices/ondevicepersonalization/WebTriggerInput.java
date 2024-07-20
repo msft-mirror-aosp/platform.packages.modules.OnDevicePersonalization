@@ -33,7 +33,7 @@ public final class WebTriggerInput {
     /** The destination URL (landing page) where the trigger event occurred. */
     @NonNull private Uri mDestinationUrl;
 
-    /** The app where the trigger event occurred */
+    /** The package name of the app where the trigger event occurred */
     @NonNull private String mAppPackageName;
 
     /**
@@ -54,13 +54,13 @@ public final class WebTriggerInput {
      * @param destinationUrl
      *   The destination URL (landing page) where the trigger event occurred.
      * @param appPackageName
-     *   The app where the trigger event occurred
+     *   The package name of the app where the trigger event occurred
      * @param data
      *   Additional data returned by the server as part of the web trigger registration
      *   to be sent to the {@link IsolatedService}. This can be {@code null} if the server
      *   does not need to send data to the service for processing web triggers.
-     * @hide
      */
+    @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public WebTriggerInput(
             @NonNull Uri destinationUrl,
             @NonNull String appPackageName,
@@ -78,7 +78,7 @@ public final class WebTriggerInput {
     }
 
     /**
-     * The app where the trigger event occurred
+     * The package name of the app where the trigger event occurred
      */
     public @NonNull String getAppPackageName() {
         return mAppPackageName;
