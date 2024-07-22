@@ -16,7 +16,10 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+
+import java.util.concurrent.Executors;
 
 /** Orchestrator that handles the scheduling of all service flows. */
 public class ServiceFlowOrchestrator {
@@ -48,5 +51,14 @@ public class ServiceFlowOrchestrator {
             case LOW -> OnDevicePersonalizationExecutors.getLowPriorityBackgroundExecutor()
                     .submit(serviceFlowTask::run);
         };
+    }
+
+    /** Schedules a given service flow task with the orchestrator for testing only. */
+    @VisibleForTesting
+    public void scheduleForTest(ServiceFlowType serviceFlowType, Object... args) {
+        ServiceFlow serviceFlow = ServiceFlowFactory.createInstanceForTest(serviceFlowType, args);
+
+        ServiceFlowTask serviceFlowTask = new ServiceFlowTask(serviceFlowType, serviceFlow);
+        Executors.newSingleThreadExecutor().submit(serviceFlowTask::run);
     }
 }

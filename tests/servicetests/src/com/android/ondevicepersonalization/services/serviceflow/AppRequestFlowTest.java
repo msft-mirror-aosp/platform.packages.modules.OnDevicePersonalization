@@ -42,10 +42,10 @@ import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
-import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
@@ -55,6 +55,7 @@ import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
+import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 
 import org.junit.After;
@@ -73,6 +74,8 @@ import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
 public class AppRequestFlowTest {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+    private static final String TAG = AppRequestFlowTest.class.getSimpleName();
 
     private final Context mContext = spy(ApplicationProvider.getApplicationContext());
     private final CountDownLatch mLatch = new CountDownLatch(1);
@@ -94,16 +97,14 @@ public class AppRequestFlowTest {
     private Flags mSpyFlags = spy(FlagsFactory.getFlags());
 
     @Rule
-    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .mockStatic(FlagsFactory.class)
-            .spyStatic(UserPrivacyStatus.class)
-            .setStrictness(Strictness.LENIENT)
-            .build();
+    public final ExtendedMockitoRule mExtendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this)
+                    .spyStatic(UserPrivacyStatus.class)
+                    .setStrictness(Strictness.LENIENT)
+                    .build();
 
     @Before
     public void setup() throws Exception {
-        PhFlagsTestUtil.setUpDeviceConfigPermissions();
-        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
         when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
 
@@ -126,7 +127,7 @@ public class AppRequestFlowTest {
     @Test
     public void testAppRequestFlow_InvalidService_ErrorManifestMisconfigured()
             throws InterruptedException {
-        mSfo.schedule(
+        mSfo.scheduleForTest(
                 ServiceFlowType.APP_REQUEST_FLOW,
                 mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.BadService"),
@@ -134,7 +135,8 @@ public class AppRequestFlowTest {
                 new TestExecuteCallback(),
                 mContext,
                 100L,
-                110L);
+                110L,
+                new AppTestInjector());
 
         mLatch.await();
         assertTrue(mCallbackError);
@@ -143,7 +145,7 @@ public class AppRequestFlowTest {
 
     @Test
     public void testAppRequestFlow_InvalidPackage_ErrorParsingFailed() throws InterruptedException {
-        mSfo.schedule(
+        mSfo.scheduleForTest(
                 ServiceFlowType.APP_REQUEST_FLOW,
                 mContext.getPackageName(),
                 new ComponentName("backPackageName", "com.test.TestPersonalizationService"),
@@ -151,7 +153,8 @@ public class AppRequestFlowTest {
                 new TestExecuteCallback(),
                 mContext,
                 100L,
-                110L);
+                110L,
+                new AppTestInjector());
 
         mLatch.await();
         assertTrue(mCallbackError);
@@ -164,9 +167,16 @@ public class AppRequestFlowTest {
         int originalEventsCount = getDbTableSize(EventsContract.EventsEntry.TABLE_NAME);
         doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
 
-        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
+        mSfo.scheduleForTest(
+                ServiceFlowType.APP_REQUEST_FLOW,
+                mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L, 110L);
+                createWrappedAppParams(),
+                new TestExecuteCallback(),
+                mContext,
+                100L,
+                110L,
+                new AppTestInjector());
         mLatch.await();
         assertTrue(mCallbackSuccess);
         assertFalse(mExecuteCallback.isEmpty());
@@ -179,9 +189,16 @@ public class AppRequestFlowTest {
     public void testAppRequestFlow_TargetingControlRevoked() throws InterruptedException {
         doReturn(false).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
 
-        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
+        mSfo.scheduleForTest(
+                ServiceFlowType.APP_REQUEST_FLOW,
+                mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L, 110L);
+                createWrappedAppParams(),
+                new TestExecuteCallback(),
+                mContext,
+                100L,
+                110L,
+                new AppTestInjector());
         mLatch.await();
         assertTrue(mCallbackSuccess);
         assertTrue(mExecuteCallback.isEmpty());
@@ -191,9 +208,16 @@ public class AppRequestFlowTest {
     public void testAppRequestFlow_OutputDataBlocked() throws InterruptedException {
         when(mSpyFlags.getOutputDataAllowList()).thenReturn("");
 
-        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
+        mSfo.scheduleForTest(
+                ServiceFlowType.APP_REQUEST_FLOW,
+                mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L, 110L);
+                createWrappedAppParams(),
+                new TestExecuteCallback(),
+                mContext,
+                100L,
+                110L,
+                new AppTestInjector());
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
@@ -208,9 +232,16 @@ public class AppRequestFlowTest {
         when(mSpyFlags.getOutputDataAllowList()).thenReturn(
                 contextPackageName + ";" + contextPackageName);
 
-        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
+        mSfo.scheduleForTest(
+                ServiceFlowType.APP_REQUEST_FLOW,
+                mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L, 110L);
+                createWrappedAppParams(),
+                new TestExecuteCallback(),
+                mContext,
+                100L,
+                110L,
+                new AppTestInjector());
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
@@ -271,6 +302,18 @@ public class AppRequestFlowTest {
             return wrappedParams;
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    class AppTestInjector extends AppRequestFlow.Injector {
+        @Override
+        public Flags getFlags() {
+            return mSpyFlags;
+        }
+
+        @Override
+        public boolean shouldValidateExecuteOutput() {
+            return true;
         }
     }
 

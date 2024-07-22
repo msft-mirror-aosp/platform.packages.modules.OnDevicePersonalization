@@ -61,16 +61,11 @@ public class OnDevicePersonalizationException extends Exception {
     public static final int ERROR_ISOLATED_SERVICE_TIMEOUT = 5;
 
     /**
-     * The {@link IsolatedService}'s output failed validation checks.
+     * The {@link IsolatedService}'s call to {@link FederatedComputeScheduler#schedule} failed.
+     *
      * @hide
      */
-    public static final int ERROR_OUTPUT_VALIDATION_FAILED = 6;
-
-    /**
-     * The {@link IsolatedService}'s call to {@link FederatedComputeScheduler} failed.
-     * @hide
-     */
-    public static final int ERROR_ISOLATED_SERVICE_FAILED_TRAINING = 7;
+    public static final int ERROR_ISOLATED_SERVICE_FAILED_TRAINING = 6;
 
     /** @hide */
     @IntDef(prefix = "ERROR_", value = {
