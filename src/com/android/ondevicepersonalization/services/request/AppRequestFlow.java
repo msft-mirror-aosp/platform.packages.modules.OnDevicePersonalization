@@ -97,7 +97,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     private byte[] mSerializedAppParams;
 
     @VisibleForTesting
-    static class Injector {
+    public static class Injector {
         ListeningExecutorService getExecutor() {
             return OnDevicePersonalizationExecutors.getBackgroundExecutor();
         }
@@ -106,7 +106,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             return MonotonicClock.getInstance();
         }
 
-        Flags getFlags() {
+        public Flags getFlags() {
             return FlagsFactory.getFlags();
         }
 
@@ -114,7 +114,8 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             return OnDevicePersonalizationExecutors.getScheduledExecutor();
         }
 
-        boolean shouldValidateExecuteOutput() {
+        /** Returns whether should validate rendering configuration keys. */
+        public boolean shouldValidateExecuteOutput() {
             return DeviceConfig.getBoolean(
                     /* namespace= */ "on_device_personalization",
                     /* name= */ "debug.validate_rendering_config_keys",
@@ -138,7 +139,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     }
 
     @VisibleForTesting
-    AppRequestFlow(
+    public AppRequestFlow(
             @NonNull String callingPackageName,
             @NonNull ComponentName service,
             @NonNull Bundle wrappedParams,
@@ -418,7 +419,6 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     }
 
     private void sendSuccessResult(Bundle result) {
-        int responseCode = Constants.STATUS_SUCCESS;
         try {
             mCallback.onSuccess(
                     result,
@@ -427,7 +427,6 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                             .setCallbackInvokeTimeMillis(
                             SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
-            responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
         }
     }
