@@ -17,7 +17,8 @@ package com.android.ondevicepersonalization.cts.e2e;
 
 import static android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES;
 
-import static org.junit.Assert.assertArrayEquals;
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -369,7 +370,7 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    public void testExecuteWithOutputData() throws InterruptedException {
+    public void testExecuteWithOutputDataDisabled() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
@@ -385,7 +386,7 @@ public class CtsOdpManagerTests {
                 Executors.newSingleThreadExecutor(),
                 receiver);
         assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        assertArrayEquals(new byte[] {'A'}, receiver.getResult().getOutputData());
+        assertThat(receiver.getResult().getOutputData()).isNull();
     }
 
     @Test
