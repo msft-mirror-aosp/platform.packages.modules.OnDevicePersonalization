@@ -133,9 +133,9 @@ public final class OnDevicePersonalizationManagerTest {
         params.putString(KEY_OP, "best_value");
         var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
         ExecuteInIsolatedServiceRequest request =
-                new ExecuteInIsolatedServiceRequest.Builder()
+                new ExecuteInIsolatedServiceRequest.Builder(
+                                ComponentName.createRelative("com.example.service", ".Example"))
                         .setParams(params)
-                        .setService(ComponentName.createRelative("com.example.service", ".Example"))
                         .setOptions(
                                 ExecuteInIsolatedServiceRequest.Options.buildBestValueOption(100))
                         .build();
@@ -482,10 +482,9 @@ public final class OnDevicePersonalizationManagerTest {
     private void runExecute(PersistableBundle params, ResultReceiver receiver) {
         if (mRunExecuteInIsolatedService) {
             ExecuteInIsolatedServiceRequest request =
-                    new ExecuteInIsolatedServiceRequest.Builder()
-                            .setParams(params)
-                            .setService(
+                    new ExecuteInIsolatedServiceRequest.Builder(
                                     ComponentName.createRelative("com.example.service", ".Example"))
+                            .setParams(params)
                             .build();
             mManager.executeInIsolatedService(
                     request, Executors.newSingleThreadExecutor(), receiver);
