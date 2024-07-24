@@ -70,6 +70,8 @@ public class Constants {
     public static final String EXTRA_MIME_TYPE = "android.ondevicepersonalization.extra.mime_type";
     public static final String EXTRA_OUTPUT_DATA =
             "android.ondevicepersonalization.extra.output_data";
+    public static final String EXTRA_OUTPUT_BEST_VALUE =
+            "android.ondevicepersonalization.extra.output_best_value";
     public static final String EXTRA_RESPONSE_DATA =
             "android.ondevicepersonalization.extra.response_data";
     public static final String EXTRA_RESULT = "android.ondevicepersonalization.extra.result";
