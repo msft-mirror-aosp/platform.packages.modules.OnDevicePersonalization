@@ -16,16 +16,18 @@
 
 package com.android.federatedcompute.services.examplestore;
 
+import com.android.federatedcompute.services.common.ErrorStatusException;
+
 import java.io.Closeable;
 
 /** The interface of ExampleIterator. */
 public interface ExampleIterator extends Closeable {
 
     /** Called to check if next example is available. */
-    boolean hasNext() throws InterruptedException;
+    boolean hasNext() throws InterruptedException, ErrorStatusException;
 
     /** Called when federated computation job needs another example. */
-    byte[] next() throws InterruptedException;
+    byte[] next() throws InterruptedException, ErrorStatusException;
 
     /** Called when it is done using this iterator instance. */
     @Override

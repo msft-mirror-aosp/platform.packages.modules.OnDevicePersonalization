@@ -16,46 +16,60 @@
 
 package com.android.ondevicepersonalization.services.data.vendor;
 
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
  * Dao used to manage access to vendor data tables
  */
 public class OnDevicePersonalizationVendorDataDao {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationVendorDataDao";
-    private static final String VENDOR_DATA_TABLE_NAME_PREFIX = "vendordata_";
+    private static final String VENDOR_DATA_TABLE_NAME_PREFIX = "vendordata";
+
+    private static final long BLOB_SIZE_LIMIT = 100000;
 
     private static final Map<String, OnDevicePersonalizationVendorDataDao> sVendorDataDaos =
-            new HashMap<>();
+            new ConcurrentHashMap<>();
     private final OnDevicePersonalizationDbHelper mDbHelper;
-    private final String mOwner;
+    private final ComponentName mOwner;
     private final String mCertDigest;
     private final String mTableName;
 
+    private final String mFileDir;
+    private final OnDevicePersonalizationLocalDataDao mLocalDao;
+
     private OnDevicePersonalizationVendorDataDao(OnDevicePersonalizationDbHelper dbHelper,
-            String owner, String certDigest) {
+            ComponentName owner, String certDigest, String fileDir,
+            OnDevicePersonalizationLocalDataDao localDataDao) {
         this.mDbHelper = dbHelper;
         this.mOwner = owner;
         this.mCertDigest = certDigest;
         this.mTableName = getTableName(owner, certDigest);
+        this.mFileDir = fileDir;
+        this.mLocalDao = localDataDao;
     }
 
     /**
@@ -67,21 +81,27 @@ public class OnDevicePersonalizationVendorDataDao {
      * @return Instance of OnDevicePersonalizationVendorDataDao for accessing the requested
      * package's table
      */
-    public static OnDevicePersonalizationVendorDataDao getInstance(Context context, String owner,
-            String certDigest) {
-        synchronized (OnDevicePersonalizationVendorDataDao.class) {
-            // TODO: Validate the owner and certDigest
-            String tableName = getTableName(owner, certDigest);
-            OnDevicePersonalizationVendorDataDao instance = sVendorDataDaos.get(tableName);
-            if (instance == null) {
-                OnDevicePersonalizationDbHelper dbHelper =
-                        OnDevicePersonalizationDbHelper.getInstance(context);
-                instance = new OnDevicePersonalizationVendorDataDao(
-                        dbHelper, owner, certDigest);
-                sVendorDataDaos.put(tableName, instance);
+    public static OnDevicePersonalizationVendorDataDao getInstance(Context context,
+            ComponentName owner, String certDigest) {
+        // TODO: Validate the owner and certDigest
+        String tableName = getTableName(owner, certDigest);
+        String fileDir = getFileDir(tableName, context.getFilesDir());
+        OnDevicePersonalizationVendorDataDao instance = sVendorDataDaos.get(tableName);
+        if (instance == null) {
+            synchronized (sVendorDataDaos) {
+                instance = sVendorDataDaos.get(tableName);
+                if (instance == null) {
+                    OnDevicePersonalizationDbHelper dbHelper =
+                            OnDevicePersonalizationDbHelper.getInstance(context);
+                    instance = new OnDevicePersonalizationVendorDataDao(
+                            dbHelper, owner, certDigest, fileDir,
+                            OnDevicePersonalizationLocalDataDao.getInstance(context, owner,
+                                    certDigest));
+                    sVendorDataDaos.put(tableName, instance);
+                }
             }
-            return instance;
         }
+        return instance;
     }
 
     /**
@@ -90,24 +110,36 @@ public class OnDevicePersonalizationVendorDataDao {
      */
     @VisibleForTesting
     public static OnDevicePersonalizationVendorDataDao getInstanceForTest(Context context,
-            String owner, String certDigest) {
+            ComponentName owner, String certDigest) {
         synchronized (OnDevicePersonalizationVendorDataDao.class) {
             String tableName = getTableName(owner, certDigest);
+            String fileDir = getFileDir(tableName, context.getFilesDir());
             OnDevicePersonalizationVendorDataDao instance = sVendorDataDaos.get(tableName);
             if (instance == null) {
                 OnDevicePersonalizationDbHelper dbHelper =
                         OnDevicePersonalizationDbHelper.getInstanceForTest(context);
                 instance = new OnDevicePersonalizationVendorDataDao(
-                        dbHelper, owner, certDigest);
+                        dbHelper, owner, certDigest, fileDir,
+                        OnDevicePersonalizationLocalDataDao.getInstanceForTest(context, owner,
+                                certDigest));
                 sVendorDataDaos.put(tableName, instance);
             }
             return instance;
         }
     }
 
-    private static String getTableName(String owner, String certDigest) {
-        owner = owner.replace(".", "_");
-        return VENDOR_DATA_TABLE_NAME_PREFIX + owner + "_" + certDigest;
+    /**
+     * Creates table name based on owner and certDigest
+     */
+    public static String getTableName(ComponentName owner, String certDigest) {
+        return DbUtils.getTableName(VENDOR_DATA_TABLE_NAME_PREFIX, owner, certDigest);
+    }
+
+    /**
+     * Creates file directory name based on table name and base directory
+     */
+    public static String getFileDir(String tableName, File baseDir) {
+        return baseDir + "/VendorData/" + tableName;
     }
 
     /**
@@ -141,7 +173,7 @@ public class OnDevicePersonalizationVendorDataDao {
                 result.add(new AbstractMap.SimpleImmutableEntry<>(owner, cert));
             }
         } catch (Exception e) {
-            Log.e(TAG, "Failed to get Vendors", e);
+            sLogger.e(TAG + ": Failed to get Vendors", e);
         } finally {
             cursor.close();
         }
@@ -151,7 +183,8 @@ public class OnDevicePersonalizationVendorDataDao {
     /**
      * Performs a transaction to delete the vendorData table and vendorSettings for a given package.
      */
-    public static boolean deleteVendorData(Context context, String owner, String certDigest) {
+    public static boolean deleteVendorData(
+            Context context, ComponentName owner, String certDigest) {
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstance(context);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
@@ -161,21 +194,25 @@ public class OnDevicePersonalizationVendorDataDao {
             // Delete rows from VendorSettings
             String selection = VendorSettingsContract.VendorSettingsEntry.OWNER + " = ? AND "
                     + VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST + " = ?";
-            String[] selectionArgs = {owner, certDigest};
+            String[] selectionArgs = {DbUtils.toTableValue(owner), certDigest};
             db.delete(VendorSettingsContract.VendorSettingsEntry.TABLE_NAME, selection,
                     selectionArgs);
 
-            // Delete the vendorData table
-            db.execSQL("DROP TABLE " + vendorDataTableName);
+            // Delete the vendorData and localData table
+            db.execSQL("DROP TABLE IF EXISTS " + vendorDataTableName);
             OnDevicePersonalizationLocalDataDao.deleteTable(context, owner, certDigest);
 
             db.setTransactionSuccessful();
         } catch (Exception e) {
-            Log.e(TAG, "Failed to delete vendorData for: " + owner, e);
+            sLogger.e(TAG + ": Failed to delete vendorData for: " + owner, e);
             return false;
         } finally {
             db.endTransaction();
         }
+        FileUtils.deleteDirectory(new File(getFileDir(vendorDataTableName, context.getFilesDir())));
+        FileUtils.deleteDirectory(new File(OnDevicePersonalizationLocalDataDao.getFileDir(
+                OnDevicePersonalizationLocalDataDao.getTableName(owner, certDigest),
+                context.getFilesDir())));
         return true;
     }
 
@@ -185,8 +222,13 @@ public class OnDevicePersonalizationVendorDataDao {
             db.execSQL(VendorDataContract.VendorDataEntry.getCreateTableIfNotExistsStatement(
                     tableName));
         } catch (SQLException e) {
-            Log.e(TAG, "Failed to create table: " + tableName, e);
+            sLogger.e(TAG + ": Failed to create table: " + tableName, e);
             return false;
+        }
+        // Create directory for large files
+        File dir = new File(mFileDir);
+        if (!dir.isDirectory()) {
+            return dir.mkdirs();
         }
         return true;
     }
@@ -209,7 +251,7 @@ public class OnDevicePersonalizationVendorDataDao {
                     /* orderBy= */ null
             );
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to read vendor data rows", e);
+            sLogger.e(TAG + ": Failed to read vendor data rows", e);
         }
         return null;
     }
@@ -222,7 +264,10 @@ public class OnDevicePersonalizationVendorDataDao {
     public byte[] readSingleVendorDataRow(String key) {
         try {
             SQLiteDatabase db = mDbHelper.getReadableDatabase();
-            String[] projection = {VendorDataContract.VendorDataEntry.DATA};
+            String[] projection = {
+                    VendorDataContract.VendorDataEntry.TYPE,
+                    VendorDataContract.VendorDataEntry.DATA
+            };
             String selection = VendorDataContract.VendorDataEntry.KEY + " = ?";
             String[] selectionArgs = {key};
             try (Cursor cursor = db.query(
@@ -235,14 +280,22 @@ public class OnDevicePersonalizationVendorDataDao {
                     /* orderBy= */ null
             )) {
                 if (cursor.getCount() < 1) {
-                    Log.d(TAG, "Failed to find requested key: " + key);
+                    sLogger.d(TAG + ": Failed to find requested key: " + key);
                     return null;
                 }
                 cursor.moveToNext();
-                return cursor.getBlob(0);
+                byte[] blob = cursor.getBlob(
+                        cursor.getColumnIndexOrThrow(VendorDataContract.VendorDataEntry.DATA));
+                int type = cursor.getInt(
+                        cursor.getColumnIndexOrThrow(VendorDataContract.VendorDataEntry.TYPE));
+                if (type == VendorDataContract.DATA_TYPE_FILE) {
+                    File file = new File(mFileDir, new String(blob));
+                    return Files.readAllBytes(file.toPath());
+                }
+                return blob;
             }
-        } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to read vendor data row", e);
+        } catch (SQLiteException | IOException e) {
+            sLogger.e(TAG + ": Failed to read vendor data row", e);
         }
         return null;
     }
@@ -275,7 +328,7 @@ public class OnDevicePersonalizationVendorDataDao {
                 return keyset;
             }
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to read all vendor data keys", e);
+            sLogger.e(TAG + ": Failed to read all vendor data keys", e);
         }
         return keyset;
     }
@@ -294,16 +347,14 @@ public class OnDevicePersonalizationVendorDataDao {
             if (!createTableIfNotExists(mTableName)) {
                 return false;
             }
-            if (!OnDevicePersonalizationLocalDataDao.createTableIfNotExists(
-                    OnDevicePersonalizationLocalDataDao.getTableName(mOwner, mCertDigest),
-                    mDbHelper)) {
+            if (!mLocalDao.createTableIfNotExists()) {
                 return false;
             }
             if (!deleteUnretainedRows(retainedKeys)) {
                 return false;
             }
             for (VendorData vendorData : vendorDataList) {
-                if (!updateOrInsertVendorData(vendorData)) {
+                if (!updateOrInsertVendorData(vendorData, syncToken)) {
                     // The query failed. Return and don't finalize the transaction.
                     return false;
                 }
@@ -328,7 +379,7 @@ public class OnDevicePersonalizationVendorDataDao {
             return db.delete(mTableName, whereClause,
                     null) != -1;
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to delete unretained rows", e);
+            sLogger.e(TAG + ": Failed to delete unretained rows", e);
         }
         return false;
     }
@@ -338,16 +389,29 @@ public class OnDevicePersonalizationVendorDataDao {
      *
      * @return true if the update/insert succeeded, false otherwise
      */
-    private boolean updateOrInsertVendorData(VendorData vendorData) {
+    private boolean updateOrInsertVendorData(VendorData vendorData, long syncToken) {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
             values.put(VendorDataContract.VendorDataEntry.KEY, vendorData.getKey());
-            values.put(VendorDataContract.VendorDataEntry.DATA, vendorData.getData());
+            if (vendorData.getData().length > BLOB_SIZE_LIMIT) {
+                String filename = vendorData.getKey() + "_" + syncToken;
+                File file = new File(mFileDir, filename);
+                Files.write(file.toPath(), vendorData.getData());
+                values.put(VendorDataContract.VendorDataEntry.TYPE,
+                        VendorDataContract.DATA_TYPE_FILE);
+                values.put(VendorDataContract.VendorDataEntry.DATA, filename.getBytes());
+            } else {
+                values.put(VendorDataContract.VendorDataEntry.DATA, vendorData.getData());
+            }
             return db.insertWithOnConflict(mTableName, null,
                     values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
-        } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to update or insert buyer data", e);
+        } catch (SQLiteException | IOException e) {
+            sLogger.e(TAG + ": Failed to update or insert buyer data", e);
+            // Attempt to delete file if something failed
+            String filename = vendorData.getKey() + "_" + syncToken;
+            File file = new File(mFileDir, filename);
+            file.delete();
         }
         return false;
     }
@@ -361,13 +425,35 @@ public class OnDevicePersonalizationVendorDataDao {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
-            values.put(VendorSettingsContract.VendorSettingsEntry.OWNER, mOwner);
+            values.put(VendorSettingsContract.VendorSettingsEntry.OWNER,
+                    DbUtils.toTableValue(mOwner));
             values.put(VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST, mCertDigest);
             values.put(VendorSettingsContract.VendorSettingsEntry.SYNC_TOKEN, syncToken);
             return db.insertWithOnConflict(VendorSettingsContract.VendorSettingsEntry.TABLE_NAME,
                     null, values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to update or insert syncToken", e);
+            sLogger.e(TAG + ": Failed to update or insert syncToken", e);
+        }
+        return false;
+    }
+
+    /**
+     * Inserts the syncToken, ignoring on conflict.
+     *
+     * @return true if the insert succeeded with no error, false otherwise
+     */
+    protected static boolean insertNewSyncToken(SQLiteDatabase db,
+            ComponentName owner, String certDigest, long syncToken) {
+        try {
+            ContentValues values = new ContentValues();
+            values.put(VendorSettingsContract.VendorSettingsEntry.OWNER,
+                    DbUtils.toTableValue(owner));
+            values.put(VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST, certDigest);
+            values.put(VendorSettingsContract.VendorSettingsEntry.SYNC_TOKEN, syncToken);
+            return db.insertWithOnConflict(VendorSettingsContract.VendorSettingsEntry.TABLE_NAME,
+                    null, values, SQLiteDatabase.CONFLICT_IGNORE) != -1;
+        } catch (SQLiteException e) {
+            sLogger.e(TAG + ": Failed to insert syncToken", e);
         }
         return false;
     }
@@ -381,7 +467,7 @@ public class OnDevicePersonalizationVendorDataDao {
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
         String selection = VendorSettingsContract.VendorSettingsEntry.OWNER + " = ? AND "
                 + VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST + " = ?";
-        String[] selectionArgs = {mOwner, mCertDigest};
+        String[] selectionArgs = {DbUtils.toTableValue(mOwner), mCertDigest};
         String[] projection = {VendorSettingsContract.VendorSettingsEntry.SYNC_TOKEN};
         Cursor cursor = db.query(
                 VendorSettingsContract.VendorSettingsEntry.TABLE_NAME,
@@ -398,7 +484,7 @@ public class OnDevicePersonalizationVendorDataDao {
                         VendorSettingsContract.VendorSettingsEntry.SYNC_TOKEN));
             }
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to update or insert syncToken", e);
+            sLogger.e(TAG + ": Failed to update or insert syncToken", e);
         } finally {
             cursor.close();
         }

@@ -20,10 +20,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import android.content.ComponentName;
 import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.compatibility.common.util.ShellUtils;
+import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -70,11 +74,17 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
         RemoveFileGroupsByFilterRequest request =
                 RemoveFileGroupsByFilterRequest.newBuilder().build();
         MobileDataDownloadFactory.getMdd(mContext).removeFileGroupsByFilter(request).get();
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
     }
 
     @Test
     public void testRefreshFileGroup() throws Exception {
+        var originalIsolatedServiceAllowList =
+                FlagsFactory.getFlags().getIsolatedServiceAllowList();
+        PhFlagsTestUtil.setIsolatedServiceAllowList(
+                "com.android.ondevicepersonalization.servicetests");
         mPopulator.refreshFileGroups(mMdd).get();
+        PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
 
         String fileGroupName = OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
                 mPackageName, mContext);
@@ -104,7 +114,13 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
         assertEquals(1, clientFileGroups.size());
         assertEquals("groupToBeRemoved", clientFileGroups.get(0).getGroupName());
 
+        var originalIsolatedServiceAllowList =
+                FlagsFactory.getFlags().getIsolatedServiceAllowList();
+        PhFlagsTestUtil.setIsolatedServiceAllowList(
+                "com.android.ondevicepersonalization.servicetests");
         mPopulator.refreshFileGroups(mMdd).get();
+        PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
+
         request = GetFileGroupsByFilterRequest.newBuilder().setIncludeAllGroups(true).build();
         clientFileGroups = mMdd.getFileGroupsByFilter(request).get();
         assertEquals(1, clientFileGroups.size());
@@ -120,9 +136,24 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     }
 
     @Test
+    public void testCreateDownloadUrlOverrideManifest() throws Exception {
+        ShellUtils.runShellCommand(
+                "setprop debug.ondevicepersonalization.override_download_url_package "
+                        + mPackageName);
+        String overrideUrl = "https://google.com";
+        ShellUtils.runShellCommand(
+                "setprop debug.ondevicepersonalization.override_download_url " + overrideUrl);
+        String downloadUrl = OnDevicePersonalizationFileGroupPopulator.createDownloadUrl(
+                mPackageName, mContext);
+        assertTrue(downloadUrl.startsWith(overrideUrl));
+    }
+
+    @Test
     public void testCreateDownloadUrlQueryParameters() throws Exception {
         long timestamp = System.currentTimeMillis();
-        assertTrue(OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
+        ComponentName service = ComponentName.createRelative(
+                mPackageName, "com.test.TestPersonalizationService");
+        assertTrue(OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, service,
                         PackageUtils.getCertDigest(mContext, mPackageName))
                 .batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), new ArrayList<>(),
                         timestamp));
@@ -161,6 +192,10 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
 
     @After
     public void cleanup() {
+        ShellUtils.runShellCommand(
+                "setprop debug.ondevicepersonalization.override_download_url_package \"\"");
+        ShellUtils.runShellCommand(
+                "setprop debug.ondevicepersonalization.override_download_url \"\"");
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();

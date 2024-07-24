@@ -24,10 +24,11 @@ import android.federatedcompute.common.TrainingInterval;
 import android.federatedcompute.common.TrainingOptions;
 
 import com.android.federatedcompute.services.common.Flags;
-import com.android.federatedcompute.services.common.TaskRetry;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
+
+import com.google.intelligence.fcp.client.engine.TaskRetry;
 
 import java.util.Random;
 
@@ -43,15 +44,15 @@ public class SchedulingUtil {
             boolean hasContributed,
             Flags flags) {
         long newLatencyMillis;
-        if (taskRetry == null || (taskRetry.getMinDelay() <= 0 && taskRetry.getMaxDelay() <= 0)) {
+        if (taskRetry == null || (taskRetry.getDelayMin() <= 0 && taskRetry.getDelayMax() <= 0)) {
             TaskRetry transientErrorRetry = generateTransientErrorTaskRetry(flags);
             newLatencyMillis =
                     generateMinimumDelayMillisFromRange(
-                            transientErrorRetry.getMinDelay(), transientErrorRetry.getMaxDelay());
+                            transientErrorRetry.getDelayMin(), transientErrorRetry.getDelayMax());
         } else {
             long unsanitizedMillis =
                     generateMinimumDelayMillisFromRange(
-                            taskRetry.getMinDelay(), taskRetry.getMaxDelay());
+                            taskRetry.getDelayMin(), taskRetry.getDelayMax());
             long serverSpecifiedLatency =
                     sanitizeMinimumLatencyMillis(
                             unsanitizedMillis, SchedulingMode.UNDEFINED, flags);
@@ -131,7 +132,7 @@ public class SchedulingUtil {
         long targetDelayMillis = SECONDS.toMillis(flags.getTransientErrorRetryDelaySecs());
         long maxDelay = (long) (targetDelayMillis * (1.0 + jitterPercent));
         long minDelay = (long) (targetDelayMillis * (1.0 - jitterPercent));
-        return new TaskRetry.Builder().setMaxDelay(maxDelay).setMinDelay(minDelay).build();
+        return TaskRetry.newBuilder().setDelayMax(maxDelay).setDelayMin(minDelay).build();
     }
 
     /** Generates a random delay between the provided min and max values. */

@@ -40,6 +40,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -60,6 +61,8 @@ public class OnDevicePersonalizationDownloadProcessingJobServiceTests {
 
     @Before
     public void setup() throws Exception {
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.disableGlobalKillSwitch();
         // Use direct executor to keep all work sequential for the tests
         ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
         MobileDataDownloadFactory.getMdd(mContext, executorService, executorService);
@@ -71,7 +74,7 @@ public class OnDevicePersonalizationDownloadProcessingJobServiceTests {
     }
 
     @Test
-    public void onStartJobTest() {
+    public void onStartJobTest() throws Exception {
         MockitoSession session = ExtendedMockito.mockitoSession().spyStatic(
                 OnDevicePersonalizationExecutors.class).strictness(
                 Strictness.LENIENT).startMocking();
@@ -83,6 +86,24 @@ public class OnDevicePersonalizationDownloadProcessingJobServiceTests {
             ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
                     OnDevicePersonalizationExecutors::getLightweightExecutor);
 
+            boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+
+            // Wait for the future to complete (fail on no data being downloaded in this case).
+            Thread.sleep(5 * 1000);
+
+            assertTrue(result);
+            verify(mSpyService, times(1)).jobFinished(any(), eq(false));
+        } finally {
+            session.finishMocking();
+        }
+    }
+
+    @Test
+    public void onStartJobTestKillSwitchEnabled() {
+        PhFlagsTestUtil.enableGlobalKillSwitch();
+        MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
+        try {
+            doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
             boolean result = mSpyService.onStartJob(mock(JobParameters.class));
             assertTrue(result);
             verify(mSpyService, times(1)).jobFinished(any(), eq(false));

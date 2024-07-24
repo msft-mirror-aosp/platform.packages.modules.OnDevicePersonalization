@@ -23,6 +23,12 @@ public class LocalDataContract {
     private LocalDataContract() {
     }
 
+    /** Type value denoting data stored in row is raw binary data */
+    public static final int DATA_TYPE_RAW = 0;
+
+    /** Type value denoting data stored in row is a reference to a file */
+    public static final int DATA_TYPE_FILE = 1;
+
     /**
      * Table containing mutable data belonging to vendors. Each table is owned by a single vendor
      * and contains data which will be used during ad requests.
@@ -30,6 +36,9 @@ public class LocalDataContract {
     public static class LocalDataEntry implements BaseColumns {
         /** Lookup key for the row */
         public static final String KEY = "key";
+
+        /** Type of data stored in the row */
+        public static final String TYPE = "type";
 
         /** Row data */
         public static final String DATA = "data";
@@ -43,6 +52,7 @@ public class LocalDataContract {
         public static String getCreateTableIfNotExistsStatement(final String tableName) {
             return "CREATE TABLE IF NOT EXISTS " + tableName + " ("
                     + KEY + " TEXT NOT NULL,"
+                    + TYPE + " INTEGER DEFAULT 0,"
                     + DATA + " BLOB NOT NULL,"
                     + "PRIMARY KEY(" + KEY + "))";
         }

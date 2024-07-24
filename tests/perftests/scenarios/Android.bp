@@ -19,7 +19,7 @@ package {
 java_library {
     name: "ondevicepersonalization-test-scenarios",
     srcs: [
-        "src/**/*.java",
+        "src/android/ondevicepersonalization/**/*.java",
     ],
     libs: [
         "framework-ondevicepersonalization.impl",
@@ -34,4 +34,26 @@ java_library {
         "platform-test-options",
         "platform-test-rules",
     ],
+    visibility: ["//visibility:public"],
+}
+
+java_library {
+    name: "federatedcompute-test-scenarios",
+    srcs: [
+        "src/android/federatedcompute/**/*.java",
+    ],
+    libs: [
+        "framework-ondevicepersonalization.impl",
+    ],
+    static_libs: [
+        "androidx.media_media",
+        "androidx.test.rules",
+        "androidx.test.runner",
+        "androidx.test.uiautomator_uiautomator",
+        "common-platform-scenarios",
+        "platform-test-annotations",
+        "platform-test-options",
+        "platform-test-rules",
+    ],
+    visibility: ["//visibility:public"],
 }

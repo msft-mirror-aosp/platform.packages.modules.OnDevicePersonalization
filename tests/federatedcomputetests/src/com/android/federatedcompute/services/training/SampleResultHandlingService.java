@@ -20,23 +20,26 @@ import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ER
 import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
 
 import android.federatedcompute.ResultHandlingService;
+import android.federatedcompute.common.ClientConstants;
 import android.federatedcompute.common.ExampleConsumption;
-import android.federatedcompute.common.TrainingOptions;
+import android.os.Bundle;
 import android.util.Log;
 
-import java.util.List;
+import java.util.ArrayList;
 import java.util.function.Consumer;
 
 /** A simple implementation of {@link ResultHandlingService}. */
 public class SampleResultHandlingService extends ResultHandlingService {
     private static final String TAG = "SampleResultHandlingService";
 
-    public void handleResult(
-            TrainingOptions trainingOptions,
-            boolean success,
-            List<ExampleConsumption> exampleConsumptionList,
-            Consumer<Integer> callback) {
-        Log.i(TAG, "Handling result for population: " + trainingOptions.getPopulationName());
+    public void handleResult(Bundle params, Consumer<Integer> callback) {
+        Log.i(
+                TAG,
+                "Handling result for population: "
+                        + params.getString(ClientConstants.EXTRA_POPULATION_NAME));
+        ArrayList<ExampleConsumption> exampleConsumptionList =
+                params.getParcelableArrayList(
+                        ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, ExampleConsumption.class);
         if (exampleConsumptionList.isEmpty()) {
             callback.accept(STATUS_INTERNAL_ERROR);
             return;
