@@ -52,6 +52,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 
 /** Utilities for running remote isolated services in a shared isolated process (SIP). Note that
  *  this runner is only selected when the shared_isolated_process_feature_enabled flag is enabled.
@@ -71,7 +72,8 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
     private final Context mApplicationContext;
     private final Injector mInjector;
 
-    private static class Injector {
+    @VisibleForTesting
+    static class Injector {
         Clock getClock() {
             return MonotonicClock.getInstance();
         }
@@ -81,8 +83,8 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
         }
     }
 
-    private SharedIsolatedProcessRunner(
-            @NonNull Context applicationContext, @NonNull Injector injector) {
+    @VisibleForTesting
+    SharedIsolatedProcessRunner(@NonNull Context applicationContext, @NonNull Injector injector) {
         mApplicationContext = Objects.requireNonNull(applicationContext);
         mInjector = Objects.requireNonNull(injector);
     }
@@ -112,20 +114,34 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
             return FluentFuture.from(isolatedServiceFuture)
                     .transformAsync(
                             (isolatedService) -> {
-                                try {
-                                    return Futures.immediateFuture(new IsolatedServiceInfo(
-                                            mInjector.getClock().elapsedRealtime(), componentName,
-                                            /* pluginController= */ null, isolatedService));
-                                } catch (Exception e) {
-                                    return Futures.immediateFailedFuture(e);
-                                }
-                            }, mInjector.getExecutor())
+                                return Futures.immediateFuture(
+                                        new IsolatedServiceInfo(
+                                                mInjector.getClock().elapsedRealtime(),
+                                                componentName,
+                                                isolatedService));
+                            },
+                            mInjector.getExecutor())
                     .catchingAsync(
                             Exception.class,
-                            Futures::immediateFailedFuture,
+                            e -> {
+                                sLogger.d(
+                                        TAG
+                                                + ": loading of isolated service failed for "
+                                                + componentName,
+                                        e);
+                                // Return OdpServiceException if the exception thrown was not
+                                // already an OdpServiceException.
+                                if (e instanceof OdpServiceException) {
+                                    return Futures.immediateFailedFuture(e);
+                                }
+                                return Futures.immediateFailedFuture(
+                                        new OdpServiceException(
+                                                Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED));
+                            },
                             mInjector.getExecutor());
         } catch (Exception e) {
-            return Futures.immediateFailedFuture(e);
+            return Futures.immediateFailedFuture(
+                    new OdpServiceException(Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED));
         }
     }
 
@@ -135,36 +151,65 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
     public ListenableFuture<Bundle> runIsolatedService(
             @NonNull IsolatedServiceInfo isolatedProcessInfo, int operationCode,
             @NonNull Bundle serviceParams) {
-        return CallbackToFutureAdapter.getFuture(
-                completer -> {
-                    isolatedProcessInfo.getIsolatedServiceBinder()
-                            .getService(Runnable::run)
-                            .onRequest(
-                                    operationCode, serviceParams,
+        IIsolatedService service;
+        try {
+            service = isolatedProcessInfo.getIsolatedServiceBinder().getService(Runnable::run);
+        } catch (Exception e) {
+            // Failure in loading/connecting to the IsolatedService vs actual issue
+            // in running the IsolatedService code via the onRequest call below.
+            sLogger.d(TAG + ": unable to get the IsolatedService binder.", e);
+            return Futures.immediateFailedFuture(
+                    new OdpServiceException(Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED));
+        }
+
+        ListenableFuture<Bundle> callbackFuture =
+                CallbackToFutureAdapter.getFuture(
+                        completer -> {
+                            service.onRequest(
+                                    operationCode,
+                                    serviceParams,
                                     new IIsolatedServiceCallback.Stub() {
-                                        @Override public void onSuccess(Bundle result) {
+                                        @Override
+                                        public void onSuccess(Bundle result) {
                                             completer.set(result);
                                         }
 
-                                        // TO-DO (323882182): Granular isolated servce failures.
-                                        @Override public void onError(
+                                        @Override
+                                        public void onError(
                                                 int errorCode,
                                                 int isolatedServiceErrorCode,
                                                 byte[] serializedExceptionInfo) {
-                                            Exception cause = ExceptionInfo.fromByteArray(
-                                                    serializedExceptionInfo);
+                                            Exception cause =
+                                                    ExceptionInfo.fromByteArray(
+                                                            serializedExceptionInfo);
                                             if (isolatedServiceErrorCode > 0
                                                     && isolatedServiceErrorCode < 128) {
-                                                cause = new IsolatedServiceException(
-                                                        isolatedServiceErrorCode, cause);
+                                                cause =
+                                                        new IsolatedServiceException(
+                                                                isolatedServiceErrorCode, cause);
                                             }
                                             completer.setException(
                                                     new OdpServiceException(
-                                                        Constants.STATUS_SERVICE_FAILED, cause));
+                                                            Constants.STATUS_SERVICE_FAILED,
+                                                            cause));
                                         }
                                     });
-                    return null;
-                });
+                            // used for debugging purpose only.
+                            return "IsolatedService.onRequest";
+                        });
+        return FluentFuture.from(callbackFuture)
+                .catchingAsync(
+                        Throwable.class, // Catch FutureGarbageCollectedException
+                        e -> {
+                            return (e instanceof IsolatedServiceException
+                                            || e instanceof OdpServiceException)
+                                    ? Futures.immediateFailedFuture(e)
+                                    : Futures.immediateFailedFuture(
+                                            new TimeoutException(
+                                                    "Callback to future adapter was garbage"
+                                                            + " collected."));
+                        },
+                        mInjector.getExecutor());
     }
 
     /** Unbinds from the remote isolated service. */
@@ -222,6 +267,7 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
         PackageManager pm = mApplicationContext.getPackageManager();
         ServiceInfo si = pm.getServiceInfo(service, PackageManager.GET_META_DATA);
 
+        sLogger.d(TAG + "Package manager = " + pm);
         if ((si.flags & si.FLAG_ISOLATED_PROCESS) == 0) {
             sLogger.e(
                     TAG, "ODP client service not configured to run in isolated process " + service);

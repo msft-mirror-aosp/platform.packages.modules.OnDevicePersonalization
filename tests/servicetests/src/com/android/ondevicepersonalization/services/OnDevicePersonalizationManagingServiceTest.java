@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.android.ondevicepersonalization.services;
 
 import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT;
@@ -36,6 +35,7 @@ import static org.mockito.Mockito.when;
 import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.ExecuteOptionsParcel;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -78,27 +78,25 @@ import java.util.concurrent.TimeoutException;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationManagingServiceTest {
-    @Rule
-    public final ServiceTestRule serviceRule = new ServiceTestRule();
+    @Rule public final ServiceTestRule serviceRule = new ServiceTestRule();
     private final Context mContext = spy(ApplicationProvider.getApplicationContext());
     private OnDevicePersonalizationManagingServiceDelegate mService =
             new OnDevicePersonalizationManagingServiceDelegate(mContext);
-
-    @Mock
-    private UserPrivacyStatus mUserPrivacyStatus;
+    @Mock private UserPrivacyStatus mUserPrivacyStatus;
     @Mock private MobileDataDownload mMockMdd;
-    @Spy
-    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+    @Spy private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+
     @Rule
-    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .mockStatic(FlagsFactory.class)
-            .spyStatic(UserPrivacyStatus.class)
-            .spyStatic(DeviceUtils.class)
-            .spyStatic(OnDevicePersonalizationMaintenanceJobService.class)
-            .spyStatic(UserDataCollectionJobService.class)
-            .spyStatic(MobileDataDownloadFactory.class)
-            .setStrictness(Strictness.LENIENT)
-            .build();
+    public final ExtendedMockitoRule mExtendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this)
+                    .mockStatic(FlagsFactory.class)
+                    .spyStatic(UserPrivacyStatus.class)
+                    .spyStatic(DeviceUtils.class)
+                    .spyStatic(OnDevicePersonalizationMaintenanceJobService.class)
+                    .spyStatic(UserDataCollectionJobService.class)
+                    .spyStatic(MobileDataDownloadFactory.class)
+                    .setStrictness(Strictness.LENIENT)
+                    .build();
 
     @Before
     public void setup() throws Exception {
@@ -111,7 +109,6 @@ public class OnDevicePersonalizationManagingServiceTest {
         doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
         when(mContext.checkCallingPermission(NOTIFY_MEASUREMENT_EVENT))
                 .thenReturn(PackageManager.PERMISSION_GRANTED);
-
         ExtendedMockito.doReturn(SCHEDULING_RESULT_CODE_SUCCESSFUL)
                 .when(
                         () ->
@@ -141,8 +138,8 @@ public class OnDevicePersonalizationManagingServiceTest {
                                         "com.test.TestPersonalizationHandler"),
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
-                                callback
-                        ));
+                                ExecuteOptionsParcel.DEFAULT,
+                                callback));
     }
 
     @Test
@@ -158,8 +155,8 @@ public class OnDevicePersonalizationManagingServiceTest {
                                         "com.test.TestPersonalizationHandler"),
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
-                                new ExecuteCallback()
-                        ));
+                                ExecuteOptionsParcel.DEFAULT,
+                                new ExecuteCallback()));
     }
 
     @Test
@@ -167,10 +164,10 @@ public class OnDevicePersonalizationManagingServiceTest {
         var callback = new ExecuteCallback();
         mService.execute(
                 mContext.getPackageName(),
-                new ComponentName(
-                        mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
+                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
                 createWrappedAppParams(),
                 new CallerMetadata.Builder().build(),
+                ExecuteOptionsParcel.DEFAULT,
                 callback);
         callback.await();
         assertTrue(callback.mWasInvoked);
@@ -189,6 +186,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                                         "com.test.TestPersonalizationHandler"),
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
+                                ExecuteOptionsParcel.DEFAULT,
                                 callback));
     }
 
@@ -205,6 +203,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                                         "com.test.TestPersonalizationHandler"),
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
+                                ExecuteOptionsParcel.DEFAULT,
                                 callback));
     }
 
@@ -221,6 +220,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                                         "com.test.TestPersonalizationHandler"),
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
+                                ExecuteOptionsParcel.DEFAULT,
                                 callback));
     }
 
@@ -235,6 +235,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                                 null,
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
+                                ExecuteOptionsParcel.DEFAULT,
                                 callback));
     }
 
@@ -249,6 +250,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                                 new ComponentName("", "ServiceClass"),
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
+                                ExecuteOptionsParcel.DEFAULT,
                                 callback));
     }
 
@@ -263,6 +265,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                                 new ComponentName("com.test.TestPackage", ""),
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
+                                ExecuteOptionsParcel.DEFAULT,
                                 callback));
     }
 
@@ -279,6 +282,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                                         "com.test.TestPersonalizationHandler"),
                                 createWrappedAppParams(),
                                 null,
+                                ExecuteOptionsParcel.DEFAULT,
                                 callback));
     }
 
@@ -294,6 +298,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                                         "com.test.TestPersonalizationHandler"),
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
+                                ExecuteOptionsParcel.DEFAULT,
                                 null));
     }
 
@@ -313,6 +318,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                                             "com.test.TestPersonalizationHandler"),
                                     createWrappedAppParams(),
                                     new CallerMetadata.Builder().build(),
+                                    ExecuteOptionsParcel.DEFAULT,
                                     callback));
         } finally {
             PhFlagsTestUtil.setCallerAppAllowList(originalCallerAppAllowList);
@@ -336,6 +342,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                                             "com.test.TestPersonalizationHandler"),
                                     createWrappedAppParams(),
                                     new CallerMetadata.Builder().build(),
+                                    ExecuteOptionsParcel.DEFAULT,
                                     callback));
         } finally {
             PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
@@ -356,8 +363,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                                 100,
                                 50,
                                 new CallerMetadata.Builder().build(),
-                                callback
-                        ));
+                                callback));
     }
 
     @Test
@@ -374,8 +380,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                                 100,
                                 50,
                                 new CallerMetadata.Builder().build(),
-                                callback
-                        ));
+                                callback));
     }
 
     @Test
@@ -480,13 +485,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 NullPointerException.class,
                 () ->
                         mService.requestSurfacePackage(
-                                "resultToken",
-                                new Binder(),
-                                0,
-                                100,
-                                50,
-                                null,
-                                callback));
+                                "resultToken", new Binder(), 0, 100, 50, null, callback));
     }
 
     @Test
@@ -558,8 +557,8 @@ public class OnDevicePersonalizationManagingServiceTest {
 
     @Test
     public void testWithBoundService() throws TimeoutException {
-        Intent serviceIntent = new Intent(mContext,
-                OnDevicePersonalizationManagingServiceImpl.class);
+        Intent serviceIntent =
+                new Intent(mContext, OnDevicePersonalizationManagingServiceImpl.class);
         IBinder binder = serviceRule.bindService(serviceIntent);
         assertTrue(binder instanceof OnDevicePersonalizationManagingServiceDelegate);
     }
@@ -581,8 +580,9 @@ public class OnDevicePersonalizationManagingServiceTest {
 
     private Bundle createWrappedAppParams() throws Exception {
         Bundle wrappedParams = new Bundle();
-        ByteArrayParceledSlice buffer = new ByteArrayParceledSlice(
-                PersistableBundleUtils.toByteArray(PersistableBundle.EMPTY));
+        ByteArrayParceledSlice buffer =
+                new ByteArrayParceledSlice(
+                        PersistableBundleUtils.toByteArray(PersistableBundle.EMPTY));
         wrappedParams.putParcelable(Constants.EXTRA_APP_PARAMS_SERIALIZED, buffer);
         return wrappedParams;
     }
@@ -608,7 +608,9 @@ public class OnDevicePersonalizationManagingServiceTest {
         }
 
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode,
+        public void onError(
+                int errorCode,
+                int isolatedServiceErrorCode,
                 byte[] serializedException,
                 CalleeMetadata calleeMetadata) {
             mWasInvoked = true;
@@ -634,15 +636,17 @@ public class OnDevicePersonalizationManagingServiceTest {
         private final CountDownLatch mLatch = new CountDownLatch(1);
 
         @Override
-        public void onSuccess(SurfaceControlViewHost.SurfacePackage s,
-                CalleeMetadata calleeMetadata) {
+        public void onSuccess(
+                SurfaceControlViewHost.SurfacePackage s, CalleeMetadata calleeMetadata) {
             mWasInvoked = true;
             mSuccess = true;
             mLatch.countDown();
         }
 
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode,
+        public void onError(
+                int errorCode,
+                int isolatedServiceErrorCode,
                 byte[] serializedException,
                 CalleeMetadata calleeMetadata) {
             mWasInvoked = true;

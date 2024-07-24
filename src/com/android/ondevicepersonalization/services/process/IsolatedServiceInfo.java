@@ -16,7 +16,6 @@
 
 package com.android.ondevicepersonalization.services.process;
 
-import static android.adservices.ondevicepersonalization.OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED;
 
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.annotation.NonNull;
@@ -25,7 +24,6 @@ import android.content.ComponentName;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.ondevicepersonalization.libraries.plugin.PluginController;
-import com.android.ondevicepersonalization.services.OdpServiceException;
 
 import java.util.Objects;
 
@@ -39,19 +37,26 @@ public class IsolatedServiceInfo {
     IsolatedServiceInfo(
             long startTimeMillis,
             @NonNull ComponentName componentName,
+            @NonNull PluginController pluginController) {
+        this(startTimeMillis, componentName, pluginController, /* isolatedServiceBinder= */ null);
+    }
+
+    IsolatedServiceInfo(
+            long startTimeMillis,
+            @NonNull ComponentName componentName,
+            @NonNull AbstractServiceBinder<IIsolatedService> isolatedServiceBinder) {
+        this(startTimeMillis, componentName, /* pluginController= */ null, isolatedServiceBinder);
+    }
+
+    private IsolatedServiceInfo(
+            long startTimeMillis,
+            @NonNull ComponentName componentName,
             @Nullable PluginController pluginController,
-            @Nullable AbstractServiceBinder<IIsolatedService> isolatedServiceBinder)
-            throws OdpServiceException {
+            @Nullable AbstractServiceBinder<IIsolatedService> isolatedServiceBinder) {
         mStartTimeMillis = startTimeMillis;
         mComponentName = Objects.requireNonNull(componentName);
         mPluginController = pluginController;
         mIsolatedServiceBinder = isolatedServiceBinder;
-
-        // TO-DO (323882182): Granular isolated servce failures.
-        if ((mPluginController != null && mIsolatedServiceBinder != null)
-                || (mPluginController == null && mIsolatedServiceBinder == null)) {
-            throw new OdpServiceException(ERROR_ISOLATED_SERVICE_FAILED);
-        }
     }
 
     PluginController getPluginController() {

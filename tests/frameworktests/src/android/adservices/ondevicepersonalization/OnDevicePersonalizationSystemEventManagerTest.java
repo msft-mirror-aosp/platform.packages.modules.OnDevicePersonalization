@@ -141,6 +141,7 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                 ComponentName handler,
                 Bundle params,
                 CallerMetadata metadata,
+                ExecuteOptionsParcel options,
                 IExecuteCallback callback) {
             throw new UnsupportedOperationException();
         }

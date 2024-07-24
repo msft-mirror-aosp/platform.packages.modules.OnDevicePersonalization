@@ -58,8 +58,11 @@ import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 
+import com.test.TestPersonalizationHandler;
+
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -71,13 +74,18 @@ import org.mockito.quality.Strictness;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
 public class AppRequestFlowTest {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = AppRequestFlowTest.class.getSimpleName();
 
+    private static final String TEST_SERVICE_CLASS = "com.test.TestPersonalizationService";
+    private static final int TEST_TIMEOUT_SECONDS = 10;
     private final Context mContext = spy(ApplicationProvider.getApplicationContext());
+    private final ComponentName mTestServiceComponentName =
+            new ComponentName(mContext.getPackageName(), TEST_SERVICE_CLASS);
     private final CountDownLatch mLatch = new CountDownLatch(1);
     private final OnDevicePersonalizationDbHelper mDbHelper =
             OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
@@ -106,6 +114,8 @@ public class AppRequestFlowTest {
     @Before
     public void setup() throws Exception {
         when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
+        // default for service deadline is 30 seconds
+        when(mSpyFlags.getIsolatedServiceDeadlineSeconds()).thenReturn(30);
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
@@ -139,6 +149,7 @@ public class AppRequestFlowTest {
                 new AppTestInjector());
 
         mLatch.await();
+
         assertTrue(mCallbackError);
         assertEquals(Constants.STATUS_MANIFEST_MISCONFIGURED, mCallbackErrorCode);
     }
@@ -148,7 +159,7 @@ public class AppRequestFlowTest {
         mSfo.scheduleForTest(
                 ServiceFlowType.APP_REQUEST_FLOW,
                 mContext.getPackageName(),
-                new ComponentName("backPackageName", "com.test.TestPersonalizationService"),
+                new ComponentName("badPackageName", TEST_SERVICE_CLASS),
                 createWrappedAppParams(),
                 new TestExecuteCallback(),
                 mContext,
@@ -157,6 +168,7 @@ public class AppRequestFlowTest {
                 new AppTestInjector());
 
         mLatch.await();
+
         assertTrue(mCallbackError);
         assertEquals(Constants.STATUS_MANIFEST_PARSING_FAILED, mCallbackErrorCode);
     }
@@ -170,7 +182,7 @@ public class AppRequestFlowTest {
         mSfo.scheduleForTest(
                 ServiceFlowType.APP_REQUEST_FLOW,
                 mContext.getPackageName(),
-                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                mTestServiceComponentName,
                 createWrappedAppParams(),
                 new TestExecuteCallback(),
                 mContext,
@@ -178,6 +190,7 @@ public class AppRequestFlowTest {
                 110L,
                 new AppTestInjector());
         mLatch.await();
+
         assertTrue(mCallbackSuccess);
         assertFalse(mExecuteCallback.isEmpty());
         // make sure no request or event records are written to the database
@@ -192,7 +205,7 @@ public class AppRequestFlowTest {
         mSfo.scheduleForTest(
                 ServiceFlowType.APP_REQUEST_FLOW,
                 mContext.getPackageName(),
-                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                mTestServiceComponentName,
                 createWrappedAppParams(),
                 new TestExecuteCallback(),
                 mContext,
@@ -200,6 +213,7 @@ public class AppRequestFlowTest {
                 110L,
                 new AppTestInjector());
         mLatch.await();
+
         assertTrue(mCallbackSuccess);
         assertTrue(mExecuteCallback.isEmpty());
     }
@@ -211,7 +225,7 @@ public class AppRequestFlowTest {
         mSfo.scheduleForTest(
                 ServiceFlowType.APP_REQUEST_FLOW,
                 mContext.getPackageName(),
-                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                mTestServiceComponentName,
                 createWrappedAppParams(),
                 new TestExecuteCallback(),
                 mContext,
@@ -235,7 +249,7 @@ public class AppRequestFlowTest {
         mSfo.scheduleForTest(
                 ServiceFlowType.APP_REQUEST_FLOW,
                 mContext.getPackageName(),
-                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                mTestServiceComponentName,
                 createWrappedAppParams(),
                 new TestExecuteCallback(),
                 mContext,
@@ -252,6 +266,63 @@ public class AppRequestFlowTest {
         assertEquals(1, getDbTableSize(EventsContract.EventsEntry.TABLE_NAME));
     }
 
+    @Test
+    @Ignore("TODO: b/342672147 - temporary disable failing tests.")
+    public void testAppRequestFlow_getServiceFlowFuture_timeoutExceptionReturned()
+            throws InterruptedException {
+        // When the request fails due to the test service timing out, the callback should fail
+        // with the service timeout error code.
+        String contextPackageName = mContext.getPackageName();
+        when(mSpyFlags.getOutputDataAllowList())
+                .thenReturn(contextPackageName + ";" + contextPackageName);
+        when(mSpyFlags.getIsolatedServiceDeadlineSeconds()).thenReturn(TEST_TIMEOUT_SECONDS);
+
+        mSfo.schedule(
+                ServiceFlowType.APP_REQUEST_FLOW,
+                mContext.getPackageName(),
+                mTestServiceComponentName,
+                createWrappedAppParams(/* timeout= */ true),
+                new TestExecuteCallback(),
+                mContext,
+                100L,
+                110L);
+        boolean countedDown = mLatch.await(3 * TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        assertTrue(countedDown);
+        assertFalse(mCallbackSuccess);
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_ISOLATED_SERVICE_TIMEOUT, mCallbackErrorCode);
+    }
+
+    @Test
+    @Ignore("TODO: b/342672147 - temporary disable failing tests.")
+    public void testAppRequestFlow_getServiceFlowFuture_outputValidationExceptionReturned()
+            throws Exception {
+        // When the request fails due to output validation check failing, the callback should fail
+        // with the service failed error code. Clear vendor data to cause output
+        // validation check to fail.
+        String contextPackageName = mContext.getPackageName();
+        when(mSpyFlags.getOutputDataAllowList())
+                .thenReturn(contextPackageName + ";" + contextPackageName);
+        clearVendorDataDao();
+
+        mSfo.schedule(
+                ServiceFlowType.APP_REQUEST_FLOW,
+                mContext.getPackageName(),
+                mTestServiceComponentName,
+                createWrappedAppParams(),
+                new TestExecuteCallback(),
+                mContext,
+                100L,
+                110L);
+        boolean countedDown = mLatch.await(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        assertTrue(countedDown);
+        assertFalse(mCallbackSuccess);
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_SERVICE_FAILED, mCallbackErrorCode);
+    }
+
     private int getDbTableSize(String tableName) {
         return mDbHelper.getReadableDatabase().query(tableName, null,
                 null, null, null, null, null).getCount();
@@ -265,8 +336,7 @@ public class AppRequestFlowTest {
         ContentValues row2 = new ContentValues();
         row2.put("b", 2);
         rows.add(row2);
-        ComponentName service = new ComponentName(
-                mContext.getPackageName(), "com.test.TestPersonalizationService");
+        ComponentName service = new ComponentName(mContext.getPackageName(), TEST_SERVICE_CLASS);
         byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
                 DbUtils.toTableValue(service), "AABBCCDD", rows);
         EventsDao.getInstanceForTest(mContext).insertQuery(
@@ -279,10 +349,10 @@ public class AppRequestFlowTest {
                         .build());
         EventsDao.getInstanceForTest(mContext);
 
-        OnDevicePersonalizationVendorDataDao testVendorDao = OnDevicePersonalizationVendorDataDao
-                .getInstanceForTest(mContext,
-                        new ComponentName(mContext.getPackageName(),
-                                "com.test.TestPersonalizationService"),
+        OnDevicePersonalizationVendorDataDao testVendorDao =
+                OnDevicePersonalizationVendorDataDao.getInstanceForTest(
+                        mContext,
+                        new ComponentName(mContext.getPackageName(), TEST_SERVICE_CLASS),
                         PackageUtils.getCertDigest(mContext, mContext.getPackageName()));
         VendorData vendorData = new VendorData.Builder().setData(new byte[5]).setKey(
                 "bid1").build();
@@ -293,11 +363,36 @@ public class AppRequestFlowTest {
         );
     }
 
+    private void clearVendorDataDao() throws Exception {
+        OnDevicePersonalizationVendorDataDao testVendorDao =
+                OnDevicePersonalizationVendorDataDao.getInstanceForTest(
+                        mContext,
+                        new ComponentName(mContext.getPackageName(), TEST_SERVICE_CLASS),
+                        PackageUtils.getCertDigest(mContext, mContext.getPackageName()));
+        testVendorDao.deleteVendorData(
+                mContext,
+                new ComponentName(mContext.getPackageName(), TEST_SERVICE_CLASS),
+                PackageUtils.getCertDigest(mContext, mContext.getPackageName()));
+    }
+
     private static Bundle createWrappedAppParams() {
+        return createWrappedAppParams(/* timeout= */ false);
+    }
+
+    /**
+     * Creates Bundle with app params for the test, including optional boolean for mimicking timeout
+     * in the {@code TestPersonalizationService}.
+     */
+    private static Bundle createWrappedAppParams(boolean timeout) {
         try {
             Bundle wrappedParams = new Bundle();
-            ByteArrayParceledSlice buffer = new ByteArrayParceledSlice(
-                    PersistableBundleUtils.toByteArray(PersistableBundle.EMPTY));
+            PersistableBundle handlerBundle = PersistableBundle.EMPTY;
+            if (timeout) {
+                handlerBundle = new PersistableBundle();
+                handlerBundle.putBoolean(TestPersonalizationHandler.TIMEOUT_KEY, timeout);
+            }
+            ByteArrayParceledSlice buffer =
+                    new ByteArrayParceledSlice(PersistableBundleUtils.toByteArray(handlerBundle));
             wrappedParams.putParcelable(Constants.EXTRA_APP_PARAMS_SERIALIZED, buffer);
             return wrappedParams;
         } catch (Exception e) {
@@ -320,6 +415,7 @@ public class AppRequestFlowTest {
     class TestExecuteCallback extends IExecuteCallback.Stub {
         @Override
         public void onSuccess(Bundle bundle, CalleeMetadata calleeMetadata) {
+            sLogger.d(TAG + " : onSuccess callback.");
             mCallbackSuccess = true;
             mExecuteCallback = bundle;
             mLatch.countDown();
@@ -329,6 +425,7 @@ public class AppRequestFlowTest {
         public void onError(int errorCode, int isolatedServiceErrorCode,
                 byte[] serializedException,
                 CalleeMetadata calleeMetadata) {
+            sLogger.d(TAG + " : onError callback.");
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;
