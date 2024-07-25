@@ -100,6 +100,13 @@ public class OnDevicePersonalizationManager {
 
     private static final String ODP_MANIFEST_ERROR_MESSAGE =
             "OnDevicePersonalization manifest invalid.";
+
+    private static final String ODP_SERVICE_LOADING_ERROR_MESSAGE =
+            "Failed to load the isolated service.";
+
+    private static final String ODP_SERVICE_TIMEOUT_ERROR_MESSAGE =
+            "The isolated service timed out without returning.";
+
     private static final String TAG = OnDevicePersonalizationManager.class.getSimpleName();
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private final AbstractServiceBinder<IOnDevicePersonalizationManagingService> mServiceBinder;
@@ -660,6 +667,10 @@ public class OnDevicePersonalizationManager {
             case Constants.STATUS_MANIFEST_PARSING_FAILED: // Intentional fallthrough
             case Constants.STATUS_MANIFEST_MISCONFIGURED:
                 return ODP_MANIFEST_ERROR_MESSAGE;
+            case Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED:
+                return ODP_SERVICE_LOADING_ERROR_MESSAGE;
+            case Constants.STATUS_ISOLATED_SERVICE_TIMEOUT:
+                return ODP_SERVICE_TIMEOUT_ERROR_MESSAGE;
             default:
                 sLogger.w(TAG + "Unexpected error code while creating exception: " + errorCode);
                 return "";
@@ -687,6 +698,10 @@ public class OnDevicePersonalizationManager {
                     translatedCode = Constants.STATUS_NAME_NOT_FOUND;
             case Constants.STATUS_MANIFEST_MISCONFIGURED ->
                     translatedCode = Constants.STATUS_CLASS_NOT_FOUND;
+            case Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED ->
+                    translatedCode = Constants.STATUS_SERVICE_FAILED;
+            case Constants.STATUS_ISOLATED_SERVICE_TIMEOUT ->
+                    translatedCode = Constants.STATUS_SERVICE_FAILED;
         }
         return translatedCode;
     }
@@ -727,15 +742,21 @@ public class OnDevicePersonalizationManager {
                         convertMessage(errorCode),
                         cause);
             case Constants.STATUS_MANIFEST_PARSING_FAILED:
+                // Intentional fallthrough
+            case Constants.STATUS_MANIFEST_MISCONFIGURED:
                 return new OnDevicePersonalizationException(
                         OnDevicePersonalizationException
                                 .ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
                         convertMessage(errorCode),
                         cause);
-            case Constants.STATUS_MANIFEST_MISCONFIGURED:
+            case Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED:
                 return new OnDevicePersonalizationException(
-                        OnDevicePersonalizationException
-                                .ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
+                        OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_LOADING_FAILED,
+                        convertMessage(errorCode),
+                        cause);
+            case Constants.STATUS_ISOLATED_SERVICE_TIMEOUT:
+                return new OnDevicePersonalizationException(
+                        OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_TIMEOUT,
                         convertMessage(errorCode),
                         cause);
             default:
