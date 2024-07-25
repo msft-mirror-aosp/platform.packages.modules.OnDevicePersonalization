@@ -62,7 +62,6 @@ import com.test.TestPersonalizationHandler;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -267,7 +266,6 @@ public class AppRequestFlowTest {
     }
 
     @Test
-    @Ignore("TODO: b/342672147 - temporary disable failing tests.")
     public void testAppRequestFlow_getServiceFlowFuture_timeoutExceptionReturned()
             throws InterruptedException {
         // When the request fails due to the test service timing out, the callback should fail
@@ -277,7 +275,7 @@ public class AppRequestFlowTest {
                 .thenReturn(contextPackageName + ";" + contextPackageName);
         when(mSpyFlags.getIsolatedServiceDeadlineSeconds()).thenReturn(TEST_TIMEOUT_SECONDS);
 
-        mSfo.schedule(
+        mSfo.scheduleForTest(
                 ServiceFlowType.APP_REQUEST_FLOW,
                 mContext.getPackageName(),
                 mTestServiceComponentName,
@@ -285,7 +283,8 @@ public class AppRequestFlowTest {
                 new TestExecuteCallback(),
                 mContext,
                 100L,
-                110L);
+                110L,
+                new AppTestInjector());
         boolean countedDown = mLatch.await(3 * TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         assertTrue(countedDown);
@@ -295,7 +294,6 @@ public class AppRequestFlowTest {
     }
 
     @Test
-    @Ignore("TODO: b/342672147 - temporary disable failing tests.")
     public void testAppRequestFlow_getServiceFlowFuture_outputValidationExceptionReturned()
             throws Exception {
         // When the request fails due to output validation check failing, the callback should fail
@@ -306,7 +304,7 @@ public class AppRequestFlowTest {
                 .thenReturn(contextPackageName + ";" + contextPackageName);
         clearVendorDataDao();
 
-        mSfo.schedule(
+        mSfo.scheduleForTest(
                 ServiceFlowType.APP_REQUEST_FLOW,
                 mContext.getPackageName(),
                 mTestServiceComponentName,
@@ -314,7 +312,8 @@ public class AppRequestFlowTest {
                 new TestExecuteCallback(),
                 mContext,
                 100L,
-                110L);
+                110L,
+                new AppTestInjector());
         boolean countedDown = mLatch.await(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         assertTrue(countedDown);
