@@ -183,10 +183,11 @@ public final class OnDevicePersonalizationManagerTest {
 
     @Test
     public void testExecuteErrorWithCode() throws Exception {
+        int isolatedServiceErrorCode = 42;
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "error");
         params.putInt(KEY_STATUS_CODE, Constants.STATUS_SERVICE_FAILED);
-        params.putInt(KEY_SERVICE_ERROR_CODE, 42);
+        params.putInt(KEY_SERVICE_ERROR_CODE, isolatedServiceErrorCode);
         var receiver = new ResultReceiver();
 
         runExecute(params, receiver);
@@ -199,7 +200,8 @@ public final class OnDevicePersonalizationManagerTest {
                 ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
         assertTrue(receiver.getException().getCause() instanceof IsolatedServiceException);
         assertEquals(
-                42, ((IsolatedServiceException) receiver.getException().getCause()).getErrorCode());
+                isolatedServiceErrorCode,
+                ((IsolatedServiceException) receiver.getException().getCause()).getErrorCode());
         assertTrue(mLogApiStatsCalled);
     }
 
@@ -316,6 +318,122 @@ public final class OnDevicePersonalizationManagerTest {
         Throwable cause = receiver.getException().getCause();
         assertNotNull(cause);
         assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*parsing.*");
+        assertTrue(mLogApiStatsCalled);
+    }
+
+    @Test
+    @DisableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
+    public void testExecuteServiceTimeoutErrorOldTargetSDK() throws Exception {
+        // The service timeout failure gets translated back to original service failed error
+        // when the granular error codes are disabled.
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        params.putInt(KEY_STATUS_CODE, Constants.STATUS_ISOLATED_SERVICE_TIMEOUT);
+        params.putString(KEY_ERROR_MESSAGE, "Service timeout");
+        var receiver = new ResultReceiver<ExecuteResult>();
+
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertEquals(
+                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        Throwable cause = receiver.getException().getCause();
+        assertNotNull(cause);
+        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*timeout.*");
+        assertTrue(mLogApiStatsCalled);
+    }
+
+    @Test
+    @EnableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
+    public void testExecuteServiceTimeoutErrorNewTargetSDK() throws Exception {
+        // The service timeout failure gets exposed via corresponding OdpException
+        // when the granular error codes are enabled.
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        params.putInt(KEY_STATUS_CODE, Constants.STATUS_ISOLATED_SERVICE_TIMEOUT);
+        params.putString(KEY_ERROR_MESSAGE, "Service timeout");
+        var receiver = new ResultReceiver<ExecuteResult>();
+
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertEquals(
+                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_TIMEOUT,
+                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        Throwable cause = receiver.getException().getCause();
+        assertNotNull(cause);
+        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*timeout.*");
+        assertTrue(mLogApiStatsCalled);
+    }
+
+    @Test
+    @DisableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
+    public void testExecuteServiceLoadingErrorOldTargetSDK() throws Exception {
+        // The service loading failure gets translated back to original service failed error
+        // when the granular error codes are disabled.
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        params.putInt(KEY_STATUS_CODE, Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED);
+        params.putString(KEY_ERROR_MESSAGE, "Service loading failed.");
+        var receiver = new ResultReceiver<ExecuteResult>();
+
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertEquals(
+                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        Throwable cause = receiver.getException().getCause();
+        assertNotNull(cause);
+        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*loading.*");
+        assertTrue(mLogApiStatsCalled);
+    }
+
+    @Test
+    @EnableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
+    public void testExecuteServiceLoadingErrorNewTargetSDK() throws Exception {
+        // The service loading failure gets exposed via corresponding OdpException
+        // when the granular error codes are enabled.
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        params.putInt(KEY_STATUS_CODE, Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED);
+        params.putString(KEY_ERROR_MESSAGE, "Service loading failed.");
+        var receiver = new ResultReceiver<ExecuteResult>();
+
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertEquals(
+                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_LOADING_FAILED,
+                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        Throwable cause = receiver.getException().getCause();
+        assertNotNull(cause);
+        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*loading.*");
         assertTrue(mLogApiStatsCalled);
     }
 
