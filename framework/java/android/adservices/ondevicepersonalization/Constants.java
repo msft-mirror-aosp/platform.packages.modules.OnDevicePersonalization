@@ -39,6 +39,12 @@ public class Constants {
     /** Internal error code that tracks misconfigured ODP manifest settings. */
     public static final int STATUS_MANIFEST_MISCONFIGURED = 107;
 
+    /** Internal error code that tracks errors in loading the Isolated Service. */
+    public static final int STATUS_ISOLATED_SERVICE_LOADING_FAILED = 108;
+
+    /** Internal error code that tracks error when Isolated Service times out. */
+    public static final int STATUS_ISOLATED_SERVICE_TIMEOUT = 109;
+
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
     public static final int OP_DOWNLOAD = 2;
