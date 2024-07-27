@@ -42,7 +42,7 @@ public class ExecuteInIsolatedServiceRequest {
      */
     @NonNull private PersistableBundle mParams;
 
-    @Nullable private Options mOptions;
+    @NonNull private Options mOptions;
 
     public static class Options {
         /**
@@ -64,11 +64,13 @@ public class ExecuteInIsolatedServiceRequest {
         @Retention(RetentionPolicy.SOURCE)
         public @interface OutputType {}
 
-        /** Default value is OUTPUT_TYPE_INT. */
-        @OutputType private int mOutputType = OUTPUT_TYPE_NULL;
+        /** Default value is OUTPUT_TYPE_NULL. */
+        @OutputType private final int mOutputType;
 
-        /** Optional. Only set when output option is OUTPUT_TYPE_INT. */
-        private int mMaxIntValue = -1;
+        /** Optional. Only set when output option is OUTPUT_TYPE_BEST_VALUE. */
+        private final int mMaxIntValue;
+
+        public static Options DEFAULT = new Options(OUTPUT_TYPE_NULL, -1);
 
         private Options(int outputType, int maxIntValue) {
             mMaxIntValue = maxIntValue;
@@ -100,7 +102,7 @@ public class ExecuteInIsolatedServiceRequest {
     ExecuteInIsolatedServiceRequest(
             @NonNull ComponentName service,
             @NonNull PersistableBundle params,
-            @Nullable Options options) {
+            @NonNull Options options) {
         Objects.requireNonNull(service);
         Objects.requireNonNull(params);
         this.mService = service;
@@ -122,7 +124,7 @@ public class ExecuteInIsolatedServiceRequest {
         return mParams;
     }
 
-    public @Nullable Options getOptions() {
+    public @NonNull Options getOptions() {
         return mOptions;
     }
 
@@ -155,16 +157,18 @@ public class ExecuteInIsolatedServiceRequest {
     /** A builder for {@link ExecuteInIsolatedServiceRequest} */
     public static class Builder {
         private @NonNull ComponentName mService;
-        private @NonNull PersistableBundle mParams;
-        private @Nullable Options mOptions;
+        private @NonNull PersistableBundle mParams = PersistableBundle.EMPTY;
+        private @NonNull Options mOptions = Options.DEFAULT;
 
-        public Builder() {}
-
-        /** The {@link ComponentName} of the {@link IsolatedService}. */
-        public @NonNull Builder setService(@NonNull ComponentName value) {
-            mService = value;
-            return this;
+        /**
+         * Creates a new builder.
+         *
+         * @param componentName the name of {@link IsolatedService}.
+         */
+        public Builder(@NonNull ComponentName componentName) {
+            mService = componentName;
         }
+
 
         /**
          * The {@link PersistableBundle} that is passed from the calling app to the {@link
@@ -181,7 +185,7 @@ public class ExecuteInIsolatedServiceRequest {
          * ExecuteInIsolatedServiceResponse#getBestValue} will return non-negative value. Otherwise,
          * {@link ExecuteInIsolatedServiceResponse#getBestValue} will return -1.
          */
-        public @Nullable Builder setOptions(@Nullable Options value) {
+        public @NonNull Builder setOptions(@NonNull Options value) {
             mOptions = value;
             return this;
         }

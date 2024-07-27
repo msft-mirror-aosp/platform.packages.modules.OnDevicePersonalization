@@ -16,7 +16,8 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.android.ondevicepersonalization.cts.e2e">
-
+    <uses-sdk android:minSdkVersion="33"
+              android:targetSdkVersion="33" />
     <application android:debuggable="true"
         android:label="CtsOnDevicePersonalizationE2ETests">
         <uses-library android:name="android.test.runner" />

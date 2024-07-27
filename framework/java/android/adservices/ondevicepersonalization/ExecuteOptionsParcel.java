@@ -24,10 +24,10 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 /** @hide */
 @DataClass(genAidl = false, genBuilder = false)
 public class ExecuteOptionsParcel implements Parcelable {
-    /** Default value is OUTPUT_TYPE_INT. */
+    /** Default value is OUTPUT_TYPE_NULL. */
     @ExecuteInIsolatedServiceRequest.Options.OutputType private final int mOutputType;
 
-    /** Optional. Only set when output option is OUTPUT_TYPE_INT. */
+    /** Optional. Only set when output option is OUTPUT_TYPE_BEST_VALUE. */
     private final int mMaxIntValue;
 
     public static ExecuteOptionsParcel DEFAULT = new ExecuteOptionsParcel();
@@ -58,11 +58,12 @@ public class ExecuteOptionsParcel implements Parcelable {
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
     // @formatter:off
+
     /**
      * Creates a new ExecuteOptionsParcel.
      *
-     * @param outputType Default value is OUTPUT_TYPE_INT.
-     * @param maxIntValue Optional. Only set when output option is OUTPUT_TYPE_INT.
+     * @param outputType Default value is OUTPUT_TYPE_NULL.
+     * @param maxIntValue Optional. Only set when output option is OUTPUT_TYPE_BEST_VALUE.
      */
     @DataClass.Generated.Member
     public ExecuteOptionsParcel(
@@ -71,16 +72,17 @@ public class ExecuteOptionsParcel implements Parcelable {
         AnnotationValidations.validate(
                 ExecuteInIsolatedServiceRequest.Options.OutputType.class, null, mOutputType);
         this.mMaxIntValue = maxIntValue;
+
         // onConstructed(); // You can define this method to get a callback
     }
 
-    /** Default value is OUTPUT_TYPE_INT. */
+    /** Default value is OUTPUT_TYPE_NULL. */
     @DataClass.Generated.Member
     public @ExecuteInIsolatedServiceRequest.Options.OutputType int getOutputType() {
         return mOutputType;
     }
 
-    /** Optional. Only set when output option is OUTPUT_TYPE_INT. */
+    /** Optional. Only set when output option is OUTPUT_TYPE_BEST_VALUE. */
     @DataClass.Generated.Member
     public int getMaxIntValue() {
         return mMaxIntValue;
@@ -88,9 +90,10 @@ public class ExecuteOptionsParcel implements Parcelable {
 
     @Override
     @DataClass.Generated.Member
-    public void writeToParcel(@android.annotation.NonNull android.os.Parcel dest, int flags) {
+    public void writeToParcel(@NonNull android.os.Parcel dest, int flags) {
         // You can override field parcelling by defining methods like:
         // void parcelFieldName(Parcel dest, int flags) { ... }
+
         dest.writeInt(mOutputType);
         dest.writeInt(mMaxIntValue);
     }
@@ -104,34 +107,35 @@ public class ExecuteOptionsParcel implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    protected ExecuteOptionsParcel(@android.annotation.NonNull android.os.Parcel in) {
+    protected ExecuteOptionsParcel(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
+
         int outputType = in.readInt();
         int maxIntValue = in.readInt();
+
         this.mOutputType = outputType;
         AnnotationValidations.validate(
                 ExecuteInIsolatedServiceRequest.Options.OutputType.class, null, mOutputType);
         this.mMaxIntValue = maxIntValue;
+
         // onConstructed(); // You can define this method to get a callback
     }
 
     @DataClass.Generated.Member
-    public static final @android.annotation.NonNull Parcelable.Creator<ExecuteOptionsParcel>
-            CREATOR =
-                    new Parcelable.Creator<ExecuteOptionsParcel>() {
-                        @Override
-                        public ExecuteOptionsParcel[] newArray(int size) {
-                            return new ExecuteOptionsParcel[size];
-                        }
+    public static final @NonNull Parcelable.Creator<ExecuteOptionsParcel> CREATOR =
+            new Parcelable.Creator<ExecuteOptionsParcel>() {
+                @Override
+                public ExecuteOptionsParcel[] newArray(int size) {
+                    return new ExecuteOptionsParcel[size];
+                }
 
-                        @Override
-                        public ExecuteOptionsParcel createFromParcel(
-                                @android.annotation.NonNull android.os.Parcel in) {
-                            return new ExecuteOptionsParcel(in);
-                        }
-                    };
-
+                @Override
+                public ExecuteOptionsParcel createFromParcel(@NonNull android.os.Parcel in) {
+                    return new ExecuteOptionsParcel(in);
+                }
+            };
     // @formatter:on
     // End of generated code
+
 }

@@ -21,7 +21,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
-    <application android:label="OnDevicePersonalizationSystemServiceApiTests">
+    <application android:debuggable="true" android:label="OnDevicePersonalizationSystemServiceApiTests">
         <uses-library android:name="android.test.runner"/>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"

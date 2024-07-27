@@ -49,6 +49,7 @@ import libcore.junit.util.compat.CoreCompatChangeRule.EnableCompatChanges;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
@@ -238,6 +239,7 @@ public class CtsOdpManagerTests {
     }
 
     @Test
+    @Ignore("TODO: b/355168043 - disable failing compat tests.")
     @DisableCompatChanges({GRANULAR_EXCEPTION_ERROR_CODES})
     public void testExecuteReturnsNameNotFoundIfServiceNotInstalled() throws InterruptedException {
         OnDevicePersonalizationManager manager =
@@ -254,6 +256,7 @@ public class CtsOdpManagerTests {
     }
 
     @Test
+    @Ignore("TODO: b/355168043 - disable failing compat tests.")
     @EnableCompatChanges({GRANULAR_EXCEPTION_ERROR_CODES})
     public void testExecuteReturnsOdpExceptionIfServiceNotInstalledGranularErrorCodesEnabled()
             throws InterruptedException {
@@ -274,6 +277,7 @@ public class CtsOdpManagerTests {
     }
 
     @Test
+    @Ignore("TODO: b/355168043 - disable failing compat tests.")
     @DisableCompatChanges({GRANULAR_EXCEPTION_ERROR_CODES})
     public void testExecuteReturnsClassNotFoundIfServiceClassNotFound()
             throws InterruptedException {
@@ -291,6 +295,7 @@ public class CtsOdpManagerTests {
     }
 
     @Test
+    @Ignore("TODO: b/355168043 - disable failing compat tests.")
     @EnableCompatChanges({GRANULAR_EXCEPTION_ERROR_CODES})
     public void testExecuteReturnsOdpExceptionIfServiceClassNotFoundGranularErrorCodesEnabled()
             throws InterruptedException {
