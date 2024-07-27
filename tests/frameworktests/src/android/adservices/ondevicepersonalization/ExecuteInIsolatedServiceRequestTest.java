@@ -18,25 +18,23 @@ package android.adservices.ondevicepersonalization;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.assertThrows;
-
 import android.content.ComponentName;
 import android.os.PersistableBundle;
 
 import org.junit.Test;
 
 public class ExecuteInIsolatedServiceRequestTest {
+    private static final ComponentName COMPONENT_NAME =
+            ComponentName.createRelative("com.example.service", ".Example");
+
     @Test
     public void buildRequestWithOption_success() {
         PersistableBundle params = new PersistableBundle();
         params.putString("key", "ok");
-        ComponentName componentName =
-                ComponentName.createRelative("com.example.service", ".Example");
 
         ExecuteInIsolatedServiceRequest request =
-                new ExecuteInIsolatedServiceRequest.Builder()
+                new ExecuteInIsolatedServiceRequest.Builder(COMPONENT_NAME)
                         .setParams(params)
-                        .setService(componentName)
                         .setOptions(
                                 ExecuteInIsolatedServiceRequest.Options.buildBestValueOption(100))
                         .build();
@@ -46,46 +44,30 @@ public class ExecuteInIsolatedServiceRequestTest {
         assertThat(options.getOutputType())
                 .isEqualTo(ExecuteInIsolatedServiceRequest.Options.OUTPUT_TYPE_BEST_VALUE);
         assertThat(request.getParams()).isEqualTo(params);
-        assertThat(request.getService()).isEqualTo(componentName);
+        assertThat(request.getService()).isEqualTo(COMPONENT_NAME);
     }
 
     @Test
     public void buildRequestWithoutOption_success() {
         PersistableBundle params = new PersistableBundle();
         params.putString("key", "ok");
-        ComponentName componentName =
-                ComponentName.createRelative("com.example.service", ".Example");
 
         ExecuteInIsolatedServiceRequest request =
-                new ExecuteInIsolatedServiceRequest.Builder()
+                new ExecuteInIsolatedServiceRequest.Builder(COMPONENT_NAME)
                         .setParams(params)
-                        .setService(componentName)
                         .build();
 
         ExecuteInIsolatedServiceRequest.Options options = request.getOptions();
-        assertThat(options).isNull();
+        assertThat(options).isEqualTo(ExecuteInIsolatedServiceRequest.Options.DEFAULT);
         assertThat(request.getParams()).isEqualTo(params);
-        assertThat(request.getService()).isEqualTo(componentName);
+        assertThat(request.getService()).isEqualTo(COMPONENT_NAME);
     }
 
     @Test
-    public void buildRequest_paramsMissing() {
-        assertThrows(
-                NullPointerException.class,
-                () ->
-                        new ExecuteInIsolatedServiceRequest.Builder()
-                                .setService(
-                                        ComponentName.createRelative(
-                                                "com.example.service", ".Example"))
-                                .build());
-    }
+    public void buildRequest_noParams_success() {
+        ExecuteInIsolatedServiceRequest request =
+                new ExecuteInIsolatedServiceRequest.Builder(COMPONENT_NAME).build();
 
-    @Test
-    public void buildRequest_componentNameMissing() {
-        PersistableBundle params = new PersistableBundle();
-        params.putString("key", "ok");
-        assertThrows(
-                NullPointerException.class,
-                () -> new ExecuteInIsolatedServiceRequest.Builder().setParams(params).build());
+        assertThat(request.getService()).isEqualTo(COMPONENT_NAME);
     }
 }
