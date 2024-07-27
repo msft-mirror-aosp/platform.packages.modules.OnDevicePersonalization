@@ -89,9 +89,23 @@
             style="?android:attr/buttonBarButtonStyle"
             android:text="@string/report_conversion" />
 
-        <SurfaceView
-            android:id="@+id/rendered_view"
-            android:layout_width="200dp"
-            android:layout_height="200dp" />
+        <ViewSwitcher
+            android:id="@+id/view_switcher"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent" >
+            <SurfaceView
+                android:id="@+id/rendered_view"
+                android:layout_width="200dp"
+                android:layout_height="200dp" />
+
+            <TextView
+                android:id="@+id/message_box"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minLines="20"
+                android:scrollHorizontally="true"
+                android:background="@drawable/border" />
+
+        </ViewSwitcher>
     </LinearLayout>
 </ScrollView>
