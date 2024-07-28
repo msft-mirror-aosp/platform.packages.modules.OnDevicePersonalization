@@ -67,6 +67,7 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -97,7 +98,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     private byte[] mSerializedAppParams;
 
     @VisibleForTesting
-    static class Injector {
+    public static class Injector {
         ListeningExecutorService getExecutor() {
             return OnDevicePersonalizationExecutors.getBackgroundExecutor();
         }
@@ -106,7 +107,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             return MonotonicClock.getInstance();
         }
 
-        Flags getFlags() {
+        public Flags getFlags() {
             return FlagsFactory.getFlags();
         }
 
@@ -114,7 +115,8 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             return OnDevicePersonalizationExecutors.getScheduledExecutor();
         }
 
-        boolean shouldValidateExecuteOutput() {
+        /** Returns whether should validate rendering configuration keys. */
+        public boolean shouldValidateExecuteOutput() {
             return DeviceConfig.getBoolean(
                     /* namespace= */ "on_device_personalization",
                     /* name= */ "debug.validate_rendering_config_keys",
@@ -138,7 +140,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     }
 
     @VisibleForTesting
-    AppRequestFlow(
+    public AppRequestFlow(
             @NonNull String callingPackageName,
             @NonNull ComponentName service,
             @NonNull Bundle wrappedParams,
@@ -208,6 +210,8 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
 
     @Override
     public Bundle getServiceParams() {
+        sLogger.d(TAG + ": getting service params.");
+
         DataAccessPermission localDataPermission = DataAccessPermission.READ_WRITE;
         if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
             localDataPermission = DataAccessPermission.READ_ONLY;
@@ -241,6 +245,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
 
     @Override
     public void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {
+        sLogger.d(TAG + ": uploading service flow metrics.");
         var unused =
                 FluentFuture.from(runServiceFuture)
                         .transform(
@@ -315,10 +320,15 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                             sendErrorResult(
                                     e.getErrorCode(),
                                     DebugUtils.getIsolatedServiceExceptionCode(
-                                        mContext, mService, e),
+                                            mContext, mService, e),
                                     t);
                         } else {
-                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0, t);
+                            int errorCode =
+                                    t instanceof TimeoutException
+                                            ? Constants.STATUS_ISOLATED_SERVICE_TIMEOUT
+                                            : Constants.STATUS_INTERNAL_ERROR;
+                            sLogger.w(TAG + ": Failing with error code: " + errorCode);
+                            sendErrorResult(errorCode, /* isolatedServiceErrorCode= */ 0, t);
                         }
                     }
                 },
@@ -333,8 +343,11 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     private ListenableFuture<ExecuteOutputParcel> validateExecuteOutput(
             ExecuteOutputParcel result) {
         sLogger.d(TAG + ": validateExecuteOutput() started.");
-        if (mInjector.shouldValidateExecuteOutput()) {
-            try {
+        if (!mInjector.shouldValidateExecuteOutput()) {
+            sLogger.d(TAG + ": validateExecuteOutput() skipped.");
+            return Futures.immediateFuture(result);
+        }
+        try {
                 OnDevicePersonalizationVendorDataDao vendorDataDao =
                         OnDevicePersonalizationVendorDataDao.getInstance(mContext,
                                 mService,
@@ -342,14 +355,15 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                 if (result.getRenderingConfig() != null) {
                     Set<String> keyset = vendorDataDao.readAllVendorDataKeys();
                     if (!keyset.containsAll(result.getRenderingConfig().getKeys())) {
-                        return Futures.immediateFailedFuture(
-                                new OdpServiceException(Constants.STATUS_SERVICE_FAILED));
+                    return Futures.immediateFailedFuture(
+                            new OdpServiceException(Constants.STATUS_SERVICE_FAILED));
                     }
                 }
             } catch (Exception e) {
-                return Futures.immediateFailedFuture(e);
+            return Futures.immediateFailedFuture(
+                    new OdpServiceException(Constants.STATUS_SERVICE_FAILED));
             }
-        }
+        sLogger.d(TAG + ": validateExecuteOutput() succeeded.");
         return Futures.immediateFuture(result);
     }
 
@@ -418,7 +432,6 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     }
 
     private void sendSuccessResult(Bundle result) {
-        int responseCode = Constants.STATUS_SUCCESS;
         try {
             mCallback.onSuccess(
                     result,
@@ -427,7 +440,6 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                             .setCallbackInvokeTimeMillis(
                             SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
-            responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
         }
     }
