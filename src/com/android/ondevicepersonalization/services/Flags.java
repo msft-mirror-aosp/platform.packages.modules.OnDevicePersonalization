@@ -266,4 +266,14 @@ public interface Flags extends ModuleSharedFlags {
     default long getAppInstallHistoryTtlInMillis() {
         return DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS;
     }
+
+    /**
+     * The probability that we will return a random integer for {@link
+     * OnDevicePersonalizationManager#executeInIsolatedService}.
+     */
+    float DEFAULT_EXECUTE_BEST_VALUE_NOISE = 0.1f;
+
+    default float getNoiseForExecuteBestValue() {
+        return DEFAULT_EXECUTE_BEST_VALUE_NOISE;
+    }
 }
