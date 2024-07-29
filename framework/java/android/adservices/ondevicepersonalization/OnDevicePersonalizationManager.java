@@ -16,6 +16,7 @@
 
 package android.adservices.ondevicepersonalization;
 
+
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -23,10 +24,14 @@ import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.app.compat.CompatChanges;
+import android.compat.annotation.ChangeId;
+import android.compat.annotation.EnabledAfter;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
@@ -63,6 +68,21 @@ public class OnDevicePersonalizationManager {
     /** @hide */
     public static final String ON_DEVICE_PERSONALIZATION_SERVICE =
             "on_device_personalization_service";
+
+    /**
+     * The {@link OnDevicePersonalizationException} returned by the {@link
+     * OnDevicePersonalizationManager} class has additional, more granular error codes.
+     *
+     * <p>{@link OnDevicePersonalizationException#getErrorCode()} can now return additional granular
+     * error codes. Developers should also account for potential future additions to the number of
+     * error codes via appropriate defaults in any error code processing logic.
+     *
+     * @hide
+     */
+    @ChangeId
+    @EnabledAfter(targetSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    public static final long GRANULAR_EXCEPTION_ERROR_CODES = 342672147;
+
     private static final String INTENT_FILTER_ACTION = "android.OnDevicePersonalizationService";
     private static final String ODP_MANAGING_SERVICE_PACKAGE_SUFFIX =
             "com.android.ondevicepersonalization.services";
@@ -77,6 +97,15 @@ public class OnDevicePersonalizationManager {
 
     private static final String ODP_DISABLED_ERROR_MESSAGE =
             "Personalization disabled by device configuration.";
+
+    private static final String ODP_MANIFEST_ERROR_MESSAGE =
+            "OnDevicePersonalization manifest invalid.";
+
+    private static final String ODP_SERVICE_LOADING_ERROR_MESSAGE =
+            "Failed to load the isolated service.";
+
+    private static final String ODP_SERVICE_TIMEOUT_ERROR_MESSAGE =
+            "The isolated service timed out without returning.";
 
     private static final String TAG = OnDevicePersonalizationManager.class.getSimpleName();
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
@@ -241,7 +270,8 @@ public class OnDevicePersonalizationManager {
                                             service.getPackageName(),
                                             Constants.API_NAME_EXECUTE,
                                             SystemClock.elapsedRealtime() - startTimeMillis,
-                                            calleeMetadata.getServiceEntryTimeMillis() - startTimeMillis,
+                                            calleeMetadata.getServiceEntryTimeMillis()
+                                                    - startTimeMillis,
                                             SystemClock.elapsedRealtime()
                                                     - calleeMetadata.getCallbackInvokeTimeMillis(),
                                             Constants.STATUS_SUCCESS);
@@ -249,16 +279,19 @@ public class OnDevicePersonalizationManager {
                             }
 
                             @Override
-                            public void onError(int errorCode, int isolatedServiceErrorCode,
+                            public void onError(
+                                    int errorCode,
+                                    int isolatedServiceErrorCode,
                                     byte[] serializedExceptionInfo,
                                     CalleeMetadata calleeMetadata) {
                                 final long token = Binder.clearCallingIdentity();
                                 try {
                                     executor.execute(
                                             () -> {
-                                                receiver.onError(createException(
-                                                        errorCode, isolatedServiceErrorCode,
-                                                        serializedExceptionInfo));
+                                                receiver.onError(
+                                                        createException(
+                                                                errorCode, isolatedServiceErrorCode,
+                                                                serializedExceptionInfo, mContext));
                                             });
                                 } finally {
                                     Binder.restoreCallingIdentity(token);
@@ -267,7 +300,8 @@ public class OnDevicePersonalizationManager {
                                             service.getPackageName(),
                                             Constants.API_NAME_EXECUTE,
                                             SystemClock.elapsedRealtime() - startTimeMillis,
-                                            calleeMetadata.getServiceEntryTimeMillis() - startTimeMillis,
+                                            calleeMetadata.getServiceEntryTimeMillis()
+                                                    - startTimeMillis,
                                             SystemClock.elapsedRealtime()
                                                     - calleeMetadata.getCallbackInvokeTimeMillis(),
                                             errorCode);
@@ -284,11 +318,170 @@ public class OnDevicePersonalizationManager {
                         service,
                         wrappedParams,
                         new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
+                        ExecuteOptionsParcel.DEFAULT,
                         callbackWrapper);
             } catch (Exception e) {
                 logApiCallStats(
                         odpService,
                         service.getPackageName(),
+                        Constants.API_NAME_EXECUTE,
+                        SystemClock.elapsedRealtime() - startTimeMillis,
+                        0,
+                        0,
+                        Constants.STATUS_INTERNAL_ERROR);
+                receiver.onError(e);
+            }
+
+        } catch (Exception e) {
+            receiver.onError(e);
+        }
+    }
+
+    /**
+     * Executes an {@link IsolatedService} in the OnDevicePersonalization sandbox. The platform
+     * binds to the specified {@link IsolatedService} in an isolated process and calls {@link
+     * IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)} with the caller-provided
+     * parameters. When the {@link IsolatedService} finishes execution, the platform returns tokens
+     * that refer to the results from the service to the caller. These tokens can be subsequently
+     * used to display results in a {@link android.view.SurfaceView} within the calling app.
+     *
+     * @param request the {@link ExecuteInIsolatedServiceRequest} request
+     * @param executor the {@link Executor} on which to invoke the callback.
+     * @param receiver This returns a {@link ExecuteInIsolatedServiceResponse} object on success or
+     *     an {@link Exception} on failure. If the {@link IsolatedService} returned a {@link
+     *     RenderingConfig} to be displayed, {@link ExecuteResult#getSurfacePackageToken()} will
+     *     return a non-null {@link SurfacePackageToken}. The {@link SurfacePackageToken} object can
+     *     be used in a subsequent {@link #requestSurfacePackage(SurfacePackageToken, IBinder, int,
+     *     int, int, Executor, OutcomeReceiver)} call to display the result in a view. The returned
+     *     {@link SurfacePackageToken} may be null to indicate that no output is expected to be
+     *     displayed for this request. If the {@link ExecuteInIsolatedServiceRequest.Options} is set
+     *     to {@link ExecuteInIsolatedServiceRequest.Options#OUTPUT_TYPE_BEST_VALUE} and {@link
+     *     IsolatedService} returns an integer value, {@link
+     *     ExecuteInIsolatedServiceResponse#getBestValue()} will return a positive value.
+     * @hide
+     */
+    public void executeInIsolatedService(
+            @NonNull ExecuteInIsolatedServiceRequest request,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull OutcomeReceiver<ExecuteInIsolatedServiceResponse, Exception> receiver) {
+        Objects.requireNonNull(executor);
+        Objects.requireNonNull(receiver);
+        validateRequest(request);
+        long startTimeMillis = SystemClock.elapsedRealtime();
+
+        try {
+            final IOnDevicePersonalizationManagingService odpService =
+                    mServiceBinder.getService(executor);
+
+            try {
+                IExecuteCallback callbackWrapper =
+                        new IExecuteCallback.Stub() {
+                            @Override
+                            public void onSuccess(
+                                    Bundle callbackResult, CalleeMetadata calleeMetadata) {
+                                final long token = Binder.clearCallingIdentity();
+                                try {
+                                    executor.execute(
+                                            () -> {
+                                                try {
+                                                    SurfacePackageToken surfacePackageToken = null;
+                                                    if (callbackResult != null) {
+                                                        String tokenString =
+                                                                callbackResult.getString(
+                                                                        Constants
+                                                                                .EXTRA_SURFACE_PACKAGE_TOKEN_STRING);
+                                                        if (tokenString != null
+                                                                && !tokenString.isBlank()) {
+                                                            surfacePackageToken =
+                                                                    new SurfacePackageToken(
+                                                                            tokenString);
+                                                        }
+                                                    }
+                                                    int intValue = -1;
+                                                    if (request.getOptions() != null
+                                                            && request.getOptions().getOutputType()
+                                                                    == ExecuteInIsolatedServiceRequest
+                                                                            .Options
+                                                                            .OUTPUT_TYPE_BEST_VALUE) {
+                                                        intValue =
+                                                                callbackResult.getInt(
+                                                                        Constants
+                                                                                .EXTRA_OUTPUT_BEST_VALUE);
+                                                    }
+
+                                                    receiver.onResult(
+                                                            new ExecuteInIsolatedServiceResponse(
+                                                                    surfacePackageToken, intValue));
+                                                } catch (Exception e) {
+                                                    receiver.onError(e);
+                                                }
+                                            });
+                                } finally {
+                                    Binder.restoreCallingIdentity(token);
+                                    logApiCallStats(
+                                            odpService,
+                                            request.getService().getPackageName(),
+                                            Constants.API_NAME_EXECUTE,
+                                            SystemClock.elapsedRealtime() - startTimeMillis,
+                                            calleeMetadata.getServiceEntryTimeMillis()
+                                                    - startTimeMillis,
+                                            SystemClock.elapsedRealtime()
+                                                    - calleeMetadata.getCallbackInvokeTimeMillis(),
+                                            Constants.STATUS_SUCCESS);
+                                }
+                            }
+
+                            @Override
+                            public void onError(
+                                    int errorCode,
+                                    int isolatedServiceErrorCode,
+                                    byte[] serializedExceptionInfo,
+                                    CalleeMetadata calleeMetadata) {
+                                final long token = Binder.clearCallingIdentity();
+                                try {
+                                    executor.execute(
+                                            () -> {
+                                                receiver.onError(
+                                                        // TODO(b/336801193): skip error code
+                                                        // translate.
+                                                        createException(
+                                                                errorCode, isolatedServiceErrorCode,
+                                                                serializedExceptionInfo, mContext));
+                                            });
+                                } finally {
+                                    Binder.restoreCallingIdentity(token);
+                                    logApiCallStats(
+                                            odpService,
+                                            request.getService().getPackageName(),
+                                            Constants.API_NAME_EXECUTE,
+                                            SystemClock.elapsedRealtime() - startTimeMillis,
+                                            calleeMetadata.getServiceEntryTimeMillis()
+                                                    - startTimeMillis,
+                                            SystemClock.elapsedRealtime()
+                                                    - calleeMetadata.getCallbackInvokeTimeMillis(),
+                                            errorCode);
+                                }
+                            }
+                        };
+
+                Bundle wrappedParams = new Bundle();
+                wrappedParams.putParcelable(
+                        Constants.EXTRA_APP_PARAMS_SERIALIZED,
+                        new ByteArrayParceledSlice(
+                                PersistableBundleUtils.toByteArray(request.getParams())));
+                odpService.execute(
+                        mContext.getPackageName(),
+                        request.getService(),
+                        wrappedParams,
+                        new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
+                        request.getOptions() == null
+                                ? ExecuteOptionsParcel.DEFAULT
+                                : new ExecuteOptionsParcel(request.getOptions()),
+                        callbackWrapper);
+            } catch (Exception e) {
+                logApiCallStats(
+                        odpService,
+                        request.getService().getPackageName(),
                         Constants.API_NAME_EXECUTE,
                         SystemClock.elapsedRealtime() - startTimeMillis,
                         0,
@@ -383,12 +576,14 @@ public class OnDevicePersonalizationManager {
                                                     - calleeMetadata.getCallbackInvokeTimeMillis(),
                                             Constants.STATUS_SUCCESS);
                                 }
-
                             }
 
                             @Override
-                            public void onError(int errorCode, int isolatedServiceErrorCode,
-                                    byte[] serializedExceptionInfo, CalleeMetadata calleeMetadata) {
+                            public void onError(
+                                    int errorCode,
+                                    int isolatedServiceErrorCode,
+                                    byte[] serializedExceptionInfo,
+                                    CalleeMetadata calleeMetadata) {
                                 final long token = Binder.clearCallingIdentity();
                                 try {
                                     executor.execute(
@@ -397,11 +592,13 @@ public class OnDevicePersonalizationManager {
                                                             createException(
                                                                     errorCode,
                                                                     isolatedServiceErrorCode,
-                                                                    serializedExceptionInfo)));
+                                                                    serializedExceptionInfo,
+                                                                    mContext)));
                                 } finally {
                                     Binder.restoreCallingIdentity(token);
                                     logApiCallStats(
-                                            service, "",
+                                            service,
+                                            "",
                                             Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
                                             SystemClock.elapsedRealtime() - startTimeMillis,
                                             0,
@@ -446,6 +643,19 @@ public class OnDevicePersonalizationManager {
         }
     }
 
+    private static void validateRequest(ExecuteInIsolatedServiceRequest request) {
+        Objects.requireNonNull(request.getService());
+        ComponentName service = request.getService();
+        Objects.requireNonNull(service.getPackageName());
+        Objects.requireNonNull(service.getClassName());
+        if (service.getPackageName().isEmpty()) {
+            throw new IllegalArgumentException("missing service package name");
+        }
+        if (service.getClassName().isEmpty()) {
+            throw new IllegalArgumentException("missing service class name");
+        }
+    }
+
     private static String convertMessage(int errorCode) {
         switch (errorCode) {
             case Constants.STATUS_INTERNAL_ERROR:
@@ -454,51 +664,107 @@ public class OnDevicePersonalizationManager {
                 return ISOLATED_SERVICE_ERROR_MESSAGE;
             case Constants.STATUS_PERSONALIZATION_DISABLED:
                 return ODP_DISABLED_ERROR_MESSAGE;
+            case Constants.STATUS_MANIFEST_PARSING_FAILED: // Intentional fallthrough
+            case Constants.STATUS_MANIFEST_MISCONFIGURED:
+                return ODP_MANIFEST_ERROR_MESSAGE;
+            case Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED:
+                return ODP_SERVICE_LOADING_ERROR_MESSAGE;
+            case Constants.STATUS_ISOLATED_SERVICE_TIMEOUT:
+                return ODP_SERVICE_TIMEOUT_ERROR_MESSAGE;
             default:
                 sLogger.w(TAG + "Unexpected error code while creating exception: " + errorCode);
                 return "";
         }
     }
 
+    /**
+     * Convert error codes returned by the ODP Service to match calling package's target sdk
+     * version.
+     */
+    private static int translateErrorCode(int errorCode, Context context) {
+        if (errorCode < Constants.STATUS_MANIFEST_PARSING_FAILED
+                || CompatChanges.isChangeEnabled(GRANULAR_EXCEPTION_ERROR_CODES)) {
+            // Return code unchanged since either the error code does not require translation
+            // (by virtue of being an old/original error code) or the package is targeted to the
+            // appropriate sdk version.
+            return errorCode;
+        }
+        // Translate to appropriate older error code if required.
+        sLogger.d(TAG, "Package " + context.getPackageName() + " has old target sdk version.");
+        // TODO (b/342672147): add translation for newer error codes
+        int translatedCode = Constants.STATUS_INTERNAL_ERROR;
+        switch (errorCode) {
+            case Constants.STATUS_MANIFEST_PARSING_FAILED ->
+                    translatedCode = Constants.STATUS_NAME_NOT_FOUND;
+            case Constants.STATUS_MANIFEST_MISCONFIGURED ->
+                    translatedCode = Constants.STATUS_CLASS_NOT_FOUND;
+            case Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED ->
+                    translatedCode = Constants.STATUS_SERVICE_FAILED;
+            case Constants.STATUS_ISOLATED_SERVICE_TIMEOUT ->
+                    translatedCode = Constants.STATUS_SERVICE_FAILED;
+        }
+        return translatedCode;
+    }
+
     private static Exception createException(
-            int errorCode, int isolatedServiceErrorCode, byte[] serializedExceptionInfo) {
-        Exception cause = ExceptionInfo.fromByteArray(
-                serializedExceptionInfo);
-        if (errorCode == Constants.STATUS_NAME_NOT_FOUND) {
-            Exception e = new PackageManager.NameNotFoundException();
-            try {
-                // NameNotFoundException does not have a constructor that takes a Throwable.
-                if (cause != null) {
-                    e.initCause(cause);
+            int errorCode,
+            int isolatedServiceErrorCode,
+            byte[] serializedExceptionInfo,
+            Context context) {
+        errorCode = translateErrorCode(errorCode, context);
+        Exception cause = ExceptionInfo.fromByteArray(serializedExceptionInfo);
+        switch (errorCode) {
+            case Constants.STATUS_NAME_NOT_FOUND:
+                Exception e = new PackageManager.NameNotFoundException();
+                try {
+                    // NameNotFoundException does not have a constructor that takes a Throwable.
+                    if (cause != null) {
+                        e.initCause(cause);
+                    }
+                } catch (Exception e2) {
+                    sLogger.i(TAG + ": could not update cause", e2);
                 }
-            } catch (Exception e2) {
-                sLogger.i(TAG + ": could not update cause", e2);
-            }
-            return e;
-        } else if (errorCode == Constants.STATUS_CLASS_NOT_FOUND) {
-            return new ClassNotFoundException("", cause);
-        } else if (errorCode == Constants.STATUS_SERVICE_FAILED) {
-            if (isolatedServiceErrorCode > 0 && isolatedServiceErrorCode < 128) {
+                return e;
+            case Constants.STATUS_CLASS_NOT_FOUND:
+                return new ClassNotFoundException("", cause);
+            case Constants.STATUS_SERVICE_FAILED:
+                return (isolatedServiceErrorCode > 0 && isolatedServiceErrorCode < 128)
+                        ? new OnDevicePersonalizationException(
+                                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                                new IsolatedServiceException(isolatedServiceErrorCode))
+                        : new OnDevicePersonalizationException(
+                                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                                convertMessage(errorCode),
+                                cause);
+            case Constants.STATUS_PERSONALIZATION_DISABLED:
                 return new OnDevicePersonalizationException(
-                        OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
-                        new IsolatedServiceException(isolatedServiceErrorCode));
-            } else {
-                return new OnDevicePersonalizationException(
-                        OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                        OnDevicePersonalizationException.ERROR_PERSONALIZATION_DISABLED,
                         convertMessage(errorCode),
                         cause);
-            }
-        } else if (errorCode == Constants.STATUS_PERSONALIZATION_DISABLED) {
-            return new OnDevicePersonalizationException(
-                    OnDevicePersonalizationException.ERROR_PERSONALIZATION_DISABLED,
-                    convertMessage(errorCode),
-                    cause);
-        } else {
-            return new IllegalStateException(convertMessage(errorCode), cause);
+            case Constants.STATUS_MANIFEST_PARSING_FAILED:
+                // Intentional fallthrough
+            case Constants.STATUS_MANIFEST_MISCONFIGURED:
+                return new OnDevicePersonalizationException(
+                        OnDevicePersonalizationException
+                                .ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
+                        convertMessage(errorCode),
+                        cause);
+            case Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED:
+                return new OnDevicePersonalizationException(
+                        OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_LOADING_FAILED,
+                        convertMessage(errorCode),
+                        cause);
+            case Constants.STATUS_ISOLATED_SERVICE_TIMEOUT:
+                return new OnDevicePersonalizationException(
+                        OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_TIMEOUT,
+                        convertMessage(errorCode),
+                        cause);
+            default:
+                return new IllegalStateException(convertMessage(errorCode), cause);
         }
     }
 
-    private void logApiCallStats(
+    private static void logApiCallStats(
             IOnDevicePersonalizationManagingService service,
             String sdkPackageName,
             int apiName,
