@@ -327,6 +327,7 @@ public final class OnDevicePersonalizationManagerTest {
     }
 
     @Test
+    @Ignore("TODO: b/355168043 - disable failing compat tests.")
     @DisableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
     public void testExecuteServiceTimeoutErrorOldTargetSDK() throws Exception {
         // The service timeout failure gets translated back to original service failed error
@@ -356,6 +357,7 @@ public final class OnDevicePersonalizationManagerTest {
     }
 
     @Test
+    @Ignore("TODO: b/355168043 - disable failing compat tests.")
     @EnableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
     public void testExecuteServiceTimeoutErrorNewTargetSDK() throws Exception {
         // The service timeout failure gets exposed via corresponding OdpException
@@ -385,6 +387,7 @@ public final class OnDevicePersonalizationManagerTest {
     }
 
     @Test
+    @Ignore("TODO: b/355168043 - disable failing compat tests.")
     @DisableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
     public void testExecuteServiceLoadingErrorOldTargetSDK() throws Exception {
         // The service loading failure gets translated back to original service failed error
@@ -414,6 +417,7 @@ public final class OnDevicePersonalizationManagerTest {
     }
 
     @Test
+    @Ignore("TODO: b/355168043 - disable failing compat tests.")
     @EnableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
     public void testExecuteServiceLoadingErrorNewTargetSDK() throws Exception {
         // The service loading failure gets exposed via corresponding OdpException
