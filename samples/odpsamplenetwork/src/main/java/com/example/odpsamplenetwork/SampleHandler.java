@@ -492,7 +492,7 @@ public class SampleHandler implements IsolatedWorker {
                 mFCScheduler.schedule(params, fcInput);
 
                 ExecuteOutput result = new ExecuteOutput.Builder().build();
-                // receiver.onResult(result);
+                receiver.onResult(result);
             } else if (input != null
                     && input.getAppParams() != null
                     && input.getAppParams().getString("cancel_training") != null) {

@@ -30,8 +30,7 @@ public class NoiseUtil {
      * Add noise to {@link OnDevicePersonalizationManager#executeInIsolatedService} with best value
      * option.
      */
-    public static int applyNoiseToBestValue(
-            int actualValue, int maxValue, ThreadLocalRandom random) {
+    public int applyNoiseToBestValue(int actualValue, int maxValue, ThreadLocalRandom random) {
         if (actualValue < 0 || actualValue > maxValue) {
             sLogger.e(
                     TAG + ": returned int value %d is not in the range [0, %d].",

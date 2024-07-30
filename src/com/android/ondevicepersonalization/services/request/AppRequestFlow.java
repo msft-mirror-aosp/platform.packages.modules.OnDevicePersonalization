@@ -18,7 +18,9 @@ package com.android.ondevicepersonalization.services.request;
 
 import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
 import android.adservices.ondevicepersonalization.ExecuteInputParcel;
+import android.adservices.ondevicepersonalization.ExecuteOptionsParcel;
 import android.adservices.ondevicepersonalization.ExecuteOutputParcel;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
@@ -55,6 +57,7 @@ import com.android.ondevicepersonalization.services.util.AllowListUtils;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.DebugUtils;
 import com.android.ondevicepersonalization.services.util.LogUtils;
+import com.android.ondevicepersonalization.services.util.NoiseUtil;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
@@ -66,6 +69,7 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -89,6 +93,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     private final Context mContext;
     private final long mStartTimeMillis;
     private final long mServiceEntryTimeMillis;
+    private final ExecuteOptionsParcel mOptions;
 
     @NonNull
     private AtomicReference<IsolatedModelServiceProvider> mModelServiceProvider =
@@ -122,6 +127,10 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                     /* name= */ "debug.validate_rendering_config_keys",
                     /* defaultValue= */ true);
         }
+
+        public NoiseUtil getNoiseUtil() {
+            return new NoiseUtil();
+        }
     }
 
     @NonNull
@@ -134,9 +143,18 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             @NonNull IExecuteCallback callback,
             @NonNull Context context,
             long startTimeMillis,
-            long serviceEntryTimeMillis) {
-        this(callingPackageName, service, wrappedParams,
-                callback, context, startTimeMillis, serviceEntryTimeMillis, new Injector());
+            long serviceEntryTimeMillis,
+            ExecuteOptionsParcel options) {
+        this(
+                callingPackageName,
+                service,
+                wrappedParams,
+                callback,
+                context,
+                startTimeMillis,
+                serviceEntryTimeMillis,
+                options,
+                new Injector());
     }
 
     @VisibleForTesting
@@ -148,6 +166,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             @NonNull Context context,
             long startTimeMillis,
             long serviceEntryTimeMillis,
+            ExecuteOptionsParcel options,
             @NonNull Injector injector) {
         sLogger.d(TAG + ": AppRequestFlow created.");
         mCallingPackageName = Objects.requireNonNull(callingPackageName);
@@ -157,6 +176,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         mContext = Objects.requireNonNull(context);
         mStartTimeMillis = startTimeMillis;
         mServiceEntryTimeMillis =  serviceEntryTimeMillis;
+        mOptions = options;
         mInjector = Objects.requireNonNull(injector);
     }
 
@@ -408,9 +428,22 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             }
             Bundle bundle = new Bundle();
             bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, token);
-            if (isOutputDataAllowed()) {
-                bundle.putByteArray(Constants.EXTRA_OUTPUT_DATA, result.getOutputData());
+            // bundle.getInt(key) returns 0 if the key is not found. It can be confused with the
+            // real best value 0, so set it to -1 explicitly to indicate this field is unset.
+            int bestValue = -1;
+            if (isOutputDataAllowed()
+                    && mOptions.getOutputType()
+                            == ExecuteInIsolatedServiceRequest.Options.OUTPUT_TYPE_BEST_VALUE) {
+                bestValue =
+                        mInjector
+                                .getNoiseUtil()
+                                .applyNoiseToBestValue(
+                                        result.getBestValue(),
+                                        mOptions.getMaxIntValue(),
+                                        ThreadLocalRandom.current());
             }
+            bundle.putInt(Constants.EXTRA_OUTPUT_BEST_VALUE, bestValue);
+
             return Futures.immediateFuture(bundle);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);

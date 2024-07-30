@@ -29,16 +29,18 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class NoiseUtilTest {
     @Mock ThreadLocalRandom mMockRandom;
+    private NoiseUtil mNoiseUtil;
 
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
+        mNoiseUtil = new NoiseUtil();
     }
 
     @Test
     public void applyNoise_ToBestValue_returnActualValue() {
         when(mMockRandom.nextDouble()).thenReturn(0.2);
-        int output = NoiseUtil.applyNoiseToBestValue(5, 10, mMockRandom);
+        int output = mNoiseUtil.applyNoiseToBestValue(5, 10, mMockRandom);
         assertThat(output).isEqualTo(5);
     }
 
@@ -46,19 +48,19 @@ public class NoiseUtilTest {
     public void applyNoise_ToBestValue_returnFakeValue() {
         when(mMockRandom.nextDouble()).thenReturn(0.02);
         when(mMockRandom.nextInt(anyInt())).thenReturn(6);
-        int output = NoiseUtil.applyNoiseToBestValue(5, 10, mMockRandom);
+        int output = mNoiseUtil.applyNoiseToBestValue(5, 10, mMockRandom);
         assertThat(output).isEqualTo(6);
     }
 
     @Test
     public void invalidActualValue() {
-        int output = NoiseUtil.applyNoiseToBestValue(11, 10, mMockRandom);
+        int output = mNoiseUtil.applyNoiseToBestValue(11, 10, mMockRandom);
         assertThat(output).isEqualTo(-1);
     }
 
     @Test
     public void invalidNegativeValue() {
-        int output = NoiseUtil.applyNoiseToBestValue(-2, 10, mMockRandom);
+        int output = mNoiseUtil.applyNoiseToBestValue(-2, 10, mMockRandom);
         assertThat(output).isEqualTo(-1);
     }
 
@@ -66,7 +68,7 @@ public class NoiseUtilTest {
     public void applyNoise_ToBestValue_returnNotActualFakeValue() {
         when(mMockRandom.nextDouble()).thenReturn(0.02);
         when(mMockRandom.nextInt(anyInt())).thenReturn(5, 7);
-        int output = NoiseUtil.applyNoiseToBestValue(5, 10, mMockRandom);
+        int output = mNoiseUtil.applyNoiseToBestValue(5, 10, mMockRandom);
         assertThat(output).isEqualTo(7);
     }
 }

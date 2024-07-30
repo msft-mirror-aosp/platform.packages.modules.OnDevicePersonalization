@@ -253,12 +253,9 @@ public class OnDevicePersonalizationManager {
                                                                             tokenString);
                                                         }
                                                     }
-                                                    byte[] data =
-                                                            callbackResult.getByteArray(
-                                                                    Constants.EXTRA_OUTPUT_DATA);
                                                     receiver.onResult(
                                                             new ExecuteResult(
-                                                                    surfacePackageToken, data));
+                                                                    surfacePackageToken, null));
                                                 } catch (Exception e) {
                                                     receiver.onError(e);
                                                 }
