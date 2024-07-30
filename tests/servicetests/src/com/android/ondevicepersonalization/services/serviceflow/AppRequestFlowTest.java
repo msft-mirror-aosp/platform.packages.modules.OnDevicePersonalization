@@ -16,18 +16,21 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
+import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
+import android.adservices.ondevicepersonalization.ExecuteOptionsParcel;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.content.ComponentName;
 import android.content.ContentValues;
@@ -56,6 +59,7 @@ import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
+import com.android.ondevicepersonalization.services.util.NoiseUtil;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 
 import com.test.TestPersonalizationHandler;
@@ -99,6 +103,7 @@ public class AppRequestFlowTest {
 
     @Mock
     UserPrivacyStatus mUserPrivacyStatus;
+    @Mock private NoiseUtil mMockNoiseUtil;
 
     @Spy
     private Flags mSpyFlags = spy(FlagsFactory.getFlags());
@@ -120,6 +125,7 @@ public class AppRequestFlowTest {
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
         doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
         doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
+        when(mMockNoiseUtil.applyNoiseToBestValue(anyInt(), anyInt(), any())).thenReturn(3);
 
         setUpTestData();
 
@@ -145,6 +151,7 @@ public class AppRequestFlowTest {
                 mContext,
                 100L,
                 110L,
+                ExecuteOptionsParcel.DEFAULT,
                 new AppTestInjector());
 
         mLatch.await();
@@ -164,6 +171,7 @@ public class AppRequestFlowTest {
                 mContext,
                 100L,
                 110L,
+                ExecuteOptionsParcel.DEFAULT,
                 new AppTestInjector());
 
         mLatch.await();
@@ -187,6 +195,7 @@ public class AppRequestFlowTest {
                 mContext,
                 100L,
                 110L,
+                ExecuteOptionsParcel.DEFAULT,
                 new AppTestInjector());
         mLatch.await();
 
@@ -210,6 +219,7 @@ public class AppRequestFlowTest {
                 mContext,
                 100L,
                 110L,
+                ExecuteOptionsParcel.DEFAULT,
                 new AppTestInjector());
         mLatch.await();
 
@@ -218,8 +228,11 @@ public class AppRequestFlowTest {
     }
 
     @Test
-    public void testAppRequestFlow_OutputDataBlocked() throws InterruptedException {
+    public void testAppRequestFlow_getBestValueBlocked() throws InterruptedException {
         when(mSpyFlags.getOutputDataAllowList()).thenReturn("");
+        ExecuteOptionsParcel options =
+                new ExecuteOptionsParcel(
+                        ExecuteInIsolatedServiceRequest.Options.OUTPUT_TYPE_BEST_VALUE, 10);
 
         mSfo.scheduleForTest(
                 ServiceFlowType.APP_REQUEST_FLOW,
@@ -230,20 +243,24 @@ public class AppRequestFlowTest {
                 mContext,
                 100L,
                 110L,
+                options,
                 new AppTestInjector());
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
-        assertNull(mExecuteCallback.getByteArray(Constants.EXTRA_OUTPUT_DATA));
+        assertThat(mExecuteCallback.getInt(Constants.EXTRA_OUTPUT_BEST_VALUE)).isEqualTo(-1);
         assertEquals(2, getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME));
         assertEquals(1, getDbTableSize(EventsContract.EventsEntry.TABLE_NAME));
     }
 
     @Test
-    public void testAppRequestFlow_OutputDataAllowed() throws InterruptedException {
+    public void testAppRequestFlow_getBestValue() throws InterruptedException {
         String contextPackageName = mContext.getPackageName();
         when(mSpyFlags.getOutputDataAllowList()).thenReturn(
                 contextPackageName + ";" + contextPackageName);
+        ExecuteOptionsParcel options =
+                new ExecuteOptionsParcel(
+                        ExecuteInIsolatedServiceRequest.Options.OUTPUT_TYPE_BEST_VALUE, 10);
 
         mSfo.scheduleForTest(
                 ServiceFlowType.APP_REQUEST_FLOW,
@@ -254,13 +271,12 @@ public class AppRequestFlowTest {
                 mContext,
                 100L,
                 110L,
+                options,
                 new AppTestInjector());
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
-        assertArrayEquals(
-                mExecuteCallback.getByteArray(Constants.EXTRA_OUTPUT_DATA),
-                new byte[] {1, 2, 3});
+        assertThat(mExecuteCallback.getInt(Constants.EXTRA_OUTPUT_BEST_VALUE)).isEqualTo(3);
         assertEquals(2, getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME));
         assertEquals(1, getDbTableSize(EventsContract.EventsEntry.TABLE_NAME));
     }
@@ -284,6 +300,7 @@ public class AppRequestFlowTest {
                 mContext,
                 100L,
                 110L,
+                ExecuteOptionsParcel.DEFAULT,
                 new AppTestInjector());
         boolean countedDown = mLatch.await(3 * TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
@@ -313,6 +330,7 @@ public class AppRequestFlowTest {
                 mContext,
                 100L,
                 110L,
+                ExecuteOptionsParcel.DEFAULT,
                 new AppTestInjector());
         boolean countedDown = mLatch.await(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
@@ -408,6 +426,11 @@ public class AppRequestFlowTest {
         @Override
         public boolean shouldValidateExecuteOutput() {
             return true;
+        }
+
+        @Override
+        public NoiseUtil getNoiseUtil() {
+            return mMockNoiseUtil;
         }
     }
 
