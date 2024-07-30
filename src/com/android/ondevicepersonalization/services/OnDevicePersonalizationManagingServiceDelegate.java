@@ -20,6 +20,7 @@ import static android.adservices.ondevicepersonalization.OnDevicePersonalization
 
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.ExecuteOptionsParcel;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
@@ -67,6 +68,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
             @NonNull ComponentName handler,
             @NonNull Bundle wrappedParams,
             @NonNull CallerMetadata metadata,
+            @NonNull ExecuteOptionsParcel options,
             @NonNull IExecuteCallback callback) {
         if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
@@ -99,9 +101,16 @@ public class OnDevicePersonalizationManagingServiceDelegate
         enforceCallingPackageBelongsToUid(callingPackageName, uid);
         enforceEnrollment(callingPackageName, handler);
 
-        sSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW,
-                callingPackageName, handler, wrappedParams,
-                callback, mContext, metadata.getStartTimeMillis(), serviceEntryTimeMillis);
+        sSfo.schedule(
+                ServiceFlowType.APP_REQUEST_FLOW,
+                callingPackageName,
+                handler,
+                wrappedParams,
+                callback,
+                mContext,
+                metadata.getStartTimeMillis(),
+                serviceEntryTimeMillis,
+                options);
         Trace.endSection();
     }
 
