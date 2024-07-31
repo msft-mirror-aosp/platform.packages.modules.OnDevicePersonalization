@@ -36,6 +36,7 @@ android_test {
         "ondevicepersonalization-testing-sample-service-api",
         "ondevicepersonalization-testing-utils",
         "platform-test-rules",
+        "platform-compat-test-rules",
     ],
     libs: [
         "sdk_public_33_android.test.base",

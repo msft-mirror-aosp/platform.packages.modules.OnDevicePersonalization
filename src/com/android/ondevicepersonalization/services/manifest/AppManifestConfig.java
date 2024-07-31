@@ -24,7 +24,7 @@ public class AppManifestConfig {
     private final String mServiceName;
     private final String mFcRemoteServerUrl;
 
-    public AppManifestConfig(String downloadUrl, String serviceName, String fcRemoteServerUrl) {
+    AppManifestConfig(String downloadUrl, String serviceName, String fcRemoteServerUrl) {
         mDownloadUrl = downloadUrl;
         mServiceName = serviceName;
         mFcRemoteServerUrl = fcRemoteServerUrl;

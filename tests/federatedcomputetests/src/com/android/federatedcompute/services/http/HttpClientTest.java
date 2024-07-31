@@ -46,6 +46,7 @@ import org.mockito.quality.Strictness;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -116,6 +117,31 @@ public final class HttpClientTest {
     }
 
     @Test
+    public void testPerformGetRequestPayloadIntoFileSuccess() throws Exception {
+        String successMessage = "Success!";
+        InputStream mockStream = new ByteArrayInputStream(successMessage.getBytes(UTF_8));
+        Map<String, List<String>> mockHeaders = new HashMap<>();
+        mockHeaders.put("Header1", Arrays.asList("Value1"));
+        when(mMockHttpURLConnection.getInputStream()).thenReturn(mockStream);
+        when(mMockHttpURLConnection.getResponseCode()).thenReturn(200);
+        when(mMockHttpURLConnection.getHeaderFields()).thenReturn(mockHeaders);
+        doReturn(mMockHttpURLConnection).when(mHttpClient).setup(ArgumentMatchers.any());
+        when(mMockHttpURLConnection.getContentLengthLong())
+                .thenReturn((long) successMessage.length());
+
+        FederatedComputeHttpResponse response =
+                mHttpClient.performRequest(DEFAULT_GET_REQUEST, true);
+
+        assertThat(response.getStatusCode()).isEqualTo(200);
+        assertThat(response.getHeaders()).isEqualTo(mockHeaders);
+        assertThat(response.getPayload()).isEqualTo(null);
+        assertThat(response.getPayloadFileName()).isNotEmpty();
+        assertThat(new FileInputStream(response.getPayloadFileName()).readAllBytes())
+                .isEqualTo(successMessage.getBytes(UTF_8));
+    }
+
+
+    @Test
     public void testPerformGetRequestFails() throws Exception {
         String failureMessage = "FAIL!";
         InputStream mockStream = new ByteArrayInputStream(failureMessage.getBytes(UTF_8));
@@ -145,7 +171,8 @@ public final class HttpClientTest {
         doReturn(mMockHttpURLConnection).when(mHttpClient).setup(ArgumentMatchers.any());
 
         FederatedComputeHttpResponse response =
-                mHttpClient.performRequestWithRetry(DEFAULT_GET_REQUEST);
+                mHttpClient.performRequestWithRetry(
+                        () -> mHttpClient.performRequest(DEFAULT_GET_REQUEST));
 
         verify(mHttpClient, times(DEFAULT_RETRY_LIMIT)).performRequest(DEFAULT_GET_REQUEST);
         assertThat(response.getStatusCode()).isEqualTo(503);
@@ -183,7 +210,8 @@ public final class HttpClientTest {
                 .thenReturn((long) failureMessage.length());
 
         FederatedComputeHttpResponse response =
-                mHttpClient.performRequestWithRetry(DEFAULT_GET_REQUEST);
+                mHttpClient.performRequestWithRetry(
+                        () -> mHttpClient.performRequest(DEFAULT_GET_REQUEST));
 
         verify(mHttpClient, times(3)).performRequest(DEFAULT_GET_REQUEST);
         assertThat(response.getStatusCode()).isEqualTo(200);
