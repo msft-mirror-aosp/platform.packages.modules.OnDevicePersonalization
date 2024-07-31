@@ -351,6 +351,10 @@ public class FederatedComputeWorker {
                             if (taskAssignmentOnUnauthenticated.hasRejectionInfo()) {
                                 // This function is called only when the device received
                                 // 401 (unauthenticated). Only retry rejection is allowed.
+                                LogUtil.d(
+                                        TAG, "job %d was rejected during check in, reason %s",
+                                        run.mTask.jobId(), taskAssignmentOnUnauthenticated
+                                            .getRejectionInfo().getReason());
                                 if (taskAssignmentOnUnauthenticated
                                         .getRejectionInfo()
                                         .hasRetryWindow()) {
