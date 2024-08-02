@@ -232,7 +232,7 @@ public class AppRequestFlowTest {
         when(mSpyFlags.getOutputDataAllowList()).thenReturn("");
         ExecuteOptionsParcel options =
                 new ExecuteOptionsParcel(
-                        ExecuteInIsolatedServiceRequest.Options.OUTPUT_TYPE_BEST_VALUE, 10);
+                        ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_BEST_VALUE, 10);
 
         mSfo.scheduleForTest(
                 ServiceFlowType.APP_REQUEST_FLOW,
@@ -260,7 +260,7 @@ public class AppRequestFlowTest {
                 contextPackageName + ";" + contextPackageName);
         ExecuteOptionsParcel options =
                 new ExecuteOptionsParcel(
-                        ExecuteInIsolatedServiceRequest.Options.OUTPUT_TYPE_BEST_VALUE, 10);
+                        ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_BEST_VALUE, 10);
 
         mSfo.scheduleForTest(
                 ServiceFlowType.APP_REQUEST_FLOW,
