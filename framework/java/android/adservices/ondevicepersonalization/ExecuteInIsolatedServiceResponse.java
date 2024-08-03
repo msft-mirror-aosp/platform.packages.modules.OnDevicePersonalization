@@ -35,11 +35,10 @@ public class ExecuteInIsolatedServiceResponse {
      * IsolatedService} didn't return any content, the default value is -1. If {@link
      * IsolatedService} returns an integer value, we will apply the noise to the value and the range
      * of this value is between 0 and {@link
-     * ExecuteInIsolatedServiceRequest.Options#getMaxIntValue()}.
+     * ExecuteInIsolatedServiceRequest.OutputParams#getMaxIntValue()}.
      */
     private int mBestValue = -1;
 
-    /** @hide */
     public ExecuteInIsolatedServiceResponse(
             @Nullable SurfacePackageToken surfacePackageToken, int bestValue) {
         mSurfacePackageToken = surfacePackageToken;
@@ -66,7 +65,7 @@ public class ExecuteInIsolatedServiceResponse {
      * {@link IsolatedService} didn't return any content, the default value is -1. If {@link
      * IsolatedService} returns an integer value, we will apply the noise to the value and the range
      * of this value is between 0 and {@link
-     * ExecuteInIsolatedServiceRequest.Options#getMaxIntValue()}.
+     * ExecuteInIsolatedServiceRequest.OutputParams#getMaxIntValue()}.
      */
     public int getBestValue() {
         return mBestValue;

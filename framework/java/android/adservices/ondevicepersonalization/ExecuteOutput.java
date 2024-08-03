@@ -303,8 +303,8 @@ public final class ExecuteOutput {
         }
 
         /**
-         * An integer value that an {@link IsolatedService} may optionally return to to a calling app,
-         * by setting this field to the value between 0 and {@link
+         * An integer value that an {@link IsolatedService} may optionally return to to a calling
+         * app, by setting this field to the value between 0 and {@link
          * ExecuteInIsolatedServiceRequest.Options#getMaxIntValue()}. The noise will be added to the
          * value of this field before returned to the caller of {@link
          * OnDevicePersonalizationManager#executeInIsolatedService}. In order to get this field, the
