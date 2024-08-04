@@ -101,9 +101,16 @@ public class OnDevicePersonalizationManagingServiceDelegate
         enforceCallingPackageBelongsToUid(callingPackageName, uid);
         enforceEnrollment(callingPackageName, handler);
 
-        sSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW,
-                callingPackageName, handler, wrappedParams,
-                callback, mContext, metadata.getStartTimeMillis(), serviceEntryTimeMillis);
+        sSfo.schedule(
+                ServiceFlowType.APP_REQUEST_FLOW,
+                callingPackageName,
+                handler,
+                wrappedParams,
+                callback,
+                mContext,
+                metadata.getStartTimeMillis(),
+                serviceEntryTimeMillis,
+                options);
         Trace.endSection();
     }
 
