@@ -253,12 +253,9 @@ public class OnDevicePersonalizationManager {
                                                                             tokenString);
                                                         }
                                                     }
-                                                    byte[] data =
-                                                            callbackResult.getByteArray(
-                                                                    Constants.EXTRA_OUTPUT_DATA);
                                                     receiver.onResult(
                                                             new ExecuteResult(
-                                                                    surfacePackageToken, data));
+                                                                    surfacePackageToken, null));
                                                 } catch (Exception e) {
                                                     receiver.onError(e);
                                                 }
@@ -354,9 +351,9 @@ public class OnDevicePersonalizationManager {
      *     be used in a subsequent {@link #requestSurfacePackage(SurfacePackageToken, IBinder, int,
      *     int, int, Executor, OutcomeReceiver)} call to display the result in a view. The returned
      *     {@link SurfacePackageToken} may be null to indicate that no output is expected to be
-     *     displayed for this request. If the {@link ExecuteInIsolatedServiceRequest.Options} is set
-     *     to {@link ExecuteInIsolatedServiceRequest.Options#OUTPUT_TYPE_BEST_VALUE} and {@link
-     *     IsolatedService} returns an integer value, {@link
+     *     displayed for this request. If the {@link ExecuteInIsolatedServiceRequest.OutputParams}
+     *     is set to {@link ExecuteInIsolatedServiceRequest.OutputParams#OUTPUT_TYPE_BEST_VALUE} and
+     *     {@link IsolatedService} returns an integer value, {@link
      *     ExecuteInIsolatedServiceResponse#getBestValue()} will return a positive value.
      * @hide
      */
@@ -398,11 +395,10 @@ public class OnDevicePersonalizationManager {
                                                         }
                                                     }
                                                     int intValue = -1;
-                                                    if (request.getOptions() != null
-                                                            && request.getOptions().getOutputType()
-                                                                    == ExecuteInIsolatedServiceRequest
-                                                                            .Options
-                                                                            .OUTPUT_TYPE_BEST_VALUE) {
+                                                    if (request.getOutputParams().getOutputType()
+                                                            == ExecuteInIsolatedServiceRequest
+                                                                    .OutputParams
+                                                                    .OUTPUT_TYPE_BEST_VALUE) {
                                                         intValue =
                                                                 callbackResult.getInt(
                                                                         Constants
@@ -468,15 +464,15 @@ public class OnDevicePersonalizationManager {
                 wrappedParams.putParcelable(
                         Constants.EXTRA_APP_PARAMS_SERIALIZED,
                         new ByteArrayParceledSlice(
-                                PersistableBundleUtils.toByteArray(request.getParams())));
+                                PersistableBundleUtils.toByteArray(request.getAppParams())));
                 odpService.execute(
                         mContext.getPackageName(),
                         request.getService(),
                         wrappedParams,
                         new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
-                        request.getOptions() == null
+                        request.getOutputParams() == null
                                 ? ExecuteOptionsParcel.DEFAULT
-                                : new ExecuteOptionsParcel(request.getOptions()),
+                                : new ExecuteOptionsParcel(request.getOutputParams()),
                         callbackWrapper);
             } catch (Exception e) {
                 logApiCallStats(
