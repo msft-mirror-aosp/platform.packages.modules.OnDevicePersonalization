@@ -148,14 +148,12 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
      * only.
      */
     @VisibleForTesting
-    public static FederatedComputeDbHelper getInstanceForTest(Context context) {
-        synchronized (FederatedComputeDbHelper.class) {
-            if (sInstance == null) {
-                // Use null database name to make it in-memory
-                sInstance = new FederatedComputeDbHelper(context, null);
-            }
-            return sInstance;
+    public static synchronized FederatedComputeDbHelper getInstanceForTest(Context context) {
+        if (sInstance == null) {
+            // Use null database name to make it in-memory
+            sInstance = new FederatedComputeDbHelper(context, null);
         }
+        return sInstance;
     }
 
     /**
@@ -263,12 +261,10 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
 
     /** It's only public to testing. */
     @VisibleForTesting
-    public static void resetInstance() {
-        synchronized (FederatedComputeDbHelper.class) {
-            if (sInstance != null) {
-                sInstance.close();
-                sInstance = null;
-            }
+    public static synchronized void resetInstance() {
+        if (sInstance != null) {
+            sInstance.close();
+            sInstance = null;
         }
     }
 
