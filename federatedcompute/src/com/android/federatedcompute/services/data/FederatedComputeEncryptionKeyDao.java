@@ -35,7 +35,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
 import java.util.List;
 
-/** DAO for accessing encryption key table */
+/** DAO for accessing encryption key table that stores {@link FederatedComputeEncryptionKey}s. */
 public class FederatedComputeEncryptionKeyDao {
     private static final String TAG = FederatedComputeEncryptionKeyDao.class.getSimpleName();
 
@@ -50,9 +50,7 @@ public class FederatedComputeEncryptionKeyDao {
         mClock = clock;
     }
 
-    /**
-     * @return an instance of FederatedComputeEncryptionKeyDao given a context
-     */
+    /** Returns an instance of {@link FederatedComputeEncryptionKeyDao} given a context. */
     @NonNull
     public static FederatedComputeEncryptionKeyDao getInstance(Context context) {
         if (sSingletonInstance == null) {
@@ -68,7 +66,11 @@ public class FederatedComputeEncryptionKeyDao {
         return sSingletonInstance;
     }
 
-    /** It is only public to unit test. */
+    /**
+     * Helper method to get instance of {@link FederatedComputeEncryptionKeyDao} for use in tests.
+     *
+     * <p>Public for use in unit tests.
+     */
     @VisibleForTesting
     public static FederatedComputeEncryptionKeyDao getInstanceForTest(Context context) {
         if (sSingletonInstance == null) {
@@ -84,7 +86,12 @@ public class FederatedComputeEncryptionKeyDao {
         return sSingletonInstance;
     }
 
-    /** Insert a key to the encryption_key table. */
+    /**
+     * Insert a key to the encryption_key table.
+     *
+     * @param key the {@link FederatedComputeEncryptionKey} to insert into DB.
+     * @return Whether the key was inserted successfully.
+     */
     public boolean insertEncryptionKey(FederatedComputeEncryptionKey key) {
         SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
         if (db == null) {
@@ -98,16 +105,16 @@ public class FederatedComputeEncryptionKeyDao {
         values.put(FederatedComputeEncryptionColumns.CREATION_TIME, key.getCreationTime());
         values.put(FederatedComputeEncryptionColumns.EXPIRY_TIME, key.getExpiryTime());
 
-        long jobId =
+        long insertedRowId =
                 db.insertWithOnConflict(
                         ENCRYPTION_KEY_TABLE, "", values, SQLiteDatabase.CONFLICT_REPLACE);
-        return jobId != -1;
+        return insertedRowId != -1;
     }
 
     /**
-     * Read from encryption key table given selection, order and limit conidtions.
+     * Read from encryption key table given selection, order and limit conditions.
      *
-     * @return a list of {@link FederatedComputeEncryptionKey}.
+     * @return a list of matching {@link FederatedComputeEncryptionKey}s.
      */
     @VisibleForTesting
     public List<FederatedComputeEncryptionKey> readFederatedComputeEncryptionKeysFromDatabase(

@@ -91,24 +91,19 @@ public class FederatedComputeEncryptionKeyManager {
         mBackgroundExecutor = backgroundExecutor;
     }
 
-    /**
-     * @return a singleton instance for key manager
-     */
+    /** Returns a singleton instance for the {@link FederatedComputeEncryptionKeyManager}. */
     public static FederatedComputeEncryptionKeyManager getInstance(Context context) {
         if (sBackgroundKeyManager == null) {
             synchronized (FederatedComputeEncryptionKeyManager.class) {
                 if (sBackgroundKeyManager == null) {
                     FederatedComputeEncryptionKeyDao encryptionKeyDao =
                             FederatedComputeEncryptionKeyDao.getInstance(context);
-                    HttpClient client = new HttpClient();
-                    Clock clock = MonotonicClock.getInstance();
-                    Flags flags = FlagsFactory.getFlags();
                     sBackgroundKeyManager =
                             new FederatedComputeEncryptionKeyManager(
-                                    clock,
+                                    MonotonicClock.getInstance(),
                                     encryptionKeyDao,
-                                    flags,
-                                    client,
+                                    FlagsFactory.getFlags(),
+                                    new HttpClient(),
                                     FederatedComputeExecutors.getBackgroundExecutor());
                 }
             }
@@ -118,7 +113,7 @@ public class FederatedComputeEncryptionKeyManager {
 
     /** For testing only, returns an instance of key manager for test. */
     @VisibleForTesting
-    public static FederatedComputeEncryptionKeyManager getInstanceForTest(
+    static FederatedComputeEncryptionKeyManager getInstanceForTest(
             Clock clock,
             FederatedComputeEncryptionKeyDao encryptionKeyDao,
             Flags flags,
@@ -140,7 +135,7 @@ public class FederatedComputeEncryptionKeyManager {
      * Fetch the active key from the server, persists the fetched key to encryption_key table, and
      * deletes expired keys
      */
-    public FluentFuture<List<FederatedComputeEncryptionKey>> fetchAndPersistActiveKeys(
+    FluentFuture<List<FederatedComputeEncryptionKey>> fetchAndPersistActiveKeys(
             @FederatedComputeEncryptionKey.KeyType int keyType, boolean isScheduledJob) {
         String fetchUri = mFlags.getEncryptionKeyFetchUrl();
         if (fetchUri == null) {
@@ -154,7 +149,7 @@ public class FederatedComputeEncryptionKeyManager {
                     FederatedComputeHttpRequest.create(
                             fetchUri,
                             HttpClientUtil.HttpMethod.GET,
-                            new HashMap<String, String>(),
+                            new HashMap<>(),
                             HttpClientUtil.EMPTY_BODY);
         } catch (Exception e) {
             return FluentFuture.from(Futures.immediateFailedFuture(e));
@@ -224,7 +219,7 @@ public class FederatedComputeEncryptionKeyManager {
 
     /**
      * Parse the "age" and "cache-control" of response headers. Calculate the ttl of the current key
-     * maxage (in cache-control) - age.
+     * max-age (in cache-control) - age.
      *
      * @return the ttl in seconds of the keys.
      */
@@ -242,7 +237,6 @@ public class FederatedComputeEncryptionKeyManager {
                         cacheControl = field.get(0).toLowerCase(Locale.ENGLISH);
                         remainingHeaders -= 1;
                     }
-
                 } else if (key.equalsIgnoreCase(
                         EncryptionKeyResponseContract.RESPONSE_HEADER_AGE_LABEL)) {
                     List<String> field = headers.get(key);
@@ -292,9 +286,11 @@ public class FederatedComputeEncryptionKeyManager {
         return maxAge - cachedAge;
     }
 
-    /** Get active keys, if there is no active key, then force a fetch from the key service.
-     * In the case of key fetching from the key service, the http call
-     * is executed on a BlockingExecutor.
+    /**
+     * Get active keys, if there is no active key, then force a fetch from the key service. In the
+     * case of key fetching from the key service, the http call is executed on a {@code
+     * BlockingExecutor}.
+     *
      * @return The list of active keys.
      */
     public List<FederatedComputeEncryptionKey> getOrFetchActiveKeys(int keyType, int keyCount) {

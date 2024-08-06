@@ -106,8 +106,3 @@ java_defaults {
         "framework-ondevicepersonalization.impl",
     ],
 }
-
-platform_compat_config {
-    name: "ondevicepersonalization-compat-config",
-    src: ":framework-ondevicepersonalization",
-}

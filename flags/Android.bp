@@ -24,7 +24,7 @@ java_aconfig_library {
     aconfig_declarations: "ondevicepersonalization_flags",
     defaults: ["framework-minus-apex-aconfig-java-defaults"],
     visibility: [
-        "//packages/modules/OnDevicePersonalization/framework",
+        "//packages/modules/OnDevicePersonalization:__subpackages__",
     ],
     min_sdk_version: "33",
     apex_available: [

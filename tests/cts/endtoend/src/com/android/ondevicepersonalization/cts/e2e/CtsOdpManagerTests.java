@@ -15,7 +15,6 @@
  */
 package com.android.ondevicepersonalization.cts.e2e;
 
-import static android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -44,13 +43,9 @@ import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServic
 import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
 import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
-import libcore.junit.util.compat.CoreCompatChangeRule.DisableCompatChanges;
-import libcore.junit.util.compat.CoreCompatChangeRule.EnableCompatChanges;
-
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
@@ -240,80 +235,39 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @Ignore("TODO: b/355168043 - disable failing compat tests.")
-    @DisableCompatChanges({GRANULAR_EXCEPTION_ERROR_CODES})
     public void testExecuteReturnsNameNotFoundIfServiceNotInstalled() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
         var receiver = new ResultReceiver<ExecuteResult>();
+
         manager.execute(
                 new ComponentName("com.example.odptargetingapp2", "someclass"),
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
+
         assertNull(receiver.getResult());
         assertTrue(receiver.getException() instanceof NameNotFoundException);
     }
 
-    @Test
-    @Ignore("TODO: b/355168043 - disable failing compat tests.")
-    @EnableCompatChanges({GRANULAR_EXCEPTION_ERROR_CODES})
-    public void testExecuteReturnsOdpExceptionIfServiceNotInstalledGranularErrorCodesEnabled()
-            throws InterruptedException {
-        OnDevicePersonalizationManager manager =
-                mContext.getSystemService(OnDevicePersonalizationManager.class);
-        assertNotNull(manager);
-        var receiver = new ResultReceiver<ExecuteResult>();
-        manager.execute(
-                new ComponentName("com.example.odptargetingapp2", "someclass"),
-                PersistableBundle.EMPTY,
-                Executors.newSingleThreadExecutor(),
-                receiver);
-        assertNull(receiver.getResult());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-        assertEquals(
-                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
-                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
-    }
 
     @Test
-    @Ignore("TODO: b/355168043 - disable failing compat tests.")
-    @DisableCompatChanges({GRANULAR_EXCEPTION_ERROR_CODES})
     public void testExecuteReturnsClassNotFoundIfServiceClassNotFound()
             throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
         var receiver = new ResultReceiver<ExecuteResult>();
+
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, "someclass"),
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
+
         assertNull(receiver.getResult());
         assertTrue(receiver.getException() instanceof ClassNotFoundException);
-    }
-
-    @Test
-    @Ignore("TODO: b/355168043 - disable failing compat tests.")
-    @EnableCompatChanges({GRANULAR_EXCEPTION_ERROR_CODES})
-    public void testExecuteReturnsOdpExceptionIfServiceClassNotFoundGranularErrorCodesEnabled()
-            throws InterruptedException {
-        OnDevicePersonalizationManager manager =
-                mContext.getSystemService(OnDevicePersonalizationManager.class);
-        assertNotNull(manager);
-        var receiver = new ResultReceiver<ExecuteResult>();
-        manager.execute(
-                new ComponentName(SERVICE_PACKAGE, "someclass"),
-                PersistableBundle.EMPTY,
-                Executors.newSingleThreadExecutor(),
-                receiver);
-        assertNull(receiver.getResult());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-        assertEquals(
-                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
-                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
     }
 
     @Test

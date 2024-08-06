@@ -42,9 +42,12 @@ import android.content.ComponentName;
 import android.content.ContentValues;
 import android.net.Uri;
 import android.os.PersistableBundle;
+import android.platform.test.annotations.RequiresFlagsEnabled;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
+
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -300,8 +303,19 @@ public class DataClassesTest {
     }
 
     @Test
+    @RequiresFlagsEnabled(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public void testIsolatedServiceException() {
-        assertEquals(42, new IsolatedServiceException(42).getErrorCode());
+        IsolatedServiceException e = new IsolatedServiceException(42);
+        assertEquals(42, e.getErrorCode());
+
+        e = new IsolatedServiceException(42, new NullPointerException());
+        assertEquals(42, e.getErrorCode());
+        assertTrue(e.getCause() instanceof NullPointerException);
+
+        e = new IsolatedServiceException(42, "errr", new NullPointerException());
+        assertEquals(42, e.getErrorCode());
+        assertEquals("errr", e.getMessage());
+        assertTrue(e.getCause() instanceof NullPointerException);
     }
 
     @Test

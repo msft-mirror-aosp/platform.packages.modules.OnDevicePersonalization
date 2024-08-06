@@ -21,7 +21,7 @@ public final class FederatedComputeEncryptionKeyContract {
 
     private FederatedComputeEncryptionKeyContract() {}
 
-    public static final class FederatedComputeEncryptionColumns {
+    static final class FederatedComputeEncryptionColumns {
         private FederatedComputeEncryptionColumns() {}
 
         /**
