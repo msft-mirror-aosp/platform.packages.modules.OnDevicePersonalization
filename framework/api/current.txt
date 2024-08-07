@@ -252,8 +252,15 @@ package android.adservices.ondevicepersonalization {
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationException extends java.lang.Exception {
     method public int getErrorCode();
+    field @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.execute_in_isolated_service_api_enabled") public static final int ERROR_INFERENCE_FAILED = 9; // 0x9
+    field @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.execute_in_isolated_service_api_enabled") public static final int ERROR_INFERENCE_MODEL_NOT_FOUND = 8; // 0x8
+    field @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.execute_in_isolated_service_api_enabled") public static final int ERROR_INVALID_TRAINING_MANIFEST = 7; // 0x7
     field public static final int ERROR_ISOLATED_SERVICE_FAILED = 1; // 0x1
+    field @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.execute_in_isolated_service_api_enabled") public static final int ERROR_ISOLATED_SERVICE_LOADING_FAILED = 3; // 0x3
+    field @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.execute_in_isolated_service_api_enabled") public static final int ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED = 4; // 0x4
+    field @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.execute_in_isolated_service_api_enabled") public static final int ERROR_ISOLATED_SERVICE_TIMEOUT = 5; // 0x5
     field public static final int ERROR_PERSONALIZATION_DISABLED = 2; // 0x2
+    field @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.execute_in_isolated_service_api_enabled") public static final int ERROR_SCHEDULE_TRAINING_FAILED = 6; // 0x6
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationManager {
