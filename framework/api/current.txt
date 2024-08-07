@@ -169,10 +169,10 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class IsolatedServiceException extends java.lang.Exception {
-    ctor public IsolatedServiceException(@IntRange(from=1, to=127) int);
-    ctor @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.data_class_missing_ctors_and_getters_enabled") public IsolatedServiceException(@IntRange(from=1, to=127) int, @Nullable Throwable);
-    ctor @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.data_class_missing_ctors_and_getters_enabled") public IsolatedServiceException(@IntRange(from=1, to=127) int, @Nullable String, @Nullable Throwable);
-    method @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.data_class_missing_ctors_and_getters_enabled") @IntRange(from=1, to=127) public int getErrorCode();
+    ctor public IsolatedServiceException(int);
+    ctor @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.data_class_missing_ctors_and_getters_enabled") public IsolatedServiceException(int, @Nullable Throwable);
+    ctor @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.data_class_missing_ctors_and_getters_enabled") public IsolatedServiceException(int, @Nullable String, @Nullable Throwable);
+    method @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.data_class_missing_ctors_and_getters_enabled") public int getErrorCode();
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public interface IsolatedWorker {
