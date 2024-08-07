@@ -2,6 +2,7 @@
 package android.adservices.ondevicepersonalization {
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class AppInfo implements android.os.Parcelable {
+    ctor @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.data_class_missing_ctors_and_getters_enabled") public AppInfo(boolean);
     method public int describeContents();
     method @NonNull public boolean isInstalled();
     method public void writeToParcel(@NonNull android.os.Parcel, int);

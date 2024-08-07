@@ -319,11 +319,12 @@ public class DataClassesTest {
     }
 
     @Test
+    @RequiresFlagsEnabled(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public void testAppInfo() {
-        AppInfo appInfo = new AppInfo.Builder().setInstalled(true).build();
+        AppInfo appInfo = new AppInfo(true);
         assertThat(appInfo.isInstalled()).isTrue();
 
-        appInfo = new AppInfo.Builder().setInstalled(false).build();
+        appInfo = new AppInfo(false);
         assertThat(appInfo.isInstalled()).isFalse();
     }
 }
