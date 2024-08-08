@@ -17,6 +17,7 @@
 package android.adservices.ondevicepersonalization;
 
 import android.annotation.FlaggedApi;
+import android.annotation.IntRange;
 import android.annotation.Nullable;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
@@ -25,14 +26,11 @@ import com.android.adservices.ondevicepersonalization.flags.Flags;
  * A class that an {@link IsolatedService} can use to signal a failure in handling a request and
  * return an error to be logged and aggregated. The error is not reported to the app that invoked
  * the {@link IsolatedService} in order to prevent data leakage from the {@link IsolatedService} to
- * an app. The platform does not interpret the error code, it only logs and aggregates it on the
- * device. The platform reports noised and aggregated error counts to a developer-configured
- * backend. The number of unique error codes that can be reported to developer servers depends on
- * the number of errors and the number of active devices.
+ * an app. The platform does not interpret the error code, it only logs and aggregates it.
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public final class IsolatedServiceException extends Exception {
-    private final int mErrorCode;
+    @IntRange(from = 1, to = 127) private final int mErrorCode;
 
     /**
      * Creates an {@link IsolatedServiceException} with an error code to be logged. The meaning of
@@ -41,7 +39,7 @@ public final class IsolatedServiceException extends Exception {
      *
      * @param errorCode An error code defined by the {@link IsolatedService}.
      */
-    public IsolatedServiceException(int errorCode) {
+    public IsolatedServiceException(@IntRange(from = 1, to = 127) int errorCode) {
         this(errorCode, "IsolatedServiceException: Error " + errorCode, null);
     }
 
@@ -55,7 +53,7 @@ public final class IsolatedServiceException extends Exception {
      */
     @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public IsolatedServiceException(
-            int errorCode,
+            @IntRange(from = 1, to = 127) int errorCode,
             @Nullable Throwable cause) {
         this(errorCode, "IsolatedServiceException: Error " + errorCode, cause);
     }
@@ -71,7 +69,7 @@ public final class IsolatedServiceException extends Exception {
      */
     @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public IsolatedServiceException(
-            int errorCode,
+            @IntRange(from = 1, to = 127) int errorCode,
             @Nullable String message,
             @Nullable Throwable cause) {
         super(message, cause);
@@ -82,7 +80,7 @@ public final class IsolatedServiceException extends Exception {
      * Returns the error code for this exception.
      */
     @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
-    public int getErrorCode() {
+    public @IntRange(from = 1, to = 127) int getErrorCode() {
         return mErrorCode;
     }
 }
