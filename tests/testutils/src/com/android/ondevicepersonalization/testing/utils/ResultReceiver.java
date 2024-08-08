@@ -37,8 +37,7 @@ public class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
 
     /** Creates a ResultReceiver. */
     public ResultReceiver() {
-        // TODO(b/358387102): Investigate setting a default deadline.
-        mDeadline = null;
+        this(Duration.ofSeconds(30));
     }
 
     /** Creates a ResultReceiver with a deadline. */
