@@ -43,12 +43,15 @@ import android.content.ContentValues;
 import android.net.Uri;
 import android.os.PersistableBundle;
 import android.platform.test.annotations.RequiresFlagsEnabled;
+import android.platform.test.flag.junit.CheckFlagsRule;
+import android.platform.test.flag.junit.DeviceFlagsValueProvider;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
 
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -62,6 +65,9 @@ import java.util.ArrayList;
 @SmallTest
 @RunWith(AndroidJUnit4.class)
 public class DataClassesTest {
+    @Rule
+    public final CheckFlagsRule mCheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule();
+
     /**
      * Test builder and getters for ExecuteOutput.
      */
@@ -319,11 +325,12 @@ public class DataClassesTest {
     }
 
     @Test
+    @RequiresFlagsEnabled(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public void testAppInfo() {
-        AppInfo appInfo = new AppInfo.Builder().setInstalled(true).build();
+        AppInfo appInfo = new AppInfo(true);
         assertThat(appInfo.isInstalled()).isTrue();
 
-        appInfo = new AppInfo.Builder().setInstalled(false).build();
+        appInfo = new AppInfo(false);
         assertThat(appInfo.isInstalled()).isFalse();
     }
 }
