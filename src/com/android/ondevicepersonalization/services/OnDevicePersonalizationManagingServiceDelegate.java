@@ -35,6 +35,7 @@ import android.os.IBinder;
 import android.os.SystemClock;
 import android.os.Trace;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.DeviceUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
@@ -52,9 +53,23 @@ public class OnDevicePersonalizationManagingServiceDelegate
     private static final String TAG = "OnDevicePersonalizationManagingServiceDelegate";
     private static final ServiceFlowOrchestrator sSfo = ServiceFlowOrchestrator.getInstance();
     @NonNull private final Context mContext;
+    private final Injector mInjector;
 
     public OnDevicePersonalizationManagingServiceDelegate(@NonNull Context context) {
+        this(context, new Injector());
+    }
+
+    @VisibleForTesting
+    public OnDevicePersonalizationManagingServiceDelegate(
+            @NonNull Context context, Injector injector) {
         mContext = Objects.requireNonNull(context);
+        mInjector = injector;
+    }
+
+    static class Injector {
+        Flags getFlags() {
+            return FlagsFactory.getFlags();
+        }
     }
 
     @Override
@@ -226,8 +241,8 @@ public class OnDevicePersonalizationManagingServiceDelegate
 
     private boolean getGlobalKillSwitch() {
         long origId = Binder.clearCallingIdentity();
-        boolean globalKillSwitch = FlagsFactory.getFlags().getGlobalKillSwitch();
-        FlagsFactory.getFlags().setStableFlags();
+        boolean globalKillSwitch = mInjector.getFlags().getGlobalKillSwitch();
+        mInjector.getFlags().setStableFlags();
         Binder.restoreCallingIdentity(origId);
         return globalKillSwitch;
     }
