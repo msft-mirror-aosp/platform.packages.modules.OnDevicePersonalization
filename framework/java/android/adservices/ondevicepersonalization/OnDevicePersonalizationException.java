@@ -67,6 +67,28 @@ public class OnDevicePersonalizationException extends Exception {
      */
     public static final int ERROR_ISOLATED_SERVICE_FAILED_TRAINING = 6;
 
+    /**
+     * The {@link IsolatedService}'s call to {@link FederatedComputeScheduler#schedule} failed due
+     * to missing or misconfigured federated compute settings URL in the manifest.
+     *
+     * @hide
+     */
+    public static final int ERROR_ISOLATED_SERVICE_INVALID_TRAINING_MANIFEST = 7;
+
+    /**
+     * Inference failed due to {@link ModelManager} not finding the downloaded model.
+     *
+     * @hide
+     */
+    public static final int ERROR_INFERENCE_MODEL_NOT_FOUND = 8;
+
+    /**
+     * {@link ModelManager} failed to run inference.
+     *
+     * @hide
+     */
+    public static final int ERROR_INFERENCE_FAILED = 9;
+
     /** @hide */
     @IntDef(prefix = "ERROR_", value = {
             ERROR_ISOLATED_SERVICE_FAILED,
