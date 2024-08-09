@@ -130,9 +130,24 @@ package android.adservices.ondevicepersonalization {
     method @NonNull public android.adservices.ondevicepersonalization.FederatedComputeInput.Builder setPopulationName(@NonNull String);
   }
 
+  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.fcp_schedule_with_outcome_receiver_enabled") public final class FederatedComputeScheduleRequest {
+    method @NonNull public android.adservices.ondevicepersonalization.FederatedComputeScheduler.Params getParams();
+    method @NonNull public String getPopulationName();
+  }
+
+  public static final class FederatedComputeScheduleRequest.Builder {
+    ctor public FederatedComputeScheduleRequest.Builder(@NonNull android.adservices.ondevicepersonalization.FederatedComputeScheduler.Params);
+    method @NonNull public android.adservices.ondevicepersonalization.FederatedComputeScheduleRequest build();
+    method @NonNull public android.adservices.ondevicepersonalization.FederatedComputeScheduleRequest.Builder setPopulationName(@NonNull String);
+  }
+
+  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.fcp_schedule_with_outcome_receiver_enabled") public final class FederatedComputeScheduleResponse {
+  }
+
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class FederatedComputeScheduler {
     method @WorkerThread public void cancel(@NonNull android.adservices.ondevicepersonalization.FederatedComputeInput);
     method @WorkerThread public void schedule(@NonNull android.adservices.ondevicepersonalization.FederatedComputeScheduler.Params, @NonNull android.adservices.ondevicepersonalization.FederatedComputeInput);
+    method @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.fcp_schedule_with_outcome_receiver_enabled") @WorkerThread public void schedule(@NonNull android.adservices.ondevicepersonalization.FederatedComputeScheduleRequest, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.FederatedComputeScheduleResponse,java.lang.Exception>);
   }
 
   public static class FederatedComputeScheduler.Params {
