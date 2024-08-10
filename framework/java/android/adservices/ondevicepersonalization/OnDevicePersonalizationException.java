@@ -66,7 +66,7 @@ public class OnDevicePersonalizationException extends Exception {
      *
      * @hide
      */
-    public static final int ERROR_ISOLATED_SERVICE_FAILED_TRAINING = 6;
+    public static final int ERROR_SCHEDULE_TRAINING_FAILED = 6;
 
     /**
      * The {@link IsolatedService}'s call to {@link FederatedComputeScheduler#schedule} failed due
@@ -74,7 +74,7 @@ public class OnDevicePersonalizationException extends Exception {
      *
      * @hide
      */
-    public static final int ERROR_ISOLATED_SERVICE_INVALID_TRAINING_MANIFEST = 7;
+    public static final int ERROR_INVALID_TRAINING_MANIFEST = 7;
 
     /**
      * Inference failed due to {@link ModelManager} not finding the downloaded model.
@@ -98,8 +98,8 @@ public class OnDevicePersonalizationException extends Exception {
                     ERROR_ISOLATED_SERVICE_LOADING_FAILED,
                     ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
                     ERROR_ISOLATED_SERVICE_TIMEOUT,
-                    ERROR_ISOLATED_SERVICE_FAILED_TRAINING,
-                    ERROR_ISOLATED_SERVICE_INVALID_TRAINING_MANIFEST,
+                    ERROR_SCHEDULE_TRAINING_FAILED,
+                    ERROR_INVALID_TRAINING_MANIFEST,
                     ERROR_INFERENCE_MODEL_NOT_FOUND,
                     ERROR_INFERENCE_FAILED);
 
