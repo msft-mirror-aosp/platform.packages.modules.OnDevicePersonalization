@@ -131,8 +131,10 @@ public class FederatedComputeScheduler {
      * @param outcomeReceiver This either returns a {@link FederatedComputeScheduleResponse} on
      *     success, or {@link Exception} on failure. The exception type is {@link
      *     OnDevicePersonalizationException} with error code {@link
-     *     OnDevicePersonalizationException#ERROR_ISOLATED_SERVICE_FAILED_TRAINING} when scheduling
-     *     fails.
+     *     OnDevicePersonalizationException#ERROR_INVALID_TRAINING_MANIFEST} if the manifest is
+     *     missing the federated compute server URL or {@link
+     *     OnDevicePersonalizationException#ERROR_SCHEDULE_TRAINING_FAILED} when scheduling fails
+     *     for other reasons.
      * @hide
      */
     @WorkerThread
@@ -175,15 +177,25 @@ public class FederatedComputeScheduler {
                                     System.currentTimeMillis() - startTimeMillis,
                                     Constants.STATUS_INTERNAL_ERROR);
                             outcomeReceiver.onError(
-                                    new OnDevicePersonalizationException(
-                                            OnDevicePersonalizationException
-                                                    .ERROR_ISOLATED_SERVICE_FAILED_TRAINING));
+                                    new OnDevicePersonalizationException(translateErrorCode(i)));
                         }
                     });
         } catch (RemoteException e) {
             sLogger.e(TAG + ": Failed to schedule federated compute job", e);
             outcomeReceiver.onError(e);
         }
+    }
+
+    /**
+     * Translate the failed error code from the {@link IFederatedComputeService} to appropriate API
+     * surface error code.
+     */
+    private static int translateErrorCode(int i) {
+        // Currently there are just two types of failures within the schedule call, generic failure
+        // and invalid/missing manifest.
+        return i == Constants.STATUS_FCP_MANIFEST_INVALID
+                ? OnDevicePersonalizationException.ERROR_INVALID_TRAINING_MANIFEST
+                : OnDevicePersonalizationException.ERROR_SCHEDULE_TRAINING_FAILED;
     }
 
     /**

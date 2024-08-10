@@ -23,6 +23,7 @@ import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Set;
 
 /**
  * Exception thrown by OnDevicePersonalization APIs.
@@ -65,7 +66,7 @@ public class OnDevicePersonalizationException extends Exception {
      *
      * @hide
      */
-    public static final int ERROR_ISOLATED_SERVICE_FAILED_TRAINING = 6;
+    public static final int ERROR_SCHEDULE_TRAINING_FAILED = 6;
 
     /**
      * The {@link IsolatedService}'s call to {@link FederatedComputeScheduler#schedule} failed due
@@ -73,7 +74,7 @@ public class OnDevicePersonalizationException extends Exception {
      *
      * @hide
      */
-    public static final int ERROR_ISOLATED_SERVICE_INVALID_TRAINING_MANIFEST = 7;
+    public static final int ERROR_INVALID_TRAINING_MANIFEST = 7;
 
     /**
      * Inference failed due to {@link ModelManager} not finding the downloaded model.
@@ -90,10 +91,25 @@ public class OnDevicePersonalizationException extends Exception {
     public static final int ERROR_INFERENCE_FAILED = 9;
 
     /** @hide */
-    @IntDef(prefix = "ERROR_", value = {
-            ERROR_ISOLATED_SERVICE_FAILED,
-            ERROR_PERSONALIZATION_DISABLED
-    })
+    private static final Set<Integer> VALID_ERROR_CODE =
+            Set.of(
+                    ERROR_ISOLATED_SERVICE_FAILED,
+                    ERROR_PERSONALIZATION_DISABLED,
+                    ERROR_ISOLATED_SERVICE_LOADING_FAILED,
+                    ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
+                    ERROR_ISOLATED_SERVICE_TIMEOUT,
+                    ERROR_SCHEDULE_TRAINING_FAILED,
+                    ERROR_INVALID_TRAINING_MANIFEST,
+                    ERROR_INFERENCE_MODEL_NOT_FOUND,
+                    ERROR_INFERENCE_FAILED);
+
+    /** @hide */
+    @IntDef(
+            prefix = "ERROR_",
+            value = {
+                ERROR_ISOLATED_SERVICE_FAILED,
+                ERROR_PERSONALIZATION_DISABLED,
+            })
     @Retention(RetentionPolicy.SOURCE)
     public @interface ErrorCode {}
 
@@ -128,5 +144,12 @@ public class OnDevicePersonalizationException extends Exception {
     /** Returns the error code for this exception. */
     public @ErrorCode int getErrorCode() {
         return mErrorCode;
+    }
+
+    /**
+     * @hide Only used by internal error code validation.
+     */
+    public static boolean isValidErrorCode(int errorCode) {
+        return VALID_ERROR_CODE.contains(errorCode);
     }
 }

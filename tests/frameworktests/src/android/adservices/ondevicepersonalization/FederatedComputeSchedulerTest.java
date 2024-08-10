@@ -50,6 +50,8 @@ public class FederatedComputeSchedulerTest {
     private static final String VALID_POPULATION_NAME = "population";
     private static final String ERROR_POPULATION_NAME = "err";
 
+    private static final String INVALID_MANIFEST_ERROR_POPULATION_NAME = "manifest_error";
+
     private static final TrainingInterval TEST_TRAINING_INTERVAL =
             new TrainingInterval.Builder()
                     .setMinimumInterval(Duration.ofHours(10))
@@ -97,10 +99,6 @@ public class FederatedComputeSchedulerTest {
 
     @Test
     public void testSchedule_withOutcomeReceiver_error() throws Exception {
-        FederatedComputeInput input =
-                new FederatedComputeInput.Builder()
-                        .setPopulationName(ERROR_POPULATION_NAME)
-                        .build();
         FederatedComputeScheduleRequest scheduleInput =
                 new FederatedComputeScheduleRequest.Builder(TEST_SCHEDULER_PARAMS)
                         .setPopulationName(ERROR_POPULATION_NAME)
@@ -113,7 +111,27 @@ public class FederatedComputeSchedulerTest {
         assertTrue(receiver.isError());
         assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
         assertEquals(
-                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED_TRAINING,
+                OnDevicePersonalizationException.ERROR_SCHEDULE_TRAINING_FAILED,
+                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        assertThat(mScheduleCalled).isTrue();
+        assertThat(mLogApiCalled).isTrue();
+    }
+
+    @Test
+    public void testSchedule_withOutcomeReceiver_manifestError() throws Exception {
+        FederatedComputeScheduleRequest scheduleInput =
+                new FederatedComputeScheduleRequest.Builder(TEST_SCHEDULER_PARAMS)
+                        .setPopulationName(INVALID_MANIFEST_ERROR_POPULATION_NAME)
+                        .build();
+        var receiver = new ResultReceiver();
+
+        mFederatedComputeScheduler.schedule(scheduleInput, receiver);
+
+        assertNull(receiver.getResult());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertEquals(
+                OnDevicePersonalizationException.ERROR_INVALID_TRAINING_MANIFEST,
                 ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
         assertThat(mScheduleCalled).isTrue();
         assertThat(mLogApiCalled).isTrue();
@@ -178,6 +196,12 @@ public class FederatedComputeSchedulerTest {
             mScheduleCalled = true;
             if (trainingOptions.getPopulationName().equals(ERROR_POPULATION_NAME)) {
                 iFederatedComputeCallback.onFailure(1);
+                return;
+            }
+            if (trainingOptions
+                    .getPopulationName()
+                    .equals(INVALID_MANIFEST_ERROR_POPULATION_NAME)) {
+                iFederatedComputeCallback.onFailure(Constants.STATUS_FCP_MANIFEST_INVALID);
                 return;
             }
             iFederatedComputeCallback.onSuccess();

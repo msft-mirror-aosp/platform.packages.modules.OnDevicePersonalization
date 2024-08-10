@@ -17,6 +17,7 @@
 package android.adservices.ondevicepersonalization;
 
 import android.annotation.FlaggedApi;
+import android.annotation.IntRange;
 import android.annotation.Nullable;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
@@ -25,10 +26,7 @@ import com.android.adservices.ondevicepersonalization.flags.Flags;
  * A class that an {@link IsolatedService} can use to signal a failure in handling a request and
  * return an error to be logged and aggregated. The error is not reported to the app that invoked
  * the {@link IsolatedService} in order to prevent data leakage from the {@link IsolatedService} to
- * an app. The platform does not interpret the error code, it only logs and aggregates it on the
- * device. The platform reports noised and aggregated error counts to a developer-configured
- * backend. The number of unique error codes that can be reported to developer servers depends on
- * the number of errors and the number of active devices.
+ * an app. The platform does not interpret the error code, it only logs and aggregates it.
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public final class IsolatedServiceException extends Exception {
@@ -41,7 +39,7 @@ public final class IsolatedServiceException extends Exception {
      *
      * @param errorCode An error code defined by the {@link IsolatedService}.
      */
-    public IsolatedServiceException(int errorCode) {
+    public IsolatedServiceException(@IntRange(from = 1, to = 127) int errorCode) {
         this(errorCode, "IsolatedServiceException: Error " + errorCode, null);
     }
 

@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.federatedcompute;
 
+import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeCallback;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.annotation.NonNull;
@@ -59,7 +60,7 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
             "debug.ondevicepersonalization.override_fc_server_url";
 
     @NonNull private final Context mApplicationContext;
-    @NonNull private ComponentName mCallingService;
+    @NonNull private final ComponentName mCallingService;
     @NonNull private final Injector mInjector;
 
     @NonNull private final FederatedComputeManager mFederatedComputeManager;
@@ -136,7 +137,7 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
                         TAG
                                 + ": Missing remote server URL for package: "
                                 + mCallingService.getPackageName());
-                sendError(callback);
+                sendError(callback, Constants.STATUS_FCP_MANIFEST_INVALID);
                 return;
             }
 
@@ -179,9 +180,11 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
                             sendError(callback);
                         }
                     });
-        } catch (IOException | PackageManager.NameNotFoundException e) {
+        } catch (IOException | PackageManager.NameNotFoundException | IllegalArgumentException e) {
+            // The AppManifestConfigHelper methods throw IllegalArgumentExceptions when
+            // parsings fails or the fc settings URL is missing.
             sLogger.e(TAG + ": Error while scheduling federatedCompute", e);
-            sendError(callback);
+            sendError(callback, Constants.STATUS_FCP_MANIFEST_INVALID);
         }
     }
 
@@ -217,7 +220,7 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
                 });
     }
 
-    private void sendSuccess(@NonNull IFederatedComputeCallback callback) {
+    private static void sendSuccess(@NonNull IFederatedComputeCallback callback) {
         try {
             callback.onSuccess();
         } catch (RemoteException e) {
@@ -225,9 +228,13 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
         }
     }
 
-    private void sendError(@NonNull IFederatedComputeCallback callback) {
+    private static void sendError(@NonNull IFederatedComputeCallback callback) {
+        sendError(callback, ClientConstants.STATUS_INTERNAL_ERROR);
+    }
+
+    private static void sendError(@NonNull IFederatedComputeCallback callback, int errorCode) {
         try {
-            callback.onFailure(ClientConstants.STATUS_INTERNAL_ERROR);
+            callback.onFailure(errorCode);
         } catch (RemoteException e) {
             sLogger.e(TAG + ": Callback error", e);
         }

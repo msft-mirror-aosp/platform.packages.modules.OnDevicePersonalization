@@ -28,7 +28,9 @@ import android.app.job.JobService;
 import android.content.Context;
 import android.os.PersistableBundle;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
@@ -39,6 +41,7 @@ import com.google.android.libraries.mobiledatadownload.tracing.PropagatedFutures
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 
 /**
  * MDD JobService. This will download MDD files in background tasks.
@@ -49,12 +52,33 @@ public class MddJobService extends JobService {
 
     private String mMddTaskTag;
 
+    private final Injector mInjector;
+
+    public MddJobService() {
+        mInjector = new Injector();
+    }
+
+    @VisibleForTesting
+    public MddJobService(Injector injector) {
+        mInjector = injector;
+    }
+
+    static class Injector {
+        ListeningExecutorService getBackgroundExecutor() {
+            return OnDevicePersonalizationExecutors.getBackgroundExecutor();
+        }
+
+        Flags getFlags() {
+            return FlagsFactory.getFlags();
+        }
+    }
+
     @Override
     public boolean onStartJob(JobParameters params) {
         int jobId = getMddTaskJobId(params);
         sLogger.d(TAG + ": onStartJob()");
         OdpJobServiceLogger.getInstance(this).recordOnStartJob(jobId);
-        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+        if (mInjector.getFlags().getGlobalKillSwitch()) {
             sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
             return cancelAndFinishJob(params,
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON);
@@ -74,7 +98,7 @@ public class MddJobService extends JobService {
         ListenableFuture<Void> handleTaskFuture =
                 PropagatedFutures.submitAsync(
                         () -> MobileDataDownloadFactory.getMdd(this).handleTask(mMddTaskTag),
-                        OnDevicePersonalizationExecutors.getBackgroundExecutor());
+                        mInjector.getBackgroundExecutor());
 
         Context context = this;
         Futures.addCallback(
@@ -110,7 +134,7 @@ public class MddJobService extends JobService {
                         jobFinished(params, wantsReschedule);
                     }
                 },
-                OnDevicePersonalizationExecutors.getBackgroundExecutor());
+                mInjector.getBackgroundExecutor());
 
         return true;
     }

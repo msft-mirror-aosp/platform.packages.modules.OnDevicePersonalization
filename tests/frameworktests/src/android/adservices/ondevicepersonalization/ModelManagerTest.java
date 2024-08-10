@@ -16,9 +16,10 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static junit.framework.Assert.assertEquals;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -27,11 +28,12 @@ import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallbac
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelServiceCallback;
 import android.os.Bundle;
-import android.os.OutcomeReceiver;
 import android.os.RemoteException;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
+
+import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -40,7 +42,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.HashMap;
-import java.util.concurrent.CountDownLatch;
 
 @SmallTest
 @RunWith(AndroidJUnit4.class)
@@ -76,13 +77,11 @@ public class ModelManagerTest {
                                 new InferenceOutput.Builder().setDataOutputs(outputData).build())
                         .build();
 
-        var callback = new MyTestCallback();
+        var callback = new ResultReceiver<InferenceOutput>();
         mModelManager.run(inferenceContext, MoreExecutors.directExecutor(), callback);
 
-        callback.mLatch.await();
-        assertTrue(mRunInferenceCalled);
-        assertNotNull(callback.mInferenceOutput);
-        float[] value = (float[]) callback.mInferenceOutput.getDataOutputs().get(0);
+        assertTrue(callback.isSuccess());
+        float[] value = (float[]) callback.getResult().getDataOutputs().get(0);
         assertEquals(value[0], 5.0f, 0.01f);
     }
 
@@ -100,20 +99,22 @@ public class ModelManagerTest {
                                 new InferenceOutput.Builder().setDataOutputs(outputData).build())
                         .build();
 
-        var callback = new MyTestCallback();
+        var callback = new ResultReceiver<InferenceOutput>();
         mModelManager.run(inferenceContext, MoreExecutors.directExecutor(), callback);
 
-        callback.mLatch.await();
-        assertTrue(callback.mError);
+        assertTrue(callback.isError());
+        OnDevicePersonalizationException exception =
+                (OnDevicePersonalizationException) callback.getException();
+        assertThat(exception.getErrorCode())
+                .isEqualTo(OnDevicePersonalizationException.ERROR_INFERENCE_MODEL_NOT_FOUND);
     }
 
     @Test
     public void runInference_contextNull_throw() {
+        var callback = new ResultReceiver<InferenceOutput>();
         assertThrows(
                 NullPointerException.class,
-                () ->
-                        mModelManager.run(
-                                null, MoreExecutors.directExecutor(), new MyTestCallback()));
+                () -> mModelManager.run(null, MoreExecutors.directExecutor(), callback));
     }
 
     @Test
@@ -130,29 +131,13 @@ public class ModelManagerTest {
                                 new InferenceOutput.Builder().setDataOutputs(outputData).build())
                         .build();
 
-        var callback = new MyTestCallback();
+        var callback = new ResultReceiver<InferenceOutput>();
         mModelManager.run(inferenceContext, MoreExecutors.directExecutor(), callback);
 
-        callback.mLatch.await();
-        assertTrue(callback.mError);
-    }
-
-    public class MyTestCallback implements OutcomeReceiver<InferenceOutput, Exception> {
-        public boolean mError = false;
-        public InferenceOutput mInferenceOutput = null;
-        private final CountDownLatch mLatch = new CountDownLatch(1);
-
-        @Override
-        public void onResult(InferenceOutput result) {
-            mInferenceOutput = result;
-            mLatch.countDown();
-        }
-
-        @Override
-        public void onError(Exception error) {
-            mError = true;
-            mLatch.countDown();
-        }
+        OnDevicePersonalizationException exception =
+                (OnDevicePersonalizationException) callback.getException();
+        assertThat(exception.getErrorCode())
+                .isEqualTo(OnDevicePersonalizationException.ERROR_INFERENCE_FAILED);
     }
 
     class TestIsolatedModelService extends IIsolatedModelService.Stub {
@@ -164,11 +149,11 @@ public class ModelManagerTest {
                     params.getParcelable(
                             Constants.EXTRA_INFERENCE_INPUT, InferenceInputParcel.class);
             if (inputParcel.getModelId().getKey().equals(INVALID_MODEL_KEY)) {
-                callback.onError(Constants.STATUS_INTERNAL_ERROR);
+                callback.onError(OnDevicePersonalizationException.ERROR_INFERENCE_MODEL_NOT_FOUND);
                 return;
             }
             if (inputParcel.getModelId().getKey().equals(MISSING_OUTPUT_KEY)) {
-                callback.onSuccess(new Bundle());
+                callback.onError(OnDevicePersonalizationException.ERROR_INFERENCE_FAILED);
                 return;
             }
             HashMap<Integer, Object> result = new HashMap<>();
@@ -185,6 +170,7 @@ public class ModelManagerTest {
     static class TestDataAccessService extends IDataAccessService.Stub {
         @Override
         public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {}
+
         @Override
         public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {}
     }

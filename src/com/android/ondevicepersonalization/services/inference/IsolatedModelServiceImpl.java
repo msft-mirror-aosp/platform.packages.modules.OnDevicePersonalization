@@ -21,6 +21,7 @@ import android.adservices.ondevicepersonalization.InferenceInputParcel;
 import android.adservices.ondevicepersonalization.InferenceOutput;
 import android.adservices.ondevicepersonalization.InferenceOutputParcel;
 import android.adservices.ondevicepersonalization.ModelId;
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationException;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
@@ -94,28 +95,37 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
             IIsolatedModelServiceCallback callback) {
         try {
             Trace.beginSection("IsolatedModelService#RunInference");
+            // We already validate requests in ModelManager and double check in case.
             Object[] inputs = convertToObjArray(inputParcel.getInputData().getList());
-            if (inputs.length == 0) {
-                sendError(callback);
+            if (inputs == null || inputs.length == 0) {
+                sLogger.e("Input data can not be empty for inference.");
+                sendError(callback, OnDevicePersonalizationException.ERROR_INFERENCE_FAILED);
+            }
+            Map<Integer, Object> outputs = outputParcel.getData();
+            if (outputs.isEmpty()) {
+                sLogger.e("Output data can not be empty for inference.");
+                sendError(callback, OnDevicePersonalizationException.ERROR_INFERENCE_FAILED);
             }
 
             ModelId modelId = inputParcel.getModelId();
             ParcelFileDescriptor modelFd = fetchModel(binder, modelId);
+            if (modelFd == null) {
+                sLogger.e(TAG + ": Failed to fetch model %s.", modelId.getKey());
+                sendError(
+                        callback, OnDevicePersonalizationException.ERROR_INFERENCE_MODEL_NOT_FOUND);
+                return;
+            }
             ByteBuffer byteBuffer = IoUtils.getByteBufferFromFd(modelFd);
             if (byteBuffer == null) {
                 closeFd(modelFd);
-                sendError(callback);
+                sendError(
+                        callback, OnDevicePersonalizationException.ERROR_INFERENCE_MODEL_NOT_FOUND);
             }
             InterpreterApi interpreter =
                     InterpreterApi.create(
                             byteBuffer,
                             new InterpreterApi.Options()
                                     .setNumThreads(inputParcel.getCpuNumThread()));
-            Map<Integer, Object> outputs = outputParcel.getData();
-            if (outputs.isEmpty() || inputs.length == 0) {
-                closeFd(modelFd);
-                sendError(callback);
-            }
 
             // TODO(b/323469981): handle batch size better. Currently TFLite will throws error if
             // batchSize doesn't match input data size.
@@ -138,7 +148,7 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
         } catch (Exception e) {
             // Catch all exceptions including TFLite errors.
             sLogger.e(e, TAG + ": Failed to run inference job.");
-            sendError(callback);
+            sendError(callback, OnDevicePersonalizationException.ERROR_INFERENCE_FAILED);
         }
     }
 
@@ -149,8 +159,9 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
             try {
                 ObjectInputStream ois = new ObjectInputStream(bais);
                 output[i] = ois.readObject();
-            } catch (IOException | ClassNotFoundException e) {
-                throw new RuntimeException(e);
+            } catch (Exception e) {
+                sLogger.e(e, "Failed to parse inference input");
+                return null;
             }
         }
         return output;
@@ -191,23 +202,22 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
             Bundle result = asyncResult.take();
             ParcelFileDescriptor modelFd =
                     result.getParcelable(Constants.EXTRA_RESULT, ParcelFileDescriptor.class);
-            Objects.requireNonNull(modelFd);
             return modelFd;
-        } catch (InterruptedException | RemoteException e) {
-            sLogger.e(TAG + ": Failed to fetch model from DataAccessService", e);
-            throw new IllegalStateException(e);
+        } catch (Exception e) {
+            sLogger.e(e, TAG + ": Failed to fetch model from DataAccessService");
+            return null;
         }
     }
 
-    private void sendError(@NonNull IIsolatedModelServiceCallback callback) {
+    private static void sendError(@NonNull IIsolatedModelServiceCallback callback, int errorCode) {
         try {
-            callback.onError(Constants.STATUS_INTERNAL_ERROR);
+            callback.onError(errorCode);
         } catch (RemoteException e) {
             sLogger.e(TAG + ": Callback error", e);
         }
     }
 
-    private void sendResult(
+    private static void sendResult(
             @NonNull Bundle result, @NonNull IIsolatedModelServiceCallback callback) {
         try {
             callback.onSuccess(result);

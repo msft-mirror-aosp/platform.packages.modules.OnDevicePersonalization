@@ -67,6 +67,12 @@ public class ModelManager {
             @NonNull OutcomeReceiver<InferenceOutput, Exception> receiver) {
         final long startTimeMillis = System.currentTimeMillis();
         Objects.requireNonNull(input);
+        if (input.getInputData().length == 0) {
+            throw new IllegalArgumentException("Input data can not be empty");
+        }
+        if (input.getExpectedOutputStructure().getDataOutputs().isEmpty()) {
+            throw new IllegalArgumentException("Expected output data structure can not be empty");
+        }
         Bundle bundle = new Bundle();
         bundle.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, mDataService.asBinder());
         bundle.putParcelable(Constants.EXTRA_INFERENCE_INPUT, new InferenceInputParcel(input));
@@ -108,12 +114,20 @@ public class ModelManager {
                             executor.execute(
                                     () -> {
                                         long endTimeMillis = System.currentTimeMillis();
-                                        receiver.onError(
-                                            new IllegalStateException("Error: " + errorCode));
+                                        if (OnDevicePersonalizationException.isValidErrorCode(
+                                                errorCode)) {
+                                            receiver.onError(
+                                                    new OnDevicePersonalizationException(
+                                                            errorCode));
+                                        } else {
+                                            receiver.onError(
+                                                    new IllegalStateException(
+                                                            "Error: " + errorCode));
+                                        }
                                         logApiCallStats(
                                                 Constants.API_NAME_MODEL_MANAGER_RUN,
                                                 endTimeMillis - startTimeMillis,
-                                                Constants.STATUS_INTERNAL_ERROR);
+                                                errorCode);
                                     });
                         }
                     });

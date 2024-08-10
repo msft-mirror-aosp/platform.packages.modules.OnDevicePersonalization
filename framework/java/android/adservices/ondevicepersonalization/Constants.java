@@ -45,6 +45,9 @@ public class Constants {
     /** Internal error code that tracks error when Isolated Service times out. */
     public static final int STATUS_ISOLATED_SERVICE_TIMEOUT = 109;
 
+    /** Internal error code that tracks error when the FCP manifest is invalid or missing. */
+    public static final int STATUS_FCP_MANIFEST_INVALID = 110;
+
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
     public static final int OP_DOWNLOAD = 2;

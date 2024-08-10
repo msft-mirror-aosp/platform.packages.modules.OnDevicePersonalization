@@ -26,6 +26,8 @@ import android.adservices.ondevicepersonalization.AppInfo;
 import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
 import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventOutput;
+import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
+import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceResponse;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.FederatedComputeInput;
 import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
@@ -34,6 +36,7 @@ import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventPara
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.SurfacePackageToken;
 import android.adservices.ondevicepersonalization.TrainingExampleRecord;
 import android.adservices.ondevicepersonalization.TrainingExamplesOutput;
 import android.adservices.ondevicepersonalization.TrainingInterval;
@@ -50,6 +53,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
+import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -68,6 +72,11 @@ public class DataClassesTest {
     @Rule
     public final CheckFlagsRule mCheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule();
 
+    private static final String SERVICE_PACKAGE =
+            "com.android.ondevicepersonalization.testing.sampleservice";
+    private static final String SERVICE_CLASS =
+            "com.android.ondevicepersonalization.testing.sampleservice.SampleService";
+
     /**
      * Test builder and getters for ExecuteOutput.
      */
@@ -77,17 +86,18 @@ public class DataClassesTest {
         row.put("a", 5);
         ExecuteOutput data =
                 new ExecuteOutput.Builder()
-                    .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
-                    .setRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
-                    .addEventLogRecord(new EventLogRecord.Builder().setType(1).build())
-                    .setOutputData(new byte[]{1})
-                    .build();
+                        .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
+                        .setRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
+                        .addEventLogRecord(new EventLogRecord.Builder().setType(1).build())
+                        .setBestValue(100)
+                        .build();
 
         assertEquals(
                 5, data.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
         assertEquals("abc", data.getRenderingConfig().getKeys().get(0));
         assertEquals(1, data.getEventLogRecords().get(0).getType());
-        assertArrayEquals(new byte[]{1}, data.getOutputData());
+        assertThat(data.getOutputData()).isNull();
+        assertThat(data.getBestValue()).isEqualTo(100);
     }
 
     /**
@@ -332,5 +342,64 @@ public class DataClassesTest {
 
         appInfo = new AppInfo(false);
         assertThat(appInfo.isInstalled()).isFalse();
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
+    public void testExecuteInIsolatedServiceRequest() {
+        ComponentName service = new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS);
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RENDER_AND_LOG);
+        ExecuteInIsolatedServiceRequest request =
+                new ExecuteInIsolatedServiceRequest.Builder(service)
+                        .setAppParams(appParams)
+                        .setOutputParams(
+                                ExecuteInIsolatedServiceRequest.OutputParams.buildBestValueParams(
+                                        100))
+                        .build();
+
+        assertThat(request.getService()).isEqualTo(service);
+        assertThat(request.getAppParams()).isEqualTo(appParams);
+        assertThat(request.getOutputParams().getMaxIntValue()).isEqualTo(100);
+        assertThat(request.getOutputParams().getOutputType())
+                .isEqualTo(ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_BEST_VALUE);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
+    public void testExecuteInIsolatedServiceRequest_nullOutputParam() {
+        ComponentName service = new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS);
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RENDER_AND_LOG);
+        ExecuteInIsolatedServiceRequest request =
+                new ExecuteInIsolatedServiceRequest.Builder(service)
+                        .setAppParams(appParams)
+                        .build();
+
+        assertThat(request.getService()).isEqualTo(service);
+        assertThat(request.getAppParams()).isEqualTo(appParams);
+        assertThat(request.getOutputParams().getMaxIntValue()).isEqualTo(-1);
+        assertThat(request.getOutputParams().getOutputType())
+                .isEqualTo(ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_NULL);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
+    public void testExecuteInIsolatedServiceResponse() {
+        SurfacePackageToken token = new SurfacePackageToken("token");
+        ExecuteInIsolatedServiceResponse response = new ExecuteInIsolatedServiceResponse(token, 10);
+
+        assertThat(response.getBestValue()).isEqualTo(10);
+        assertThat(response.getSurfacePackageToken()).isEqualTo(token);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
+    public void testExecuteInIsolatedServiceResponse_nullBestValue() {
+        SurfacePackageToken token = new SurfacePackageToken("token");
+        ExecuteInIsolatedServiceResponse response = new ExecuteInIsolatedServiceResponse(token);
+
+        assertThat(response.getBestValue()).isEqualTo(-1);
+        assertThat(response.getSurfacePackageToken()).isEqualTo(token);
     }
 }
