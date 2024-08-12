@@ -17,7 +17,6 @@
 package android.adservices.ondevicepersonalization;
 
 import android.annotation.FlaggedApi;
-import android.annotation.IntRange;
 import android.annotation.Nullable;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
@@ -39,7 +38,7 @@ public final class IsolatedServiceException extends Exception {
      *
      * @param errorCode An error code defined by the {@link IsolatedService}.
      */
-    public IsolatedServiceException(@IntRange(from = 1, to = 127) int errorCode) {
+    public IsolatedServiceException(int errorCode) {
         this(errorCode, "IsolatedServiceException: Error " + errorCode, null);
     }
 
