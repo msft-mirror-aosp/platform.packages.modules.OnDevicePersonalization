@@ -16,9 +16,15 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceResponse.DEFAULT_BEST_VALUE;
+
 import android.annotation.FlaggedApi;
+import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ComponentName;
+import android.os.OutcomeReceiver;
+import android.os.PersistableBundle;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
@@ -28,11 +34,9 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The result returned by
- * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)} in response to a call to
- * {@code OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle,
- * java.util.concurrent.Executor, OutcomeReceiver)}
- * from a client app.
+ * The result returned by {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
+ * in response to a call to {@code OnDevicePersonalizationManager#execute(ComponentName,
+ * PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)} from a client app.
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
@@ -64,28 +68,23 @@ public final class ExecuteOutput {
     @NonNull private List<EventLogRecord> mEventLogRecords = Collections.emptyList();
 
     /**
-     * A byte array that an {@link IsolatedService} may optionally return to to a calling app,
-     * by setting this field to a non-null value.
-     * The contents of this array will be returned to the caller of
-     * {@link OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)}
-     * if returning data from isolated processes is allowed by policy and the
-     * (calling app package, isolated service package) pair is present in an allowlist that
-     * permits data to be returned.
+     * A byte array that an {@link IsolatedService} may optionally return to a calling app, by
+     * setting this field to a non-null value. The contents of this array will be returned to the
+     * caller of {@link OnDevicePersonalizationManager#execute} if returning data from isolated
+     * processes is allowed by policy and the (calling app package, isolated service package) pair
+     * is present in an allowlist that permits data to be returned.
      */
-    @DataClass.MaySetToNull
-    @Nullable private byte[] mOutputData = null;
+    @DataClass.MaySetToNull @Nullable private byte[] mOutputData = null;
 
     /**
-     * An integer value that an {@link IsolatedService} may optionally return to to a calling app,
-     * by setting this field to the value between 0 and {@link
-     * ExecuteInIsolatedServiceRequest.Options#getMaxIntValue()}. The noise will be added to the
-     * value of this field before returned to the caller of {@link
+     * An integer value that an {@link IsolatedService} may optionally return to a calling app, by
+     * setting this field to the value between 0 and {@link
+     * ExecuteInIsolatedServiceRequest.OutputParams#getMaxIntValue()}. The noise will be added to
+     * the value of this field before returned to the caller of {@link
      * OnDevicePersonalizationManager#executeInIsolatedService}. In order to get this field, the
      * (calling app package, isolated service package) pair must be present in an allowlist that
      * permits data to be returned and {@link
-     * ExecuteInIsolatedServiceRequest.Options#buildBestValueOption} is set.
-     *
-     * @hide
+     * ExecuteInIsolatedServiceRequest.OutputParams#buildBestValueParams} is set.
      */
     private final int mBestValue;
 
@@ -153,13 +152,11 @@ public final class ExecuteOutput {
     }
 
     /**
-     * A byte array that an {@link IsolatedService} may optionally return to to a calling app,
-     * by setting this field to a non-null value.
-     * The contents of this array will be returned to the caller of
-     * {@link OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)}
-     * if returning data from isolated processes is allowed by policy and the
-     * (calling app package, isolated service package) pair is present in an allowlist that
-     * permits data to be returned.
+     * A byte array that an {@link IsolatedService} may optionally return to a calling app, by
+     * setting this field to a non-null value. The contents of this array will be returned to the
+     * caller of {@link OnDevicePersonalizationManager#execute} if returning data from isolated
+     * processes is allowed by policy and the (calling app package, isolated service package) pair
+     * is present in an allowlist that permits data to be returned.
      */
     @DataClass.Generated.Member
     public @Nullable byte[] getOutputData() {
@@ -167,19 +164,18 @@ public final class ExecuteOutput {
     }
 
     /**
-     * An integer value that an {@link IsolatedService} may optionally return to to a calling app,
-     * by setting this field to the value between 0 and {@link
-     * ExecuteInIsolatedServiceRequest.Options#getMaxIntValue()}. The noise will be added to the
-     * value of this field before returned to the caller of {@link
+     * An integer value that an {@link IsolatedService} may optionally return to a calling app, by
+     * setting this field to the value between 0 and {@link
+     * ExecuteInIsolatedServiceRequest.OutputParams#getMaxIntValue()}. The noise will be added to
+     * the value of this field before returned to the caller of {@link
      * OnDevicePersonalizationManager#executeInIsolatedService}. In order to get this field, the
      * (calling app package, isolated service package) pair must be present in an allowlist that
      * permits data to be returned and {@link
-     * ExecuteInIsolatedServiceRequest.Options#buildBestValueOption} is set.
-     *
-     * @hide
+     * ExecuteInIsolatedServiceRequest.OutputParams#buildBestValueParams} is set.
      */
+    @FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     @DataClass.Generated.Member
-    public int getBestValue() {
+    public @IntRange(from = DEFAULT_BEST_VALUE) int getBestValue() {
         return mBestValue;
     }
 
@@ -243,19 +239,17 @@ public final class ExecuteOutput {
          */
         @DataClass.Generated.Member
         public @NonNull Builder setRequestLogRecord(@Nullable RequestLogRecord value) {
-            checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mRequestLogRecord = value;
             return this;
         }
 
         /**
-         * A {@link RenderingConfig} object that contains information about the content to be rendered
-         * in the client app view. Can be null if no content is to be rendered.
+         * A {@link RenderingConfig} object that contains information about the content to be
+         * rendered in the client app view. Can be null if no content is to be rendered.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setRenderingConfig(@Nullable RenderingConfig value) {
-            checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mRenderingConfig = value;
             return this;
@@ -271,7 +265,6 @@ public final class ExecuteOutput {
          */
         @DataClass.Generated.Member
         public @NonNull Builder setEventLogRecords(@NonNull List<EventLogRecord> value) {
-            checkNotUsed();
             mBuilderFieldsSet |= 0x4;
             mEventLogRecords = value;
             return this;
@@ -286,37 +279,34 @@ public final class ExecuteOutput {
         }
 
         /**
-         * A byte array that an {@link IsolatedService} may optionally return to to a calling app,
-         * by setting this field to a non-null value.
-         * The contents of this array will be returned to the caller of
-         * {@link OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)}
-         * if returning data from isolated processes is allowed by policy and the
-         * (calling app package, isolated service package) pair is present in an allowlist that
-         * permits data to be returned.
+         * A byte array that an {@link IsolatedService} may optionally return to a calling app, by
+         * setting this field to a non-null value. The contents of this array will be returned to
+         * the caller of {@link OnDevicePersonalizationManager#execute(ComponentName,
+         * PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)} if returning data
+         * from isolated processes is allowed by policy and the (calling app package, isolated
+         * service package) pair is present in an allowlist that permits data to be returned.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setOutputData(@Nullable byte... value) {
-            checkNotUsed();
             mBuilderFieldsSet |= 0x8;
             mOutputData = value;
             return this;
         }
 
         /**
-         * An integer value that an {@link IsolatedService} may optionally return to to a calling
-         * app, by setting this field to the value between 0 and {@link
-         * ExecuteInIsolatedServiceRequest.Options#getMaxIntValue()}. The noise will be added to the
-         * value of this field before returned to the caller of {@link
+         * An integer value that an {@link IsolatedService} may optionally return to a calling app,
+         * by setting this field to the value between 0 and {@link
+         * ExecuteInIsolatedServiceRequest.OutputParams#getMaxIntValue()}. The noise will be added
+         * to the value of this field before returned to the caller of {@link
          * OnDevicePersonalizationManager#executeInIsolatedService}. In order to get this field, the
          * (calling app package, isolated service package) pair must be present in an allowlist that
          * permits data to be returned and {@link
-         * ExecuteInIsolatedServiceRequest.Options#buildBestValueOption} is set.
-         *
-         * @hide
+         * ExecuteInIsolatedServiceRequest.OutputParams#buildBestValueParams} is set.
          */
+        @FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
         @DataClass.Generated.Member
-        public @NonNull Builder setBestValue(int value) {
-            checkNotUsed();
+        public @NonNull Builder setBestValue(@IntRange(from = 0) int value) {
+            AnnotationValidations.validate(IntRange.class, null, value, "from", 0);
             mBuilderFieldsSet |= 0x10;
             mBestValue = value;
             return this;
@@ -324,7 +314,6 @@ public final class ExecuteOutput {
 
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull ExecuteOutput build() {
-            checkNotUsed();
             mBuilderFieldsSet |= 0x20; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
@@ -349,13 +338,6 @@ public final class ExecuteOutput {
                     mOutputData,
                     mBestValue);
             return o;
-        }
-
-        private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x20) != 0) {
-                throw new IllegalStateException(
-                        "This Builder should not be reused. Use a new Builder instance instead");
-            }
         }
     }
 

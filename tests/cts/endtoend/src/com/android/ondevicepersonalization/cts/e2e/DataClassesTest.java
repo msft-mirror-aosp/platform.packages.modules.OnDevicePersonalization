@@ -89,7 +89,6 @@ public class DataClassesTest {
                         .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
                         .setRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
                         .addEventLogRecord(new EventLogRecord.Builder().setType(1).build())
-                        .setBestValue(100)
                         .build();
 
         assertEquals(
@@ -97,7 +96,6 @@ public class DataClassesTest {
         assertEquals("abc", data.getRenderingConfig().getKeys().get(0));
         assertEquals(1, data.getEventLogRecords().get(0).getType());
         assertThat(data.getOutputData()).isNull();
-        assertThat(data.getBestValue()).isEqualTo(100);
     }
 
     /**
@@ -401,5 +399,25 @@ public class DataClassesTest {
 
         assertThat(response.getBestValue()).isEqualTo(-1);
         assertThat(response.getSurfacePackageToken()).isEqualTo(token);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
+    public void testExecuteOutputWithBestValue() {
+        ContentValues row = new ContentValues();
+        row.put("a", 5);
+        ExecuteOutput data =
+                new ExecuteOutput.Builder()
+                        .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
+                        .setRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
+                        .addEventLogRecord(new EventLogRecord.Builder().setType(1).build())
+                        .setBestValue(100)
+                        .build();
+
+        assertEquals(5, data.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
+        assertEquals("abc", data.getRenderingConfig().getKeys().get(0));
+        assertEquals(1, data.getEventLogRecords().get(0).getType());
+        assertThat(data.getOutputData()).isNull();
+        assertThat(data.getBestValue()).isEqualTo(100);
     }
 }

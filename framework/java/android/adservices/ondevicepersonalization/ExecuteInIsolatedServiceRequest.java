@@ -16,42 +16,60 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceResponse.DEFAULT_BEST_VALUE;
+
+import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
+import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.os.PersistableBundle;
+
+import com.android.adservices.ondevicepersonalization.flags.Flags;
+import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Objects;
 
-/**
- * The request of {@link OnDevicePersonalizationManager#executeInIsolatedService}.
- *
- * @hide
- */
+/** The request of {@link OnDevicePersonalizationManager#executeInIsolatedService}. */
+@FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
 public class ExecuteInIsolatedServiceRequest {
     /** The {@link ComponentName} of the {@link IsolatedService}. */
     @NonNull private ComponentName mService;
 
     /**
-     * a {@link PersistableBundle} that is passed from the calling app to the {@link
-     * IsolatedService}. The expected contents of this parameter are defined by the{@link
+     * A {@link PersistableBundle} that is passed from the calling app to the {@link
+     * IsolatedService}. The expected contents of this parameter are defined by the {@link
      * IsolatedService}. The platform does not interpret this parameter.
      */
     @NonNull private PersistableBundle mAppParams;
 
     /**
      * The set of parameters to indicate output of {@link IsolatedService}. It's mainly used by
-     * platform. For example, platform calls {@link OutputParams#getOutputType} and validates the
-     * result received from {@link IsolatedService}.
+     * platform. If {@link OutputParams} is set to {@link OutputParams#DEFAULT},
+     * OnDevicePersonalization will ignore result returned by {@link IsolatedService}. If {@link
+     * OutputParams} is built with {@link OutputParams#buildBestValueParams},
+     * OnDevicePersonalization will verify {@link ExecuteOutput#getBestValue()} returned by {@link
+     * IsolatedService} within the max value range set in {@link OutputParams#getMaxIntValue} and
+     * add noise.
      */
     @NonNull private OutputParams mOutputParams;
 
+    /**
+     * The set of parameters to indicate output of {@link IsolatedService}. It's mainly used by
+     * platform. If {@link OutputParams} is set to {@link OutputParams#DEFAULT},
+     * OnDevicePersonalization will ignore result returned by {@link IsolatedService}. If {@link
+     * OutputParams} is built with {@link OutputParams#buildBestValueParams},
+     * OnDevicePersonalization will verify {@link ExecuteOutput#getBestValue()} returned by {@link
+     * IsolatedService} within the max value range set in {@link OutputParams#getMaxIntValue} and
+     * add noise.
+     */
     public static class OutputParams {
         /**
-         * By default, the output type is null. In this case, ODP provides accurate user data for
-         * IsolatedWorker.
+         * The default value of OutputType. If set, OnDevicePersonalization will ignore result
+         * returned by {@link IsolatedService} and {@link ExecuteInIsolatedServiceResponse} doesn't
+         * return any output data.
          */
         public static final int OUTPUT_TYPE_NULL = 0;
 
@@ -73,9 +91,13 @@ public class ExecuteInIsolatedServiceRequest {
         @OutputType private final int mOutputType;
 
         /** Optional. Only set when output option is OUTPUT_TYPE_BEST_VALUE. */
+        @IntRange(from = DEFAULT_BEST_VALUE)
         private final int mMaxIntValue;
 
-        @NonNull public static final OutputParams DEFAULT = new OutputParams(OUTPUT_TYPE_NULL, -1);
+        /** The default value of {@link OutputParams}. */
+        @NonNull
+        public static final OutputParams DEFAULT =
+                new OutputParams(OUTPUT_TYPE_NULL, DEFAULT_BEST_VALUE);
 
         private OutputParams(int outputType, int maxIntValue) {
             mMaxIntValue = maxIntValue;
@@ -83,12 +105,14 @@ public class ExecuteInIsolatedServiceRequest {
         }
 
         /**
-         * Create the output params to get best value out of maximum int values. If set this, caller
-         * can call {@link ExecuteInIsolatedServiceResponse#getBestValue} to get result.
+         * Creates the output params to get best value out of {@code maxIntValue}. If set this,
+         * caller can call {@link ExecuteInIsolatedServiceResponse#getBestValue} to get result.
          *
          * @param maxIntValue the maximum value {@link IsolatedWorker} can return to caller app.
          */
-        public @NonNull static OutputParams buildBestValueParams(int maxIntValue) {
+        public @NonNull static OutputParams buildBestValueParams(
+                @IntRange(from = 0) int maxIntValue) {
+            AnnotationValidations.validate(IntRange.class, null, maxIntValue, "from", 0);
             return new OutputParams(OUTPUT_TYPE_BEST_VALUE, maxIntValue);
         }
 
@@ -96,15 +120,16 @@ public class ExecuteInIsolatedServiceRequest {
          * Returns the output type of {@link IsolatedService}. The default value is {@link
          * OutputParams#OUTPUT_TYPE_NULL}.
          */
-        public int getOutputType() {
+        public @OutputType int getOutputType() {
             return mOutputType;
         }
 
         /**
-         * Returns the value set in {@link OutputParams#buildBestValueParams}. The default value is
-         * -1.
+         * Returns the value set in {@link OutputParams#buildBestValueParams}. The value is expected
+         * to be {@link ExecuteInIsolatedServiceResponse#DEFAULT_BEST_VALUE} if {@link
+         * #getOutputType} is {@link OutputParams#OUTPUT_TYPE_NULL}.
          */
-        public int getMaxIntValue() {
+        public @IntRange(from = DEFAULT_BEST_VALUE) int getMaxIntValue() {
             return mMaxIntValue;
         }
     }
@@ -127,8 +152,8 @@ public class ExecuteInIsolatedServiceRequest {
     }
 
     /**
-     * a {@link PersistableBundle} that is passed from the calling app to the {@link
-     * IsolatedService}. The expected contents of this parameter are defined by the{@link
+     * A {@link PersistableBundle} that is passed from the calling app to the {@link
+     * IsolatedService}. The expected contents of this parameter are defined by the {@link
      * IsolatedService}. The platform does not interpret this parameter.
      */
     public @NonNull PersistableBundle getAppParams() {
@@ -152,7 +177,6 @@ public class ExecuteInIsolatedServiceRequest {
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        @SuppressWarnings("unchecked")
         ExecuteInIsolatedServiceRequest that = (ExecuteInIsolatedServiceRequest) o;
         //noinspection PointlessBooleanExpression
         return java.util.Objects.equals(mService, that.mService)
@@ -173,8 +197,7 @@ public class ExecuteInIsolatedServiceRequest {
     }
 
     /** A builder for {@link ExecuteInIsolatedServiceRequest} */
-    @SuppressWarnings("WeakerAccess")
-    public static class Builder {
+    public static final class Builder {
 
         private @NonNull ComponentName mService;
         private @NonNull PersistableBundle mAppParams = PersistableBundle.EMPTY;
@@ -191,30 +214,34 @@ public class ExecuteInIsolatedServiceRequest {
         }
 
         /**
-         * a {@link PersistableBundle} that is passed from the calling app to the {@link
-         * IsolatedService}. The expected contents of this parameter are defined by the{@link
+         * A {@link PersistableBundle} that is passed from the calling app to the {@link
+         * IsolatedService}. The expected contents of this parameter are defined by the {@link
          * IsolatedService}. The platform does not interpret this parameter.
          */
         public @NonNull Builder setAppParams(@NonNull PersistableBundle value) {
+            Objects.requireNonNull(value);
             mAppParams = value;
             return this;
         }
 
         /**
          * The set of parameters to indicate output of {@link IsolatedService}. It's mainly used by
-         * platform. For example, platform calls {@link OutputParams#getOutputType} and validates
-         * the result received from {@link IsolatedService}.
+         * platform. If {@link OutputParams} is set to {@link OutputParams#DEFAULT},
+         * OnDevicePersonalization will ignore result returned by {@link IsolatedService}. If {@link
+         * OutputParams} is built with {@link OutputParams#buildBestValueParams},
+         * OnDevicePersonalization will verify {@link ExecuteOutput#getBestValue()} returned by
+         * {@link IsolatedService} within the max value range set in {@link
+         * OutputParams#getMaxIntValue} and add noise.
          */
         public @NonNull Builder setOutputParams(@NonNull OutputParams value) {
+            Objects.requireNonNull(value);
             mOutputParams = value;
             return this;
         }
 
-        /** Builds the instance. This builder should not be touched after calling this! */
+        /** Builds the instance. */
         public @NonNull ExecuteInIsolatedServiceRequest build() {
-            ExecuteInIsolatedServiceRequest o =
-                    new ExecuteInIsolatedServiceRequest(mService, mAppParams, mOutputParams);
-            return o;
+            return new ExecuteInIsolatedServiceRequest(mService, mAppParams, mOutputParams);
         }
     }
 }
