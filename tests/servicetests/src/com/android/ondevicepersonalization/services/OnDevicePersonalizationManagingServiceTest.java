@@ -36,6 +36,7 @@ import static org.mockito.Mockito.when;
 import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
 import android.adservices.ondevicepersonalization.ExecuteOptionsParcel;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
@@ -102,6 +103,7 @@ public class OnDevicePersonalizationManagingServiceTest {
     public void setup() throws Exception {
         mService = new OnDevicePersonalizationManagingServiceDelegate(mContext, new TestInjector());
         when(mMockFlags.getGlobalKillSwitch()).thenReturn(false);
+        when(mMockFlags.getMaxIntValuesLimit()).thenReturn(100);
         doNothing().when(mMockFlags).setStableFlags();
         ExtendedMockito.doReturn(true).when(() -> DeviceUtils.isOdpSupported(any()));
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
@@ -175,6 +177,43 @@ public class OnDevicePersonalizationManagingServiceTest {
                 callback);
         callback.await();
         assertTrue(callback.mWasInvoked);
+    }
+
+    @Test
+    public void testExecuteInvokesAppRequestFlowWithBestValue() throws Exception {
+        var callback = new ExecuteCallback();
+        ExecuteOptionsParcel options =
+                new ExecuteOptionsParcel(
+                        ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_BEST_VALUE, 50);
+        mService.execute(
+                mContext.getPackageName(),
+                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
+                createWrappedAppParams(),
+                new CallerMetadata.Builder().build(),
+                options,
+                callback);
+        callback.await();
+        assertTrue(callback.mWasInvoked);
+    }
+
+    @Test
+    public void testExecuteInvokesAppRequestFlowWithBestValue_exceedLimit() throws Exception {
+        var callback = new ExecuteCallback();
+        ExecuteOptionsParcel options =
+                new ExecuteOptionsParcel(
+                        ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_BEST_VALUE, 150);
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        mService.execute(
+                                mContext.getPackageName(),
+                                new ComponentName(
+                                        mContext.getPackageName(),
+                                        "com.test.TestPersonalizationHandler"),
+                                createWrappedAppParams(),
+                                new CallerMetadata.Builder().build(),
+                                options,
+                                callback));
     }
 
     @Test
