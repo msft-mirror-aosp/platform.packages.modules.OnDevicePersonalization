@@ -68,7 +68,7 @@ package android.adservices.ondevicepersonalization {
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.execute_in_isolated_service_api_enabled") public class ExecuteInIsolatedServiceRequest {
     method @NonNull public android.os.PersistableBundle getAppParams();
-    method @NonNull public android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.OutputParams getOutputParams();
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.OutputSpec getOutputSpec();
     method @NonNull public android.content.ComponentName getService();
   }
 
@@ -76,14 +76,14 @@ package android.adservices.ondevicepersonalization {
     ctor public ExecuteInIsolatedServiceRequest.Builder(@NonNull android.content.ComponentName);
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest build();
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.Builder setAppParams(@NonNull android.os.PersistableBundle);
-    method @NonNull public android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.Builder setOutputParams(@NonNull android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.OutputParams);
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.Builder setOutputSpec(@NonNull android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.OutputSpec);
   }
 
-  public static class ExecuteInIsolatedServiceRequest.OutputParams {
-    method @NonNull public static android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.OutputParams buildBestValueParams(@IntRange(from=0) int);
+  public static class ExecuteInIsolatedServiceRequest.OutputSpec {
+    method @NonNull public static android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.OutputSpec buildBestValueSpec(@IntRange(from=0) int);
     method @IntRange(from=android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceResponse.DEFAULT_BEST_VALUE) public int getMaxIntValue();
     method public int getOutputType();
-    field @NonNull public static final android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.OutputParams DEFAULT;
+    field @NonNull public static final android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.OutputSpec DEFAULT;
     field public static final int OUTPUT_TYPE_BEST_VALUE = 1; // 0x1
     field public static final int OUTPUT_TYPE_NULL = 0; // 0x0
   }
