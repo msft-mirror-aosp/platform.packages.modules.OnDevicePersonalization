@@ -66,6 +66,35 @@ package android.adservices.ondevicepersonalization {
     method @NonNull @WorkerThread public android.net.Uri createEventTrackingUrlWithResponse(@NonNull android.os.PersistableBundle, @Nullable byte[], @Nullable String);
   }
 
+  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.execute_in_isolated_service_api_enabled") public class ExecuteInIsolatedServiceRequest {
+    method @NonNull public android.os.PersistableBundle getAppParams();
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.OutputParams getOutputParams();
+    method @NonNull public android.content.ComponentName getService();
+  }
+
+  public static final class ExecuteInIsolatedServiceRequest.Builder {
+    ctor public ExecuteInIsolatedServiceRequest.Builder(@NonNull android.content.ComponentName);
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest build();
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.Builder setAppParams(@NonNull android.os.PersistableBundle);
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.Builder setOutputParams(@NonNull android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.OutputParams);
+  }
+
+  public static class ExecuteInIsolatedServiceRequest.OutputParams {
+    method @NonNull public static android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.OutputParams buildBestValueParams(@IntRange(from=0) int);
+    method @IntRange(from=android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceResponse.DEFAULT_BEST_VALUE) public int getMaxIntValue();
+    method public int getOutputType();
+    field @NonNull public static final android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest.OutputParams DEFAULT;
+    field public static final int OUTPUT_TYPE_BEST_VALUE = 1; // 0x1
+    field public static final int OUTPUT_TYPE_NULL = 0; // 0x0
+  }
+
+  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.execute_in_isolated_service_api_enabled") public class ExecuteInIsolatedServiceResponse {
+    ctor public ExecuteInIsolatedServiceResponse(@Nullable android.adservices.ondevicepersonalization.SurfacePackageToken, @IntRange(from=android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceResponse.DEFAULT_BEST_VALUE) int);
+    method @IntRange(from=android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceResponse.DEFAULT_BEST_VALUE) public int getBestValue();
+    method @Nullable public android.adservices.ondevicepersonalization.SurfacePackageToken getSurfacePackageToken();
+    field public static final int DEFAULT_BEST_VALUE = -1; // 0xffffffff
+  }
+
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class ExecuteInput {
     ctor @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.data_class_missing_ctors_and_getters_enabled") public ExecuteInput(@NonNull String, @NonNull android.os.PersistableBundle);
     method @NonNull public String getAppPackageName();
@@ -73,6 +102,7 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class ExecuteOutput {
+    method @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.execute_in_isolated_service_api_enabled") @IntRange(from=android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceResponse.DEFAULT_BEST_VALUE) public int getBestValue();
     method @NonNull public java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> getEventLogRecords();
     method @Nullable public byte[] getOutputData();
     method @Nullable public android.adservices.ondevicepersonalization.RenderingConfig getRenderingConfig();
@@ -83,6 +113,7 @@ package android.adservices.ondevicepersonalization {
     ctor public ExecuteOutput.Builder();
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder addEventLogRecord(@NonNull android.adservices.ondevicepersonalization.EventLogRecord);
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput build();
+    method @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.execute_in_isolated_service_api_enabled") @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setBestValue(@IntRange(from=0) int);
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setEventLogRecords(@NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord>);
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setOutputData(@Nullable byte...);
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setRenderingConfig(@Nullable android.adservices.ondevicepersonalization.RenderingConfig);
@@ -212,6 +243,7 @@ package android.adservices.ondevicepersonalization {
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationManager {
     method public void execute(@NonNull android.content.ComponentName, @NonNull android.os.PersistableBundle, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult,java.lang.Exception>);
+    method @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.execute_in_isolated_service_api_enabled") public void executeInIsolatedService(@NonNull android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceResponse,java.lang.Exception>);
     method public void requestSurfacePackage(@NonNull android.adservices.ondevicepersonalization.SurfacePackageToken, @NonNull android.os.IBinder, int, int, int, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.view.SurfaceControlViewHost.SurfacePackage,java.lang.Exception>);
   }
 

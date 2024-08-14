@@ -94,6 +94,8 @@ public class OnDevicePersonalizationManager {
     private final AbstractServiceBinder<IOnDevicePersonalizationManagingService> mServiceBinder;
     private final Context mContext;
 
+    // TODO(b/358624224); deprecate {@link ExecuteResult} after partner migrates to use {@link
+    // #executeInIsolatedService}.
     /**
      * The result of a call to {@link OnDevicePersonalizationManager#execute(ComponentName,
      * PersistableBundle, Executor, OutcomeReceiver)}
@@ -154,45 +156,42 @@ public class OnDevicePersonalizationManager {
         mServiceBinder = serviceBinder;
     }
 
+    // TODO(b/358624224); deprecate {@link ExecuteResult} after partner migrates to use {@link
+    // #executeInIsolatedService}.
     /**
-     * Executes an {@link IsolatedService} in the OnDevicePersonalization sandbox. The
-     * platform binds to the specified {@link IsolatedService} in an isolated process
-     * and calls {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
-     * with the caller-provided parameters. When the {@link IsolatedService} finishes execution,
-     * the platform returns tokens that refer to the results from the service to the caller.
-     * These tokens can be subsequently used to display results in a
-     * {@link android.view.SurfaceView} within the calling app.
+     * Executes an {@link IsolatedService} in the OnDevicePersonalization sandbox. The platform
+     * binds to the specified {@link IsolatedService} in an isolated process and calls {@link
+     * IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)} with the caller-provided
+     * parameters. When the {@link IsolatedService} finishes execution, the platform returns tokens
+     * that refer to the results from the service to the caller. These tokens can be subsequently
+     * used to display results in a {@link android.view.SurfaceView} within the calling app.
      *
      * @param service The {@link ComponentName} of the {@link IsolatedService}.
-     * @param params a {@link PersistableBundle} that is passed from the calling app to the
-     *     {@link IsolatedService}. The expected contents of this parameter are defined
-     *     by the{@link IsolatedService}. The platform does not interpret this parameter.
+     * @param params a {@link PersistableBundle} that is passed from the calling app to the {@link
+     *     IsolatedService}. The expected contents of this parameter are defined by the{@link
+     *     IsolatedService}. The platform does not interpret this parameter.
      * @param executor the {@link Executor} on which to invoke the callback.
-     * @param receiver This returns a {@link ExecuteResult} object on success or an
-     *     {@link Exception} on failure. If the
-     *     {@link IsolatedService} returned a {@link RenderingConfig} to be displayed,
-     *     {@link ExecuteResult#getSurfacePackageToken()} will return a non-null
-     *     {@link SurfacePackageToken}.
-     *     The {@link SurfacePackageToken} object can be used in a subsequent
-     *     {@link #requestSurfacePackage(SurfacePackageToken, IBinder, int, int, int, Executor,
-     *     OutcomeReceiver)} call to display the result in a view. The returned
-     *     {@link SurfacePackageToken} may be null to indicate that no output is expected to be
-     *     displayed for this request. If the {@link IsolatedService} has returned any output data
-     *     and the calling app is allowlisted to receive data from this service, the
-     *     {@link ExecuteResult#getOutputData()} will return a non-null byte array.
-     *
-     *     In case of an error, the receiver returns one of the following exceptions:
-     *     Returns a {@link android.content.pm.PackageManager.NameNotFoundException} if the handler
-     *     package is not installed or does not have a valid ODP manifest.
-     *     Returns {@link ClassNotFoundException} if the handler class is not found.
-     *     Returns an {@link OnDevicePersonalizationException} if execution of the handler fails.
+     * @param receiver This returns a {@link ExecuteResult} object on success or an {@link
+     *     Exception} on failure. If the {@link IsolatedService} returned a {@link RenderingConfig}
+     *     to be displayed, {@link ExecuteResult#getSurfacePackageToken()} will return a non-null
+     *     {@link SurfacePackageToken}. The {@link SurfacePackageToken} object can be used in a
+     *     subsequent {@link #requestSurfacePackage(SurfacePackageToken, IBinder, int, int, int,
+     *     Executor, OutcomeReceiver)} call to display the result in a view. The returned {@link
+     *     SurfacePackageToken} may be null to indicate that no output is expected to be displayed
+     *     for this request. If the {@link IsolatedService} has returned any output data and the
+     *     calling app is allowlisted to receive data from this service, the {@link
+     *     ExecuteResult#getOutputData()} will return a non-null byte array.
+     *     <p>In case of an error, the receiver returns one of the following exceptions: Returns a
+     *     {@link android.content.pm.PackageManager.NameNotFoundException} if the handler package is
+     *     not installed or does not have a valid ODP manifest. Returns {@link
+     *     ClassNotFoundException} if the handler class is not found. Returns an {@link
+     *     OnDevicePersonalizationException} if execution of the handler fails.
      */
     public void execute(
             @NonNull ComponentName service,
             @NonNull PersistableBundle params,
             @NonNull @CallbackExecutor Executor executor,
-            @NonNull OutcomeReceiver<ExecuteResult, Exception> receiver
-    ) {
+            @NonNull OutcomeReceiver<ExecuteResult, Exception> receiver) {
         Objects.requireNonNull(service);
         Objects.requireNonNull(params);
         Objects.requireNonNull(executor);
@@ -327,18 +326,11 @@ public class OnDevicePersonalizationManager {
      * @param request the {@link ExecuteInIsolatedServiceRequest} request
      * @param executor the {@link Executor} on which to invoke the callback.
      * @param receiver This returns a {@link ExecuteInIsolatedServiceResponse} object on success or
-     *     an {@link Exception} on failure. If the {@link IsolatedService} returned a {@link
-     *     RenderingConfig} to be displayed, {@link ExecuteResult#getSurfacePackageToken()} will
-     *     return a non-null {@link SurfacePackageToken}. The {@link SurfacePackageToken} object can
-     *     be used in a subsequent {@link #requestSurfacePackage(SurfacePackageToken, IBinder, int,
-     *     int, int, Executor, OutcomeReceiver)} call to display the result in a view. The returned
-     *     {@link SurfacePackageToken} may be null to indicate that no output is expected to be
-     *     displayed for this request. If the {@link ExecuteInIsolatedServiceRequest.OutputParams}
-     *     is set to {@link ExecuteInIsolatedServiceRequest.OutputParams#OUTPUT_TYPE_BEST_VALUE} and
-     *     {@link IsolatedService} returns an integer value, {@link
-     *     ExecuteInIsolatedServiceResponse#getBestValue()} will return a positive value.
-     * @hide
+     *     an {@link Exception} on failure. For success case, refer to {@link
+     *     ExecuteInIsolatedServiceResponse}. For error case, the receiver returns an {@link
+     *     OnDevicePersonalizationException} if execution of the handler fails.
      */
+    @FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void executeInIsolatedService(
             @NonNull ExecuteInIsolatedServiceRequest request,
             @NonNull @CallbackExecutor Executor executor,
