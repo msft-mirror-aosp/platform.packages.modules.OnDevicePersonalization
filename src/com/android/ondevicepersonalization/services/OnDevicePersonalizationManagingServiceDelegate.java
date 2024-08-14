@@ -20,6 +20,7 @@ import static android.adservices.ondevicepersonalization.OnDevicePersonalization
 
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
 import android.adservices.ondevicepersonalization.ExecuteOptionsParcel;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
@@ -110,6 +111,14 @@ public class OnDevicePersonalizationManagingServiceDelegate
         }
         if (handler.getClassName().isEmpty()) {
             throw new IllegalArgumentException("missing service class name");
+        }
+
+        if (options.getOutputType()
+                        == ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_BEST_VALUE
+                && options.getMaxIntValue() > mInjector.getFlags().getMaxIntValuesLimit()) {
+            throw new IllegalArgumentException(
+                    "The maxIntValue in OutputParams can not exceed limit "
+                            + mInjector.getFlags().getMaxIntValuesLimit());
         }
 
         final int uid = Binder.getCallingUid();
