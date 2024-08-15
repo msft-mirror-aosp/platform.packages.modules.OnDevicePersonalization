@@ -79,12 +79,12 @@ public final class ExecuteOutput {
     /**
      * An integer value that an {@link IsolatedService} may optionally return to a calling app, by
      * setting this field to the value between 0 and {@link
-     * ExecuteInIsolatedServiceRequest.OutputParams#getMaxIntValue()}. The noise will be added to
-     * the value of this field before returned to the caller of {@link
+     * ExecuteInIsolatedServiceRequest.OutputSpec#getMaxIntValue()}. The noise will be added to the
+     * value of this field before returned to the caller of {@link
      * OnDevicePersonalizationManager#executeInIsolatedService}. In order to get this field, the
      * (calling app package, isolated service package) pair must be present in an allowlist that
      * permits data to be returned and {@link
-     * ExecuteInIsolatedServiceRequest.OutputParams#buildBestValueParams} is set.
+     * ExecuteInIsolatedServiceRequest.OutputSpec#buildBestValueSpec} is set.
      */
     private final int mBestValue;
 
@@ -166,12 +166,12 @@ public final class ExecuteOutput {
     /**
      * An integer value that an {@link IsolatedService} may optionally return to a calling app, by
      * setting this field to the value between 0 and {@link
-     * ExecuteInIsolatedServiceRequest.OutputParams#getMaxIntValue()}. The noise will be added to
-     * the value of this field before returned to the caller of {@link
+     * ExecuteInIsolatedServiceRequest.OutputSpec#getMaxIntValue()}. The noise will be added to the
+     * value of this field before returned to the caller of {@link
      * OnDevicePersonalizationManager#executeInIsolatedService}. In order to get this field, the
      * (calling app package, isolated service package) pair must be present in an allowlist that
      * permits data to be returned and {@link
-     * ExecuteInIsolatedServiceRequest.OutputParams#buildBestValueParams} is set.
+     * ExecuteInIsolatedServiceRequest.OutputSpec#buildBestValueSpec} is set.
      */
     @FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     @DataClass.Generated.Member
@@ -296,12 +296,12 @@ public final class ExecuteOutput {
         /**
          * An integer value that an {@link IsolatedService} may optionally return to a calling app,
          * by setting this field to the value between 0 and {@link
-         * ExecuteInIsolatedServiceRequest.OutputParams#getMaxIntValue()}. The noise will be added
-         * to the value of this field before returned to the caller of {@link
+         * ExecuteInIsolatedServiceRequest.OutputSpec#getMaxIntValue()}. The noise will be added to
+         * the value of this field before returned to the caller of {@link
          * OnDevicePersonalizationManager#executeInIsolatedService}. In order to get this field, the
          * (calling app package, isolated service package) pair must be present in an allowlist that
          * permits data to be returned and {@link
-         * ExecuteInIsolatedServiceRequest.OutputParams#buildBestValueParams} is set.
+         * ExecuteInIsolatedServiceRequest.OutputSpec#buildBestValueSpec} is set.
          */
         @FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
         @DataClass.Generated.Member

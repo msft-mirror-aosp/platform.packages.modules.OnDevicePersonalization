@@ -433,8 +433,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             int bestValue = -1;
             if (isOutputDataAllowed()
                     && mOptions.getOutputType()
-                            == ExecuteInIsolatedServiceRequest.OutputParams
-                                    .OUTPUT_TYPE_BEST_VALUE) {
+                            == ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE) {
                 bestValue =
                         mInjector
                                 .getNoiseUtil()

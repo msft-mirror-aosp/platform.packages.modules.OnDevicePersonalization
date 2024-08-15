@@ -15,7 +15,6 @@
  */
 
 package android.adservices.ondevicepersonalization;
-
 import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 
@@ -42,52 +41,51 @@ public class OnDevicePersonalizationException extends Exception {
      */
     public static final int ERROR_PERSONALIZATION_DISABLED = 2;
 
-    /**
-     * The ODP module was unable to load the {@link IsolatedService}.
-     * @hide
+    /** The ODP module was unable to load the {@link IsolatedService}.
+     *
+     * <p> Retrying may be successful for platform internal errors.
      */
-    public static final int  ERROR_ISOLATED_SERVICE_LOADING_FAILED = 3;
+    @FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
+    public static final int ERROR_ISOLATED_SERVICE_LOADING_FAILED = 3;
 
     /**
      * The ODP specific manifest settings for the {@link IsolatedService} are either missing or
      * misconfigured.
-     * @hide
      */
+    @FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public static final int ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED = 4;
 
-    /**
-     * The {@link IsolatedService} was invoked but timed out before returning successfully.
-     * @hide
+    /** The {@link IsolatedService} was invoked but timed out before returning successfully.
+     *
+     * <p> This is likely due to an issue with the {@link IsolatedWorker} implementation taking too
+     * long and retries are likely to fail.
      */
+    @FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public static final int ERROR_ISOLATED_SERVICE_TIMEOUT = 5;
 
-    /**
-     * The {@link IsolatedService}'s call to {@link FederatedComputeScheduler#schedule} failed.
+    /** The {@link IsolatedService}'s call to {@link FederatedComputeScheduler#schedule} failed.
      *
-     * @hide
+     <p> Retrying may be successful if the issue is due to a platform internal error.
      */
+    @FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public static final int ERROR_SCHEDULE_TRAINING_FAILED = 6;
 
     /**
      * The {@link IsolatedService}'s call to {@link FederatedComputeScheduler#schedule} failed due
      * to missing or misconfigured federated compute settings URL in the manifest.
-     *
-     * @hide
      */
+    @FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public static final int ERROR_INVALID_TRAINING_MANIFEST = 7;
 
-    /**
-     * Inference failed due to {@link ModelManager} not finding the downloaded model.
-     *
-     * @hide
-     */
+    /** Inference failed due to {@link ModelManager} not finding the downloaded model. */
+    @FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public static final int ERROR_INFERENCE_MODEL_NOT_FOUND = 8;
 
-    /**
-     * {@link ModelManager} failed to run inference.
+    /** {@link ModelManager} failed to run inference.
      *
-     * @hide
+     <p> Retrying may be successful if the issue is due to a platform internal error.
      */
+    @FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public static final int ERROR_INFERENCE_FAILED = 9;
 
     /** @hide */
@@ -109,6 +107,13 @@ public class OnDevicePersonalizationException extends Exception {
             value = {
                 ERROR_ISOLATED_SERVICE_FAILED,
                 ERROR_PERSONALIZATION_DISABLED,
+                ERROR_ISOLATED_SERVICE_LOADING_FAILED,
+                ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
+                ERROR_ISOLATED_SERVICE_TIMEOUT,
+                ERROR_SCHEDULE_TRAINING_FAILED,
+                ERROR_INVALID_TRAINING_MANIFEST,
+                ERROR_INFERENCE_MODEL_NOT_FOUND,
+                ERROR_INFERENCE_FAILED
             })
     @Retention(RetentionPolicy.SOURCE)
     public @interface ErrorCode {}

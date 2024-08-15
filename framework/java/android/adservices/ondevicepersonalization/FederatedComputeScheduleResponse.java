@@ -16,14 +16,19 @@
 
 package android.adservices.ondevicepersonalization;
 
+import android.annotation.FlaggedApi;
+
+import com.android.adservices.ondevicepersonalization.flags.Flags;
+
 /**
  * The result returned by {@link FederatedComputeScheduler#schedule(FederatedComputeScheduleRequest,
  * android.os.OutcomeReceiver)} when successful. Currently empty will be extended in the future.
- *
- * @hide
  */
+@FlaggedApi(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
 public final class FederatedComputeScheduleResponse {
-    public FederatedComputeScheduleResponse() {
-        // Currently class is empty.
+
+    /** Constructor used by platform code within {@link FederatedComputeScheduler}. */
+    FederatedComputeScheduleResponse() {
+        // Currently class is empty, will be extended to include metadata about scheduled jobs.
     }
 }

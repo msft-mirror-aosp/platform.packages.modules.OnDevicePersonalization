@@ -16,19 +16,20 @@
 
 package android.adservices.ondevicepersonalization;
 
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
  * The input for {@link FederatedComputeScheduler#schedule(FederatedComputeScheduleRequest,
  * android.os.OutcomeReceiver)}.
- *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
+@FlaggedApi(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
 public final class FederatedComputeScheduleRequest {
     /** Parameters related to job scheduling. */
     @NonNull private FederatedComputeScheduler.Params mParams;
@@ -125,15 +126,6 @@ public final class FederatedComputeScheduleRequest {
         public Builder(@NonNull FederatedComputeScheduler.Params params) {
             mParams = params;
             AnnotationValidations.validate(NonNull.class, null, mParams);
-        }
-
-        /** Parameters related to job scheduling. */
-        @DataClass.Generated.Member
-        public @NonNull Builder setParams(@NonNull FederatedComputeScheduler.Params value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x1;
-            mParams = value;
-            return this;
         }
 
         /**

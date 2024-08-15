@@ -124,16 +124,15 @@ public final class OnDevicePersonalizationManagerTest {
     }
 
     @Test
-    public void testExecuteSuccessWithBestValueParams() throws Exception {
+    public void testExecuteSuccessWithBestValueSpec() throws Exception {
         PersistableBundle bundle = new PersistableBundle();
         bundle.putString(KEY_OP, "best_value");
         var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
         ExecuteInIsolatedServiceRequest request =
                 new ExecuteInIsolatedServiceRequest.Builder(TEST_SERVICE_COMPONENT_NAME)
                         .setAppParams(bundle)
-                        .setOutputParams(
-                                ExecuteInIsolatedServiceRequest.OutputParams.buildBestValueParams(
-                                        100))
+                        .setOutputSpec(
+                                ExecuteInIsolatedServiceRequest.OutputSpec.buildBestValueSpec(100))
                         .build();
 
         mManager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
@@ -437,7 +436,7 @@ public final class OnDevicePersonalizationManagerTest {
                                     .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime())
                                     .build());
                 } else if (options.getOutputType()
-                        == ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_BEST_VALUE) {
+                        == ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE) {
                     Bundle bundle = new Bundle();
                     bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, "aaaa");
                     bundle.putInt(Constants.EXTRA_OUTPUT_BEST_VALUE, BEST_VALUE);

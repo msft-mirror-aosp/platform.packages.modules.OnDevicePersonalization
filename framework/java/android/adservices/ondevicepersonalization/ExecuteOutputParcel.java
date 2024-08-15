@@ -124,8 +124,8 @@ public final class ExecuteOutputParcel implements Parcelable {
      *     caller.
      * @param bestValue An integer value that an {@link IsolatedService} may optionally return to to
      *     a calling app, by setting this field to the value between 0 and max value in {@link
-     *     ExecuteInIsolatedServiceRequest.OutputParams}. The value of this field will be returned
-     *     to the caller of {@link OnDevicePersonalizationManager#executeInIsolatedService} if
+     *     ExecuteInIsolatedServiceRequest.OutputSpec}. The value of this field will be returned to
+     *     the caller of {@link OnDevicePersonalizationManager#executeInIsolatedService} if
      *     returning data from isolated processes is allowed by policy and the (calling app package,
      *     isolated service package) pair is present in an allowlist that permits data to be
      *     returned.

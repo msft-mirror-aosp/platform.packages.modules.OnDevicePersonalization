@@ -114,10 +114,10 @@ public class OnDevicePersonalizationManagingServiceDelegate
         }
 
         if (options.getOutputType()
-                        == ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_BEST_VALUE
+                        == ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE
                 && options.getMaxIntValue() > mInjector.getFlags().getMaxIntValuesLimit()) {
             throw new IllegalArgumentException(
-                    "The maxIntValue in OutputParams can not exceed limit "
+                    "The maxIntValue in OutputSpec can not exceed limit "
                             + mInjector.getFlags().getMaxIntValuesLimit());
         }
 

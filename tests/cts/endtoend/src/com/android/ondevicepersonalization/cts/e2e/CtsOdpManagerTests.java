@@ -231,7 +231,7 @@ public class CtsOdpManagerTests {
                 Executors.newSingleThreadExecutor(),
                 receiver);
         assertNull(receiver.getResult());
-        assertTrue(receiver.getException() instanceof IllegalStateException);
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -248,7 +248,7 @@ public class CtsOdpManagerTests {
                 receiver);
 
         assertNull(receiver.getResult());
-        assertTrue(receiver.getException() instanceof NameNotFoundException);
+        assertThat(receiver.getException()).isInstanceOf(NameNotFoundException.class);
     }
 
 
@@ -267,7 +267,7 @@ public class CtsOdpManagerTests {
                 receiver);
 
         assertNull(receiver.getResult());
-        assertTrue(receiver.getException() instanceof ClassNotFoundException);
+        assertThat(receiver.getException()).isInstanceOf(ClassNotFoundException.class);
     }
 
     @Test
@@ -457,7 +457,7 @@ public class CtsOdpManagerTests {
                 receiver);
         assertTrue(receiver.isError());
         assertNull(receiver.getResult());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertThat(receiver.getException()).isInstanceOf(OnDevicePersonalizationException.class);
         assertEquals(
                 ((OnDevicePersonalizationException) receiver.getException()).getErrorCode(),
                 OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
@@ -480,7 +480,7 @@ public class CtsOdpManagerTests {
                 receiver);
         assertTrue(receiver.isError());
         assertNull(receiver.getResult());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertThat(receiver.getException()).isInstanceOf(OnDevicePersonalizationException.class);
         assertEquals(
                 ((OnDevicePersonalizationException) receiver.getException()).getErrorCode(),
                 OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
