@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package android.adservices.ondevicepersonalization;
 
-import static org.junit.Assert.assertArrayEquals;
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -29,6 +29,7 @@ import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEvent
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
@@ -41,6 +42,8 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.ExceptionInfo;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
@@ -48,6 +51,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -56,32 +60,39 @@ import java.util.concurrent.Executors;
 
 @RunWith(Parameterized.class)
 public final class OnDevicePersonalizationManagerTest {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationManagerTest";
     private static final String KEY_OP = "op";
     private static final String KEY_STATUS_CODE = "status";
     private static final String KEY_SERVICE_ERROR_CODE = "serviceerror";
     private static final String KEY_ERROR_MESSAGE = "errormessage";
+    private static final int BEST_VALUE = 10;
+    private static final ComponentName TEST_SERVICE_COMPONENT_NAME =
+            ComponentName.createRelative("com.example.service", ".Example");
     private final Context mContext = ApplicationProvider.getApplicationContext();
-    private final TestServiceBinder mTestBinder = new TestServiceBinder(
-            IOnDevicePersonalizationManagingService.Stub.asInterface(new TestService()));
+    private final TestServiceBinder mTestBinder =
+            new TestServiceBinder(
+                    IOnDevicePersonalizationManagingService.Stub.asInterface(new TestService()));
     private final OnDevicePersonalizationManager mManager =
             new OnDevicePersonalizationManager(mContext, mTestBinder);
-    private boolean mLogApiStatsCalled = false;
+
+    private volatile boolean mLogApiStatsCalled = false;
 
     @Parameterized.Parameter(0)
     public boolean mIsSipFeatureEnabled;
 
+    @Parameterized.Parameter(1)
+    public boolean mRunExecuteInIsolatedService;
+
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(
-                new Object[][] {
-                        {true}, {false}
-                }
-        );
+                new Object[][] {{true, true}, {true, false}, {false, true}, {false, false}});
     }
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
+        MockitoAnnotations.initMocks(this);
         ShellUtils.runShellCommand(
                 "device_config put on_device_personalization "
                         + "shared_isolated_process_feature_enabled "
@@ -92,17 +103,47 @@ public final class OnDevicePersonalizationManagerTest {
     public void testExecuteSuccess() throws Exception {
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "ok");
-        var receiver = new ResultReceiver<ExecuteResult>();
-        mManager.execute(
-                ComponentName.createRelative("com.example.service", ".Example"),
-                params,
-                Executors.newSingleThreadExecutor(),
-                receiver);
+        var receiver = new ResultReceiver();
+
+        runExecute(params, receiver);
+
         assertTrue(receiver.isSuccess());
         assertFalse(receiver.isError());
         assertNotNull(receiver.getResult());
-        assertEquals(receiver.getResult().getSurfacePackageToken().getTokenString(), "aaaa");
-        assertArrayEquals(receiver.getResult().getOutputData(), new byte[]{1, 2, 3});
+        if (mRunExecuteInIsolatedService) {
+            ExecuteInIsolatedServiceResponse response =
+                    (ExecuteInIsolatedServiceResponse) receiver.getResult();
+            assertThat(response.getSurfacePackageToken().getTokenString()).isEqualTo("aaaa");
+            assertThat(response.getBestValue()).isEqualTo(-1);
+        } else {
+            ExecuteResult response = (ExecuteResult) receiver.getResult();
+            assertThat(response.getSurfacePackageToken().getTokenString()).isEqualTo("aaaa");
+            assertThat(response.getOutputData()).isNull();
+        }
+        assertTrue(mLogApiStatsCalled);
+    }
+
+    @Test
+    public void testExecuteSuccessWithBestValueSpec() throws Exception {
+        PersistableBundle bundle = new PersistableBundle();
+        bundle.putString(KEY_OP, "best_value");
+        var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
+        ExecuteInIsolatedServiceRequest request =
+                new ExecuteInIsolatedServiceRequest.Builder(TEST_SERVICE_COMPONENT_NAME)
+                        .setAppParams(bundle)
+                        .setOutputSpec(
+                                ExecuteInIsolatedServiceRequest.OutputSpec.buildBestValueSpec(100))
+                        .build();
+
+        mManager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
+
+        assertTrue(receiver.isSuccess());
+        assertFalse(receiver.isError());
+        assertNotNull(receiver.getResult());
+
+        ExecuteInIsolatedServiceResponse response = receiver.getResult();
+        assertThat(response.getSurfacePackageToken().getTokenString()).isEqualTo("aaaa");
+        assertThat(response.getBestValue()).isEqualTo(BEST_VALUE);
         assertTrue(mLogApiStatsCalled);
     }
 
@@ -110,12 +151,10 @@ public final class OnDevicePersonalizationManagerTest {
     public void testExecuteUnknownError() throws Exception {
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "error");
-        var receiver = new ResultReceiver<ExecuteResult>();
-        mManager.execute(
-                ComponentName.createRelative("com.example.service", ".Example"),
-                params,
-                Executors.newSingleThreadExecutor(),
-                receiver);
+        var receiver = new ResultReceiver();
+
+        runExecute(params, receiver);
+
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
         assertTrue(receiver.getException() instanceof IllegalStateException);
@@ -127,12 +166,10 @@ public final class OnDevicePersonalizationManagerTest {
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "error");
         params.putInt(KEY_STATUS_CODE, Constants.STATUS_SERVICE_FAILED);
-        var receiver = new ResultReceiver<ExecuteResult>();
-        mManager.execute(
-                ComponentName.createRelative("com.example.service", ".Example"),
-                params,
-                Executors.newSingleThreadExecutor(),
-                receiver);
+        var receiver = new ResultReceiver();
+
+        runExecute(params, receiver);
+
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
         assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
@@ -141,23 +178,24 @@ public final class OnDevicePersonalizationManagerTest {
 
     @Test
     public void testExecuteErrorWithCode() throws Exception {
+        int isolatedServiceErrorCode = 42;
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "error");
         params.putInt(KEY_STATUS_CODE, Constants.STATUS_SERVICE_FAILED);
-        params.putInt(KEY_SERVICE_ERROR_CODE, 42);
-        var receiver = new ResultReceiver<ExecuteResult>();
-        mManager.execute(
-                ComponentName.createRelative("com.example.service", ".Example"),
-                params,
-                Executors.newSingleThreadExecutor(),
-                receiver);
+        params.putInt(KEY_SERVICE_ERROR_CODE, isolatedServiceErrorCode);
+        var receiver = new ResultReceiver();
+
+        runExecute(params, receiver);
+
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
         assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-        assertEquals(OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+        assertEquals(
+                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
                 ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
         assertTrue(receiver.getException().getCause() instanceof IsolatedServiceException);
-        assertEquals(42,
+        assertEquals(
+                isolatedServiceErrorCode,
                 ((IsolatedServiceException) receiver.getException().getCause()).getErrorCode());
         assertTrue(mLogApiStatsCalled);
     }
@@ -168,28 +206,148 @@ public final class OnDevicePersonalizationManagerTest {
         params.putString(KEY_OP, "error");
         params.putInt(KEY_STATUS_CODE, Constants.STATUS_SERVICE_FAILED);
         params.putString(KEY_ERROR_MESSAGE, "TestErrorMessage");
-        var receiver = new ResultReceiver<ExecuteResult>();
-        mManager.execute(
-                ComponentName.createRelative("com.example.service", ".Example"),
-                params,
-                Executors.newSingleThreadExecutor(),
-                receiver);
+        var receiver = new ResultReceiver();
+
+        runExecute(params, receiver);
+
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
-        assertEquals("TestErrorMessage", receiver.getException().getMessage());
+        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertEquals(
+                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        Throwable cause = receiver.getException().getCause();
+        assertNotNull(cause);
+        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*TestErrorMessage.*");
         assertTrue(mLogApiStatsCalled);
+    }
+
+    @Test
+    public void testExecuteManifestParsingError() throws Exception {
+        // The manifest parsing failure gets translated back to PackageManager.NameNotFound
+        // when the legacy execute API is called. The new execute API returns targeted error code.
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        params.putInt(KEY_STATUS_CODE, Constants.STATUS_MANIFEST_PARSING_FAILED);
+        params.putString(KEY_ERROR_MESSAGE, "Failed parsing manifest");
+        var receiver = new ResultReceiver();
+
+        runExecute(params, receiver);
+
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        Throwable cause = receiver.getException().getCause();
+        assertNotNull(cause);
+        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*parsing.*");
+        assertTrue(mLogApiStatsCalled);
+        if (mRunExecuteInIsolatedService) {
+            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+            assertEquals(
+                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
+                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        } else {
+            assertTrue(receiver.getException() instanceof PackageManager.NameNotFoundException);
+        }
+    }
+
+    @Test
+    public void testExecuteManifestMisconfigurationError() throws Exception {
+        // The manifest misconfigured failure gets  translated back to Class not found
+        // when the legacy execute API is used. The new execute API returns the targeted error code.
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        params.putInt(KEY_STATUS_CODE, Constants.STATUS_MANIFEST_MISCONFIGURED);
+        params.putString(KEY_ERROR_MESSAGE, "Failed parsing manifest");
+        var receiver = new ResultReceiver();
+
+        runExecute(params, receiver);
+
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        Throwable cause = receiver.getException().getCause();
+        assertNotNull(cause);
+        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*parsing.*");
+        assertTrue(mLogApiStatsCalled);
+        if (mRunExecuteInIsolatedService) {
+            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+            assertEquals(
+                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
+                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        } else {
+            assertTrue(receiver.getException() instanceof ClassNotFoundException);
+        }
+    }
+
+    @Test
+    public void testExecuteServiceTimeoutError() throws Exception {
+        // The service timeout failure gets exposed via corresponding OdpException
+        // when the new execute API is used.
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        params.putInt(KEY_STATUS_CODE, Constants.STATUS_ISOLATED_SERVICE_TIMEOUT);
+        params.putString(KEY_ERROR_MESSAGE, "Service timeout");
+        var receiver = new ResultReceiver<ExecuteResult>();
+
+        runExecute(params, receiver);
+
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        Throwable cause = receiver.getException().getCause();
+        assertNotNull(cause);
+        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*timeout.*");
+        assertTrue(mLogApiStatsCalled);
+        if (mRunExecuteInIsolatedService) {
+            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+            assertEquals(
+                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_TIMEOUT,
+                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        } else {
+            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+            assertEquals(
+                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        }
+    }
+
+    @Test
+    public void testExecuteServiceLoadingError() throws Exception {
+        // The service loading failure gets exposed via corresponding OdpException
+        // when the new execute API is used.
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        params.putInt(KEY_STATUS_CODE, Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED);
+        params.putString(KEY_ERROR_MESSAGE, "Service loading failed.");
+        var receiver = new ResultReceiver<ExecuteResult>();
+
+        runExecute(params, receiver);
+
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        Throwable cause = receiver.getException().getCause();
+        assertNotNull(cause);
+        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*loading.*");
+        assertTrue(mLogApiStatsCalled);
+        if (mRunExecuteInIsolatedService) {
+            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+            assertEquals(
+                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_LOADING_FAILED,
+                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        } else {
+            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+            assertEquals(
+                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        }
     }
 
     @Test
     public void testExecuteCatchesIaeFromService() throws Exception {
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "iae");
-        var receiver = new ResultReceiver<ExecuteResult>();
-        mManager.execute(
-                ComponentName.createRelative("com.example.service", ".Example"),
-                params,
-                Executors.newSingleThreadExecutor(),
-                receiver);
+        var receiver = new ResultReceiver();
+
+        runExecute(params, receiver);
+
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
         assertTrue(receiver.getException() instanceof IllegalArgumentException);
@@ -200,12 +358,10 @@ public final class OnDevicePersonalizationManagerTest {
     public void testExecuteCatchesNpeFromService() throws Exception {
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "npe");
-        var receiver = new ResultReceiver<ExecuteResult>();
-        mManager.execute(
-                ComponentName.createRelative("com.example.service", ".Example"),
-                params,
-                Executors.newSingleThreadExecutor(),
-                receiver);
+        var receiver = new ResultReceiver();
+
+        runExecute(params, receiver);
+
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
         assertTrue(receiver.getException() instanceof NullPointerException);
@@ -216,19 +372,34 @@ public final class OnDevicePersonalizationManagerTest {
     public void testExecuteCatchesOtherExceptions() throws Exception {
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "ise");
-        var receiver = new ResultReceiver<ExecuteResult>();
-        mManager.execute(
-                ComponentName.createRelative("com.example.service", ".Example"),
-                params,
-                Executors.newSingleThreadExecutor(),
-                receiver);
+        var receiver = new ResultReceiver();
+
+        runExecute(params, receiver);
+
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
         assertTrue(receiver.getException() instanceof IllegalStateException);
         assertTrue(mLogApiStatsCalled);
     }
 
-    class TestService extends IOnDevicePersonalizationManagingService.Stub {
+    private void runExecute(PersistableBundle params, ResultReceiver receiver) {
+        if (mRunExecuteInIsolatedService) {
+            ExecuteInIsolatedServiceRequest request =
+                    new ExecuteInIsolatedServiceRequest.Builder(TEST_SERVICE_COMPONENT_NAME)
+                            .setAppParams(params)
+                            .build();
+            mManager.executeInIsolatedService(
+                    request, Executors.newSingleThreadExecutor(), receiver);
+        } else {
+            mManager.execute(
+                    TEST_SERVICE_COMPONENT_NAME,
+                    params,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+        }
+    }
+
+    private class TestService extends IOnDevicePersonalizationManagingService.Stub {
         @Override
         public String getVersion() {
             return "1.0";
@@ -240,13 +411,16 @@ public final class OnDevicePersonalizationManagerTest {
                 ComponentName handler,
                 Bundle wrappedParams,
                 CallerMetadata metadata,
+                ExecuteOptionsParcel options,
                 IExecuteCallback callback) {
             try {
                 PersistableBundle params;
                 String op;
                 try {
-                    ByteArrayParceledSlice paramsBuffer = wrappedParams.getParcelable(
-                            Constants.EXTRA_APP_PARAMS_SERIALIZED, ByteArrayParceledSlice.class);
+                    ByteArrayParceledSlice paramsBuffer =
+                            wrappedParams.getParcelable(
+                                    Constants.EXTRA_APP_PARAMS_SERIALIZED,
+                                    ByteArrayParceledSlice.class);
                     params = PersistableBundleUtils.fromByteArray(paramsBuffer.getByteArray());
                     op = params.getString(KEY_OP);
                 } catch (Exception e) {
@@ -256,18 +430,33 @@ public final class OnDevicePersonalizationManagerTest {
                 if (op.equals("ok")) {
                     Bundle bundle = new Bundle();
                     bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, "aaaa");
-                    bundle.putByteArray(Constants.EXTRA_OUTPUT_DATA, new byte[]{1, 2, 3});
-                    callback.onSuccess(bundle,
-                            new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
-                                    SystemClock.elapsedRealtime()).build());
+                    callback.onSuccess(
+                            bundle,
+                            new CalleeMetadata.Builder()
+                                    .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime())
+                                    .build());
+                } else if (options.getOutputType()
+                        == ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE) {
+                    Bundle bundle = new Bundle();
+                    bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, "aaaa");
+                    bundle.putInt(Constants.EXTRA_OUTPUT_BEST_VALUE, BEST_VALUE);
+                    callback.onSuccess(
+                            bundle,
+                            new CalleeMetadata.Builder()
+                                    .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime())
+                                    .build());
                 } else if (op.equals("error")) {
-                    int statusCode = params.getInt(KEY_STATUS_CODE,
-                            Constants.STATUS_INTERNAL_ERROR);
+                    int statusCode =
+                            params.getInt(KEY_STATUS_CODE, Constants.STATUS_INTERNAL_ERROR);
                     int serviceErrorCode = params.getInt(KEY_SERVICE_ERROR_CODE, 0);
                     String errorMessage = params.getString(KEY_ERROR_MESSAGE);
-                    callback.onError(statusCode, serviceErrorCode, errorMessage,
-                            new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
-                                    SystemClock.elapsedRealtime()).build());
+                    callback.onError(
+                            statusCode,
+                            serviceErrorCode,
+                            ExceptionInfo.toByteArray(new RuntimeException(errorMessage), 3),
+                            new CalleeMetadata.Builder()
+                                    .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime())
+                                    .build());
                 } else if (op.equals("iae")) {
                     throw new IllegalArgumentException();
                 } else if (op.equals("npe")) {
@@ -318,9 +507,10 @@ public final class OnDevicePersonalizationManagerTest {
         }
     }
 
-    class TestServiceBinder
+    private static class TestServiceBinder
             extends AbstractServiceBinder<IOnDevicePersonalizationManagingService> {
         private final IOnDevicePersonalizationManagingService mService;
+
         TestServiceBinder(IOnDevicePersonalizationManagingService service) {
             mService = service;
         }

@@ -57,7 +57,6 @@ import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -191,7 +190,6 @@ public class OdpExampleStoreServiceTests {
     }
 
     @Test
-    @Ignore("TODO: b/342475912 - temporary disable failing tests.")
     public void testWithStartQuery() throws Exception {
         mEventsDao.updateOrInsertEventState(
                 new EventState.Builder()

@@ -23,7 +23,7 @@
     },
     {
       "key": "template1",
-      "data": "<img src=\"$impressionUrl\">\n<a href=\"$clickUrl\">${adText}!</a>"
+      "data": "<img src=\"$impressionUrl\" alt=\"\">\n<a href=\"$clickUrl\">${adText}!</a>"
     },
     {
       "key": "example1",

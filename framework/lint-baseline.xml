@@ -1,0 +1,1346 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.4.0-alpha08" type="baseline" client="" dependencies="true" name="" variant="all" version="8.4.0-alpha08">
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getRetainedKeys()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `DownloadCompletedOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getRetainedKeys());"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadCompletedOutputParcel.java"
+            line="42"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `CREATOR` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `EventInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RequestLogRecord requestLogRecord = (flg &amp; 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);"
+        errorLine2="                                                                                                                             ~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventInputParcel.java"
+            line="117"
+            column="126"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `EventInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RequestLogRecord requestLogRecord = (flg &amp; 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);"
+        errorLine2="                                                                       ~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventInputParcel.java"
+            line="117"
+            column="72"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getEventLogRecord()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `EventOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getEventLogRecord());"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventOutputParcel.java"
+            line="40"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `CREATOR` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `EventOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        EventLogRecord eventLogRecord = (flg &amp; 0x1) == 0 ? null : (EventLogRecord) in.readTypedObject(EventLogRecord.CREATOR);"
+        errorLine2="                                                                                                                     ~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventOutputParcel.java"
+            line="108"
+            column="118"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `EventOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        EventLogRecord eventLogRecord = (flg &amp; 0x1) == 0 ? null : (EventLogRecord) in.readTypedObject(EventLogRecord.CREATOR);"
+        errorLine2="                                                                   ~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventOutputParcel.java"
+            line="108"
+            column="68"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getEventLogRecords()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getRequestLogRecord(), value.getRenderingConfig(), value.getEventLogRecords(),"
+        errorLine2="                                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="72"
+            column="71"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getRenderingConfig()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getRequestLogRecord(), value.getRenderingConfig(), value.getEventLogRecords(),"
+        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="72"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getRequestLogRecord()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getRequestLogRecord(), value.getRenderingConfig(), value.getEventLogRecords(),"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="72"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getOutputData()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getOutputData());"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="73"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `CREATOR` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RequestLogRecord requestLogRecord = (flg &amp; 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);"
+        errorLine2="                                                                                                                             ~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="203"
+            column="126"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RequestLogRecord requestLogRecord = (flg &amp; 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);"
+        errorLine2="                                                                       ~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="203"
+            column="72"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `CREATOR` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RenderingConfig renderingConfig = (flg &amp; 0x2) == 0 ? null : (RenderingConfig) in.readTypedObject(RenderingConfig.CREATOR);"
+        errorLine2="                                                                                                                         ~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="204"
+            column="122"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RenderingConfig renderingConfig = (flg &amp; 0x2) == 0 ? null : (RenderingConfig) in.readTypedObject(RenderingConfig.CREATOR);"
+        errorLine2="                                                                     ~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="204"
+            column="70"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `EventLogRecord` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        in.readParcelableList(eventLogRecords, EventLogRecord.class.getClassLoader());"
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="206"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `MODEL_TYPE_TENSORFLOW_LITE` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `?` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="            InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE;"
+        errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="60"
+            column="35"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getKeyValueStore()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                        .setTableId(value.getParams().getKeyValueStore().getTableId())"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="73"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getParams()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                        .setTableId(value.getParams().getKeyValueStore().getTableId())"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="73"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getTableId()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                        .setTableId(value.getParams().getKeyValueStore().getTableId())"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="73"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getModelKey()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                        .setKey(value.getParams().getModelKey())"
+        errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="74"
+            column="33"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getParams()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                        .setKey(value.getParams().getModelKey())"
+        errorLine2="                                ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="74"
+            column="33"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getDelegateType()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getParams().getDelegateType(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="76"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getParams()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getParams().getDelegateType(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="76"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getParams()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getParams().getRecommendedNumThreads(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="77"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getRecommendedNumThreads()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getParams().getRecommendedNumThreads(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="77"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getInputData()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                ByteArrayParceledListSlice.create(value.getInputData()),"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="78"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getBatchSize()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getBatchSize(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="79"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getModelType()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getParams().getModelType(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="80"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getParams()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getParams().getModelType(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="80"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getExpectedOutputStructure()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                new InferenceOutputParcel(value.getExpectedOutputStructure()));"
+        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="81"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `InferenceInput.Params.Delegate` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        AnnotationValidations.validate(InferenceInput.Params.Delegate.class, null, mDelegate);"
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="129"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `InferenceInput.Params.ModelType` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        AnnotationValidations.validate(InferenceInput.Params.ModelType.class, null, mModelType);"
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="136"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `InferenceInput.Params.Delegate` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        AnnotationValidations.validate(InferenceInput.Params.Delegate.class, null, mDelegate);"
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="239"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `InferenceInput.Params.ModelType` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        AnnotationValidations.validate(InferenceInput.Params.ModelType.class, null, mModelType);"
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="246"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getDataOutputs()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getDataOutputs());"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceOutputParcel.java"
+            line="44"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `?` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="public class LocalDataImpl implements MutableKeyValueStore {"
+        errorLine2="                                      ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/LocalDataImpl.java"
+            line="37"
+            column="39"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getAppPackageName()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `MeasurementWebTriggerEventParamsParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(params.getDestinationUrl(), params.getAppPackageName(), params.getIsolatedService(),"
+        errorLine2="                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/MeasurementWebTriggerEventParamsParcel.java"
+            line="70"
+            column="42"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getDestinationUrl()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `MeasurementWebTriggerEventParamsParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(params.getDestinationUrl(), params.getAppPackageName(), params.getIsolatedService(),"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/MeasurementWebTriggerEventParamsParcel.java"
+            line="70"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getIsolatedService()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `MeasurementWebTriggerEventParamsParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(params.getDestinationUrl(), params.getAppPackageName(), params.getIsolatedService(),"
+        errorLine2="                                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/MeasurementWebTriggerEventParamsParcel.java"
+            line="70"
+            column="70"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getCertDigest()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `MeasurementWebTriggerEventParamsParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                params.getCertDigest(), params.getEventData());"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/MeasurementWebTriggerEventParamsParcel.java"
+            line="71"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getEventData()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `MeasurementWebTriggerEventParamsParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                params.getCertDigest(), params.getEventData());"
+        errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/MeasurementWebTriggerEventParamsParcel.java"
+            line="71"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `OnDevicePersonalizationManager` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                ON_DEVICE_PERSONALIZATION_SERVICE, OnDevicePersonalizationManager.class,"
+        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="55"
+            column="52"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `ON_DEVICE_PERSONALIZATION_SERVICE` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                ON_DEVICE_PERSONALIZATION_SERVICE, OnDevicePersonalizationManager.class,"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="55"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `OnDevicePersonalizationManager()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                (c) -> new OnDevicePersonalizationManager(c));"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="56"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `ON_DEVICE_PERSONALIZATION_CONFIG_SERVICE` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                ON_DEVICE_PERSONALIZATION_CONFIG_SERVICE,"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="58"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `OnDevicePersonalizationConfigManager` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                OnDevicePersonalizationConfigManager.class,"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="59"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `OnDevicePersonalizationConfigManager()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                (c) -> new OnDevicePersonalizationConfigManager(c));"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="60"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `ON_DEVICE_PERSONALIZATION_SYSTEM_EVENT_SERVICE` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                ON_DEVICE_PERSONALIZATION_SYSTEM_EVENT_SERVICE,"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="65"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `OnDevicePersonalizationSystemEventManager` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                OnDevicePersonalizationSystemEventManager.class,"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="66"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `OnDevicePersonalizationSystemEventManager()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                (c) -> new OnDevicePersonalizationSystemEventManager(c));"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="67"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `?` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="public class RemoteDataImpl implements KeyValueStore {"
+        errorLine2="                                       ~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RemoteDataImpl.java"
+            line="37"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `CREATOR` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `RenderInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RenderingConfig renderingConfig = (flg &amp; 0x4) == 0 ? null : (RenderingConfig) in.readTypedObject(RenderingConfig.CREATOR);"
+        errorLine2="                                                                                                                         ~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderInputParcel.java"
+            line="122"
+            column="122"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `RenderInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RenderingConfig renderingConfig = (flg &amp; 0x4) == 0 ? null : (RenderingConfig) in.readTypedObject(RenderingConfig.CREATOR);"
+        errorLine2="                                                                     ~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderInputParcel.java"
+            line="122"
+            column="70"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getContent()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `RenderOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getContent(), value.getTemplateId(), value.getTemplateParams());"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderOutputParcel.java"
+            line="55"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getTemplateId()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `RenderOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getContent(), value.getTemplateId(), value.getTemplateParams());"
+        errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderOutputParcel.java"
+            line="55"
+            column="34"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getTemplateParams()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `RenderOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getContent(), value.getTemplateId(), value.getTemplateParams());"
+        errorLine2="                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderOutputParcel.java"
+            line="55"
+            column="57"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getEventLogRecords()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `WebTriggerOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getRequestLogRecord(), value.getEventLogRecords());"
+        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerOutputParcel.java"
+            line="55"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getRequestLogRecord()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `WebTriggerOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getRequestLogRecord(), value.getEventLogRecords());"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerOutputParcel.java"
+            line="55"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `CREATOR` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `WebTriggerOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RequestLogRecord requestLogRecord = (flg &amp; 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);"
+        errorLine2="                                                                                                                             ~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerOutputParcel.java"
+            line="146"
+            column="126"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `WebTriggerOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RequestLogRecord requestLogRecord = (flg &amp; 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);"
+        errorLine2="                                                                       ~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerOutputParcel.java"
+            line="146"
+            column="72"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `EventLogRecord` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `WebTriggerOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        in.readParcelableList(eventLogRecords, EventLogRecord.class.getClassLoader());"
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerOutputParcel.java"
+            line="148"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getRetainedKeys()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `DownloadCompletedOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getRetainedKeys());"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadCompletedOutputParcel.java"
+            line="42"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `CREATOR` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `EventInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RequestLogRecord requestLogRecord = (flg &amp; 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);"
+        errorLine2="                                                                                                                             ~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventInputParcel.java"
+            line="117"
+            column="126"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `EventInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RequestLogRecord requestLogRecord = (flg &amp; 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);"
+        errorLine2="                                                                       ~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventInputParcel.java"
+            line="117"
+            column="72"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getEventLogRecord()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `EventOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getEventLogRecord());"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventOutputParcel.java"
+            line="40"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `CREATOR` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `EventOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        EventLogRecord eventLogRecord = (flg &amp; 0x1) == 0 ? null : (EventLogRecord) in.readTypedObject(EventLogRecord.CREATOR);"
+        errorLine2="                                                                                                                     ~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventOutputParcel.java"
+            line="108"
+            column="118"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `EventOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        EventLogRecord eventLogRecord = (flg &amp; 0x1) == 0 ? null : (EventLogRecord) in.readTypedObject(EventLogRecord.CREATOR);"
+        errorLine2="                                                                   ~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventOutputParcel.java"
+            line="108"
+            column="68"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getEventLogRecords()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getRequestLogRecord(), value.getRenderingConfig(), value.getEventLogRecords(),"
+        errorLine2="                                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="72"
+            column="71"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getRenderingConfig()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getRequestLogRecord(), value.getRenderingConfig(), value.getEventLogRecords(),"
+        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="72"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getRequestLogRecord()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getRequestLogRecord(), value.getRenderingConfig(), value.getEventLogRecords(),"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="72"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getOutputData()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getOutputData());"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="73"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `CREATOR` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RequestLogRecord requestLogRecord = (flg &amp; 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);"
+        errorLine2="                                                                                                                             ~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="203"
+            column="126"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RequestLogRecord requestLogRecord = (flg &amp; 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);"
+        errorLine2="                                                                       ~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="203"
+            column="72"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `CREATOR` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RenderingConfig renderingConfig = (flg &amp; 0x2) == 0 ? null : (RenderingConfig) in.readTypedObject(RenderingConfig.CREATOR);"
+        errorLine2="                                                                                                                         ~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="204"
+            column="122"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RenderingConfig renderingConfig = (flg &amp; 0x2) == 0 ? null : (RenderingConfig) in.readTypedObject(RenderingConfig.CREATOR);"
+        errorLine2="                                                                     ~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="204"
+            column="70"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `EventLogRecord` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `ExecuteOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        in.readParcelableList(eventLogRecords, EventLogRecord.class.getClassLoader());"
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java"
+            line="206"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `MODEL_TYPE_TENSORFLOW_LITE` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `?` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="            InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE;"
+        errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="60"
+            column="35"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getKeyValueStore()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                        .setTableId(value.getParams().getKeyValueStore().getTableId())"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="73"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getParams()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                        .setTableId(value.getParams().getKeyValueStore().getTableId())"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="73"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getTableId()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                        .setTableId(value.getParams().getKeyValueStore().getTableId())"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="73"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getModelKey()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                        .setKey(value.getParams().getModelKey())"
+        errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="74"
+            column="33"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getParams()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                        .setKey(value.getParams().getModelKey())"
+        errorLine2="                                ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="74"
+            column="33"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getDelegateType()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getParams().getDelegateType(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="76"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getParams()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getParams().getDelegateType(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="76"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getParams()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getParams().getRecommendedNumThreads(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="77"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getRecommendedNumThreads()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getParams().getRecommendedNumThreads(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="77"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getInputData()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                ByteArrayParceledListSlice.create(value.getInputData()),"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="78"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getBatchSize()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getBatchSize(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="79"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getModelType()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getParams().getModelType(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="80"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getParams()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                value.getParams().getModelType(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="80"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getExpectedOutputStructure()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                new InferenceOutputParcel(value.getExpectedOutputStructure()));"
+        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="81"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `InferenceInput.Params.Delegate` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        AnnotationValidations.validate(InferenceInput.Params.Delegate.class, null, mDelegate);"
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="129"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `InferenceInput.Params.ModelType` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        AnnotationValidations.validate(InferenceInput.Params.ModelType.class, null, mModelType);"
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="136"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `InferenceInput.Params.Delegate` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        AnnotationValidations.validate(InferenceInput.Params.Delegate.class, null, mDelegate);"
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="239"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `InferenceInput.Params.ModelType` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        AnnotationValidations.validate(InferenceInput.Params.ModelType.class, null, mModelType);"
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInputParcel.java"
+            line="246"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getDataOutputs()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `InferenceOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getDataOutputs());"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceOutputParcel.java"
+            line="44"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `?` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="public class LocalDataImpl implements MutableKeyValueStore {"
+        errorLine2="                                      ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/LocalDataImpl.java"
+            line="37"
+            column="39"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getAppPackageName()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `MeasurementWebTriggerEventParamsParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(params.getDestinationUrl(), params.getAppPackageName(), params.getIsolatedService(),"
+        errorLine2="                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/MeasurementWebTriggerEventParamsParcel.java"
+            line="70"
+            column="42"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getDestinationUrl()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `MeasurementWebTriggerEventParamsParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(params.getDestinationUrl(), params.getAppPackageName(), params.getIsolatedService(),"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/MeasurementWebTriggerEventParamsParcel.java"
+            line="70"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getIsolatedService()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `MeasurementWebTriggerEventParamsParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(params.getDestinationUrl(), params.getAppPackageName(), params.getIsolatedService(),"
+        errorLine2="                                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/MeasurementWebTriggerEventParamsParcel.java"
+            line="70"
+            column="70"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getCertDigest()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `MeasurementWebTriggerEventParamsParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                params.getCertDigest(), params.getEventData());"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/MeasurementWebTriggerEventParamsParcel.java"
+            line="71"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getEventData()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `MeasurementWebTriggerEventParamsParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                params.getCertDigest(), params.getEventData());"
+        errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/MeasurementWebTriggerEventParamsParcel.java"
+            line="71"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `OnDevicePersonalizationManager` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                ON_DEVICE_PERSONALIZATION_SERVICE, OnDevicePersonalizationManager.class,"
+        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="55"
+            column="52"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `ON_DEVICE_PERSONALIZATION_SERVICE` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                ON_DEVICE_PERSONALIZATION_SERVICE, OnDevicePersonalizationManager.class,"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="55"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `OnDevicePersonalizationManager()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                (c) -> new OnDevicePersonalizationManager(c));"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="56"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `ON_DEVICE_PERSONALIZATION_CONFIG_SERVICE` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                ON_DEVICE_PERSONALIZATION_CONFIG_SERVICE,"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="58"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `OnDevicePersonalizationConfigManager` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                OnDevicePersonalizationConfigManager.class,"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="59"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `OnDevicePersonalizationConfigManager()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                (c) -> new OnDevicePersonalizationConfigManager(c));"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="60"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `ON_DEVICE_PERSONALIZATION_SYSTEM_EVENT_SERVICE` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                ON_DEVICE_PERSONALIZATION_SYSTEM_EVENT_SERVICE,"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="65"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `OnDevicePersonalizationSystemEventManager` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                OnDevicePersonalizationSystemEventManager.class,"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="66"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `OnDevicePersonalizationSystemEventManager()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `registerServiceWrappers` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="                (c) -> new OnDevicePersonalizationSystemEventManager(c));"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OnDevicePersonalizationFrameworkInitializer.java"
+            line="67"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `?` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="public class RemoteDataImpl implements KeyValueStore {"
+        errorLine2="                                       ~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RemoteDataImpl.java"
+            line="37"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `CREATOR` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `RenderInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RenderingConfig renderingConfig = (flg &amp; 0x4) == 0 ? null : (RenderingConfig) in.readTypedObject(RenderingConfig.CREATOR);"
+        errorLine2="                                                                                                                         ~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderInputParcel.java"
+            line="122"
+            column="122"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `RenderInputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RenderingConfig renderingConfig = (flg &amp; 0x4) == 0 ? null : (RenderingConfig) in.readTypedObject(RenderingConfig.CREATOR);"
+        errorLine2="                                                                     ~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderInputParcel.java"
+            line="122"
+            column="70"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getContent()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `RenderOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getContent(), value.getTemplateId(), value.getTemplateParams());"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderOutputParcel.java"
+            line="55"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getTemplateId()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `RenderOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getContent(), value.getTemplateId(), value.getTemplateParams());"
+        errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderOutputParcel.java"
+            line="55"
+            column="34"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getTemplateParams()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `RenderOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getContent(), value.getTemplateId(), value.getTemplateParams());"
+        errorLine2="                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderOutputParcel.java"
+            line="55"
+            column="57"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getEventLogRecords()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `WebTriggerOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getRequestLogRecord(), value.getEventLogRecords());"
+        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerOutputParcel.java"
+            line="55"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getRequestLogRecord()` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `WebTriggerOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        this(value.getRequestLogRecord(), value.getEventLogRecords());"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerOutputParcel.java"
+            line="55"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `CREATOR` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `WebTriggerOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RequestLogRecord requestLogRecord = (flg &amp; 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);"
+        errorLine2="                                                                                                                             ~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerOutputParcel.java"
+            line="146"
+            column="126"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `WebTriggerOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        RequestLogRecord requestLogRecord = (flg &amp; 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);"
+        errorLine2="                                                                       ~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerOutputParcel.java"
+            line="146"
+            column="72"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `EventLogRecord` is a flagged API and should be inside an `if (Flags.onDevicePersonalizationApisEnabled())` check (or annotate the surrounding method `WebTriggerOutputParcel` with `@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED) to transfer requirement to caller`)"
+        errorLine1="        in.readParcelableList(eventLogRecords, EventLogRecord.class.getClassLoader());"
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerOutputParcel.java"
+            line="148"
+            column="48"/>
+    </issue>
+
+</issues>
