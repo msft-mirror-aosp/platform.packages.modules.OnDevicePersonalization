@@ -28,10 +28,10 @@ public final class FederatedComputeHttpRequest {
     private static final String HTTPS_SCHEMA = "https://";
     private static final String LOCAL_HOST_URI = "http://localhost:";
 
-    private String mUri;
-    private HttpMethod mHttpMethod;
-    private Map<String, String> mExtraHeaders;
-    private byte[] mBody;
+    private final String mUri;
+    private final HttpMethod mHttpMethod;
+    private final Map<String, String> mExtraHeaders;
+    private final byte[] mBody;
 
     private FederatedComputeHttpRequest(
             String uri, HttpMethod httpMethod, Map<String, String> extraHeaders, byte[] body) {

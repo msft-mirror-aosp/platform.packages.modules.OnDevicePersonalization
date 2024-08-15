@@ -93,7 +93,10 @@ public class JobSchedulerHelper {
         jobInfo.setRequiresDeviceIdle(task.getTrainingConstraints().requiresSchedulerIdle())
                 .setRequiresBatteryNotLow(
                         task.getTrainingConstraints().requiresSchedulerBatteryNotLow())
-                .setMinimumLatency(task.earliestNextRunTime() - nowMillis)
+                .setMinimumLatency(
+                        (task.earliestNextRunTime() - nowMillis) > 0
+                                ? (task.earliestNextRunTime() - nowMillis)
+                                : 0)
                 .setPersisted(true);
 
         jobInfo.setRequiredNetworkType(

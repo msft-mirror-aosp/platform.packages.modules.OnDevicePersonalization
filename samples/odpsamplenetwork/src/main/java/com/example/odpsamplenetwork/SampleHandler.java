@@ -111,6 +111,7 @@ public class SampleHandler implements IsolatedWorker {
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA"
                     + "AAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC";
     private static final byte[] TRANSPARENT_PNG_BYTES = Base64.decode(TRANSPARENT_PNG_BASE64, 0);
+    private static final int ERROR_CODE = 10;
 
     private static final ListeningExecutorService sBackgroundExecutor =
             MoreExecutors.listeningDecorator(
@@ -178,6 +179,12 @@ public class SampleHandler implements IsolatedWorker {
             @NonNull ExecuteInput input,
             @NonNull OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
         Log.d(TAG, "onExecute() started.");
+        if (input != null
+                && input.getAppParams() != null
+                && input.getAppParams().getString("keyword") != null
+                && input.getAppParams().getString("keyword").equalsIgnoreCase("crash")) {
+            throw new RuntimeException("Client-requested crash.");
+        }
         sBackgroundExecutor.execute(() -> handleOnExecute(input, receiver));
     }
 
@@ -375,14 +382,28 @@ public class SampleHandler implements IsolatedWorker {
         TrainingExamplesOutput.Builder resultBuilder = new TrainingExamplesOutput.Builder();
 
         if (input.getPopulationName().contains("criteo")) {
+            HashMap<Integer, String> exampleCache = new HashMap<>();
             Random rand = new Random();
             int numExample = rand.nextInt(10) + 1;
             Log.d(TAG, String.format("onTrainingExample() generates %d examples.", numExample));
             for (int count = 0; count < numExample; count++) {
-                Example example = convertToExample(
-                        new String(mRemoteData.get(
-                                String.format("example%d", rand.nextInt(100) + 1)),
-                        StandardCharsets.UTF_8));
+                int key = rand.nextInt(100) + 1;
+                Example example;
+                if (exampleCache.containsKey(key)) {
+                    example = convertToExample(exampleCache.get(key));
+                } else {
+                    try {
+                        String value =
+                            new String(
+                                mRemoteData.get(String.format("example%d", key)),
+                                StandardCharsets.UTF_8);
+                        exampleCache.put(key, value);
+                        example = convertToExample(value);
+                    } catch (Throwable e) {
+                        Log.w(TAG, "failure getting example from remote data store", e);
+                        continue;
+                    }
+                }
                 TrainingExampleRecord record =
                         new TrainingExampleRecord.Builder()
                                 .setTrainingExample(example.toByteArray())
@@ -430,6 +451,13 @@ public class SampleHandler implements IsolatedWorker {
             @NonNull ExecuteInput input,
             @NonNull OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
         try {
+            if (input != null
+                    && input.getAppParams() != null
+                    && input.getAppParams().getString("keyword") != null
+                    && input.getAppParams().getString("keyword").equalsIgnoreCase("error")) {
+                receiver.onError(new IsolatedServiceException(ERROR_CODE));
+                return;
+            }
             if (input != null
                     && input.getAppParams() != null
                     && input.getAppParams().getString("schedule_training") != null) {
@@ -587,7 +615,7 @@ public class SampleHandler implements IsolatedWorker {
             String content =
                     "<img src=\""
                             + impressionUrl
-                            + "\">\n"
+                            + "\" alt=\"\">\n"
                             + "<a href=\""
                             + clickUrl
                             + "\">"
@@ -911,6 +939,12 @@ public class SampleHandler implements IsolatedWorker {
                                 @Override
                                 public void onResult(InferenceOutput result) {
                                     completer.set(result);
+                                }
+
+                                @Override
+                                public void onError(Exception e) {
+                                    Log.e(TAG, "modelManager.run() exception", e);
+                                    completer.set(null);
                                 }
                             });
                     // Used only for debugging.

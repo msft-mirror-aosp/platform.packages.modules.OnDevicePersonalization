@@ -33,6 +33,21 @@ public class Constants {
     public static final int STATUS_PERSONALIZATION_DISABLED = 104;
     public static final int STATUS_KEY_NOT_FOUND = 105;
 
+    /** Internal error code that tracks failure to read ODP manifest settings. */
+    public static final int STATUS_MANIFEST_PARSING_FAILED = 106;
+
+    /** Internal error code that tracks misconfigured ODP manifest settings. */
+    public static final int STATUS_MANIFEST_MISCONFIGURED = 107;
+
+    /** Internal error code that tracks errors in loading the Isolated Service. */
+    public static final int STATUS_ISOLATED_SERVICE_LOADING_FAILED = 108;
+
+    /** Internal error code that tracks error when Isolated Service times out. */
+    public static final int STATUS_ISOLATED_SERVICE_TIMEOUT = 109;
+
+    /** Internal error code that tracks error when the FCP manifest is invalid or missing. */
+    public static final int STATUS_FCP_MANIFEST_INVALID = 110;
+
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
     public static final int OP_DOWNLOAD = 2;
@@ -64,6 +79,8 @@ public class Constants {
     public static final String EXTRA_MIME_TYPE = "android.ondevicepersonalization.extra.mime_type";
     public static final String EXTRA_OUTPUT_DATA =
             "android.ondevicepersonalization.extra.output_data";
+    public static final String EXTRA_OUTPUT_BEST_VALUE =
+            "android.ondevicepersonalization.extra.output_best_value";
     public static final String EXTRA_RESPONSE_DATA =
             "android.ondevicepersonalization.extra.response_data";
     public static final String EXTRA_RESULT = "android.ondevicepersonalization.extra.result";
@@ -102,8 +119,9 @@ public class Constants {
     public static final int API_NAME_LOG_READER_GET_REQUESTS = 17;
     public static final int API_NAME_LOG_READER_GET_JOINED_EVENTS = 18;
     public static final int API_NAME_FEDERATED_COMPUTE_SCHEDULE = 19;
-    public static final int API_NAME_FEDERATED_COMPUTE_CANCEL = 21;
     public static final int API_NAME_MODEL_MANAGER_RUN = 20;
+    public static final int API_NAME_FEDERATED_COMPUTE_CANCEL = 21;
+    public static final int API_NAME_NOTIFY_MEASUREMENT_EVENT = 22;
 
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;

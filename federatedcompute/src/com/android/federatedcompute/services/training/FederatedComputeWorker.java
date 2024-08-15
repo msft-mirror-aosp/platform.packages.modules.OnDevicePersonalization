@@ -31,6 +31,14 @@ import static com.android.federatedcompute.services.common.FileUtils.createTempF
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_NOT_CONFIGURED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_COMPLETE;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_COMPUTATION_FAILED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_DOWNLOAD_FAILED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_ENCRYPTION_KEY_FETCH_FAILED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_NOT_ELIGIBLE;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_REPORT_FAILED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_WITH_EXCEPTION;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_WITH_REJECTION;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_STARTED;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -182,6 +190,8 @@ public class FederatedComputeWorker {
         LogUtil.d(TAG, "startTrainingRun() %d", jobId);
         TrainingEventLogger trainingEventLogger = mInjector.getTrainingEventLogger();
         trainingEventLogger.setClientVersion(PackageUtils.getApexVersion(this.mContext));
+        trainingEventLogger.logEventKind(
+                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_STARTED);
         return FluentFuture.from(
                         mInjector
                                 .getBgExecutor()
@@ -242,10 +252,9 @@ public class FederatedComputeWorker {
             return null;
         }
         trainingEventLogger.setPopulationName(trainingTask.populationName());
-        ComponentName taskCallingComponentName =
-                ComponentName.unflattenFromString(trainingTask.ownerId());
-        if (taskCallingComponentName != null) {
-            trainingEventLogger.setSdkPackageName(taskCallingComponentName.getPackageName());
+        String taskCallingPackageName = trainingTask.ownerPackageName();
+        if (taskCallingPackageName != null) {
+            trainingEventLogger.setSdkPackageName(taskCallingPackageName);
         }
         if (!checkTrainingConditions(trainingTask.getTrainingConstraints())) {
             trainingEventLogger.logTaskNotStarted();
@@ -297,7 +306,12 @@ public class FederatedComputeWorker {
             // (UNAUTHENTICATED). The second would not allow 401 (UNAUTHENTICATED).
             AuthorizationContext authContext =
                     mInjector.createAuthContext(
-                            mContext, run.mTask.ownerId(), run.mTask.ownerIdCertDigest());
+                            mContext,
+                            ComponentName.createRelative(
+                                            run.mTask.ownerPackageName(),
+                                            run.mTask.ownerClassName())
+                                    .flattenToString(),
+                            run.mTask.ownerIdCertDigest());
             return FluentFuture.from(mHttpFederatedProtocol.createTaskAssignment(authContext))
                     .transformAsync(
                             taskAssignmentResponse -> {
@@ -347,6 +361,10 @@ public class FederatedComputeWorker {
                             if (taskAssignmentOnUnauthenticated.hasRejectionInfo()) {
                                 // This function is called only when the device received
                                 // 401 (unauthenticated). Only retry rejection is allowed.
+                                LogUtil.d(
+                                        TAG, "job %d was rejected during check in, reason %s",
+                                        run.mTask.jobId(), taskAssignmentOnUnauthenticated
+                                            .getRejectionInfo().getReason());
                                 if (taskAssignmentOnUnauthenticated
                                         .getRejectionInfo()
                                         .hasRetryWindow()) {
@@ -372,6 +390,8 @@ public class FederatedComputeWorker {
             TrainingRun run,
             CreateTaskAssignmentResponse taskAssignmentResponse,
             boolean enableFailuresTracking) {
+        run.mTrainingEventLogger.logEventKind(
+                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_WITH_REJECTION);
         performFinishRoutines(
                 run.mCallback,
                 ContributionResult.FAIL,
@@ -411,8 +431,15 @@ public class FederatedComputeWorker {
                                         .build(),
                                 null),
                         AuthorizationContext.create(
-                                mContext, run.mTask.ownerId(), run.mTask.ownerIdCertDigest()),
+                                mContext,
+                                ComponentName.createRelative(
+                                                run.mTask.ownerPackageName(),
+                                                run.mTask.ownerClassName())
+                                        .flattenToString(),
+                                run.mTask.ownerIdCertDigest()),
                         run.mTrainingEventLogger);
+                run.mTrainingEventLogger.logEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_NOT_ELIGIBLE);
                 // Reschedule the job.
                 performFinishRoutines(
                         run.mCallback,
@@ -432,7 +459,24 @@ public class FederatedComputeWorker {
                         mHttpFederatedProtocol.downloadTaskAssignment(
                                 createTaskAssignmentResponse.getTaskAssignment()))
                 .transformAsync(
-                        checkinResult -> doFederatedComputation(run, checkinResult, eligibleResult),
+                        checkinResult -> {
+                            if (checkinResult == null) {
+                                LogUtil.w(TAG, "Failed to acquire checkin result!");
+                                run.mTrainingEventLogger.logEventKind(
+                                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_DOWNLOAD_FAILED);
+                                // Reschedule the job.
+                                performFinishRoutines(
+                                        run.mCallback,
+                                        ContributionResult.FAIL,
+                                        run.mTask.jobId(),
+                                        run.mTask.populationName(),
+                                        run.mTask.getTrainingIntervalOptions(),
+                                        /* taskRetry= */ null,
+                                        /* enableFailuresTracking= */ true);
+                                return Futures.immediateFuture(null);
+                            }
+                            return doFederatedComputation(run, checkinResult, eligibleResult);
+                        },
                         getBackgroundExecutor());
     }
 
@@ -476,6 +520,8 @@ public class FederatedComputeWorker {
                         : activeKeys.get(new Random().nextInt(activeKeys.size()));
         if (encryptionKey == null) {
             // no active keys to encrypt the FL/FA computation results, stop the computation run.
+            run.mTrainingEventLogger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_ENCRYPTION_KEY_FETCH_FAILED);
             reportFailureResultToServer(run);
             return Futures.immediateFailedFuture(
                     new IllegalStateException("No active key available on device."));
@@ -493,6 +539,8 @@ public class FederatedComputeWorker {
         }
 
         if (iterator == null) {
+            run.mTrainingEventLogger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_COMPUTATION_FAILED);
             reportFailureResultToServer(run);
             return Futures.immediateFailedFuture(
                     new IllegalStateException(
@@ -510,6 +558,11 @@ public class FederatedComputeWorker {
         ListenableFuture<ComputationResult> computationResultAndCallbackFuture =
                 CallbackToFutureAdapter.getFuture(
                         completer -> {
+                            String ownerId =
+                                    ComponentName.createRelative(
+                                                    run.mTask.ownerPackageName(),
+                                                    run.mTask.ownerClassName())
+                                            .flattenToString();
                             Futures.addCallback(
                                     computationResultFuture,
                                     new ReportFailureToServerCallback(run.mTrainingEventLogger)
@@ -517,7 +570,7 @@ public class FederatedComputeWorker {
                                                     completer,
                                                     AuthorizationContext.create(
                                                             mContext,
-                                                            run.mTask.ownerId(),
+                                                            ownerId,
                                                             run.mTask.ownerIdCertDigest())),
                                     getLightweightExecutor());
                             return "Report computation result failure to the server.";
@@ -527,15 +580,19 @@ public class FederatedComputeWorker {
         ListenableFuture<RejectionInfo> reportToServerFuture =
                 Futures.transformAsync(
                         computationResultAndCallbackFuture,
-                        result ->
-                                reportResultWithAuthentication(
-                                        result,
-                                        encryptionKey,
-                                        mInjector.createAuthContext(
-                                                mContext,
-                                                run.mTask.ownerId(),
-                                                run.mTask.ownerIdCertDigest()),
-                                        run.mTrainingEventLogger),
+                        result -> {
+                            String ownerId =
+                                    ComponentName.createRelative(
+                                                    run.mTask.ownerPackageName(),
+                                                    run.mTask.ownerClassName())
+                                            .flattenToString();
+                            return reportResultWithAuthentication(
+                                    result,
+                                    encryptionKey,
+                                    mInjector.createAuthContext(
+                                            mContext, ownerId, run.mTask.ownerIdCertDigest()),
+                                    run.mTrainingEventLogger);
+                        },
                         getLightweightExecutor());
 
         return Futures.whenAllSucceed(reportToServerFuture, computationResultAndCallbackFuture)
@@ -544,6 +601,11 @@ public class FederatedComputeWorker {
                             ComputationResult computationResult =
                                     Futures.getDone(computationResultFuture);
                             RejectionInfo reportToServer = Futures.getDone(reportToServerFuture);
+                            if (computationResult.getFlRunnerResult().getContributionResult()
+                                    != ContributionResult.SUCCESS) {
+                                run.mTrainingEventLogger.logEventKind(
+                                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_COMPUTATION_FAILED);
+                            }
                             // report to Server will hold null in case of success, or rejection info
                             // in case server answered with rejection
                             if (reportToServer != null) {
@@ -563,6 +625,13 @@ public class FederatedComputeWorker {
                                                 run.mTaskId,
                                                 run.mTask,
                                                 failedReportComputationResult);
+                                if (computationResult.getFlRunnerResult().getContributionResult()
+                                        == ContributionResult.SUCCESS) {
+                                    // do not log failed delivery if, failed computation os already
+                                    // logged.
+                                    run.mTrainingEventLogger.logEventKind(
+                                            FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_REPORT_FAILED);
+                                }
                                 performFinishRoutines(
                                         run.mCallback,
                                         ContributionResult.FAIL,
@@ -607,7 +676,12 @@ public class FederatedComputeWorker {
             reportFailureResultToServer(
                     failedComputationResult,
                     AuthorizationContext.create(
-                            mContext, run.mTask.ownerId(), run.mTask.ownerIdCertDigest()),
+                            mContext,
+                            ComponentName.createRelative(
+                                            run.mTask.ownerPackageName(),
+                                            run.mTask.ownerClassName())
+                                    .flattenToString(),
+                            run.mTask.ownerIdCertDigest()),
                     run.mTrainingEventLogger);
         } catch (Exception e) {
             LogUtil.e(TAG, e, "Failed to report failure result to server.");
@@ -681,6 +755,20 @@ public class FederatedComputeWorker {
             }
         }
         finish(taskRetry, contributionResult, true);
+    }
+
+    /** Log that training run failed with exception. */
+    public void logTrainEventFinishedWithException() {
+        synchronized (mLock) {
+            if (mActiveRun == null) {
+                return;
+            }
+            if (mActiveRun.mTrainingEventLogger == null) {
+                return;
+            }
+            mActiveRun.mTrainingEventLogger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_WITH_EXCEPTION);
+        }
     }
 
     /**
@@ -1214,6 +1302,8 @@ public class FederatedComputeWorker {
                                                 .setErrorMessage(throwable.getMessage())
                                                 .build(),
                                         null);
+                        mLogger.logEventKind(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_COMPUTATION_FAILED);
                         reportFailureResultToServer(
                                 failedReportComputationResult, authContext, mLogger);
                         completer.setException(throwable);

@@ -15,7 +15,9 @@
  */
 package com.android.ondevicepersonalization.cts.e2e;
 
-import static org.junit.Assert.assertArrayEquals;
+
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -26,6 +28,7 @@ import android.adservices.ondevicepersonalization.OnDevicePersonalizationExcepti
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
 import android.adservices.ondevicepersonalization.SurfacePackageToken;
+import android.compat.testing.PlatformCompatChangeRule;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -43,7 +46,9 @@ import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -68,6 +73,8 @@ public class CtsOdpManagerTests {
 
     @Parameterized.Parameter(0)
     public boolean mIsSipFeatureEnabled;
+
+    @Rule public TestRule compatChangeRule = new PlatformCompatChangeRule();
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -224,7 +231,7 @@ public class CtsOdpManagerTests {
                 Executors.newSingleThreadExecutor(),
                 receiver);
         assertNull(receiver.getResult());
-        assertTrue(receiver.getException() instanceof IllegalStateException);
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -233,14 +240,17 @@ public class CtsOdpManagerTests {
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
         var receiver = new ResultReceiver<ExecuteResult>();
+
         manager.execute(
                 new ComponentName("com.example.odptargetingapp2", "someclass"),
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
+
         assertNull(receiver.getResult());
-        assertTrue(receiver.getException() instanceof NameNotFoundException);
+        assertThat(receiver.getException()).isInstanceOf(NameNotFoundException.class);
     }
+
 
     @Test
     public void testExecuteReturnsClassNotFoundIfServiceClassNotFound()
@@ -249,13 +259,15 @@ public class CtsOdpManagerTests {
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
         var receiver = new ResultReceiver<ExecuteResult>();
+
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, "someclass"),
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
+
         assertNull(receiver.getResult());
-        assertTrue(receiver.getException() instanceof ClassNotFoundException);
+        assertThat(receiver.getException()).isInstanceOf(ClassNotFoundException.class);
     }
 
     @Test
@@ -317,7 +329,7 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    public void testExecuteWithOutputData() throws InterruptedException {
+    public void testExecuteWithOutputDataDisabled() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
@@ -333,7 +345,7 @@ public class CtsOdpManagerTests {
                 Executors.newSingleThreadExecutor(),
                 receiver);
         assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        assertArrayEquals(new byte[] {'A'}, receiver.getResult().getOutputData());
+        assertThat(receiver.getResult().getOutputData()).isNull();
     }
 
     @Test
@@ -445,7 +457,7 @@ public class CtsOdpManagerTests {
                 receiver);
         assertTrue(receiver.isError());
         assertNull(receiver.getResult());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertThat(receiver.getException()).isInstanceOf(OnDevicePersonalizationException.class);
         assertEquals(
                 ((OnDevicePersonalizationException) receiver.getException()).getErrorCode(),
                 OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
@@ -468,7 +480,7 @@ public class CtsOdpManagerTests {
                 receiver);
         assertTrue(receiver.isError());
         assertNull(receiver.getResult());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertThat(receiver.getException()).isInstanceOf(OnDevicePersonalizationException.class);
         assertEquals(
                 ((OnDevicePersonalizationException) receiver.getException()).getErrorCode(),
                 OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);

@@ -26,6 +26,8 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_COMPLETE;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_COMPUTATION_FAILED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_STARTED;
 import static com.android.federatedcompute.services.testutils.TrainingTestUtil.COLLECTION_URI;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -160,6 +162,9 @@ public final class FederatedComputeWorkerTest {
     private static final long CREATION_TIME_MS = 10000L;
     private static final long TASK_EARLIEST_NEXT_RUN_TIME_MS = 1234567L;
     private static final String PACKAGE_NAME = "com.android.federatedcompute.services.training";
+
+    private static final String OWNER_PACKAGE = "com.android.pckg.name";
+    private static final String OWNER_CLASS = "com.android.class.name";
     private static final String OWNER_ID = "com.android.pckg.name/com.android.class.name";
     private static final String OWNER_ID_CERT_DIGEST = "123SOME45DIGEST78";
     private static final String SERVER_ADDRESS = "https://server.com/";
@@ -273,7 +278,8 @@ public final class FederatedComputeWorkerTest {
                     .serverAddress(SERVER_ADDRESS)
                     .populationName(POPULATION_NAME)
                     .jobId(JOB_ID)
-                    .ownerId(OWNER_ID)
+                    .ownerPackageName(OWNER_PACKAGE)
+                    .ownerClassName(OWNER_CLASS)
                     .ownerIdCertDigest(OWNER_ID_CERT_DIGEST)
                     .intervalOptions(INTERVAL_OPTIONS)
                     .constraints(DEFAULT_TRAINING_CONSTRAINTS)
@@ -729,13 +735,15 @@ public final class FederatedComputeWorkerTest {
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL), eq(true));
 
         ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
-        verify(mMockTrainingEventLogger, times(3)).logEventKind(captor.capture());
+        verify(mMockTrainingEventLogger, times(5)).logEventKind(captor.capture());
         assertThat(captor.getAllValues())
                 .containsExactlyElementsIn(
                         Arrays.asList(
                                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED,
                                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE,
-                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED));
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED,
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_COMPUTATION_FAILED,
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_STARTED));
         verify(mMockTrainingEventLogger).logComputationInvalidArgument(any());
     }
 

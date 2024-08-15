@@ -17,6 +17,7 @@
 
 package {
     default_applicable_licenses: ["Android-Apache-2.0"],
+    default_team: "trendy_team_android_rubidium",
 }
 
 android_test {
@@ -31,10 +32,13 @@ android_test {
         "androidx.test.ext.truth",
         "androidx.test.rules",
         "compatibility-device-util-axt",
+        "flag-junit",
         "hamcrest-library",
+        "ondevicepersonalization_flags_lib",
         "ondevicepersonalization-testing-sample-service-api",
         "ondevicepersonalization-testing-utils",
         "platform-test-rules",
+        "platform-compat-test-rules",
     ],
     libs: [
         "sdk_public_33_android.test.base",

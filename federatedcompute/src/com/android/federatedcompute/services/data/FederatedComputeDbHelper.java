@@ -25,7 +25,9 @@ import static com.android.federatedcompute.services.data.ODPAuthorizationTokenCo
 import static com.android.federatedcompute.services.data.TaskHistoryContract.TaskHistoryEntry.CREATE_TASK_HISTORY_TABLE_STATEMENT;
 
 import android.annotation.Nullable;
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -42,7 +44,7 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
 
     private static final String TAG = FederatedComputeDbHelper.class.getSimpleName();
 
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
     private static final String DATABASE_NAME = "federatedcompute.db";
     private static final String CREATE_TRAINING_TASK_TABLE =
             "CREATE TABLE "
@@ -55,6 +57,10 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
                     + FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID
                     + " INTEGER, "
                     + FederatedTrainingTaskColumns.OWNER_ID
+                    + " TEXT NOT NULL, "
+                    + FederatedTrainingTaskColumns.OWNER_PACKAGE
+                    + " TEXT NOT NULL, "
+                    + FederatedTrainingTaskColumns.OWNER_CLASS
                     + " TEXT NOT NULL, "
                     + FederatedTrainingTaskColumns.OWNER_ID_CERT_DIGEST
                     + " TEXT NOT NULL, "
@@ -113,6 +119,9 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
                     + " INTEGER NOT NULL, "
                     + ODPAuthorizationTokenColumns.EXPIRY_TIME
                     + " INTEGER NOT NULL)";
+    public static final String CREATE_TRAINING_TASK_OWNER_PACKAGE_INDEX =
+            "CREATE INDEX IF NOT EXISTS idx_package_name ON " + FEDERATED_TRAINING_TASKS_TABLE
+                    + "(" + FederatedTrainingTaskColumns.OWNER_PACKAGE + ")";
 
     private static volatile FederatedComputeDbHelper sInstance = null;
 
@@ -139,19 +148,28 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
      * only.
      */
     @VisibleForTesting
-    public static FederatedComputeDbHelper getInstanceForTest(Context context) {
-        synchronized (FederatedComputeDbHelper.class) {
-            if (sInstance == null) {
-                // Use null database name to make it in-memory
-                sInstance = new FederatedComputeDbHelper(context, null);
-            }
-            return sInstance;
+    public static synchronized FederatedComputeDbHelper getInstanceForTest(Context context) {
+        if (sInstance == null) {
+            // Use null database name to make it in-memory
+            sInstance = new FederatedComputeDbHelper(context, null);
         }
+        return sInstance;
+    }
+
+    /**
+     * Returns an instance of the FederatedComputeDbHelper given a context and database name. This
+     * is used for testing only.
+     */
+    @VisibleForTesting
+    public static FederatedComputeDbHelper getNonSingletonInstanceForTest(
+            Context context, String dbName) {
+        return new FederatedComputeDbHelper(context, dbName);
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(CREATE_TRAINING_TASK_TABLE);
+        db.execSQL(CREATE_TRAINING_TASK_OWNER_PACKAGE_INDEX);
         db.execSQL(CREATE_ENCRYPTION_KEY_TABLE);
         db.execSQL(CREATE_ODP_AUTHORIZATION_TOKEN_TABLE);
         db.execSQL(CREATE_TASK_HISTORY_TABLE_STATEMENT);
@@ -159,10 +177,73 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // TODO: handle upgrade when the db schema is changed.
         LogUtil.d(TAG, "DB upgrade from %d to %d", oldVersion, newVersion);
-        throw new UnsupportedOperationException(
-                "Database upgrade for FederatedCompute is unsupported");
+        if (oldVersion < 2) {
+            try {
+                // 1. Add new columns
+                db.execSQL(
+                        "ALTER TABLE "
+                                + FEDERATED_TRAINING_TASKS_TABLE
+                                + " ADD COLUMN "
+                                + FederatedTrainingTaskColumns.OWNER_PACKAGE
+                                + " TEXT NOT NULL DEFAULT '';");
+                db.execSQL(
+                        "ALTER TABLE "
+                                + FEDERATED_TRAINING_TASKS_TABLE
+                                + " ADD COLUMN "
+                                + FederatedTrainingTaskColumns.OWNER_CLASS
+                                + " TEXT NOT NULL DEFAULT '';");
+
+                // 2. Migrate data (split ownerId)
+                Cursor cursor =
+                        db.query(
+                                FEDERATED_TRAINING_TASKS_TABLE,
+                                new String[] {
+                                    FederatedTrainingTaskColumns._ID,
+                                    FederatedTrainingTaskColumns.OWNER_ID
+                                },
+                                null,
+                                null,
+                                null,
+                                null,
+                                null);
+                while (cursor.moveToNext()) {
+                    int id = cursor.getInt(0);
+                    String ownerId = cursor.getString(1);
+                    String[] parts = ownerId.split("/"); // Split on "/"
+                    String packageName = parts[0];
+                    // Handle missing class name
+                    String className = parts.length > 1 ? parts[1] : "";
+
+                    ContentValues values = new ContentValues();
+                    values.put(FederatedTrainingTaskColumns.OWNER_PACKAGE, packageName);
+                    values.put(FederatedTrainingTaskColumns.OWNER_CLASS, className);
+                    db.update(
+                            FEDERATED_TRAINING_TASKS_TABLE,
+                            values,
+                            FederatedTrainingTaskColumns._ID + " = ?",
+                            new String[] {String.valueOf(id)});
+                }
+                cursor.close();
+
+                //3. Create the index after the migration
+                db.execSQL(CREATE_TRAINING_TASK_OWNER_PACKAGE_INDEX);
+            } catch (SQLiteException e) {
+                LogUtil.e(TAG, e, "Error during database upgrade");
+                throw new RuntimeException(
+                        String.format(
+                                "Database upgrade for FederatedCompute from old version:%d "
+                                        + "to new version:%d failed!",
+                                oldVersion, newVersion),
+                        e);
+            }
+        } else {
+            throw new UnsupportedOperationException(
+                    String.format(
+                            "Database upgrade for FederatedCompute from old version:%d "
+                                    + "to new version:%d is unsupported",
+                            oldVersion, newVersion));
+        }
     }
 
     @Override
@@ -180,12 +261,10 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
 
     /** It's only public to testing. */
     @VisibleForTesting
-    public static void resetInstance() {
-        synchronized (FederatedComputeDbHelper.class) {
-            if (sInstance != null) {
-                sInstance.close();
-                sInstance = null;
-            }
+    public static synchronized void resetInstance() {
+        if (sInstance != null) {
+            sInstance.close();
+            sInstance = null;
         }
     }
 

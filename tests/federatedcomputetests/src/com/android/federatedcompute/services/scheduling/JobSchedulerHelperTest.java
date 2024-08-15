@@ -51,8 +51,8 @@ public class JobSchedulerHelperTest {
     private static final String PACKAGE_NAME = "foo.federatedcompute";
     private static final String TRAINING_JOB_SERVICE =
             "com.android.federatedcompute.services.training.FederatedJobService";
-    private static final String OWNER_ID =
-            "com.android.pckg.name/com.android.class.name";
+    private static final String OWNER_PACKAGE = "com.android.pckg.name";
+    private static final String OWNER_CLASS = "com.android.class.name";
     private static final String OWNER_ID_CERT_DIGEST = "123SOME45DIGEST78";
     private static final String POPULATION_NAME = "population";
     private static final String SERVER_ADDRESS = "https://server.uri/";
@@ -75,10 +75,28 @@ public class JobSchedulerHelperTest {
                     .lastScheduledTime(CURRENT_TIME_MILLIS)
                     .schedulingReason(SCHEDULING_REASON)
                     .jobId(JOB_ID)
-                    .ownerId(OWNER_ID)
+                    .ownerPackageName(OWNER_PACKAGE)
+                    .ownerClassName(OWNER_CLASS)
                     .ownerIdCertDigest(OWNER_ID_CERT_DIGEST)
                     .serverAddress(SERVER_ADDRESS)
                     .earliestNextRunTime(NEXT_RUNTIME_MILLSECONDS)
+                    .constraints(TRAINING_CONSTRAINTS)
+                    .build();
+
+    private static final FederatedTrainingTask TRAINING_TASK_EARLY_RUN =
+            FederatedTrainingTask.builder()
+                    .appPackageName(PACKAGE_NAME)
+                    .populationName(POPULATION_NAME)
+                    .intervalOptions(INTERVAL_OPTIONS)
+                    .creationTime(CURRENT_TIME_MILLIS)
+                    .lastScheduledTime(CURRENT_TIME_MILLIS)
+                    .schedulingReason(SCHEDULING_REASON)
+                    .jobId(JOB_ID)
+                    .ownerPackageName(OWNER_PACKAGE)
+                    .ownerClassName(OWNER_CLASS)
+                    .ownerIdCertDigest(OWNER_ID_CERT_DIGEST)
+                    .serverAddress(SERVER_ADDRESS)
+                    .earliestNextRunTime(0L)
                     .constraints(TRAINING_CONSTRAINTS)
                     .build();
 
@@ -100,6 +118,15 @@ public class JobSchedulerHelperTest {
     @Test
     public void scheduleTask() {
         assertThat(mJobSchedulerHelper.scheduleTask(mContext, TRAINING_TASK)).isTrue();
+
+        JobInfo jobInfo = Iterables.getOnlyElement(mJobScheduler.getAllPendingJobs());
+
+        verifyJobInfo(jobInfo);
+    }
+
+    @Test
+    public void scheduleTaskEarlyRun() {
+        assertThat(mJobSchedulerHelper.scheduleTask(mContext, TRAINING_TASK_EARLY_RUN)).isTrue();
 
         JobInfo jobInfo = Iterables.getOnlyElement(mJobScheduler.getAllPendingJobs());
 
