@@ -43,7 +43,7 @@ public class ExecuteInIsolatedServiceResponse {
      * IsolatedService} didn't return any content, the default value is {@link #DEFAULT_BEST_VALUE}.
      * If {@link IsolatedService} returns an integer value, we will apply the noise to the value and
      * the range of this value is between 0 and {@link
-     * ExecuteInIsolatedServiceRequest.OutputParams#getMaxIntValue()}.
+     * ExecuteInIsolatedServiceRequest.OutputSpec#getMaxIntValue()}.
      */
     private int mBestValue = DEFAULT_BEST_VALUE;
 
@@ -55,12 +55,12 @@ public class ExecuteInIsolatedServiceResponse {
      *     not generated any content to be displayed within the calling app.
      * @param bestValue an int value that was returned by the {@link IsolatedService} and applied
      *     noise.If {@link ExecuteInIsolatedServiceRequest} output type is set to {@link
-     *     ExecuteInIsolatedServiceRequest.OutputParams#OUTPUT_TYPE_NULL}, the platform ignores the
+     *     ExecuteInIsolatedServiceRequest.OutputSpec#OUTPUT_TYPE_NULL}, the platform ignores the
      *     data returned by {@link IsolatedService} and returns the default value {@link
      *     #DEFAULT_BEST_VALUE}. If {@link ExecuteInIsolatedServiceRequest} output type is set to
-     *     {@link ExecuteInIsolatedServiceRequest.OutputParams#OUTPUT_TYPE_BEST_VALUE}, the platform
+     *     {@link ExecuteInIsolatedServiceRequest.OutputSpec#OUTPUT_TYPE_BEST_VALUE}, the platform
      *     validates {@link ExecuteOutput#getBestValue} between 0 and {@link
-     *     ExecuteInIsolatedServiceRequest.OutputParams#getMaxIntValue} and applies noise to result.
+     *     ExecuteInIsolatedServiceRequest.OutputSpec#getMaxIntValue} and applies noise to result.
      */
     public ExecuteInIsolatedServiceResponse(
             @Nullable SurfacePackageToken surfacePackageToken,
@@ -88,12 +88,12 @@ public class ExecuteInIsolatedServiceResponse {
     /**
      * Returns the int value that was returned by the {@link IsolatedService} and applied noise. If
      * {@link ExecuteInIsolatedServiceRequest} output type is set to {@link
-     * ExecuteInIsolatedServiceRequest.OutputParams#OUTPUT_TYPE_NULL}, the platform ignores the data
+     * ExecuteInIsolatedServiceRequest.OutputSpec#OUTPUT_TYPE_NULL}, the platform ignores the data
      * returned by {@link IsolatedService} and returns the default value {@link
      * #DEFAULT_BEST_VALUE}. If {@link ExecuteInIsolatedServiceRequest} output type is set to {@link
-     * ExecuteInIsolatedServiceRequest.OutputParams#OUTPUT_TYPE_BEST_VALUE}, the platform validates
+     * ExecuteInIsolatedServiceRequest.OutputSpec#OUTPUT_TYPE_BEST_VALUE}, the platform validates
      * {@link ExecuteOutput#getBestValue} between 0 and {@link
-     * ExecuteInIsolatedServiceRequest.OutputParams#getMaxIntValue()} and applies noise to result.
+     * ExecuteInIsolatedServiceRequest.OutputSpec#getMaxIntValue()} and applies noise to result.
      */
     public @IntRange(from = DEFAULT_BEST_VALUE) int getBestValue() {
         return mBestValue;
