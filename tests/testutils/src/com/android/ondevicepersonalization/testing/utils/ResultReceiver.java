@@ -15,27 +15,53 @@
  */
 package com.android.ondevicepersonalization.testing.utils;
 
+import static org.junit.Assert.assertTrue;
+
 import android.os.OutcomeReceiver;
 
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A synchronous wrapper around OutcomeReceiver for testing.
  */
 public class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
     private final CountDownLatch mLatch = new CountDownLatch(1);
+    private final Duration mDeadline;
     private T mResult = null;
     private Exception mException = null;
     private boolean mSuccess = false;
     private boolean mError = false;
+    private boolean mCalled = false;
+
+    /** Creates a ResultReceiver. */
+    public ResultReceiver() {
+        this(Duration.ofSeconds(30));
+    }
+
+    /** Creates a ResultReceiver with a deadline. */
+    public ResultReceiver(Duration deadline) {
+        mDeadline = deadline;
+    }
+
+    private void await() throws InterruptedException {
+        if (mDeadline != null) {
+            assertTrue(mLatch.await(mDeadline.toMillis(), TimeUnit.MILLISECONDS));
+        } else {
+            mLatch.await();
+        }
+    }
 
     @Override public void onResult(T result) {
+        mCalled = true;
         mSuccess = true;
         mResult = result;
         mLatch.countDown();
     }
 
     @Override public void onError(Exception e) {
+        mCalled = true;
         mError = true;
         mException = e;
         mLatch.countDown();
@@ -43,31 +69,37 @@ public class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
 
     /** Returns the result passed to the OutcomeReceiver. */
     public T getResult() throws InterruptedException {
-        mLatch.await();
+        await();
         return mResult;
     }
 
     /** Returns the exception passed to the OutcomeReceiver. */
     public Exception getException() throws InterruptedException {
-        mLatch.await();
+        await();
         return mException;
     }
 
     /** Returns true if onResult() was called. */
     public boolean isSuccess() throws InterruptedException {
-        mLatch.await();
+        await();
         return mSuccess;
     }
 
     /** Returns true if onError() was called. */
     public boolean isError() throws InterruptedException {
-        mLatch.await();
+        await();
         return mError;
+    }
+
+    /** Returns true if onResult() or onError() was called. */
+    public boolean isCalled() throws InterruptedException {
+        await();
+        return mCalled;
     }
 
     /** Returns the exception message. */
     public String getErrorMessage() throws InterruptedException {
-        mLatch.await();
+        await();
         if (mException != null) {
             return mException.getClass().getSimpleName()
                     + ": " + mException.getMessage();

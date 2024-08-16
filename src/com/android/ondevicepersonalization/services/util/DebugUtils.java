@@ -25,9 +25,11 @@ import android.os.Build;
 import android.provider.Settings;
 
 import com.android.odp.module.common.PackageUtils;
+import com.android.ondevicepersonalization.internal.util.ExceptionInfo;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 
 import java.util.Objects;
 
@@ -35,6 +37,7 @@ import java.util.Objects;
 public class DebugUtils {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = DebugUtils.class.getSimpleName();
+    private static final int MAX_EXCEPTION_CHAIN_DEPTH = 3;
 
     /** Returns true if the device is debuggable. */
     public static boolean isDeveloperModeEnabled(@NonNull Context context) {
@@ -65,17 +68,22 @@ public class DebugUtils {
         return 0;
     }
 
-    /** Returns the exception message if debugging is allowed. */
-    public static String getErrorMessage(@NonNull Context context, Throwable t) {
+    /** Serializes an exception chain to a byte[] */
+    public static byte[] serializeExceptionInfo(
+            ComponentName service, Throwable t) {
         try {
-            if (t != null && isDeveloperModeEnabled(context)
-                    && FlagsFactory.getFlags().isIsolatedServiceDebuggingEnabled()) {
-                return t.getClass().getSimpleName() + ": " + t.getMessage();
+            Context context = OnDevicePersonalizationApplication.getAppContext();
+            if (t == null || !isDeveloperModeEnabled(context)
+                    || !FlagsFactory.getFlags().isIsolatedServiceDebuggingEnabled()
+                    || !PackageUtils.isPackageDebuggable(context, service.getPackageName())) {
+                return null;
             }
+
+            return ExceptionInfo.toByteArray(t, MAX_EXCEPTION_CHAIN_DEPTH);
         } catch (Exception e) {
-            sLogger.e(e, TAG + ": failed to get message");
+            sLogger.e(e, TAG + ": failed to serialize exception info");
+            return null;
         }
-        return null;
     }
 
     private DebugUtils() {}
