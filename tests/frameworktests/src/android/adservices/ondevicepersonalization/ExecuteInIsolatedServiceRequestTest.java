@@ -35,15 +35,14 @@ public class ExecuteInIsolatedServiceRequestTest {
         ExecuteInIsolatedServiceRequest request =
                 new ExecuteInIsolatedServiceRequest.Builder(COMPONENT_NAME)
                         .setAppParams(bundle)
-                        .setOutputParams(
-                                ExecuteInIsolatedServiceRequest.OutputParams.buildBestValueParams(
-                                        100))
+                        .setOutputSpec(
+                                ExecuteInIsolatedServiceRequest.OutputSpec.buildBestValueSpec(100))
                         .build();
 
-        ExecuteInIsolatedServiceRequest.OutputParams options = request.getOutputParams();
+        ExecuteInIsolatedServiceRequest.OutputSpec options = request.getOutputSpec();
         assertThat(options.getMaxIntValue()).isEqualTo(100);
         assertThat(options.getOutputType())
-                .isEqualTo(ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_BEST_VALUE);
+                .isEqualTo(ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE);
         assertThat(request.getAppParams()).isEqualTo(bundle);
         assertThat(request.getService()).isEqualTo(COMPONENT_NAME);
     }
@@ -58,8 +57,8 @@ public class ExecuteInIsolatedServiceRequestTest {
                         .setAppParams(bundle)
                         .build();
 
-        ExecuteInIsolatedServiceRequest.OutputParams options = request.getOutputParams();
-        assertThat(options).isEqualTo(ExecuteInIsolatedServiceRequest.OutputParams.DEFAULT);
+        ExecuteInIsolatedServiceRequest.OutputSpec options = request.getOutputSpec();
+        assertThat(options).isEqualTo(ExecuteInIsolatedServiceRequest.OutputSpec.DEFAULT);
         assertThat(request.getAppParams()).isEqualTo(bundle);
         assertThat(request.getService()).isEqualTo(COMPONENT_NAME);
     }

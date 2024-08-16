@@ -351,21 +351,20 @@ public class DataClassesTest {
         ExecuteInIsolatedServiceRequest request =
                 new ExecuteInIsolatedServiceRequest.Builder(service)
                         .setAppParams(appParams)
-                        .setOutputParams(
-                                ExecuteInIsolatedServiceRequest.OutputParams.buildBestValueParams(
-                                        100))
+                        .setOutputSpec(
+                                ExecuteInIsolatedServiceRequest.OutputSpec.buildBestValueSpec(100))
                         .build();
 
         assertThat(request.getService()).isEqualTo(service);
         assertThat(request.getAppParams()).isEqualTo(appParams);
-        assertThat(request.getOutputParams().getMaxIntValue()).isEqualTo(100);
-        assertThat(request.getOutputParams().getOutputType())
-                .isEqualTo(ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_BEST_VALUE);
+        assertThat(request.getOutputSpec().getMaxIntValue()).isEqualTo(100);
+        assertThat(request.getOutputSpec().getOutputType())
+                .isEqualTo(ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE);
     }
 
     @Test
     @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
-    public void testExecuteInIsolatedServiceRequest_nullOutputParam() {
+    public void testExecuteInIsolatedServiceRequest_nullOutputSpec() {
         ComponentName service = new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS);
         PersistableBundle appParams = new PersistableBundle();
         appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RENDER_AND_LOG);
@@ -376,9 +375,9 @@ public class DataClassesTest {
 
         assertThat(request.getService()).isEqualTo(service);
         assertThat(request.getAppParams()).isEqualTo(appParams);
-        assertThat(request.getOutputParams().getMaxIntValue()).isEqualTo(-1);
-        assertThat(request.getOutputParams().getOutputType())
-                .isEqualTo(ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_NULL);
+        assertThat(request.getOutputSpec().getMaxIntValue()).isEqualTo(-1);
+        assertThat(request.getOutputSpec().getOutputType())
+                .isEqualTo(ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_NULL);
     }
 
     @Test
