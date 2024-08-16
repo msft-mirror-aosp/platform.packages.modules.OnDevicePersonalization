@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services;
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
 import static com.android.ondevicepersonalization.services.Flags.APP_REQUEST_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
@@ -41,6 +42,7 @@ import static com.android.ondevicepersonalization.services.PhFlags.APP_INSTALL_H
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_AGGREGATED_ERROR_REPORTING;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
@@ -624,5 +626,27 @@ public class PhFlagsTest {
         // the flag value remains stable
         assertThat(FlagsFactory.getFlags().getAppInstallHistoryTtlInMillis())
                 .isEqualTo(overrideEnabled);
+    }
+
+    @Test
+    public void testAggregateErrorReportingEnabled() {
+        boolean testValue = !DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ENABLE_AGGREGATED_ERROR_REPORTING,
+                Boolean.toString(testValue),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingEnabled())
+                .isEqualTo(testValue);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ENABLE_AGGREGATED_ERROR_REPORTING,
+                Boolean.toString(DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED),
+                /* makeDefault */ false);
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingEnabled())
+                .isEqualTo(DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED);
     }
 }

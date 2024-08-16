@@ -99,6 +99,10 @@ public final class PhFlags implements Flags {
     public static final String APP_INSTALL_HISTORY_TTL = "app_install_history_ttl";
     public static final String EXECUTE_BEST_VALUE_NOISE = "noise_for_execute_best_value";
 
+    public static final String KEY_ENABLE_AGGREGATED_ERROR_REPORTING =
+            "enable_aggregated_error_reporting";
+    public static final String MAX_INT_VALUES_LIMIT = "max_int_values_limit";
+
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
 
@@ -408,5 +412,21 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ EXECUTE_BEST_VALUE_NOISE,
                 /* defaultValue= */ DEFAULT_EXECUTE_BEST_VALUE_NOISE);
+    }
+
+    @Override
+    public boolean getAggregatedErrorReportingEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ENABLE_AGGREGATED_ERROR_REPORTING,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED);
+    }
+
+    @Override
+    public int getMaxIntValuesLimit() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ MAX_INT_VALUES_LIMIT,
+                /* defaultValue= */ DEFAULT_MAX_INT_VALUES);
     }
 }

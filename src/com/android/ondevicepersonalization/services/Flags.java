@@ -16,6 +16,9 @@
 
 package com.android.ondevicepersonalization.services;
 
+import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
+
 import com.android.adservices.shared.common.flags.ConfigFlag;
 import com.android.adservices.shared.common.flags.FeatureFlag;
 import com.android.adservices.shared.common.flags.ModuleSharedFlags;
@@ -177,18 +180,14 @@ public interface Flags extends ModuleSharedFlags {
         return WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
     }
 
-    /**
-     * Executiton deadline for example store flow.
-     */
+    /** Execution deadline for example store flow. */
     int EXAMPLE_STORE_FLOW_DEADLINE_SECONDS = 30;
 
     default int getExampleStoreFlowDeadlineSeconds() {
         return EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
     }
 
-    /**
-     * Executiton deadline for download flow.
-     */
+    /** Execution deadline for download flow. */
     int DOWNLOAD_FLOW_DEADLINE_SECONDS = 30;
 
     default int getDownloadFlowDeadlineSeconds() {
@@ -275,5 +274,22 @@ public interface Flags extends ModuleSharedFlags {
 
     default float getNoiseForExecuteBestValue() {
         return DEFAULT_EXECUTE_BEST_VALUE_NOISE;
+    }
+
+    /** Default value for flag that enables aggregated error code reporting. */
+    boolean DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED = false;
+
+    default boolean getAggregatedErrorReportingEnabled() {
+        return DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED;
+    }
+
+    /**
+     * Default value for maximum int value caller can set in {@link
+     * ExecuteInIsolatedServiceRequest.OutputParams#buildBestValueParams}.
+     */
+    int DEFAULT_MAX_INT_VALUES = 100;
+
+    default int getMaxIntValuesLimit() {
+        return DEFAULT_MAX_INT_VALUES;
     }
 }

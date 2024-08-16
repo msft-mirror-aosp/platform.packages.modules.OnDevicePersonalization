@@ -392,12 +392,17 @@ public class SampleHandler implements IsolatedWorker {
                 if (exampleCache.containsKey(key)) {
                     example = convertToExample(exampleCache.get(key));
                 } else {
-                    String value =
+                    try {
+                        String value =
                             new String(
-                                    mRemoteData.get(String.format("example%d", key)),
-                                    StandardCharsets.UTF_8);
-                    exampleCache.put(key, value);
-                    example = convertToExample(value);
+                                mRemoteData.get(String.format("example%d", key)),
+                                StandardCharsets.UTF_8);
+                        exampleCache.put(key, value);
+                        example = convertToExample(value);
+                    } catch (Throwable e) {
+                        Log.w(TAG, "failure getting example from remote data store", e);
+                        continue;
+                    }
                 }
                 TrainingExampleRecord record =
                         new TrainingExampleRecord.Builder()
@@ -492,7 +497,7 @@ public class SampleHandler implements IsolatedWorker {
                 mFCScheduler.schedule(params, fcInput);
 
                 ExecuteOutput result = new ExecuteOutput.Builder().build();
-                // receiver.onResult(result);
+                receiver.onResult(result);
             } else if (input != null
                     && input.getAppParams() != null
                     && input.getAppParams().getString("cancel_training") != null) {
