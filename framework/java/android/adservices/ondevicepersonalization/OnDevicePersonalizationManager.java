@@ -369,9 +369,9 @@ public class OnDevicePersonalizationManager {
                                                         }
                                                     }
                                                     int intValue = -1;
-                                                    if (request.getOutputParams().getOutputType()
+                                                    if (request.getOutputSpec().getOutputType()
                                                             == ExecuteInIsolatedServiceRequest
-                                                                    .OutputParams
+                                                                    .OutputSpec
                                                                     .OUTPUT_TYPE_BEST_VALUE) {
                                                         intValue =
                                                                 callbackResult.getInt(
@@ -447,9 +447,9 @@ public class OnDevicePersonalizationManager {
                         request.getService(),
                         wrappedParams,
                         new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
-                        request.getOutputParams() == null
+                        request.getOutputSpec() == null
                                 ? ExecuteOptionsParcel.DEFAULT
-                                : new ExecuteOptionsParcel(request.getOutputParams()),
+                                : new ExecuteOptionsParcel(request.getOutputSpec()),
                         callbackWrapper);
             } catch (Exception e) {
                 logApiCallStats(

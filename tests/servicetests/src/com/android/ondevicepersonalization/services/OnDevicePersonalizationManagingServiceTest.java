@@ -184,7 +184,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         var callback = new ExecuteCallback();
         ExecuteOptionsParcel options =
                 new ExecuteOptionsParcel(
-                        ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_BEST_VALUE, 50);
+                        ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE, 50);
         mService.execute(
                 mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
@@ -201,7 +201,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         var callback = new ExecuteCallback();
         ExecuteOptionsParcel options =
                 new ExecuteOptionsParcel(
-                        ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_BEST_VALUE, 150);
+                        ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE, 150);
         assertThrows(
                 IllegalArgumentException.class,
                 () ->
