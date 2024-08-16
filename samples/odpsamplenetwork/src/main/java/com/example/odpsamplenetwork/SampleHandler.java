@@ -111,6 +111,7 @@ public class SampleHandler implements IsolatedWorker {
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA"
                     + "AAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC";
     private static final byte[] TRANSPARENT_PNG_BYTES = Base64.decode(TRANSPARENT_PNG_BASE64, 0);
+    private static final int ERROR_CODE = 10;
 
     private static final ListeningExecutorService sBackgroundExecutor =
             MoreExecutors.listeningDecorator(
@@ -178,6 +179,12 @@ public class SampleHandler implements IsolatedWorker {
             @NonNull ExecuteInput input,
             @NonNull OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
         Log.d(TAG, "onExecute() started.");
+        if (input != null
+                && input.getAppParams() != null
+                && input.getAppParams().getString("keyword") != null
+                && input.getAppParams().getString("keyword").equalsIgnoreCase("crash")) {
+            throw new RuntimeException("Client-requested crash.");
+        }
         sBackgroundExecutor.execute(() -> handleOnExecute(input, receiver));
     }
 
@@ -385,12 +392,17 @@ public class SampleHandler implements IsolatedWorker {
                 if (exampleCache.containsKey(key)) {
                     example = convertToExample(exampleCache.get(key));
                 } else {
-                    String value =
+                    try {
+                        String value =
                             new String(
-                                    mRemoteData.get(String.format("example%d", key)),
-                                    StandardCharsets.UTF_8);
-                    exampleCache.put(key, value);
-                    example = convertToExample(value);
+                                mRemoteData.get(String.format("example%d", key)),
+                                StandardCharsets.UTF_8);
+                        exampleCache.put(key, value);
+                        example = convertToExample(value);
+                    } catch (Throwable e) {
+                        Log.w(TAG, "failure getting example from remote data store", e);
+                        continue;
+                    }
                 }
                 TrainingExampleRecord record =
                         new TrainingExampleRecord.Builder()
@@ -439,6 +451,13 @@ public class SampleHandler implements IsolatedWorker {
             @NonNull ExecuteInput input,
             @NonNull OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
         try {
+            if (input != null
+                    && input.getAppParams() != null
+                    && input.getAppParams().getString("keyword") != null
+                    && input.getAppParams().getString("keyword").equalsIgnoreCase("error")) {
+                receiver.onError(new IsolatedServiceException(ERROR_CODE));
+                return;
+            }
             if (input != null
                     && input.getAppParams() != null
                     && input.getAppParams().getString("schedule_training") != null) {

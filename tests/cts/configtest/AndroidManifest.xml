@@ -16,7 +16,7 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.android.ondevicepersonalization.cts.configtest">
-    <application android:label="CtsOnDevicePersonalizationConfigTests">
+    <application android:debuggable="true" android:label="CtsOnDevicePersonalizationConfigTests">
         <uses-library android:name="android.test.runner" />
         <activity
             android:name=".TestActivity"

@@ -69,6 +69,7 @@ public class FederatedJobService extends JobService {
                     public void onFailure(Throwable t) {
                         LogUtil.e(
                                 TAG, t, "Failed to handle computation job: %d", params.getJobId());
+                        worker.logTrainEventFinishedWithException();
                         worker.finish(null, ContributionResult.FAIL, false);
                     }
                 },
