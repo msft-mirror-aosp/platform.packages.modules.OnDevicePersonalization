@@ -30,6 +30,7 @@ import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceReques
 import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceResponse;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.FederatedComputeInput;
+import android.adservices.ondevicepersonalization.FederatedComputeScheduleRequest;
 import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
 import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams;
@@ -89,7 +90,6 @@ public class DataClassesTest {
                         .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
                         .setRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
                         .addEventLogRecord(new EventLogRecord.Builder().setType(1).build())
-                        .setBestValue(100)
                         .build();
 
         assertEquals(
@@ -97,7 +97,6 @@ public class DataClassesTest {
         assertEquals("abc", data.getRenderingConfig().getKeys().get(0));
         assertEquals(1, data.getEventLogRecords().get(0).getType());
         assertThat(data.getOutputData()).isNull();
-        assertThat(data.getBestValue()).isEqualTo(100);
     }
 
     /**
@@ -199,6 +198,31 @@ public class DataClassesTest {
         assertEquals(5, params.getTrainingInterval().getMinimumInterval().toSeconds());
         assertEquals(TrainingInterval.SCHEDULING_MODE_RECURRENT,
                 params.getTrainingInterval().getSchedulingMode());
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
+    public void testFederatedComputeSchedulerRequest() {
+        // Test for Data classes associated with FederatedComputeScheduler's schedule API.
+        String testPopulation = "testPopulation";
+        Duration testInterval = Duration.ofSeconds(5);
+        int testSchedulingMode = TrainingInterval.SCHEDULING_MODE_RECURRENT;
+        TrainingInterval testData =
+                new TrainingInterval.Builder()
+                        .setSchedulingMode(testSchedulingMode)
+                        .setMinimumInterval(testInterval)
+                        .build();
+
+        FederatedComputeScheduler.Params params = new FederatedComputeScheduler.Params(testData);
+        FederatedComputeScheduleRequest request =
+                new FederatedComputeScheduleRequest.Builder(params)
+                        .setPopulationName(testPopulation)
+                        .build();
+
+        assertEquals(testPopulation, request.getPopulationName());
+        assertEquals(testInterval, request.getParams().getTrainingInterval().getMinimumInterval());
+        assertEquals(
+                testSchedulingMode, request.getParams().getTrainingInterval().getSchedulingMode());
     }
 
     /** Test for RequestLogRecord class. */
@@ -353,21 +377,20 @@ public class DataClassesTest {
         ExecuteInIsolatedServiceRequest request =
                 new ExecuteInIsolatedServiceRequest.Builder(service)
                         .setAppParams(appParams)
-                        .setOutputParams(
-                                ExecuteInIsolatedServiceRequest.OutputParams.buildBestValueParams(
-                                        100))
+                        .setOutputSpec(
+                                ExecuteInIsolatedServiceRequest.OutputSpec.buildBestValueSpec(100))
                         .build();
 
         assertThat(request.getService()).isEqualTo(service);
         assertThat(request.getAppParams()).isEqualTo(appParams);
-        assertThat(request.getOutputParams().getMaxIntValue()).isEqualTo(100);
-        assertThat(request.getOutputParams().getOutputType())
-                .isEqualTo(ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_BEST_VALUE);
+        assertThat(request.getOutputSpec().getMaxIntValue()).isEqualTo(100);
+        assertThat(request.getOutputSpec().getOutputType())
+                .isEqualTo(ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE);
     }
 
     @Test
     @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
-    public void testExecuteInIsolatedServiceRequest_nullOutputParam() {
+    public void testExecuteInIsolatedServiceRequest_nullOutputSpec() {
         ComponentName service = new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS);
         PersistableBundle appParams = new PersistableBundle();
         appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RENDER_AND_LOG);
@@ -378,9 +401,9 @@ public class DataClassesTest {
 
         assertThat(request.getService()).isEqualTo(service);
         assertThat(request.getAppParams()).isEqualTo(appParams);
-        assertThat(request.getOutputParams().getMaxIntValue()).isEqualTo(-1);
-        assertThat(request.getOutputParams().getOutputType())
-                .isEqualTo(ExecuteInIsolatedServiceRequest.OutputParams.OUTPUT_TYPE_NULL);
+        assertThat(request.getOutputSpec().getMaxIntValue()).isEqualTo(-1);
+        assertThat(request.getOutputSpec().getOutputType())
+                .isEqualTo(ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_NULL);
     }
 
     @Test
@@ -401,5 +424,25 @@ public class DataClassesTest {
 
         assertThat(response.getBestValue()).isEqualTo(-1);
         assertThat(response.getSurfacePackageToken()).isEqualTo(token);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
+    public void testExecuteOutputWithBestValue() {
+        ContentValues row = new ContentValues();
+        row.put("a", 5);
+        ExecuteOutput data =
+                new ExecuteOutput.Builder()
+                        .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
+                        .setRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
+                        .addEventLogRecord(new EventLogRecord.Builder().setType(1).build())
+                        .setBestValue(100)
+                        .build();
+
+        assertEquals(5, data.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
+        assertEquals("abc", data.getRenderingConfig().getKeys().get(0));
+        assertEquals(1, data.getEventLogRecords().get(0).getType());
+        assertThat(data.getOutputData()).isNull();
+        assertThat(data.getBestValue()).isEqualTo(100);
     }
 }
