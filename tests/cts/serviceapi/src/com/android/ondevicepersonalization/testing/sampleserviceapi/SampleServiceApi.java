@@ -45,7 +45,14 @@ public class SampleServiceApi {
     public static final String OPCODE_READ_REMOTE_DATA = "read_remote_data";
     public static final String OPCODE_READ_USER_DATA = "read_user_data";
     public static final String OPCODE_READ_LOG = "read_log";
+
+    // Code for the legacy FCP schedule API.
     public static final String OPCODE_SCHEDULE_FEDERATED_JOB = "schedule_federated_job";
+
+    // Code for the new FCP schedule API.
+    public static final String OPCODE_SCHEDULE_FEDERATED_JOB_V2 =
+            "schedule_federated_job_outcome_receiver";
+
     public static final String OPCODE_CANCEL_FEDERATED_JOB = "cancel_federated_job";
 
     // Event types in logs.

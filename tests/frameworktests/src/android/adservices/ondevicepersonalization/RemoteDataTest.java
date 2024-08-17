@@ -16,8 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
@@ -30,12 +31,14 @@ import androidx.test.filters.SmallTest;
 
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Unit Tests of RemoteData API.
@@ -43,35 +46,62 @@ import java.util.Set;
 @SmallTest
 @RunWith(AndroidJUnit4.class)
 public class RemoteDataTest {
-    KeyValueStore mRemoteData = new RemoteDataImpl(
-            IDataAccessService.Stub.asInterface(
-                    new RemoteDataService()));
+
+    private KeyValueStore mRemoteData;
+    private RemoteDataService mRemoteDataService;
+
+    @Before
+    public void setup() {
+        mRemoteDataService = new RemoteDataService();
+        mRemoteData = new RemoteDataImpl(IDataAccessService.Stub.asInterface(mRemoteDataService));
+    }
 
     @Test
     public void testLookupSuccess() throws Exception {
         assertArrayEquals(new byte[] {1, 2, 3}, mRemoteData.get("a"));
         assertArrayEquals(new byte[] {7, 8, 9}, mRemoteData.get("c"));
         assertNull(mRemoteData.get("e"));
+
+        mRemoteDataService.mLatch.await();
+        assertThat(mRemoteDataService.mResponseCode).isEqualTo(Constants.STATUS_SUCCESS);
     }
 
     @Test
-    public void testLookupError() {
+    public void testLookupError() throws Exception {
         // Triggers an expected error in the mock service.
         assertNull(mRemoteData.get("z"));
+
+        mRemoteDataService.mLatch.await();
+        assertThat(mRemoteDataService.mResponseCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
     }
 
     @Test
-    public void testKeysetSuccess() {
+    public void testLookupEmptyResult() throws Exception {
+        // Triggers an expected error in the mock service.
+        assertNull(mRemoteData.get("empty"));
+
+        mRemoteDataService.mLatch.await();
+        assertThat(mRemoteDataService.mResponseCode)
+                .isEqualTo(Constants.STATUS_SUCCESS_EMPTY_RESULT);
+    }
+
+    @Test
+    public void testKeysetSuccess() throws Exception {
         Set<String> expectedResult = new HashSet<>();
         expectedResult.add("a");
         expectedResult.add("b");
         expectedResult.add("c");
 
-        assertEquals(expectedResult, mRemoteData.keySet());
+        assertThat(expectedResult).isEqualTo(mRemoteData.keySet());
+
+        mRemoteDataService.mLatch.await();
+        assertThat(mRemoteDataService.mResponseCode).isEqualTo(Constants.STATUS_SUCCESS);
     }
 
     public static class RemoteDataService extends IDataAccessService.Stub {
         HashMap<String, byte[]> mContents = new HashMap<String, byte[]>();
+        int mResponseCode;
+        CountDownLatch mLatch = new CountDownLatch(1);
 
         public RemoteDataService() {
             mContents.put("a", new byte[] {1, 2, 3});
@@ -105,6 +135,15 @@ public class RemoteDataTest {
             if (key == null) {
                 throw new NullPointerException("key");
             }
+            if (key.equals("empty")) {
+                // Raise expected error.
+                try {
+                    callback.onSuccess(null);
+                } catch (RemoteException e) {
+                    // Ignored.
+                }
+                return;
+            }
 
             if (key.equals("z")) {
                 // Raise expected error.
@@ -129,6 +168,9 @@ public class RemoteDataTest {
         }
 
         @Override
-        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {}
+        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {
+            mLatch.countDown();
+            mResponseCode = responseCode;
+        }
     }
 }

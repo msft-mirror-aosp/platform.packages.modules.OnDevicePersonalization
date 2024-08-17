@@ -48,6 +48,9 @@ public class Constants {
     /** Internal error code that tracks error when the FCP manifest is invalid or missing. */
     public static final int STATUS_FCP_MANIFEST_INVALID = 110;
 
+    /** Internal code that tracks empty result returned from data storage. */
+    public static final int STATUS_SUCCESS_EMPTY_RESULT = 111;
+
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
     public static final int OP_DOWNLOAD = 2;
