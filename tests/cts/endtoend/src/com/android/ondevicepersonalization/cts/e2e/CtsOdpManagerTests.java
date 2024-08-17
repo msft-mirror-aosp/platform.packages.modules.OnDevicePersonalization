@@ -30,7 +30,6 @@ import android.adservices.ondevicepersonalization.OnDevicePersonalizationExcepti
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
 import android.adservices.ondevicepersonalization.SurfacePackageToken;
-import android.compat.testing.PlatformCompatChangeRule;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -54,7 +53,6 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -67,8 +65,6 @@ import java.util.concurrent.Executors;
 /** CTS Test cases for OnDevicePersonalizationManager APIs. */
 @RunWith(Parameterized.class)
 public class CtsOdpManagerTests {
-    @Rule
-    public final CheckFlagsRule mCheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule();
 
     private static final String SERVICE_PACKAGE =
             "com.android.ondevicepersonalization.testing.sampleservice";
@@ -77,12 +73,15 @@ public class CtsOdpManagerTests {
     private static final int LARGE_BLOB_SIZE = 10485760;
     private static final int DELAY_MILLIS = 2000;
 
+    private static final String TEST_POPULATION_NAME = "criteo_app_test_task";
+
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
     @Parameterized.Parameter(0)
     public boolean mIsSipFeatureEnabled;
 
-    @Rule public TestRule compatChangeRule = new PlatformCompatChangeRule();
+    @Rule
+    public final CheckFlagsRule mCheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule();
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -739,15 +738,32 @@ public class CtsOdpManagerTests {
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
         var receiver = new ResultReceiver<ExecuteResult>();
-        PersistableBundle appParams = new PersistableBundle();
-        appParams.putString(
-                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB);
-        appParams.putString(SampleServiceApi.KEY_POPULATION_NAME, "criteo_app_test_task");
+        PersistableBundle appParams = getScheduleFCJobParams();
+
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
+
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
+    public void testExecuteWithScheduleFederatedJobWithOutcomeReceiver() throws Exception {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = getScheduleFCJobParams();
+
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+
         assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
     }
 
@@ -1483,5 +1499,13 @@ public class CtsOdpManagerTests {
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
         assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+    }
+
+    private static PersistableBundle getScheduleFCJobParams() {
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(
+                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB);
+        appParams.putString(SampleServiceApi.KEY_POPULATION_NAME, TEST_POPULATION_NAME);
+        return appParams;
     }
 }
