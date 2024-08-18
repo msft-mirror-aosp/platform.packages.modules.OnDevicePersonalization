@@ -16,6 +16,9 @@
 
 package com.android.ondevicepersonalization.services;
 
+import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
+
 import com.android.adservices.shared.common.flags.ConfigFlag;
 import com.android.adservices.shared.common.flags.FeatureFlag;
 import com.android.adservices.shared.common.flags.ModuleSharedFlags;
@@ -278,5 +281,15 @@ public interface Flags extends ModuleSharedFlags {
 
     default boolean getAggregatedErrorReportingEnabled() {
         return DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED;
+    }
+
+    /**
+     * Default value for maximum int value caller can set in {@link
+     * ExecuteInIsolatedServiceRequest.OutputParams#buildBestValueParams}.
+     */
+    int DEFAULT_MAX_INT_VALUES = 100;
+
+    default int getMaxIntValuesLimit() {
+        return DEFAULT_MAX_INT_VALUES;
     }
 }
