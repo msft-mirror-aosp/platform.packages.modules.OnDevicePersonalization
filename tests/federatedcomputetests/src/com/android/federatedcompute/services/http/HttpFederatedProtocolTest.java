@@ -16,6 +16,7 @@
 
 package com.android.federatedcompute.services.http;
 
+import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
@@ -51,6 +52,7 @@ import android.net.Uri;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.NetworkStats;
 import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
@@ -104,6 +106,8 @@ import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
@@ -237,6 +241,8 @@ public final class HttpFederatedProtocolTest {
         doNothing().when(mTrainingEventLogger).logTaskAssignmentAuthSucceeded();
         doReturn(true).when(mMocKFlags).isEncryptionEnabled();
         when(PhFlags.getInstance()).thenReturn(mMocKFlags);
+        when(mMocKFlags.getFcpCheckpointFileSizeLimit())
+                .thenReturn(Flags.FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT);
     }
 
     @After
@@ -279,10 +285,55 @@ public final class HttpFederatedProtocolTest {
         NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
         assertTrue(networkStats.getDataTransferDurationInMillis() > 0);
         if (mSupportCompression) {
-            assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(248);
+            assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(213);
             assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(124);
         } else {
-            assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(125);
+            assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(110);
+            assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(78);
+        }
+    }
+
+    @Test
+    public void testIssueCheckinFailure_checkpointTooBig() throws Exception {
+        when(mMocKFlags.getFcpCheckpointFileSizeLimit()).thenReturn(0);
+        setUpHttpFederatedProtocol(
+                createStartTaskAssignmentHttpResponse(),
+                createPlanHttpResponse(),
+                checkpointEmptyHttpResponse(),
+                createReportResultHttpResponse(),
+                SUCCESS_EMPTY_HTTP_RESPONSE);
+
+        CreateTaskAssignmentResponse createTaskAssignmentResponse =
+                mHttpFederatedProtocol.createTaskAssignment(createAuthContext()).get();
+        mHttpFederatedProtocol
+                .downloadTaskAssignment(createTaskAssignmentResponse.getTaskAssignment())
+                .get();
+
+        List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+
+        // Verify task assignment request.
+        FederatedComputeHttpRequest actualStartTaskAssignmentRequest = actualHttpRequests.get(0);
+        checkActualTARequest(actualStartTaskAssignmentRequest, 4);
+
+        // Verify fetch resource request.
+        FederatedComputeHttpRequest actualFetchResourceRequest = actualHttpRequests.get(1);
+        ImmutableSet<String> resourceUris = ImmutableSet.of(PLAN_URI, CHECKPOINT_URI);
+        assertTrue(resourceUris.contains(actualFetchResourceRequest.getUri()));
+        HashMap<String, String> expectedHeaders = new HashMap<>();
+        if (mSupportCompression) {
+            expectedHeaders.put(ACCEPT_ENCODING_HDR, GZIP_ENCODING_HDR);
+        }
+        assertThat(actualFetchResourceRequest.getExtraHeaders()).isEqualTo(expectedHeaders);
+        verify(mTrainingEventLogger).logCheckinStarted();
+        verify(mTrainingEventLogger)
+                .logCheckinInvalidPayload(mNetworkStatsArgumentCaptor.capture());
+        NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
+        assertTrue(networkStats.getDataTransferDurationInMillis() > 0);
+        if (mSupportCompression) {
+            assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(213);
+            assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(124);
+        } else {
+            assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(110);
             assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(78);
         }
     }
@@ -992,9 +1043,23 @@ public final class HttpFederatedProtocolTest {
     }
 
     private FederatedComputeHttpResponse checkpointHttpResponse() {
+        String fileName = createTempFile("input", ".ckp");
+        try (FileOutputStream fos = new FileOutputStream(fileName)) {
+            fos.write(mSupportCompression ? compressWithGzip(CHECKPOINT) : CHECKPOINT);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         return new FederatedComputeHttpResponse.Builder()
                 .setStatusCode(200)
-                .setPayload(mSupportCompression ? compressWithGzip(CHECKPOINT) : CHECKPOINT)
+                .setPayloadFileName(fileName)
+                .setHeaders(mSupportCompression ? compressionHeaderList() : new HashMap<>())
+                .build();
+    }
+
+    private FederatedComputeHttpResponse checkpointEmptyHttpResponse() {
+        return new FederatedComputeHttpResponse.Builder()
+                .setStatusCode(200)
+                .setPayloadFileName(null)
                 .setHeaders(mSupportCompression ? compressionHeaderList() : new HashMap<>())
                 .build();
     }
@@ -1026,6 +1091,21 @@ public final class HttpFederatedProtocolTest {
                         })
                 .when(mMockHttpClient)
                 .performRequestAsyncWithRetry(mHttpRequestCaptor.capture());
+
+        doAnswer(
+                        invocation -> {
+                            FederatedComputeHttpRequest httpRequest = invocation.getArgument(0);
+                            String uri = httpRequest.getUri();
+                            // Add sleep for latency metric.
+                            Thread.sleep(50);
+                            if (uri.equals(CHECKPOINT_URI)) {
+                                return immediateFuture(checkpointHttpResponse);
+                            }
+                            return immediateFuture(SUCCESS_EMPTY_HTTP_RESPONSE);
+                        })
+                .when(mMockHttpClient)
+                .performRequestIntoFileAsyncWithRetry(
+                        mHttpRequestCaptor.capture());
     }
 
     private HashMap<String, List<String>> compressionHeaderList() {

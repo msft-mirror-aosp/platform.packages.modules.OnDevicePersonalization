@@ -16,21 +16,28 @@
 
 package com.android.ondevicepersonalization.cts.e2e;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import android.adservices.ondevicepersonalization.AppInfo;
 import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
 import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventOutput;
+import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
+import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceResponse;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.FederatedComputeInput;
+import android.adservices.ondevicepersonalization.FederatedComputeScheduleRequest;
 import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
 import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.SurfacePackageToken;
 import android.adservices.ondevicepersonalization.TrainingExampleRecord;
 import android.adservices.ondevicepersonalization.TrainingExamplesOutput;
 import android.adservices.ondevicepersonalization.TrainingInterval;
@@ -39,10 +46,17 @@ import android.content.ComponentName;
 import android.content.ContentValues;
 import android.net.Uri;
 import android.os.PersistableBundle;
+import android.platform.test.annotations.RequiresFlagsEnabled;
+import android.platform.test.flag.junit.CheckFlagsRule;
+import android.platform.test.flag.junit.DeviceFlagsValueProvider;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
+import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
+
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -56,6 +70,14 @@ import java.util.ArrayList;
 @SmallTest
 @RunWith(AndroidJUnit4.class)
 public class DataClassesTest {
+    @Rule
+    public final CheckFlagsRule mCheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule();
+
+    private static final String SERVICE_PACKAGE =
+            "com.android.ondevicepersonalization.testing.sampleservice";
+    private static final String SERVICE_CLASS =
+            "com.android.ondevicepersonalization.testing.sampleservice.SampleService";
+
     /**
      * Test builder and getters for ExecuteOutput.
      */
@@ -65,17 +87,16 @@ public class DataClassesTest {
         row.put("a", 5);
         ExecuteOutput data =
                 new ExecuteOutput.Builder()
-                    .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
-                    .setRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
-                    .addEventLogRecord(new EventLogRecord.Builder().setType(1).build())
-                    .setOutputData(new byte[]{1})
-                    .build();
+                        .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
+                        .setRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
+                        .addEventLogRecord(new EventLogRecord.Builder().setType(1).build())
+                        .build();
 
         assertEquals(
                 5, data.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
         assertEquals("abc", data.getRenderingConfig().getKeys().get(0));
         assertEquals(1, data.getEventLogRecords().get(0).getType());
-        assertArrayEquals(new byte[]{1}, data.getOutputData());
+        assertThat(data.getOutputData()).isNull();
     }
 
     /**
@@ -177,6 +198,31 @@ public class DataClassesTest {
         assertEquals(5, params.getTrainingInterval().getMinimumInterval().toSeconds());
         assertEquals(TrainingInterval.SCHEDULING_MODE_RECURRENT,
                 params.getTrainingInterval().getSchedulingMode());
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
+    public void testFederatedComputeSchedulerRequest() {
+        // Test for Data classes associated with FederatedComputeScheduler's schedule API.
+        String testPopulation = "testPopulation";
+        Duration testInterval = Duration.ofSeconds(5);
+        int testSchedulingMode = TrainingInterval.SCHEDULING_MODE_RECURRENT;
+        TrainingInterval testData =
+                new TrainingInterval.Builder()
+                        .setSchedulingMode(testSchedulingMode)
+                        .setMinimumInterval(testInterval)
+                        .build();
+
+        FederatedComputeScheduler.Params params = new FederatedComputeScheduler.Params(testData);
+        FederatedComputeScheduleRequest request =
+                new FederatedComputeScheduleRequest.Builder(params)
+                        .setPopulationName(testPopulation)
+                        .build();
+
+        assertEquals(testPopulation, request.getPopulationName());
+        assertEquals(testInterval, request.getParams().getTrainingInterval().getMinimumInterval());
+        assertEquals(
+                testSchedulingMode, request.getParams().getTrainingInterval().getSchedulingMode());
     }
 
     /** Test for RequestLogRecord class. */
@@ -297,7 +343,106 @@ public class DataClassesTest {
     }
 
     @Test
+    @RequiresFlagsEnabled(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public void testIsolatedServiceException() {
-        assertEquals(42, new IsolatedServiceException(42).getErrorCode());
+        IsolatedServiceException e = new IsolatedServiceException(42);
+        assertEquals(42, e.getErrorCode());
+
+        e = new IsolatedServiceException(42, new NullPointerException());
+        assertEquals(42, e.getErrorCode());
+        assertTrue(e.getCause() instanceof NullPointerException);
+
+        e = new IsolatedServiceException(42, "errr", new NullPointerException());
+        assertEquals(42, e.getErrorCode());
+        assertEquals("errr", e.getMessage());
+        assertTrue(e.getCause() instanceof NullPointerException);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
+    public void testAppInfo() {
+        AppInfo appInfo = new AppInfo(true);
+        assertThat(appInfo.isInstalled()).isTrue();
+
+        appInfo = new AppInfo(false);
+        assertThat(appInfo.isInstalled()).isFalse();
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
+    public void testExecuteInIsolatedServiceRequest() {
+        ComponentName service = new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS);
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RENDER_AND_LOG);
+        ExecuteInIsolatedServiceRequest request =
+                new ExecuteInIsolatedServiceRequest.Builder(service)
+                        .setAppParams(appParams)
+                        .setOutputSpec(
+                                ExecuteInIsolatedServiceRequest.OutputSpec.buildBestValueSpec(100))
+                        .build();
+
+        assertThat(request.getService()).isEqualTo(service);
+        assertThat(request.getAppParams()).isEqualTo(appParams);
+        assertThat(request.getOutputSpec().getMaxIntValue()).isEqualTo(100);
+        assertThat(request.getOutputSpec().getOutputType())
+                .isEqualTo(ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
+    public void testExecuteInIsolatedServiceRequest_nullOutputSpec() {
+        ComponentName service = new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS);
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RENDER_AND_LOG);
+        ExecuteInIsolatedServiceRequest request =
+                new ExecuteInIsolatedServiceRequest.Builder(service)
+                        .setAppParams(appParams)
+                        .build();
+
+        assertThat(request.getService()).isEqualTo(service);
+        assertThat(request.getAppParams()).isEqualTo(appParams);
+        assertThat(request.getOutputSpec().getMaxIntValue()).isEqualTo(-1);
+        assertThat(request.getOutputSpec().getOutputType())
+                .isEqualTo(ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_NULL);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
+    public void testExecuteInIsolatedServiceResponse() {
+        SurfacePackageToken token = new SurfacePackageToken("token");
+        ExecuteInIsolatedServiceResponse response = new ExecuteInIsolatedServiceResponse(token, 10);
+
+        assertThat(response.getBestValue()).isEqualTo(10);
+        assertThat(response.getSurfacePackageToken()).isEqualTo(token);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
+    public void testExecuteInIsolatedServiceResponse_nullBestValue() {
+        SurfacePackageToken token = new SurfacePackageToken("token");
+        ExecuteInIsolatedServiceResponse response = new ExecuteInIsolatedServiceResponse(token);
+
+        assertThat(response.getBestValue()).isEqualTo(-1);
+        assertThat(response.getSurfacePackageToken()).isEqualTo(token);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
+    public void testExecuteOutputWithBestValue() {
+        ContentValues row = new ContentValues();
+        row.put("a", 5);
+        ExecuteOutput data =
+                new ExecuteOutput.Builder()
+                        .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
+                        .setRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
+                        .addEventLogRecord(new EventLogRecord.Builder().setType(1).build())
+                        .setBestValue(100)
+                        .build();
+
+        assertEquals(5, data.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
+        assertEquals("abc", data.getRenderingConfig().getKeys().get(0));
+        assertEquals(1, data.getEventLogRecords().get(0).getType());
+        assertThat(data.getOutputData()).isNull();
+        assertThat(data.getBestValue()).isEqualTo(100);
     }
 }
