@@ -151,9 +151,9 @@ class SampleWorker implements IsolatedWorker {
             } else if (op.equals(SampleServiceApi.OPCODE_READ_LOG)) {
                 result = handleReadLog(appParams);
             } else if (op.equals(SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB)) {
-                result = handleScheduleFederatedJob(appParams, /* useLegacyScheduleApi= */ false);
-            } else if (op.equals(SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB_V2)) {
                 result = handleScheduleFederatedJob(appParams, /* useLegacyScheduleApi= */ true);
+            } else if (op.equals(SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB_V2)) {
+                result = handleScheduleFederatedJob(appParams, /* useLegacyScheduleApi= */ false);
             } else if (op.equals(SampleServiceApi.OPCODE_CANCEL_FEDERATED_JOB)) {
                 result = handleCancelFederatedJob(appParams);
             }
