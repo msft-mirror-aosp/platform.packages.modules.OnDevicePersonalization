@@ -67,6 +67,10 @@ public class FederatedComputeScheduler {
     @WorkerThread
     public void schedule(@NonNull Params params, @NonNull FederatedComputeInput input) {
         if (mFcService == null) {
+            logApiCallStats(
+                    Constants.API_NAME_FEDERATED_COMPUTE_SCHEDULE,
+                    0,
+                    Constants.STATUS_INTERNAL_ERROR);
             throw new IllegalStateException(
                     "FederatedComputeScheduler not available for this instance.");
         }
@@ -103,15 +107,16 @@ public class FederatedComputeScheduler {
                 sLogger.e(
                         TAG + " : Internal failure occurred while scheduling job, error code %d",
                         err[0]);
-                responseCode = Constants.STATUS_INTERNAL_ERROR;
+                responseCode = err[0];
                 return;
             } else if (!countedDown) {
                 sLogger.d(TAG + " : timed out waiting for schedule operation to complete.");
-                responseCode = Constants.STATUS_INTERNAL_ERROR;
+                responseCode = Constants.STATUS_TIMEOUT;
                 return;
             }
             responseCode = Constants.STATUS_SUCCESS;
         } catch (RemoteException | InterruptedException e) {
+            responseCode = Constants.STATUS_REMOTE_EXCEPTION;
             sLogger.e(TAG + ": Failed to schedule federated compute job", e);
             throw new IllegalStateException(e);
         } finally {
@@ -142,6 +147,10 @@ public class FederatedComputeScheduler {
             @NonNull FederatedComputeScheduleRequest federatedComputeScheduleRequest,
             @NonNull OutcomeReceiver<FederatedComputeScheduleResponse, Exception> outcomeReceiver) {
         if (mFcService == null) {
+            logApiCallStats(
+                    Constants.API_NAME_FEDERATED_COMPUTE_SCHEDULE,
+                    0,
+                    Constants.STATUS_INTERNAL_ERROR);
             outcomeReceiver.onError(
                     new IllegalStateException(
                             "FederatedComputeScheduler not available for this instance."));
@@ -171,17 +180,22 @@ public class FederatedComputeScheduler {
                         }
 
                         @Override
-                        public void onFailure(int i) {
+                        public void onFailure(int errorCode) {
                             logApiCallStats(
                                     Constants.API_NAME_FEDERATED_COMPUTE_SCHEDULE,
                                     System.currentTimeMillis() - startTimeMillis,
-                                    Constants.STATUS_INTERNAL_ERROR);
+                                    errorCode);
                             outcomeReceiver.onError(
-                                    new OnDevicePersonalizationException(translateErrorCode(i)));
+                                    new OnDevicePersonalizationException(
+                                            translateErrorCode(errorCode)));
                         }
                     });
         } catch (RemoteException e) {
             sLogger.e(TAG + ": Failed to schedule federated compute job", e);
+            logApiCallStats(
+                    Constants.API_NAME_FEDERATED_COMPUTE_SCHEDULE,
+                    System.currentTimeMillis() - startTimeMillis,
+                    Constants.STATUS_REMOTE_EXCEPTION);
             outcomeReceiver.onError(e);
         }
     }
@@ -191,8 +205,8 @@ public class FederatedComputeScheduler {
      * surface error code.
      */
     private static int translateErrorCode(int i) {
-        // Currently there are just two types of failures within the schedule call, generic failure
-        // and invalid/missing manifest.
+        // Returns invalid/missing manifest or general error code to caller. The general error code
+        // includes personalization disable and all other errors populated from FCP service.
         return i == Constants.STATUS_FCP_MANIFEST_INVALID
                 ? OnDevicePersonalizationException.ERROR_INVALID_TRAINING_MANIFEST
                 : OnDevicePersonalizationException.ERROR_SCHEDULE_TRAINING_FAILED;
@@ -212,6 +226,10 @@ public class FederatedComputeScheduler {
         final long startTimeMillis = System.currentTimeMillis();
         int responseCode = Constants.STATUS_INTERNAL_ERROR;
         if (mFcService == null) {
+            logApiCallStats(
+                    Constants.API_NAME_FEDERATED_COMPUTE_CANCEL,
+                    System.currentTimeMillis() - startTimeMillis,
+                    responseCode);
             throw new IllegalStateException(
                     "FederatedComputeScheduler not available for this instance.");
         }
@@ -227,8 +245,8 @@ public class FederatedComputeScheduler {
                         }
 
                         @Override
-                        public void onFailure(int i) {
-                            err[0] = i;
+                        public void onFailure(int errorCode) {
+                            err[0] = errorCode;
                             latch.countDown();
                         }
                     });
