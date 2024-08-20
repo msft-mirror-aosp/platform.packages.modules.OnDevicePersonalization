@@ -545,7 +545,8 @@ public final class HttpFederatedProtocolTest {
 
         assertThat(taskAssignmentResponse.hasRejectionInfo()).isTrue();
         verify(mTrainingEventLogger).logCheckinStarted();
-        verify(mTrainingEventLogger).logCheckinRejected(mNetworkStatsArgumentCaptor.capture());
+        verify(mTrainingEventLogger)
+                .logCheckinRejected(any(), mNetworkStatsArgumentCaptor.capture());
         NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
         assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(2);
         assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(339);

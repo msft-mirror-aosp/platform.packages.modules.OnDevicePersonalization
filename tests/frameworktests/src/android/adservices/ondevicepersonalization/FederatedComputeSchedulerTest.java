@@ -51,6 +51,7 @@ public class FederatedComputeSchedulerTest {
     private static final String ERROR_POPULATION_NAME = "err";
 
     private static final String INVALID_MANIFEST_ERROR_POPULATION_NAME = "manifest_error";
+    private static final String POPULATION_NAME_PRIVACY_NOT_ELIGIBLE = "privacy_not_eligible";
 
     private static final TrainingInterval TEST_TRAINING_INTERVAL =
             new TrainingInterval.Builder()
@@ -76,6 +77,7 @@ public class FederatedComputeSchedulerTest {
     private boolean mCancelCalled = false;
     private boolean mScheduleCalled = false;
     private boolean mLogApiCalled = false;
+    private int mResponseCode = Constants.STATUS_SUCCESS;
 
     @Test
     public void testScheduleSuccess() {
@@ -83,6 +85,7 @@ public class FederatedComputeSchedulerTest {
 
         assertThat(mScheduleCalled).isTrue();
         assertThat(mLogApiCalled).isTrue();
+        assertThat(mResponseCode).isEqualTo(Constants.STATUS_SUCCESS);
     }
 
     @Test
@@ -95,6 +98,7 @@ public class FederatedComputeSchedulerTest {
         assertTrue(receiver.isSuccess());
         assertThat(mScheduleCalled).isTrue();
         assertThat(mLogApiCalled).isTrue();
+        assertThat(mResponseCode).isEqualTo(Constants.STATUS_SUCCESS);
     }
 
     @Test
@@ -115,6 +119,7 @@ public class FederatedComputeSchedulerTest {
                 ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
         assertThat(mScheduleCalled).isTrue();
         assertThat(mLogApiCalled).isTrue();
+        assertThat(mResponseCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
     }
 
     @Test
@@ -135,6 +140,7 @@ public class FederatedComputeSchedulerTest {
                 ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
         assertThat(mScheduleCalled).isTrue();
         assertThat(mLogApiCalled).isTrue();
+        assertThat(mResponseCode).isEqualTo(Constants.STATUS_FCP_MANIFEST_INVALID);
     }
 
     @Test
@@ -144,6 +150,7 @@ public class FederatedComputeSchedulerTest {
         assertThrows(
                 IllegalStateException.class,
                 () -> fcs.schedule(TEST_SCHEDULER_PARAMS, TEST_FC_INPUT));
+        assertThat(mResponseCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
     }
 
     @Test
@@ -157,6 +164,21 @@ public class FederatedComputeSchedulerTest {
 
         assertThat(mScheduleCalled).isTrue();
         assertThat(mLogApiCalled).isTrue();
+        assertThat(mResponseCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
+    }
+
+    @Test
+    public void testSchedulePrivacyNotEligible() {
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder()
+                        .setPopulationName(POPULATION_NAME_PRIVACY_NOT_ELIGIBLE)
+                        .build();
+
+        mFederatedComputeScheduler.schedule(TEST_SCHEDULER_PARAMS, input);
+
+        assertThat(mScheduleCalled).isTrue();
+        assertThat(mLogApiCalled).isTrue();
+        assertThat(mResponseCode).isEqualTo(Constants.STATUS_PERSONALIZATION_DISABLED);
     }
 
     @Test
@@ -165,6 +187,7 @@ public class FederatedComputeSchedulerTest {
 
         assertThat(mCancelCalled).isTrue();
         assertThat(mLogApiCalled).isTrue();
+        assertThat(mResponseCode).isEqualTo(Constants.STATUS_SUCCESS);
     }
 
     @Test
@@ -172,6 +195,7 @@ public class FederatedComputeSchedulerTest {
         FederatedComputeScheduler fcs = new FederatedComputeScheduler(null, new TestDataService());
 
         assertThrows(IllegalStateException.class, () -> fcs.cancel(TEST_FC_INPUT));
+        assertThat(mResponseCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
     }
 
     @Test
@@ -185,6 +209,7 @@ public class FederatedComputeSchedulerTest {
 
         assertThat(mCancelCalled).isTrue();
         assertThat(mLogApiCalled).isTrue();
+        assertThat(mResponseCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
     }
 
     private class FederatedComputeService extends IFederatedComputeService.Stub {
@@ -195,7 +220,11 @@ public class FederatedComputeSchedulerTest {
                 throws RemoteException {
             mScheduleCalled = true;
             if (trainingOptions.getPopulationName().equals(ERROR_POPULATION_NAME)) {
-                iFederatedComputeCallback.onFailure(1);
+                iFederatedComputeCallback.onFailure(Constants.STATUS_INTERNAL_ERROR);
+                return;
+            }
+            if (trainingOptions.getPopulationName().equals(POPULATION_NAME_PRIVACY_NOT_ELIGIBLE)) {
+                iFederatedComputeCallback.onFailure(Constants.STATUS_PERSONALIZATION_DISABLED);
                 return;
             }
             if (trainingOptions
@@ -220,12 +249,14 @@ public class FederatedComputeSchedulerTest {
     }
 
     private class TestDataService extends IDataAccessService.Stub {
+
         @Override
         public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {}
 
         @Override
         public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {
             mLogApiCalled = true;
+            mResponseCode = responseCode;
         }
     }
 }

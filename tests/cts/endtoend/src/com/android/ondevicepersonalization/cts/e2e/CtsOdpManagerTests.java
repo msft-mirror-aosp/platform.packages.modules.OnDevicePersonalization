@@ -738,7 +738,7 @@ public class CtsOdpManagerTests {
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
         var receiver = new ResultReceiver<ExecuteResult>();
-        PersistableBundle appParams = getScheduleFCJobParams();
+        PersistableBundle appParams = getScheduleFCJobParams(/* useLegacyApi= */ true);
 
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
@@ -756,7 +756,7 @@ public class CtsOdpManagerTests {
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
         var receiver = new ResultReceiver<ExecuteResult>();
-        PersistableBundle appParams = getScheduleFCJobParams();
+        PersistableBundle appParams = getScheduleFCJobParams(/* useLegacyApi= */ false);
 
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
@@ -1466,14 +1466,10 @@ public class CtsOdpManagerTests {
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
         var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
-        PersistableBundle appParams = new PersistableBundle();
-        appParams.putString(
-                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB);
-        appParams.putString(SampleServiceApi.KEY_POPULATION_NAME, "criteo_app_test_task");
         ExecuteInIsolatedServiceRequest request =
                 new ExecuteInIsolatedServiceRequest.Builder(
                                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS))
-                        .setAppParams(appParams)
+                        .setAppParams(getScheduleFCJobParams(/* useLegacyApi= */ true))
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
@@ -1501,10 +1497,13 @@ public class CtsOdpManagerTests {
         assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
     }
 
-    private static PersistableBundle getScheduleFCJobParams() {
+    private static PersistableBundle getScheduleFCJobParams(boolean useLegacyApi) {
         PersistableBundle appParams = new PersistableBundle();
         appParams.putString(
-                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB);
+                SampleServiceApi.KEY_OPCODE,
+                useLegacyApi
+                        ? SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB
+                        : SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB_V2);
         appParams.putString(SampleServiceApi.KEY_POPULATION_NAME, TEST_POPULATION_NAME);
         return appParams;
     }

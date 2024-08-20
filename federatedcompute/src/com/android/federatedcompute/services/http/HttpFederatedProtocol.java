@@ -258,7 +258,8 @@ public final class HttpFederatedProtocol {
             throw new IllegalStateException("Could not parse StartTaskAssignmentResponse proto", e);
         }
         if (taskAssignmentResponse.hasRejectionInfo()) {
-            mTrainingEventLogger.logCheckinRejected(networkStats);
+            mTrainingEventLogger.logCheckinRejected(
+                    taskAssignmentResponse.getRejectionInfo(), networkStats);
             return taskAssignmentResponse;
         }
         TaskAssignment taskAssignment = getTaskAssignment(taskAssignmentResponse);

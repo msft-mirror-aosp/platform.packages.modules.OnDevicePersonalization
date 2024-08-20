@@ -17,6 +17,10 @@
 package com.android.federatedcompute.services.examplestore;
 
 import static com.android.federatedcompute.services.common.Constants.TRACE_GET_EXAMPLE_STORE_ITERATOR;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_ERROR;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_START;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_SUCCESS;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_TIMEOUT;
 
 import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreCallback;
@@ -24,18 +28,14 @@ import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.aidl.IExampleStoreService;
 import android.federatedcompute.common.ClientConstants;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.os.Trace;
-
-import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.common.ExampleStats;
 import com.android.federatedcompute.services.common.FlagsFactory;
+import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.internal.federated.plan.ExampleSelector;
 
 import java.util.concurrent.ArrayBlockingQueue;
@@ -69,7 +69,8 @@ public class ExampleStoreServiceProvider {
             FederatedTrainingTask task,
             String taskName,
             int minExample,
-            ExampleSelector exampleSelector) {
+            ExampleSelector exampleSelector,
+            TrainingEventLogger logger) {
         try {
             Trace.beginAsyncSection(TRACE_GET_EXAMPLE_STORE_ITERATOR, 1);
             Bundle bundle = new Bundle();
@@ -87,6 +88,8 @@ public class ExampleStoreServiceProvider {
                         ClientConstants.EXTRA_COLLECTION_URI, exampleSelector.getCollectionUri());
             }
             BlockingQueue<CallbackResult> asyncResult = new ArrayBlockingQueue<>(1);
+            logger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_START);
             exampleStoreService.startQuery(
                     bundle,
                     new IExampleStoreCallback.Stub() {
@@ -109,12 +112,23 @@ public class ExampleStoreServiceProvider {
                             FlagsFactory.getFlags().getExampleStoreServiceCallbackTimeoutSec(),
                             TimeUnit.SECONDS);
             // Callback result is null if timeout.
-            if (callbackResult == null || callbackResult.mErrorCode != 0) {
+            if (callbackResult == null) {
+                logger.logEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_TIMEOUT);
                 return null;
             }
+            if (callbackResult.mErrorCode != 0 || callbackResult.mIterator == null) {
+                logger.logEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_ERROR);
+                return null;
+            }
+            logger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_SUCCESS);
             return callbackResult.mIterator;
         } catch (Exception e) {
             LogUtil.e(TAG, e, "Got exception when StartQuery");
+            logger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_ERROR);
             return null;
         }
     }
@@ -127,46 +141,5 @@ public class ExampleStoreServiceProvider {
             mIterator = iterator;
             mErrorCode = errorCode;
         }
-    }
-
-    private ListenableFuture<IExampleStoreIterator> runExampleStoreStartQuery(
-            IExampleStoreService exampleStoreService,
-            Bundle input,
-            ExampleStats exampleStats,
-            long startCallTimeNanos) {
-        return CallbackToFutureAdapter.getFuture(
-                completer -> {
-                    try {
-                        exampleStoreService.startQuery(
-                                input,
-                                new IExampleStoreCallback.Stub() {
-                                    @Override
-                                    public void onStartQuerySuccess(
-                                            IExampleStoreIterator iterator) {
-                                        LogUtil.d(TAG, "Acquired iterator");
-                                        exampleStats.mStartQueryLatencyNanos.addAndGet(
-                                                SystemClock.elapsedRealtimeNanos()
-                                                        - startCallTimeNanos);
-                                        completer.set(iterator);
-                                        Trace.endAsyncSection(TRACE_GET_EXAMPLE_STORE_ITERATOR, 0);
-                                    }
-
-                                    @Override
-                                    public void onStartQueryFailure(int errorCode) {
-                                        LogUtil.e(TAG, "Could not acquire iterator: " + errorCode);
-                                        exampleStats.mStartQueryLatencyNanos.addAndGet(
-                                                SystemClock.elapsedRealtimeNanos()
-                                                        - startCallTimeNanos);
-                                        completer.setException(
-                                                new IllegalStateException(
-                                                        "StartQuery failed: " + errorCode));
-                                        Trace.endAsyncSection(TRACE_GET_EXAMPLE_STORE_ITERATOR, 0);
-                                    }
-                                });
-                    } catch (Exception e) {
-                        completer.setException(e);
-                    }
-                    return "runExampleStoreStartQuery";
-                });
     }
 }
