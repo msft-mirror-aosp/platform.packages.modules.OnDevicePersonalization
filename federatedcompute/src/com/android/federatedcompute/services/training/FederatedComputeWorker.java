@@ -30,6 +30,10 @@ import static com.android.federatedcompute.services.common.FileUtils.createTempF
 import static com.android.federatedcompute.services.common.FileUtils.createTempFileDescriptor;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_NOT_CONFIGURED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_ERROR;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_START;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_SUCCESS;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_ERROR;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_COMPLETE;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_COMPUTATION_FAILED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_DOWNLOAD_FAILED;
@@ -708,13 +712,18 @@ public class FederatedComputeWorker {
             TrainingRun run, ExampleSelector exampleSelector) {
         try {
             long startTimeNanos = SystemClock.elapsedRealtimeNanos();
+            run.mTrainingEventLogger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_START);
             IExampleStoreService exampleStoreService =
                     mExampleStoreServiceProvider.getExampleStoreService(
                             run.mTask.appPackageName(), mContext);
             if (exampleStoreService == null) {
-                run.mTrainingEventLogger.logComputationExampleIteratorError(new ExampleStats());
+                run.mTrainingEventLogger.logEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_ERROR);
                 return null;
             }
+            run.mTrainingEventLogger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_SUCCESS);
             run.mExampleStats.mBindToExampleStoreLatencyNanos.addAndGet(
                     SystemClock.elapsedRealtimeNanos() - startTimeNanos);
             run.mExampleStoreService = exampleStoreService;
@@ -722,12 +731,18 @@ public class FederatedComputeWorker {
 
             IExampleStoreIterator iterator =
                     mExampleStoreServiceProvider.getExampleIterator(
-                            run.mExampleStoreService, run.mTask, run.mTaskId, 0, exampleSelector);
+                            run.mExampleStoreService,
+                            run.mTask,
+                            run.mTaskId,
+                            0,
+                            exampleSelector,
+                            run.mTrainingEventLogger);
             run.mExampleStats.mStartQueryLatencyNanos.addAndGet(
                     SystemClock.elapsedRealtimeNanos() - startTimeNanos);
             return iterator;
         } catch (Exception e) {
-            run.mTrainingEventLogger.logComputationExampleIteratorError(new ExampleStats());
+            run.mTrainingEventLogger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_ERROR);
             LogUtil.e(TAG, "StartQuery failure: " + e.getMessage());
             return null;
         }
