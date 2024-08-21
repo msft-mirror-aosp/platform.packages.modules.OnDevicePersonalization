@@ -171,7 +171,7 @@ public class RequestSurfacePackageTests {
                 clickableLink.click();
 
                 // Retry if unable to click on the link.
-                Thread.sleep(5 * 1000);
+                Thread.sleep(2500);
 
                 surfacePackage.release();
                 mDevice.pressHome();
