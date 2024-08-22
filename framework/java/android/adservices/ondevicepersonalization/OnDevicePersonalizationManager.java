@@ -24,14 +24,10 @@ import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.app.compat.CompatChanges;
-import android.compat.annotation.ChangeId;
-import android.compat.annotation.EnabledAfter;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Binder;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
@@ -68,20 +64,6 @@ public class OnDevicePersonalizationManager {
     /** @hide */
     public static final String ON_DEVICE_PERSONALIZATION_SERVICE =
             "on_device_personalization_service";
-
-    /**
-     * The {@link OnDevicePersonalizationException} returned by the {@link
-     * OnDevicePersonalizationManager} class has additional, more granular error codes.
-     *
-     * <p>{@link OnDevicePersonalizationException#getErrorCode()} can now return additional granular
-     * error codes. Developers should also account for potential future additions to the number of
-     * error codes via appropriate defaults in any error code processing logic.
-     *
-     * @hide
-     */
-    @ChangeId
-    @EnabledAfter(targetSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
-    public static final long GRANULAR_EXCEPTION_ERROR_CODES = 342672147;
 
     private static final String INTENT_FILTER_ACTION = "android.OnDevicePersonalizationService";
     private static final String ODP_MANAGING_SERVICE_PACKAGE_SUFFIX =
@@ -495,19 +477,16 @@ public class OnDevicePersonalizationManager {
     }
 
     /**
-     * Convert error codes returned by the ODP Service to match calling package's target sdk
-     * version.
+     * Convert granular error codes returned by the ODP Service to legacy error codes if required.
      */
     private static int translateErrorCode(int errorCode, Context context) {
-        if (errorCode < Constants.STATUS_MANIFEST_PARSING_FAILED
-                || CompatChanges.isChangeEnabled(GRANULAR_EXCEPTION_ERROR_CODES)) {
+        if (errorCode < Constants.STATUS_MANIFEST_PARSING_FAILED) {
             // Return code unchanged since either the error code does not require translation
-            // (by virtue of being an old/original error code) or the package is targeted to the
-            // appropriate sdk version.
+            // by virtue of being an old/original error code.
             return errorCode;
         }
         // Translate to appropriate older error code if required.
-        sLogger.d(TAG, "Package " + context.getPackageName() + " has old target sdk version.");
+        sLogger.d(TAG, "Translating to legacy error codes for package " + context.getPackageName());
         // TODO (b/342672147): add translation for newer error codes
         int translatedCode = Constants.STATUS_INTERNAL_ERROR;
         switch (errorCode) {
@@ -519,12 +498,32 @@ public class OnDevicePersonalizationManager {
         return translatedCode;
     }
 
+    /**
+     * Helper method to create appropriate Exception that translates error codes to legacy error
+     * codes for compatibility.
+     */
     private static Exception createException(
             int errorCode,
             int isolatedServiceErrorCode,
             byte[] serializedExceptionInfo,
             Context context) {
-        errorCode = translateErrorCode(errorCode, context);
+        return createException(
+                errorCode,
+                isolatedServiceErrorCode,
+                serializedExceptionInfo,
+                context,
+                /* translateToLegacyErrorCode= */ true);
+    }
+
+    private static Exception createException(
+            int errorCode,
+            int isolatedServiceErrorCode,
+            byte[] serializedExceptionInfo,
+            Context context,
+            boolean translateToLegacyErrorCode) {
+        if (translateToLegacyErrorCode) {
+            errorCode = translateErrorCode(errorCode, context);
+        }
         Exception cause = ExceptionInfo.fromByteArray(serializedExceptionInfo);
         switch (errorCode) {
             case Constants.STATUS_NAME_NOT_FOUND:
