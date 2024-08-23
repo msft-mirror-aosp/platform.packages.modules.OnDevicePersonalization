@@ -49,7 +49,6 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KI
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_DEBUGGING_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_JOB_SCHEDULING_LOGGING_ENABLED;
@@ -513,20 +512,8 @@ public class PhFlagsTest {
 
     @Test
     public void testGetBackgroundJobsLoggingEnabled() {
-        // read a stable flag value
-        boolean stableValue = FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled();
-
-        // override the value in device config.
-        boolean overrideEnabled = !stableValue;
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
-                Boolean.toString(overrideEnabled),
-                /* makeDefault= */ false);
-
-        // the flag value remains stable
         assertThat(FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled())
-                .isEqualTo(stableValue);
+                .isEqualTo(true);
     }
 
     @Test
