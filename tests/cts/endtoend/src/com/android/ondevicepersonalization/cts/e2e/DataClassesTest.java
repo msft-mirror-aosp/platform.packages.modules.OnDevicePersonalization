@@ -215,9 +215,7 @@ public class DataClassesTest {
 
         FederatedComputeScheduler.Params params = new FederatedComputeScheduler.Params(testData);
         FederatedComputeScheduleRequest request =
-                new FederatedComputeScheduleRequest.Builder(params)
-                        .setPopulationName(testPopulation)
-                        .build();
+                new FederatedComputeScheduleRequest(params, testPopulation);
 
         assertEquals(testPopulation, request.getPopulationName());
         assertEquals(testInterval, request.getParams().getTrainingInterval().getMinimumInterval());
