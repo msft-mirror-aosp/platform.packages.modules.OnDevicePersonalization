@@ -70,9 +70,6 @@ public final class PhFlags implements Flags {
     public static final String KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING =
             "odp_enable_client_error_logging";
 
-    public static final String KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED =
-            "odp_background_jobs_logging_enabled";
-
     public static final String KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE =
             "odp_background_job_sampling_logging_rate";
 
@@ -320,18 +317,17 @@ public final class PhFlags implements Flags {
                 /* defaultValue= */ DEFAULT_CLIENT_ERROR_LOGGING_ENABLED);
     }
 
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>This method always return {@code true} because the underlying flag is fully launched on
+     * {@code OnDevicePersonalization} but the method cannot be removed (as it's defined on {@code
+     * ModuleSharedFlags}).
+     */
     @Override
     public boolean getBackgroundJobsLoggingEnabled() {
-        // needs stable: execution stats may be less accurate if flag changed during job execution
-        return (boolean)
-                mStableFlags.computeIfAbsent(
-                        KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
-                        key -> {
-                            return DeviceConfig.getBoolean(
-                                    /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                                    /* name= */ KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
-                                    /* defaultValue= */ BACKGROUND_JOB_LOGGING_ENABLED);
-                        });
+        return true;
     }
 
     @Override
