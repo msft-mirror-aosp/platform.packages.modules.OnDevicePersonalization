@@ -65,9 +65,7 @@ public class FederatedComputeSchedulerTest {
     private static final FederatedComputeInput TEST_FC_INPUT =
             new FederatedComputeInput.Builder().setPopulationName(VALID_POPULATION_NAME).build();
     private static final FederatedComputeScheduleRequest TEST_SCHEDULE_INPUT =
-            new FederatedComputeScheduleRequest.Builder(TEST_SCHEDULER_PARAMS)
-                    .setPopulationName(VALID_POPULATION_NAME)
-                    .build();
+            new FederatedComputeScheduleRequest(TEST_SCHEDULER_PARAMS, VALID_POPULATION_NAME);
 
     private final FederatedComputeScheduler mFederatedComputeScheduler =
             new FederatedComputeScheduler(
@@ -104,9 +102,7 @@ public class FederatedComputeSchedulerTest {
     @Test
     public void testSchedule_withOutcomeReceiver_error() throws Exception {
         FederatedComputeScheduleRequest scheduleInput =
-                new FederatedComputeScheduleRequest.Builder(TEST_SCHEDULER_PARAMS)
-                        .setPopulationName(ERROR_POPULATION_NAME)
-                        .build();
+                new FederatedComputeScheduleRequest(TEST_SCHEDULER_PARAMS, ERROR_POPULATION_NAME);
         var receiver = new ResultReceiver();
 
         mFederatedComputeScheduler.schedule(scheduleInput, receiver);
@@ -125,9 +121,8 @@ public class FederatedComputeSchedulerTest {
     @Test
     public void testSchedule_withOutcomeReceiver_manifestError() throws Exception {
         FederatedComputeScheduleRequest scheduleInput =
-                new FederatedComputeScheduleRequest.Builder(TEST_SCHEDULER_PARAMS)
-                        .setPopulationName(INVALID_MANIFEST_ERROR_POPULATION_NAME)
-                        .build();
+                new FederatedComputeScheduleRequest(
+                        TEST_SCHEDULER_PARAMS, INVALID_MANIFEST_ERROR_POPULATION_NAME);
         var receiver = new ResultReceiver();
 
         mFederatedComputeScheduler.schedule(scheduleInput, receiver);

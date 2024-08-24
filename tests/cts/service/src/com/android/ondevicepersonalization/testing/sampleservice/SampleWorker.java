@@ -491,9 +491,7 @@ class SampleWorker implements IsolatedWorker {
         BlockingQueue<Object> asyncResult = new ArrayBlockingQueue<>(1);
         final Object emptyValue = new Object();
         FederatedComputeScheduleRequest request =
-                new FederatedComputeScheduleRequest.Builder(params)
-                        .setPopulationName(populationName)
-                        .build();
+                new FederatedComputeScheduleRequest(params, populationName);
         mFcpScheduler.schedule(
                 request,
                 new OutcomeReceiver<FederatedComputeScheduleResponse, Exception>() {
