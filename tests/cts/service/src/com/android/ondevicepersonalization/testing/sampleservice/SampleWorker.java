@@ -151,9 +151,9 @@ class SampleWorker implements IsolatedWorker {
             } else if (op.equals(SampleServiceApi.OPCODE_READ_LOG)) {
                 result = handleReadLog(appParams);
             } else if (op.equals(SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB)) {
-                result = handleScheduleFederatedJob(appParams, /* useLegacyScheduleApi= */ false);
-            } else if (op.equals(SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB_V2)) {
                 result = handleScheduleFederatedJob(appParams, /* useLegacyScheduleApi= */ true);
+            } else if (op.equals(SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB_V2)) {
+                result = handleScheduleFederatedJob(appParams, /* useLegacyScheduleApi= */ false);
             } else if (op.equals(SampleServiceApi.OPCODE_CANCEL_FEDERATED_JOB)) {
                 result = handleCancelFederatedJob(appParams);
             }
@@ -491,9 +491,7 @@ class SampleWorker implements IsolatedWorker {
         BlockingQueue<Object> asyncResult = new ArrayBlockingQueue<>(1);
         final Object emptyValue = new Object();
         FederatedComputeScheduleRequest request =
-                new FederatedComputeScheduleRequest.Builder(params)
-                        .setPopulationName(populationName)
-                        .build();
+                new FederatedComputeScheduleRequest(params, populationName);
         mFcpScheduler.schedule(
                 request,
                 new OutcomeReceiver<FederatedComputeScheduleResponse, Exception>() {
