@@ -110,7 +110,11 @@ public class EventsDao {
      * @return true if all inserts succeeded, false otherwise.
      */
     public boolean insertEvents(@NonNull List<Event> events) {
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            return false;
+        }
+
         try {
             db.beginTransactionNonExclusive();
             for (Event event : events) {
@@ -180,7 +184,11 @@ public class EventsDao {
      * @return true if the all the update/inserts succeeded, false otherwise
      */
     public boolean updateOrInsertEventStatesTransaction(List<EventState> eventStates) {
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            return false;
+        }
+
         try {
             db.beginTransactionNonExclusive();
             for (EventState eventState : eventStates) {
@@ -205,7 +213,11 @@ public class EventsDao {
      * @return eventState if found, null otherwise
      */
     public EventState getEventState(String taskIdentifier, ComponentName service) {
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
+        if (db == null) {
+            return null;
+        }
+
         String selection = EventStateContract.EventStateEntry.TASK_IDENTIFIER + " = ? AND "
                 + EventStateContract.EventStateEntry.SERVICE_NAME + " = ?";
         String[] selectionArgs = {taskIdentifier, DbUtils.toTableValue(service)};
@@ -302,7 +314,11 @@ public class EventsDao {
 
     private List<Query> readQueryRows(String selection, String[] selectionArgs) {
         List<Query> queries = new ArrayList<>();
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
+        if (db == null) {
+            return queries;
+        }
+
         String orderBy = QueriesContract.QueriesEntry.QUERY_ID;
         try (Cursor cursor = db.query(
                 QueriesContract.QueriesEntry.TABLE_NAME,
@@ -342,8 +358,11 @@ public class EventsDao {
 
     private List<JoinedEvent> readJoinedTableRows(String selection, String[] selectionArgs) {
         List<JoinedEvent> joinedEventList = new ArrayList<>();
+        SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
+        if (db == null) {
+            return List.of();
+        }
 
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
         String select = "SELECT "
                 + EventsContract.EventsEntry.EVENT_ID + ","
                 + EventsContract.EventsEntry.ROW_INDEX + ","
@@ -414,7 +433,11 @@ public class EventsDao {
      * @return true if the delete executed successfully, false otherwise.
      */
     public boolean deleteEventState(ComponentName service) {
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            return false;
+        }
+
         try {
             String selection = EventStateContract.EventStateEntry.SERVICE_NAME + " = ?";
             String[] selectionArgs = {DbUtils.toTableValue(service)};
@@ -433,7 +456,11 @@ public class EventsDao {
      * @return true if the delete executed successfully, false otherwise.
      */
     public boolean deleteEventsAndQueries(long timestamp) {
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            return false;
+        }
+
         try {
             db.beginTransactionNonExclusive();
             // Delete from events table first to satisfy FK requirements.
@@ -521,7 +548,6 @@ public class EventsDao {
      */
     public boolean hasEvent(long queryId, int type, int rowIndex, ComponentName service) {
         try {
-            int count = 0;
             SQLiteDatabase db = mDbHelper.getReadableDatabase();
             String[] projection = {EventsContract.EventsEntry.EVENT_ID};
             String selection = EventsContract.EventsEntry.QUERY_ID + " = ?"
