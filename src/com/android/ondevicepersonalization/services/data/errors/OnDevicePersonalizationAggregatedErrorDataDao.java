@@ -37,7 +37,10 @@ import java.io.File;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Dao used to manage access to vendor data tables */
+/**
+ * Dao used to manage access to per vendor aggregated error codes that are returned by {@link
+ * android.adservices.ondevicepersonalization.IsolatedService} implementations.
+ */
 public class OnDevicePersonalizationAggregatedErrorDataDao {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG =
