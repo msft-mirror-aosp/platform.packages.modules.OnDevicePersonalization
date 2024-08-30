@@ -28,6 +28,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
+import android.os.Binder;
 import android.os.Bundle;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
@@ -184,13 +185,18 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                                                     ExceptionInfo.fromByteArray(
                                                             serializedExceptionInfo);
                                             if (isolatedServiceErrorCode > 0) {
-                                                ListenableFuture<?> unused =
+                                                final long token = Binder.clearCallingIdentity();
+                                                try {
+                                                    ListenableFuture<?> unused =
                                                         AggregatedErrorCodesLogger
-                                                                .logIsolatedServiceErrorCode(
-                                                                        isolatedServiceErrorCode,
-                                                                        isolatedProcessInfo
-                                                                                .getComponentName(),
-                                                                        mApplicationContext);
+                                                            .logIsolatedServiceErrorCode(
+                                                                isolatedServiceErrorCode,
+                                                                isolatedProcessInfo
+                                                                    .getComponentName(),
+                                                                mApplicationContext);
+                                                } finally {
+                                                    Binder.restoreCallingIdentity(token);
+                                                }
                                                 cause =
                                                         new IsolatedServiceException(
                                                                 isolatedServiceErrorCode, cause);
