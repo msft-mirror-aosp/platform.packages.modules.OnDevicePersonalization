@@ -30,11 +30,11 @@ android_test {
         ":statslog-ondevicepersonalization-java-gen",
     ],
     libs: [
-        "android.test.base",
-        "android.test.runner",
-        "framework-adservices", // For user consent
+        "android.test.base.stubs.system",
+        "android.test.runner.stubs.system",
+        "framework-adservices.stubs.module_lib", // For user consent
         "framework-annotations-lib",
-        "framework-configinfrastructure",
+        "framework-configinfrastructure.stubs.module_lib",
         "framework-connectivity.stubs.module_lib",
         "framework-location.stubs.module_lib",
         "kotlin-annotations",
