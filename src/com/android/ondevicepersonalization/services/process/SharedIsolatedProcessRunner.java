@@ -43,6 +43,7 @@ import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.errors.AggregatedErrorCodesLogger;
 import com.android.ondevicepersonalization.services.util.AllowListUtils;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -182,8 +183,14 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                                             Exception cause =
                                                     ExceptionInfo.fromByteArray(
                                                             serializedExceptionInfo);
-                                            if (isolatedServiceErrorCode > 0
-                                                    && isolatedServiceErrorCode < 128) {
+                                            if (isolatedServiceErrorCode > 0) {
+                                                ListenableFuture<?> unused =
+                                                        AggregatedErrorCodesLogger
+                                                                .logIsolatedServiceErrorCode(
+                                                                        isolatedServiceErrorCode,
+                                                                        isolatedProcessInfo
+                                                                                .getComponentName(),
+                                                                        mApplicationContext);
                                                 cause =
                                                         new IsolatedServiceException(
                                                                 isolatedServiceErrorCode, cause);

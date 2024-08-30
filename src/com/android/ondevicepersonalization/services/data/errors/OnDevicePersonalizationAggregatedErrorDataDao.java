@@ -37,7 +37,10 @@ import java.io.File;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Dao used to manage access to vendor data tables */
+/**
+ * Dao used to manage access to per vendor aggregated error codes that are returned by {@link
+ * android.adservices.ondevicepersonalization.IsolatedService} implementations.
+ */
 public class OnDevicePersonalizationAggregatedErrorDataDao {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG =
@@ -111,7 +114,12 @@ public class OnDevicePersonalizationAggregatedErrorDataDao {
 
     /** Delete the existing aggregate exception data for this package. */
     public boolean deleteExceptionData() {
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            sLogger.e(TAG + ": failed to get the db while deleting exception data.");
+            return false;
+        }
+
         try {
             db.beginTransactionNonExclusive();
             if (db.delete(mTableName, /* whereClause= */ "1", /* whereArgs= */ null) <= 0) {
@@ -209,7 +217,12 @@ public class OnDevicePersonalizationAggregatedErrorDataDao {
             return false;
         }
 
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            sLogger.e(TAG + " : failed to get the DB while inserting into DB.");
+            return false;
+        }
+
         try {
             db.beginTransactionNonExclusive();
             if (!insertErrorData(
@@ -264,7 +277,12 @@ public class OnDevicePersonalizationAggregatedErrorDataDao {
     @VisibleForTesting
     /** Returns the existing count associated with the given error code on the given day. */
     int getExceptionCount(int isolatedServiceErrorCode, int epochDay) {
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
+        if (db == null) {
+            sLogger.e(TAG + ": failed to get the DB while getting exception count.");
+            return 0;
+        }
+
         String selection =
                 AggregatedErrorCodesContract.ErrorDataEntry.EXCEPTION_ERROR_CODE
                         + " = ? AND "
