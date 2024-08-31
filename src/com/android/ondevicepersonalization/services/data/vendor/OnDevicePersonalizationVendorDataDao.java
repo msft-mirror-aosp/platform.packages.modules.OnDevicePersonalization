@@ -152,7 +152,12 @@ public class OnDevicePersonalizationVendorDataDao {
     public static List<Map.Entry<String, String>> getVendors(Context context) {
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstance(context);
-        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        List<Map.Entry<String, String>> result = new ArrayList<>();
+        SQLiteDatabase db = dbHelper.safeGetReadableDatabase();
+        if (db == null) {
+            return result;
+        }
+
         String[] projection = {VendorSettingsContract.VendorSettingsEntry.OWNER,
                 VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST};
         Cursor cursor = db.query(
@@ -167,7 +172,7 @@ public class OnDevicePersonalizationVendorDataDao {
                 /* limit= */ null
         );
 
-        List<Map.Entry<String, String>> result = new ArrayList<>();
+
         try {
             while (cursor.moveToNext()) {
                 String owner = cursor.getString(cursor.getColumnIndexOrThrow(
@@ -191,7 +196,11 @@ public class OnDevicePersonalizationVendorDataDao {
             Context context, ComponentName owner, String certDigest) {
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstance(context);
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        SQLiteDatabase db = dbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            return false;
+        }
+
         String vendorDataTableName = getTableName(owner, certDigest);
         try {
             db.beginTransactionNonExclusive();
@@ -345,7 +354,11 @@ public class OnDevicePersonalizationVendorDataDao {
      */
     public boolean batchUpdateOrInsertVendorDataTransaction(List<VendorData> vendorDataList,
             List<String> retainedKeys, long syncToken) {
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            return false;
+        }
+
         try {
             db.beginTransactionNonExclusive();
             if (!createTableIfNotExists(mTableName)) {
@@ -566,7 +579,11 @@ public class OnDevicePersonalizationVendorDataDao {
      * @return syncToken if found, -1 otherwise
      */
     public long getSyncToken() {
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
+        if (db == null) {
+            return -1;
+        }
+
         String selection = VendorSettingsContract.VendorSettingsEntry.OWNER + " = ? AND "
                 + VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST + " = ?";
         String[] selectionArgs = {DbUtils.toTableValue(mOwner), mCertDigest};
