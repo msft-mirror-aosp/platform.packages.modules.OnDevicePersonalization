@@ -16,7 +16,6 @@
 
 package com.android.federatedcompute.services.http;
 
-import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
@@ -28,7 +27,8 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_AUTH
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_AUTHORIZATION_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.PROTOBUF_CONTENT_TYPE;
-import static com.android.federatedcompute.services.http.HttpClientUtil.compressWithGzip;
+import static com.android.odp.module.common.FileUtils.createTempFile;
+import static com.android.odp.module.common.HttpClientUtils.compressWithGzip;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
@@ -61,14 +61,16 @@ import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.ODPAuthorizationToken;
 import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
 import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
-import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 import com.android.federatedcompute.services.security.AuthorizationContext;
 import com.android.federatedcompute.services.security.KeyAttestation;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.util.ComputationResult;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.HttpClientUtils;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.OdpHttpRequest;
+import com.android.odp.module.common.OdpHttpResponse;
 
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
@@ -191,11 +193,11 @@ public final class HttpFederatedProtocolTest {
                                             .build())
                             .build();
 
-    private static final FederatedComputeHttpResponse SUCCESS_EMPTY_HTTP_RESPONSE =
-            new FederatedComputeHttpResponse.Builder().setStatusCode(200).build();
+    private static final OdpHttpResponse SUCCESS_EMPTY_HTTP_RESPONSE =
+            new OdpHttpResponse.Builder().setStatusCode(200).build();
     private static final long ODP_AUTHORIZATION_TOKEN_TTL = 30 * 24 * 60 * 60 * 1000L;
 
-    @Captor private ArgumentCaptor<FederatedComputeHttpRequest> mHttpRequestCaptor;
+    @Captor private ArgumentCaptor<OdpHttpRequest> mHttpRequestCaptor;
 
     @Mock private HttpClient mMockHttpClient;
 
@@ -265,14 +267,14 @@ public final class HttpFederatedProtocolTest {
                 .downloadTaskAssignment(createTaskAssignmentResponse.getTaskAssignment())
                 .get();
 
-        List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        List<OdpHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
 
         // Verify task assignment request.
-        FederatedComputeHttpRequest actualStartTaskAssignmentRequest = actualHttpRequests.get(0);
+        OdpHttpRequest actualStartTaskAssignmentRequest = actualHttpRequests.get(0);
         checkActualTARequest(actualStartTaskAssignmentRequest, 4);
 
         // Verify fetch resource request.
-        FederatedComputeHttpRequest actualFetchResourceRequest = actualHttpRequests.get(1);
+        OdpHttpRequest actualFetchResourceRequest = actualHttpRequests.get(1);
         ImmutableSet<String> resourceUris = ImmutableSet.of(PLAN_URI, CHECKPOINT_URI);
         assertTrue(resourceUris.contains(actualFetchResourceRequest.getUri()));
         HashMap<String, String> expectedHeaders = new HashMap<>();
@@ -309,14 +311,14 @@ public final class HttpFederatedProtocolTest {
                 .downloadTaskAssignment(createTaskAssignmentResponse.getTaskAssignment())
                 .get();
 
-        List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        List<OdpHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
 
         // Verify task assignment request.
-        FederatedComputeHttpRequest actualStartTaskAssignmentRequest = actualHttpRequests.get(0);
+        OdpHttpRequest actualStartTaskAssignmentRequest = actualHttpRequests.get(0);
         checkActualTARequest(actualStartTaskAssignmentRequest, 4);
 
         // Verify fetch resource request.
-        FederatedComputeHttpRequest actualFetchResourceRequest = actualHttpRequests.get(1);
+        OdpHttpRequest actualFetchResourceRequest = actualHttpRequests.get(1);
         ImmutableSet<String> resourceUris = ImmutableSet.of(PLAN_URI, CHECKPOINT_URI);
         assertTrue(resourceUris.contains(actualFetchResourceRequest.getUri()));
         HashMap<String, String> expectedHeaders = new HashMap<>();
@@ -351,10 +353,10 @@ public final class HttpFederatedProtocolTest {
         CreateTaskAssignmentResponse createTaskAssignmentResponse =
                 mHttpFederatedProtocol.createTaskAssignment(createAuthContext()).get();
 
-        List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        List<OdpHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
 
         // Verify task assignment request.
-        FederatedComputeHttpRequest actualStartTaskAssignmentRequest = actualHttpRequests.get(0);
+        OdpHttpRequest actualStartTaskAssignmentRequest = actualHttpRequests.get(0);
         checkActualTARequest(actualStartTaskAssignmentRequest, 5);
         String authorizationKey =
                 actualStartTaskAssignmentRequest.getExtraHeaders().get(ODP_AUTHORIZATION_KEY);
@@ -393,10 +395,10 @@ public final class HttpFederatedProtocolTest {
         mHttpFederatedProtocol
                 .downloadTaskAssignment(taskAssignmentResponse.getTaskAssignment())
                 .get();
-        List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        List<OdpHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
 
         // Verify task assignment request.
-        FederatedComputeHttpRequest actualStartTaskAssignmentRequest = actualHttpRequests.get(0);
+        OdpHttpRequest actualStartTaskAssignmentRequest = actualHttpRequests.get(0);
         checkActualTARequest(actualStartTaskAssignmentRequest, 5);
         String authorizationKey =
                 actualStartTaskAssignmentRequest.getExtraHeaders().get(ODP_AUTHORIZATION_KEY);
@@ -436,8 +438,7 @@ public final class HttpFederatedProtocolTest {
 
     @Test
     public void testCreateTaskAssignmentFailed() {
-        FederatedComputeHttpResponse httpResponse =
-                new FederatedComputeHttpResponse.Builder().setStatusCode(404).build();
+        OdpHttpResponse httpResponse = new OdpHttpResponse.Builder().setStatusCode(404).build();
         when(mMockHttpClient.performRequestAsyncWithRetry(any()))
                 .thenReturn(immediateFuture(httpResponse));
 
@@ -469,10 +470,10 @@ public final class HttpFederatedProtocolTest {
                 .downloadTaskAssignment(taskAssignmentResponse.getTaskAssignment())
                 .get();
 
-        List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        List<OdpHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
 
         // Verify task assignment request.
-        FederatedComputeHttpRequest actualStartTaskAssignmentRequest = actualHttpRequests.get(0);
+        OdpHttpRequest actualStartTaskAssignmentRequest = actualHttpRequests.get(0);
         checkActualTARequest(actualStartTaskAssignmentRequest, 6);
         String authenticationKey =
                 actualStartTaskAssignmentRequest.getExtraHeaders().get(ODP_AUTHENTICATION_KEY);
@@ -499,7 +500,7 @@ public final class HttpFederatedProtocolTest {
                 .isEqualTo(OWNER_ID);
 
         // Verify fetch resource request.
-        FederatedComputeHttpRequest actualFetchResourceRequest = actualHttpRequests.get(1);
+        OdpHttpRequest actualFetchResourceRequest = actualHttpRequests.get(1);
         ImmutableSet<String> resourceUris = ImmutableSet.of(PLAN_URI, CHECKPOINT_URI);
         assertTrue(resourceUris.contains(actualFetchResourceRequest.getUri()));
         HashMap<String, String> expectedHeaders = new HashMap<>();
@@ -532,8 +533,8 @@ public final class HttpFederatedProtocolTest {
                 CreateTaskAssignmentResponse.newBuilder()
                         .setRejectionInfo(RejectionInfo.getDefaultInstance())
                         .build();
-        FederatedComputeHttpResponse httpResponse =
-                new FederatedComputeHttpResponse.Builder()
+        OdpHttpResponse httpResponse =
+                new OdpHttpResponse.Builder()
                         .setStatusCode(200)
                         .setPayload(createTaskAssignmentResponse.toByteArray())
                         .build();
@@ -554,8 +555,7 @@ public final class HttpFederatedProtocolTest {
 
     @Test
     public void testTaskAssignmentSuccessPlanFetchFailed() throws Exception {
-        FederatedComputeHttpResponse planHttpResponse =
-                new FederatedComputeHttpResponse.Builder().setStatusCode(404).build();
+        OdpHttpResponse planHttpResponse = new OdpHttpResponse.Builder().setStatusCode(404).build();
         // The workflow: start task assignment success, download plan failed and download
         // checkpoint success.
         setUpHttpFederatedProtocol(
@@ -587,8 +587,8 @@ public final class HttpFederatedProtocolTest {
 
     @Test
     public void testTaskAssignmentSuccessCheckpointDataFetchFailed() throws Exception {
-        FederatedComputeHttpResponse checkpointHttpResponse =
-                new FederatedComputeHttpResponse.Builder().setStatusCode(404).build();
+        OdpHttpResponse checkpointHttpResponse =
+                new OdpHttpResponse.Builder().setStatusCode(404).build();
 
         // The workflow: start task assignment success, download plan success and download
         // checkpoint failed.
@@ -632,9 +632,9 @@ public final class HttpFederatedProtocolTest {
                 .get();
 
         // Verify ReportResult request.
-        List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        List<OdpHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
         assertThat(actualHttpRequests).hasSize(4);
-        FederatedComputeHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
+        OdpHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
         ReportResultRequest reportResultRequest =
                 ReportResultRequest.newBuilder()
                         .setResult(Result.FAILED)
@@ -667,9 +667,9 @@ public final class HttpFederatedProtocolTest {
                 .get();
 
         // Verify ReportResult request.
-        List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        List<OdpHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
         assertThat(actualHttpRequests).hasSize(4);
-        FederatedComputeHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
+        OdpHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
         ReportResultRequest reportResultRequest =
                 ReportResultRequest.newBuilder()
                         .setResult(Result.NOT_ELIGIBLE)
@@ -709,8 +709,8 @@ public final class HttpFederatedProtocolTest {
                 .get();
 
         // Verify ReportResult request.
-        List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
-        FederatedComputeHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
+        List<OdpHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        OdpHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
 
         checkActualReportResultRequest(actualReportResultRequest);
         ReportResultRequest reportResultRequest =
@@ -726,9 +726,10 @@ public final class HttpFederatedProtocolTest {
                 .isEqualTo(reportResultRequest.toByteArray());
 
         // Verify upload data request.
-        FederatedComputeHttpRequest actualDataUploadRequest = actualHttpRequests.get(4);
+        OdpHttpRequest actualDataUploadRequest = actualHttpRequests.get(4);
         assertThat(actualDataUploadRequest.getUri()).isEqualTo(UPLOAD_LOCATION_URI);
-        assertThat(actualReportResultRequest.getHttpMethod()).isEqualTo(HttpMethod.PUT);
+        assertThat(actualReportResultRequest.getHttpMethod())
+                .isEqualTo(HttpClientUtils.HttpMethod.PUT);
         HashMap<String, String> expectedHeaders = new HashMap<>();
         expectedHeaders.put(CONTENT_TYPE_HDR, OCTET_STREAM);
         if (mSupportCompression) {
@@ -759,8 +760,8 @@ public final class HttpFederatedProtocolTest {
 
     @Test
     public void testReportResultFailed() throws Exception {
-        FederatedComputeHttpResponse reportResultHttpResponse =
-                new FederatedComputeHttpResponse.Builder().setStatusCode(503).build();
+        OdpHttpResponse reportResultHttpResponse =
+                new OdpHttpResponse.Builder().setStatusCode(503).build();
         ComputationResult computationResult =
                 new ComputationResult(createOutputCheckpointFile(), FL_RUNNER_SUCCESS_RESULT, null);
 
@@ -816,8 +817,8 @@ public final class HttpFederatedProtocolTest {
                         .get();
 
         // Verify ReportResult request.
-        List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
-        FederatedComputeHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
+        List<OdpHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        OdpHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
         checkActualReportResultRequest(actualReportResultRequest);
         ReportResultRequest reportResultRequest =
                 ReportResultRequest.newBuilder()
@@ -860,8 +861,8 @@ public final class HttpFederatedProtocolTest {
 
         assertThat(reportResultRejection).isNull();
         // Verify ReportResult request.
-        List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
-        FederatedComputeHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
+        List<OdpHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        OdpHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
         checkActualReportResultRequest(actualReportResultRequest);
         ReportResultRequest reportResultRequest =
                 ReportResultRequest.newBuilder()
@@ -950,8 +951,8 @@ public final class HttpFederatedProtocolTest {
 
     @Test
     public void testReportResultSuccessUploadFailed() throws Exception {
-        FederatedComputeHttpResponse uploadResultHttpResponse =
-                new FederatedComputeHttpResponse.Builder().setStatusCode(503).build();
+        OdpHttpResponse uploadResultHttpResponse =
+                new OdpHttpResponse.Builder().setStatusCode(503).build();
         ComputationResult computationResult =
                 new ComputationResult(createOutputCheckpointFile(), FL_RUNNER_SUCCESS_RESULT, null);
 
@@ -1025,9 +1026,9 @@ public final class HttpFederatedProtocolTest {
         return outputCheckpointFile.getAbsolutePath();
     }
 
-    private FederatedComputeHttpResponse createPlanHttpResponse() {
+    private OdpHttpResponse createPlanHttpResponse() {
         byte[] clientOnlyPlan = TrainingTestUtil.createFederatedAnalyticClientPlan().toByteArray();
-        return new FederatedComputeHttpResponse.Builder()
+        return new OdpHttpResponse.Builder()
                 .setStatusCode(200)
                 .setHeaders(mSupportCompression ? compressionHeaderList() : new HashMap<>())
                 .setPayload(mSupportCompression ? compressWithGzip(clientOnlyPlan) : clientOnlyPlan)
@@ -1043,22 +1044,22 @@ public final class HttpFederatedProtocolTest {
                 SUCCESS_EMPTY_HTTP_RESPONSE);
     }
 
-    private FederatedComputeHttpResponse checkpointHttpResponse() {
+    private OdpHttpResponse checkpointHttpResponse() {
         String fileName = createTempFile("input", ".ckp");
         try (FileOutputStream fos = new FileOutputStream(fileName)) {
             fos.write(mSupportCompression ? compressWithGzip(CHECKPOINT) : CHECKPOINT);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return new FederatedComputeHttpResponse.Builder()
+        return new OdpHttpResponse.Builder()
                 .setStatusCode(200)
                 .setPayloadFileName(fileName)
                 .setHeaders(mSupportCompression ? compressionHeaderList() : new HashMap<>())
                 .build();
     }
 
-    private FederatedComputeHttpResponse checkpointEmptyHttpResponse() {
-        return new FederatedComputeHttpResponse.Builder()
+    private OdpHttpResponse checkpointEmptyHttpResponse() {
+        return new OdpHttpResponse.Builder()
                 .setStatusCode(200)
                 .setPayloadFileName(null)
                 .setHeaders(mSupportCompression ? compressionHeaderList() : new HashMap<>())
@@ -1066,14 +1067,14 @@ public final class HttpFederatedProtocolTest {
     }
 
     private void setUpHttpFederatedProtocol(
-            FederatedComputeHttpResponse createTaskAssignmentResponse,
-            FederatedComputeHttpResponse planHttpResponse,
-            FederatedComputeHttpResponse checkpointHttpResponse,
-            FederatedComputeHttpResponse reportResultHttpResponse,
-            FederatedComputeHttpResponse uploadResultHttpResponse) {
+            OdpHttpResponse createTaskAssignmentResponse,
+            OdpHttpResponse planHttpResponse,
+            OdpHttpResponse checkpointHttpResponse,
+            OdpHttpResponse reportResultHttpResponse,
+            OdpHttpResponse uploadResultHttpResponse) {
         doAnswer(
                         invocation -> {
-                            FederatedComputeHttpRequest httpRequest = invocation.getArgument(0);
+                            OdpHttpRequest httpRequest = invocation.getArgument(0);
                             String uri = httpRequest.getUri();
                             // Add sleep for latency metric.
                             Thread.sleep(50);
@@ -1095,7 +1096,7 @@ public final class HttpFederatedProtocolTest {
 
         doAnswer(
                         invocation -> {
-                            FederatedComputeHttpRequest httpRequest = invocation.getArgument(0);
+                            OdpHttpRequest httpRequest = invocation.getArgument(0);
                             String uri = httpRequest.getUri();
                             // Add sleep for latency metric.
                             Thread.sleep(50);
@@ -1105,8 +1106,7 @@ public final class HttpFederatedProtocolTest {
                             return immediateFuture(SUCCESS_EMPTY_HTTP_RESPONSE);
                         })
                 .when(mMockHttpClient)
-                .performRequestIntoFileAsyncWithRetry(
-                        mHttpRequestCaptor.capture());
+                .performRequestIntoFileAsyncWithRetry(mHttpRequestCaptor.capture());
     }
 
     private HashMap<String, List<String>> compressionHeaderList() {
@@ -1116,7 +1116,7 @@ public final class HttpFederatedProtocolTest {
         return headerList;
     }
 
-    private FederatedComputeHttpResponse createReportResultHttpResponse() {
+    private OdpHttpResponse createReportResultHttpResponse() {
         UploadInstruction.Builder uploadInstruction =
                 UploadInstruction.newBuilder().setUploadLocation(UPLOAD_LOCATION_URI);
         uploadInstruction.putExtraRequestHeaders(CONTENT_TYPE_HDR, OCTET_STREAM);
@@ -1129,13 +1129,13 @@ public final class HttpFederatedProtocolTest {
                 ReportResultResponse.newBuilder()
                         .setUploadInstruction(uploadInstruction.build())
                         .build();
-        return new FederatedComputeHttpResponse.Builder()
+        return new OdpHttpResponse.Builder()
                 .setStatusCode(200)
                 .setPayload(reportResultResponse.toByteArray())
                 .build();
     }
 
-    private FederatedComputeHttpResponse createStartTaskAssignmentHttpResponse() {
+    private OdpHttpResponse createStartTaskAssignmentHttpResponse() {
         CreateTaskAssignmentResponse createTaskAssignmentResponse =
                 createCreateTaskAssignmentResponse(
                         Resource.newBuilder()
@@ -1157,14 +1157,14 @@ public final class HttpFederatedProtocolTest {
                                                         .RESOURCE_COMPRESSION_FORMAT_UNSPECIFIED)
                                 .build());
 
-        return new FederatedComputeHttpResponse.Builder()
+        return new OdpHttpResponse.Builder()
                 .setStatusCode(200)
                 .setPayload(createTaskAssignmentResponse.toByteArray())
                 .build();
     }
 
-    private FederatedComputeHttpResponse createUnauthorizedResponse() {
-        return new FederatedComputeHttpResponse.Builder().setStatusCode(403).build();
+    private OdpHttpResponse createUnauthorizedResponse() {
+        return new OdpHttpResponse.Builder().setStatusCode(403).build();
     }
 
     private CreateTaskAssignmentResponse createCreateTaskAssignmentResponse(
@@ -1190,7 +1190,7 @@ public final class HttpFederatedProtocolTest {
                 .build();
     }
 
-    private FederatedComputeHttpResponse createUnauthenticatedResponse() {
+    private OdpHttpResponse createUnauthenticatedResponse() {
         CreateTaskAssignmentResponse payload =
                 CreateTaskAssignmentResponse.newBuilder()
                         .setRejectionInfo(
@@ -1199,7 +1199,7 @@ public final class HttpFederatedProtocolTest {
                                         .setReason(RejectionReason.Enum.UNAUTHENTICATED)
                                         .build())
                         .build();
-        return new FederatedComputeHttpResponse.Builder()
+        return new OdpHttpResponse.Builder()
                 .setStatusCode(HTTP_UNAUTHENTICATED_STATUS)
                 .setPayload(payload.toByteArray())
                 .setHeaders(new HashMap<>())
@@ -1207,9 +1207,10 @@ public final class HttpFederatedProtocolTest {
     }
 
     private void checkActualTARequest(
-            FederatedComputeHttpRequest actualStartTaskAssignmentRequest, int headerSize) {
+            OdpHttpRequest actualStartTaskAssignmentRequest, int headerSize) {
         assertThat(actualStartTaskAssignmentRequest.getUri()).isEqualTo(START_TASK_ASSIGNMENT_URI);
-        assertThat(actualStartTaskAssignmentRequest.getHttpMethod()).isEqualTo(HttpMethod.POST);
+        assertThat(actualStartTaskAssignmentRequest.getHttpMethod())
+                .isEqualTo(HttpClientUtils.HttpMethod.POST);
 
         // check header
         HashMap<String, String> expectedHeaders = new HashMap<>();
@@ -1230,10 +1231,10 @@ public final class HttpFederatedProtocolTest {
                 .containsAtLeastEntriesIn(expectedHeaders);
     }
 
-    private void checkActualReportResultRequest(
-            FederatedComputeHttpRequest actualReportResultRequest) {
+    private void checkActualReportResultRequest(OdpHttpRequest actualReportResultRequest) {
         assertThat(actualReportResultRequest.getUri()).isEqualTo(REPORT_RESULT_URI);
-        assertThat(actualReportResultRequest.getHttpMethod()).isEqualTo(HttpMethod.PUT);
+        assertThat(actualReportResultRequest.getHttpMethod())
+                .isEqualTo(HttpClientUtils.HttpMethod.PUT);
         HashMap<String, String> expectedHeaders = new HashMap<>();
         expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(7));
         expectedHeaders.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
