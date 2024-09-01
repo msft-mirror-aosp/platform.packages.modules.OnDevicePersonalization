@@ -388,7 +388,8 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
 
         if (cfg == null || cfg.getStatus() != ClientConfigProto.ClientFileGroup.Status.DOWNLOADED) {
             sLogger.d(TAG + mPackageName + " has no completed downloads.");
-            mCallback.onFailure(new IllegalArgumentException("No completed downloads."));
+            // No completed downloads is a valid case. Mark as success and return null.
+            mCallback.onSuccess(null);
             return null;
         }
 

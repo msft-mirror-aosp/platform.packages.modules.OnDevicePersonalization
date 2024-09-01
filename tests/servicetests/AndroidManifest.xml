@@ -82,6 +82,10 @@
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
+        <service android:name="com.android.ondevicepersonalization.services.data.errors.AggregateErrorDataReportingService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
         <service
             android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpExampleStoreService"
             android:enabled="true"
