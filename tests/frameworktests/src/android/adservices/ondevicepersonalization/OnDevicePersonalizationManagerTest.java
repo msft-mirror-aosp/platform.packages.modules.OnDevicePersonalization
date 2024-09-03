@@ -27,7 +27,6 @@ import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
-import android.compat.testing.PlatformCompatChangeRule;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -48,14 +47,8 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
-import libcore.junit.util.compat.CoreCompatChangeRule.DisableCompatChanges;
-import libcore.junit.util.compat.CoreCompatChangeRule.EnableCompatChanges;
-
 import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.MockitoAnnotations;
@@ -74,13 +67,15 @@ public final class OnDevicePersonalizationManagerTest {
     private static final String KEY_SERVICE_ERROR_CODE = "serviceerror";
     private static final String KEY_ERROR_MESSAGE = "errormessage";
     private static final int BEST_VALUE = 10;
+    private static final ComponentName TEST_SERVICE_COMPONENT_NAME =
+            ComponentName.createRelative("com.example.service", ".Example");
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final TestServiceBinder mTestBinder =
             new TestServiceBinder(
                     IOnDevicePersonalizationManagingService.Stub.asInterface(new TestService()));
     private final OnDevicePersonalizationManager mManager =
             new OnDevicePersonalizationManager(mContext, mTestBinder);
-    @Rule public TestRule compatChangeRule = new PlatformCompatChangeRule();
+
     private volatile boolean mLogApiStatsCalled = false;
 
     @Parameterized.Parameter(0)
@@ -129,16 +124,15 @@ public final class OnDevicePersonalizationManagerTest {
     }
 
     @Test
-    public void testExecuteSuccessWithBestValueOptions() throws Exception {
-        PersistableBundle params = new PersistableBundle();
-        params.putString(KEY_OP, "best_value");
+    public void testExecuteSuccessWithBestValueSpec() throws Exception {
+        PersistableBundle bundle = new PersistableBundle();
+        bundle.putString(KEY_OP, "best_value");
         var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
         ExecuteInIsolatedServiceRequest request =
-                new ExecuteInIsolatedServiceRequest.Builder(
-                                ComponentName.createRelative("com.example.service", ".Example"))
-                        .setParams(params)
-                        .setOptions(
-                                ExecuteInIsolatedServiceRequest.Options.buildBestValueOption(100))
+                new ExecuteInIsolatedServiceRequest.Builder(TEST_SERVICE_COMPONENT_NAME)
+                        .setAppParams(bundle)
+                        .setOutputSpec(
+                                ExecuteInIsolatedServiceRequest.OutputSpec.buildBestValueSpec(100))
                         .build();
 
         mManager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
@@ -229,11 +223,9 @@ public final class OnDevicePersonalizationManagerTest {
     }
 
     @Test
-    @Ignore("TODO: b/355168043 - disable failing compat tests.")
-    @DisableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
-    public void testExecuteManifestParsingErrorOldTargetSDK() throws Exception {
+    public void testExecuteManifestParsingError() throws Exception {
         // The manifest parsing failure gets translated back to PackageManager.NameNotFound
-        // when granular exception codes are disabled.
+        // when the legacy execute API is called. The new execute API returns targeted error code.
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "error");
         params.putInt(KEY_STATUS_CODE, Constants.STATUS_MANIFEST_PARSING_FAILED);
@@ -244,45 +236,24 @@ public final class OnDevicePersonalizationManagerTest {
 
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof PackageManager.NameNotFoundException);
         Throwable cause = receiver.getException().getCause();
         assertNotNull(cause);
         assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*parsing.*");
         assertTrue(mLogApiStatsCalled);
+        if (mRunExecuteInIsolatedService) {
+            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+            assertEquals(
+                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
+                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        } else {
+            assertTrue(receiver.getException() instanceof PackageManager.NameNotFoundException);
+        }
     }
 
     @Test
-    @Ignore("TODO: b/355168043 - disable failing compat tests.")
-    @EnableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
-    public void testExecuteManifestParsingErrorNewTargetSDK() throws Exception {
-        // The manifest parsing failure is exposed via the corresponding ODPException
-        // when granular exception codes are enabled.
-        PersistableBundle params = new PersistableBundle();
-        params.putString(KEY_OP, "error");
-        params.putInt(KEY_STATUS_CODE, Constants.STATUS_MANIFEST_PARSING_FAILED);
-        params.putString(KEY_ERROR_MESSAGE, "Failed parsing manifest");
-        var receiver = new ResultReceiver();
-
-        runExecute(params, receiver);
-
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-        assertEquals(
-                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
-                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
-        Throwable cause = receiver.getException().getCause();
-        assertNotNull(cause);
-        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*parsing.*");
-        assertTrue(mLogApiStatsCalled);
-    }
-
-    @Test
-    @Ignore("TODO: b/355168043 - disable failing compat tests.")
-    @DisableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
-    public void testExecuteManifestMisconfigurationErrorOldTargetSDK() throws Exception {
+    public void testExecuteManifestMisconfigurationError() throws Exception {
         // The manifest misconfigured failure gets  translated back to Class not found
-        // when the granular exception codes are disabled.
+        // when the legacy execute API is used. The new execute API returns the targeted error code.
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "error");
         params.putInt(KEY_STATUS_CODE, Constants.STATUS_MANIFEST_MISCONFIGURED);
@@ -293,153 +264,80 @@ public final class OnDevicePersonalizationManagerTest {
 
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof ClassNotFoundException);
         Throwable cause = receiver.getException().getCause();
         assertNotNull(cause);
         assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*parsing.*");
         assertTrue(mLogApiStatsCalled);
+        if (mRunExecuteInIsolatedService) {
+            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+            assertEquals(
+                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
+                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        } else {
+            assertTrue(receiver.getException() instanceof ClassNotFoundException);
+        }
     }
 
     @Test
-    @Ignore("TODO: b/355168043 - disable failing compat tests.")
-    @EnableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
-    public void testExecuteManifestMisconfigurationErrorNewTargetSDK() throws Exception {
-        // The manifest misconfigured failure gets exposed via corresponding OdpException
-        // when the granular error codes are enabled.
-        PersistableBundle params = new PersistableBundle();
-        params.putString(KEY_OP, "error");
-        params.putInt(KEY_STATUS_CODE, Constants.STATUS_MANIFEST_MISCONFIGURED);
-        params.putString(KEY_ERROR_MESSAGE, "Failed parsing manifest");
-        var receiver = new ResultReceiver();
-
-        runExecute(params, receiver);
-
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-        assertEquals(
-                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
-                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
-        Throwable cause = receiver.getException().getCause();
-        assertNotNull(cause);
-        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*parsing.*");
-        assertTrue(mLogApiStatsCalled);
-    }
-
-    @Test
-    @DisableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
-    public void testExecuteServiceTimeoutErrorOldTargetSDK() throws Exception {
-        // The service timeout failure gets translated back to original service failed error
-        // when the granular error codes are disabled.
-        PersistableBundle params = new PersistableBundle();
-        params.putString(KEY_OP, "error");
-        params.putInt(KEY_STATUS_CODE, Constants.STATUS_ISOLATED_SERVICE_TIMEOUT);
-        params.putString(KEY_ERROR_MESSAGE, "Service timeout");
-        var receiver = new ResultReceiver<ExecuteResult>();
-
-        mManager.execute(
-                ComponentName.createRelative("com.example.service", ".Example"),
-                params,
-                Executors.newSingleThreadExecutor(),
-                receiver);
-
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-        assertEquals(
-                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
-                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
-        Throwable cause = receiver.getException().getCause();
-        assertNotNull(cause);
-        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*timeout.*");
-        assertTrue(mLogApiStatsCalled);
-    }
-
-    @Test
-    @EnableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
-    public void testExecuteServiceTimeoutErrorNewTargetSDK() throws Exception {
+    public void testExecuteServiceTimeoutError() throws Exception {
         // The service timeout failure gets exposed via corresponding OdpException
-        // when the granular error codes are enabled.
+        // when the new execute API is used.
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "error");
         params.putInt(KEY_STATUS_CODE, Constants.STATUS_ISOLATED_SERVICE_TIMEOUT);
         params.putString(KEY_ERROR_MESSAGE, "Service timeout");
         var receiver = new ResultReceiver<ExecuteResult>();
 
-        mManager.execute(
-                ComponentName.createRelative("com.example.service", ".Example"),
-                params,
-                Executors.newSingleThreadExecutor(),
-                receiver);
+        runExecute(params, receiver);
 
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-        assertEquals(
-                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_TIMEOUT,
-                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
         Throwable cause = receiver.getException().getCause();
         assertNotNull(cause);
         assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*timeout.*");
         assertTrue(mLogApiStatsCalled);
+        if (mRunExecuteInIsolatedService) {
+            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+            assertEquals(
+                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_TIMEOUT,
+                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        } else {
+            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+            assertEquals(
+                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        }
     }
 
     @Test
-    @DisableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
-    public void testExecuteServiceLoadingErrorOldTargetSDK() throws Exception {
-        // The service loading failure gets translated back to original service failed error
-        // when the granular error codes are disabled.
-        PersistableBundle params = new PersistableBundle();
-        params.putString(KEY_OP, "error");
-        params.putInt(KEY_STATUS_CODE, Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED);
-        params.putString(KEY_ERROR_MESSAGE, "Service loading failed.");
-        var receiver = new ResultReceiver<ExecuteResult>();
-
-        mManager.execute(
-                ComponentName.createRelative("com.example.service", ".Example"),
-                params,
-                Executors.newSingleThreadExecutor(),
-                receiver);
-
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-        assertEquals(
-                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
-                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
-        Throwable cause = receiver.getException().getCause();
-        assertNotNull(cause);
-        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*loading.*");
-        assertTrue(mLogApiStatsCalled);
-    }
-
-    @Test
-    @EnableCompatChanges({OnDevicePersonalizationManager.GRANULAR_EXCEPTION_ERROR_CODES})
-    public void testExecuteServiceLoadingErrorNewTargetSDK() throws Exception {
+    public void testExecuteServiceLoadingError() throws Exception {
         // The service loading failure gets exposed via corresponding OdpException
-        // when the granular error codes are enabled.
+        // when the new execute API is used.
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "error");
         params.putInt(KEY_STATUS_CODE, Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED);
         params.putString(KEY_ERROR_MESSAGE, "Service loading failed.");
         var receiver = new ResultReceiver<ExecuteResult>();
 
-        mManager.execute(
-                ComponentName.createRelative("com.example.service", ".Example"),
-                params,
-                Executors.newSingleThreadExecutor(),
-                receiver);
+        runExecute(params, receiver);
 
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-        assertEquals(
-                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_LOADING_FAILED,
-                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
         Throwable cause = receiver.getException().getCause();
         assertNotNull(cause);
         assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*loading.*");
         assertTrue(mLogApiStatsCalled);
+        if (mRunExecuteInIsolatedService) {
+            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+            assertEquals(
+                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_LOADING_FAILED,
+                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        } else {
+            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+            assertEquals(
+                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
+        }
     }
 
     @Test
@@ -487,15 +385,14 @@ public final class OnDevicePersonalizationManagerTest {
     private void runExecute(PersistableBundle params, ResultReceiver receiver) {
         if (mRunExecuteInIsolatedService) {
             ExecuteInIsolatedServiceRequest request =
-                    new ExecuteInIsolatedServiceRequest.Builder(
-                                    ComponentName.createRelative("com.example.service", ".Example"))
-                            .setParams(params)
+                    new ExecuteInIsolatedServiceRequest.Builder(TEST_SERVICE_COMPONENT_NAME)
+                            .setAppParams(params)
                             .build();
             mManager.executeInIsolatedService(
                     request, Executors.newSingleThreadExecutor(), receiver);
         } else {
             mManager.execute(
-                    ComponentName.createRelative("com.example.service", ".Example"),
+                    TEST_SERVICE_COMPONENT_NAME,
                     params,
                     Executors.newSingleThreadExecutor(),
                     receiver);
@@ -539,7 +436,7 @@ public final class OnDevicePersonalizationManagerTest {
                                     .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime())
                                     .build());
                 } else if (options.getOutputType()
-                        == ExecuteInIsolatedServiceRequest.Options.OUTPUT_TYPE_BEST_VALUE) {
+                        == ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE) {
                     Bundle bundle = new Bundle();
                     bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, "aaaa");
                     bundle.putInt(Constants.EXTRA_OUTPUT_BEST_VALUE, BEST_VALUE);

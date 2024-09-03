@@ -70,9 +70,6 @@ public final class PhFlags implements Flags {
     public static final String KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING =
             "odp_enable_client_error_logging";
 
-    public static final String KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED =
-            "odp_background_jobs_logging_enabled";
-
     public static final String KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE =
             "odp_background_job_sampling_logging_rate";
 
@@ -98,6 +95,23 @@ public final class PhFlags implements Flags {
 
     public static final String APP_INSTALL_HISTORY_TTL = "app_install_history_ttl";
     public static final String EXECUTE_BEST_VALUE_NOISE = "noise_for_execute_best_value";
+
+    public static final String KEY_ENABLE_AGGREGATED_ERROR_REPORTING =
+            "enable_aggregated_error_reporting";
+
+    public static final String KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS =
+            "aggregated_error_report_ttl_days";
+
+    public static final String KEY_AGGREGATED_ERROR_REPORTING_PATH =
+            "aggregated_error_reporting_path";
+
+    public static final String KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD =
+            "aggregated_error_reporting_threshold";
+
+    public static final String KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS =
+            "aggregated_error_reporting_interval_hours";
+
+    public static final String MAX_INT_VALUES_LIMIT = "max_int_values_limit";
 
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
@@ -316,18 +330,17 @@ public final class PhFlags implements Flags {
                 /* defaultValue= */ DEFAULT_CLIENT_ERROR_LOGGING_ENABLED);
     }
 
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>This method always return {@code true} because the underlying flag is fully launched on
+     * {@code OnDevicePersonalization} but the method cannot be removed (as it's defined on {@code
+     * ModuleSharedFlags}).
+     */
     @Override
     public boolean getBackgroundJobsLoggingEnabled() {
-        // needs stable: execution stats may be less accurate if flag changed during job execution
-        return (boolean)
-                mStableFlags.computeIfAbsent(
-                        KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
-                        key -> {
-                            return DeviceConfig.getBoolean(
-                                    /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                                    /* name= */ KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
-                                    /* defaultValue= */ BACKGROUND_JOB_LOGGING_ENABLED);
-                        });
+        return true;
     }
 
     @Override
@@ -408,5 +421,53 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ EXECUTE_BEST_VALUE_NOISE,
                 /* defaultValue= */ DEFAULT_EXECUTE_BEST_VALUE_NOISE);
+    }
+
+    @Override
+    public boolean getAggregatedErrorReportingEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ENABLE_AGGREGATED_ERROR_REPORTING,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED);
+    }
+
+    @Override
+    public int getAggregatedErrorReportingTtlInDays() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORT_TTL_DAYS);
+    }
+
+    @Override
+    public String getAggregatedErrorReportingServerPath() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_AGGREGATED_ERROR_REPORTING_PATH,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH);
+    }
+
+    @Override
+    public int getAggregatedErrorMinThreshold() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORTING_THRESHOLD);
+    }
+
+    @Override
+    public int getAggregatedErrorReportingIntervalInHours() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS);
+    }
+
+    @Override
+    public int getMaxIntValuesLimit() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ MAX_INT_VALUES_LIMIT,
+                /* defaultValue= */ DEFAULT_MAX_INT_VALUES);
     }
 }

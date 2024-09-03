@@ -15,33 +15,57 @@
  */
 package android.adservices.ondevicepersonalization;
 
+import android.annotation.FlaggedApi;
+import android.annotation.IntRange;
 import android.annotation.Nullable;
 
-/**
- * The response of {@link OnDevicePersonalizationManager#executeInIsolatedService}.
- *
- * @hide
- */
+import com.android.adservices.ondevicepersonalization.flags.Flags;
+import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
+
+/** The response of {@link OnDevicePersonalizationManager#executeInIsolatedService}. */
+@FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
 public class ExecuteInIsolatedServiceResponse {
     /**
      * An opaque reference to content that can be displayed in a {@link android.view.SurfaceView}.
-     * This may be null if the {@link IsolatedService} has not generated any content to be displayed
-     * within the calling app.
+     * This may be {@code null} if the {@link IsolatedService} has not generated any content to be
+     * displayed within the calling app.
      */
     @Nullable private final SurfacePackageToken mSurfacePackageToken;
 
     /**
-     * The int value that was returned by the {@link IsolatedService} and applied noise. If {@link
-     * IsolatedService} didn't return any content, the default value is -1. If {@link
-     * IsolatedService} returns an integer value, we will apply the noise to the value and the range
-     * of this value is between 0 and {@link
-     * ExecuteInIsolatedServiceRequest.Options#getMaxIntValue()}.
+     * The default value of {@link ExecuteInIsolatedServiceResponse#getBestValue} if {@link
+     * IsolatedService} didn't return any content.
      */
-    private int mBestValue = -1;
+    public static final int DEFAULT_BEST_VALUE = -1;
 
-    /** @hide */
+    /**
+     * The int value that was returned by the {@link IsolatedService} and applied noise. If {@link
+     * IsolatedService} didn't return any content, the default value is {@link #DEFAULT_BEST_VALUE}.
+     * If {@link IsolatedService} returns an integer value, we will apply the noise to the value and
+     * the range of this value is between 0 and {@link
+     * ExecuteInIsolatedServiceRequest.OutputSpec#getMaxIntValue()}.
+     */
+    private int mBestValue = DEFAULT_BEST_VALUE;
+
+    /**
+     * Creates a new ExecuteInIsolatedServiceResponse.
+     *
+     * @param surfacePackageToken an opaque reference to content that can be displayed in a {@link
+     *     android.view.SurfaceView}. This may be {@code null} if the {@link IsolatedService} has
+     *     not generated any content to be displayed within the calling app.
+     * @param bestValue an int value that was returned by the {@link IsolatedService} and applied
+     *     noise.If {@link ExecuteInIsolatedServiceRequest} output type is set to {@link
+     *     ExecuteInIsolatedServiceRequest.OutputSpec#OUTPUT_TYPE_NULL}, the platform ignores the
+     *     data returned by {@link IsolatedService} and returns the default value {@link
+     *     #DEFAULT_BEST_VALUE}. If {@link ExecuteInIsolatedServiceRequest} output type is set to
+     *     {@link ExecuteInIsolatedServiceRequest.OutputSpec#OUTPUT_TYPE_BEST_VALUE}, the platform
+     *     validates {@link ExecuteOutput#getBestValue} between 0 and {@link
+     *     ExecuteInIsolatedServiceRequest.OutputSpec#getMaxIntValue} and applies noise to result.
+     */
     public ExecuteInIsolatedServiceResponse(
-            @Nullable SurfacePackageToken surfacePackageToken, int bestValue) {
+            @Nullable SurfacePackageToken surfacePackageToken,
+            @IntRange(from = DEFAULT_BEST_VALUE) int bestValue) {
+        AnnotationValidations.validate(IntRange.class, null, bestValue, "from", DEFAULT_BEST_VALUE);
         mSurfacePackageToken = surfacePackageToken;
         mBestValue = bestValue;
     }
@@ -53,7 +77,7 @@ public class ExecuteInIsolatedServiceResponse {
 
     /**
      * Returns a {@link SurfacePackageToken}, which is an opaque reference to content that can be
-     * displayed in a {@link android.view.SurfaceView}. This may be null if the {@link
+     * displayed in a {@link android.view.SurfaceView}. This may be {@code null} if the {@link
      * IsolatedService} has not generated any content to be displayed within the calling app.
      */
     @Nullable
@@ -63,12 +87,15 @@ public class ExecuteInIsolatedServiceResponse {
 
     /**
      * Returns the int value that was returned by the {@link IsolatedService} and applied noise. If
-     * {@link IsolatedService} didn't return any content, the default value is -1. If {@link
-     * IsolatedService} returns an integer value, we will apply the noise to the value and the range
-     * of this value is between 0 and {@link
-     * ExecuteInIsolatedServiceRequest.Options#getMaxIntValue()}.
+     * {@link ExecuteInIsolatedServiceRequest} output type is set to {@link
+     * ExecuteInIsolatedServiceRequest.OutputSpec#OUTPUT_TYPE_NULL}, the platform ignores the data
+     * returned by {@link IsolatedService} and returns the default value {@link
+     * #DEFAULT_BEST_VALUE}. If {@link ExecuteInIsolatedServiceRequest} output type is set to {@link
+     * ExecuteInIsolatedServiceRequest.OutputSpec#OUTPUT_TYPE_BEST_VALUE}, the platform validates
+     * {@link ExecuteOutput#getBestValue} between 0 and {@link
+     * ExecuteInIsolatedServiceRequest.OutputSpec#getMaxIntValue()} and applies noise to result.
      */
-    public int getBestValue() {
+    public @IntRange(from = DEFAULT_BEST_VALUE) int getBestValue() {
         return mBestValue;
     }
 }

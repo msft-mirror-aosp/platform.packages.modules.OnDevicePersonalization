@@ -16,6 +16,9 @@
 
 package com.android.ondevicepersonalization.services;
 
+import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
+
 import com.android.adservices.shared.common.flags.ConfigFlag;
 import com.android.adservices.shared.common.flags.FeatureFlag;
 import com.android.adservices.shared.common.flags.ModuleSharedFlags;
@@ -177,18 +180,14 @@ public interface Flags extends ModuleSharedFlags {
         return WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
     }
 
-    /**
-     * Executiton deadline for example store flow.
-     */
+    /** Execution deadline for example store flow. */
     int EXAMPLE_STORE_FLOW_DEADLINE_SECONDS = 30;
 
     default int getExampleStoreFlowDeadlineSeconds() {
         return EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
     }
 
-    /**
-     * Executiton deadline for download flow.
-     */
+    /** Execution deadline for download flow. */
     int DOWNLOAD_FLOW_DEADLINE_SECONDS = 30;
 
     default int getDownloadFlowDeadlineSeconds() {
@@ -275,5 +274,67 @@ public interface Flags extends ModuleSharedFlags {
 
     default float getNoiseForExecuteBestValue() {
         return DEFAULT_EXECUTE_BEST_VALUE_NOISE;
+    }
+
+    /** Default value for flag that enables aggregated error code reporting. */
+    boolean DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED = false;
+
+    default boolean getAggregatedErrorReportingEnabled() {
+        return DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED;
+    }
+
+    int DEFAULT_AGGREGATED_ERROR_REPORT_TTL_DAYS = 30;
+
+    /**
+     * TTL for aggregate counts after which they will be deleted without waiting for a successful
+     * upload attempt.
+     */
+    default int getAggregatedErrorReportingTtlInDays() {
+        return DEFAULT_AGGREGATED_ERROR_REPORT_TTL_DAYS;
+    }
+
+    String DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH =
+            "debugreporting/v1/exceptions:report-exceptions";
+
+    /**
+     * URL suffix that the reporting job will use to send adopters daily aggregated counts of {@link
+     * android.adservices.ondevicepersonalization.IsolatedServiceException}s.
+     */
+    default String getAggregatedErrorReportingServerPath() {
+        return DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH;
+    }
+
+    int DEFAULT_AGGREGATED_ERROR_REPORTING_THRESHOLD = 0;
+
+    /**
+     * Minimum threshold for counts of {@link
+     * android.adservices.ondevicepersonalization.IsolatedServiceException} below which counts from
+     * device won't be reported.
+     *
+     * <p>This is applied per error code.
+     */
+    default int getAggregatedErrorMinThreshold() {
+        return DEFAULT_AGGREGATED_ERROR_REPORTING_THRESHOLD;
+    }
+
+    int DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS = 24;
+
+    /**
+     * Interval for the periodic runs of the {@link
+     * com.android.ondevicepersonalization.services.data.errors.AggregateErrorDataReportingService}
+     * that reports counts of {@link android.adservices.ondevicepersonalization.IsolatedService}.
+     */
+    default int getAggregatedErrorReportingIntervalInHours() {
+        return DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
+    }
+
+    /**
+     * Default value for maximum int value caller can set in {@link
+     * ExecuteInIsolatedServiceRequest.OutputSpec#buildBestValueSpec}.
+     */
+    int DEFAULT_MAX_INT_VALUES = 100;
+
+    default int getMaxIntValuesLimit() {
+        return DEFAULT_MAX_INT_VALUES;
     }
 }

@@ -29,37 +29,37 @@ public class ExecuteInIsolatedServiceRequestTest {
 
     @Test
     public void buildRequestWithOption_success() {
-        PersistableBundle params = new PersistableBundle();
-        params.putString("key", "ok");
+        PersistableBundle bundle = new PersistableBundle();
+        bundle.putString("key", "ok");
 
         ExecuteInIsolatedServiceRequest request =
                 new ExecuteInIsolatedServiceRequest.Builder(COMPONENT_NAME)
-                        .setParams(params)
-                        .setOptions(
-                                ExecuteInIsolatedServiceRequest.Options.buildBestValueOption(100))
+                        .setAppParams(bundle)
+                        .setOutputSpec(
+                                ExecuteInIsolatedServiceRequest.OutputSpec.buildBestValueSpec(100))
                         .build();
 
-        ExecuteInIsolatedServiceRequest.Options options = request.getOptions();
+        ExecuteInIsolatedServiceRequest.OutputSpec options = request.getOutputSpec();
         assertThat(options.getMaxIntValue()).isEqualTo(100);
         assertThat(options.getOutputType())
-                .isEqualTo(ExecuteInIsolatedServiceRequest.Options.OUTPUT_TYPE_BEST_VALUE);
-        assertThat(request.getParams()).isEqualTo(params);
+                .isEqualTo(ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE);
+        assertThat(request.getAppParams()).isEqualTo(bundle);
         assertThat(request.getService()).isEqualTo(COMPONENT_NAME);
     }
 
     @Test
     public void buildRequestWithoutOption_success() {
-        PersistableBundle params = new PersistableBundle();
-        params.putString("key", "ok");
+        PersistableBundle bundle = new PersistableBundle();
+        bundle.putString("key", "ok");
 
         ExecuteInIsolatedServiceRequest request =
                 new ExecuteInIsolatedServiceRequest.Builder(COMPONENT_NAME)
-                        .setParams(params)
+                        .setAppParams(bundle)
                         .build();
 
-        ExecuteInIsolatedServiceRequest.Options options = request.getOptions();
-        assertThat(options).isEqualTo(ExecuteInIsolatedServiceRequest.Options.DEFAULT);
-        assertThat(request.getParams()).isEqualTo(params);
+        ExecuteInIsolatedServiceRequest.OutputSpec options = request.getOutputSpec();
+        assertThat(options).isEqualTo(ExecuteInIsolatedServiceRequest.OutputSpec.DEFAULT);
+        assertThat(request.getAppParams()).isEqualTo(bundle);
         assertThat(request.getService()).isEqualTo(COMPONENT_NAME);
     }
 
