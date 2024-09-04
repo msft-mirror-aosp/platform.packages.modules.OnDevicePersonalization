@@ -17,7 +17,6 @@
 package android.adservices.ondevicepersonalization;
 
 import android.annotation.FlaggedApi;
-import android.annotation.IntRange;
 import android.annotation.Nullable;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
@@ -30,7 +29,7 @@ import com.android.adservices.ondevicepersonalization.flags.Flags;
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public final class IsolatedServiceException extends Exception {
-    @IntRange(from = 1, to = 127) private final int mErrorCode;
+    private final int mErrorCode;
 
     /**
      * Creates an {@link IsolatedServiceException} with an error code to be logged. The meaning of
@@ -39,7 +38,7 @@ public final class IsolatedServiceException extends Exception {
      *
      * @param errorCode An error code defined by the {@link IsolatedService}.
      */
-    public IsolatedServiceException(@IntRange(from = 1, to = 127) int errorCode) {
+    public IsolatedServiceException(int errorCode) {
         this(errorCode, "IsolatedServiceException: Error " + errorCode, null);
     }
 
@@ -53,7 +52,7 @@ public final class IsolatedServiceException extends Exception {
      */
     @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public IsolatedServiceException(
-            @IntRange(from = 1, to = 127) int errorCode,
+            int errorCode,
             @Nullable Throwable cause) {
         this(errorCode, "IsolatedServiceException: Error " + errorCode, cause);
     }
@@ -69,7 +68,7 @@ public final class IsolatedServiceException extends Exception {
      */
     @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public IsolatedServiceException(
-            @IntRange(from = 1, to = 127) int errorCode,
+            int errorCode,
             @Nullable String message,
             @Nullable Throwable cause) {
         super(message, cause);
@@ -80,7 +79,7 @@ public final class IsolatedServiceException extends Exception {
      * Returns the error code for this exception.
      */
     @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
-    public @IntRange(from = 1, to = 127) int getErrorCode() {
+    public int getErrorCode() {
         return mErrorCode;
     }
 }

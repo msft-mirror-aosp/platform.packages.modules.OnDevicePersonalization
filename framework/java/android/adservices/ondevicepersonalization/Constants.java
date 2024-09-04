@@ -30,7 +30,13 @@ public class Constants {
     public static final int STATUS_NAME_NOT_FOUND = 101;
     public static final int STATUS_CLASS_NOT_FOUND = 102;
     public static final int STATUS_SERVICE_FAILED = 103;
+
+    /**
+     * Internal code that tracks user privacy is not eligible to run operation. DO NOT expose this
+     * status externally.
+     */
     public static final int STATUS_PERSONALIZATION_DISABLED = 104;
+
     public static final int STATUS_KEY_NOT_FOUND = 105;
 
     /** Internal error code that tracks failure to read ODP manifest settings. */
@@ -44,6 +50,18 @@ public class Constants {
 
     /** Internal error code that tracks error when Isolated Service times out. */
     public static final int STATUS_ISOLATED_SERVICE_TIMEOUT = 109;
+
+    /** Internal error code that tracks error when the FCP manifest is invalid or missing. */
+    public static final int STATUS_FCP_MANIFEST_INVALID = 110;
+
+    /** Internal code that tracks empty result returned from data storage. */
+    public static final int STATUS_SUCCESS_EMPTY_RESULT = 111;
+
+    /** Internal code that tracks timeout exception when run operation. */
+    public static final int STATUS_TIMEOUT = 112;
+
+    /** Internal code that tracks remote exception when run operation. */
+    public static final int STATUS_REMOTE_EXCEPTION = 113;
 
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
