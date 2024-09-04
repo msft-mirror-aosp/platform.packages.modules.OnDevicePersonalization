@@ -24,14 +24,10 @@ import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.app.compat.CompatChanges;
-import android.compat.annotation.ChangeId;
-import android.compat.annotation.EnabledAfter;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Binder;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
@@ -69,20 +65,6 @@ public class OnDevicePersonalizationManager {
     public static final String ON_DEVICE_PERSONALIZATION_SERVICE =
             "on_device_personalization_service";
 
-    /**
-     * The {@link OnDevicePersonalizationException} returned by the {@link
-     * OnDevicePersonalizationManager} class has additional, more granular error codes.
-     *
-     * <p>{@link OnDevicePersonalizationException#getErrorCode()} can now return additional granular
-     * error codes. Developers should also account for potential future additions to the number of
-     * error codes via appropriate defaults in any error code processing logic.
-     *
-     * @hide
-     */
-    @ChangeId
-    @EnabledAfter(targetSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
-    public static final long GRANULAR_EXCEPTION_ERROR_CODES = 342672147;
-
     private static final String INTENT_FILTER_ACTION = "android.OnDevicePersonalizationService";
     private static final String ODP_MANAGING_SERVICE_PACKAGE_SUFFIX =
             "com.android.ondevicepersonalization.services";
@@ -112,6 +94,8 @@ public class OnDevicePersonalizationManager {
     private final AbstractServiceBinder<IOnDevicePersonalizationManagingService> mServiceBinder;
     private final Context mContext;
 
+    // TODO(b/358624224); deprecate {@link ExecuteResult} after partner migrates to use {@link
+    // #executeInIsolatedService}.
     /**
      * The result of a call to {@link OnDevicePersonalizationManager#execute(ComponentName,
      * PersistableBundle, Executor, OutcomeReceiver)}
@@ -172,45 +156,42 @@ public class OnDevicePersonalizationManager {
         mServiceBinder = serviceBinder;
     }
 
+    // TODO(b/358624224); deprecate {@link ExecuteResult} after partner migrates to use {@link
+    // #executeInIsolatedService}.
     /**
-     * Executes an {@link IsolatedService} in the OnDevicePersonalization sandbox. The
-     * platform binds to the specified {@link IsolatedService} in an isolated process
-     * and calls {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
-     * with the caller-provided parameters. When the {@link IsolatedService} finishes execution,
-     * the platform returns tokens that refer to the results from the service to the caller.
-     * These tokens can be subsequently used to display results in a
-     * {@link android.view.SurfaceView} within the calling app.
+     * Executes an {@link IsolatedService} in the OnDevicePersonalization sandbox. The platform
+     * binds to the specified {@link IsolatedService} in an isolated process and calls {@link
+     * IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)} with the caller-provided
+     * parameters. When the {@link IsolatedService} finishes execution, the platform returns tokens
+     * that refer to the results from the service to the caller. These tokens can be subsequently
+     * used to display results in a {@link android.view.SurfaceView} within the calling app.
      *
      * @param service The {@link ComponentName} of the {@link IsolatedService}.
-     * @param params a {@link PersistableBundle} that is passed from the calling app to the
-     *     {@link IsolatedService}. The expected contents of this parameter are defined
-     *     by the{@link IsolatedService}. The platform does not interpret this parameter.
+     * @param params a {@link PersistableBundle} that is passed from the calling app to the {@link
+     *     IsolatedService}. The expected contents of this parameter are defined by the{@link
+     *     IsolatedService}. The platform does not interpret this parameter.
      * @param executor the {@link Executor} on which to invoke the callback.
-     * @param receiver This returns a {@link ExecuteResult} object on success or an
-     *     {@link Exception} on failure. If the
-     *     {@link IsolatedService} returned a {@link RenderingConfig} to be displayed,
-     *     {@link ExecuteResult#getSurfacePackageToken()} will return a non-null
-     *     {@link SurfacePackageToken}.
-     *     The {@link SurfacePackageToken} object can be used in a subsequent
-     *     {@link #requestSurfacePackage(SurfacePackageToken, IBinder, int, int, int, Executor,
-     *     OutcomeReceiver)} call to display the result in a view. The returned
-     *     {@link SurfacePackageToken} may be null to indicate that no output is expected to be
-     *     displayed for this request. If the {@link IsolatedService} has returned any output data
-     *     and the calling app is allowlisted to receive data from this service, the
-     *     {@link ExecuteResult#getOutputData()} will return a non-null byte array.
-     *
-     *     In case of an error, the receiver returns one of the following exceptions:
-     *     Returns a {@link android.content.pm.PackageManager.NameNotFoundException} if the handler
-     *     package is not installed or does not have a valid ODP manifest.
-     *     Returns {@link ClassNotFoundException} if the handler class is not found.
-     *     Returns an {@link OnDevicePersonalizationException} if execution of the handler fails.
+     * @param receiver This returns a {@link ExecuteResult} object on success or an {@link
+     *     Exception} on failure. If the {@link IsolatedService} returned a {@link RenderingConfig}
+     *     to be displayed, {@link ExecuteResult#getSurfacePackageToken()} will return a non-null
+     *     {@link SurfacePackageToken}. The {@link SurfacePackageToken} object can be used in a
+     *     subsequent {@link #requestSurfacePackage(SurfacePackageToken, IBinder, int, int, int,
+     *     Executor, OutcomeReceiver)} call to display the result in a view. The returned {@link
+     *     SurfacePackageToken} may be null to indicate that no output is expected to be displayed
+     *     for this request. If the {@link IsolatedService} has returned any output data and the
+     *     calling app is allowlisted to receive data from this service, the {@link
+     *     ExecuteResult#getOutputData()} will return a non-null byte array.
+     *     <p>In case of an error, the receiver returns one of the following exceptions: Returns a
+     *     {@link android.content.pm.PackageManager.NameNotFoundException} if the handler package is
+     *     not installed or does not have a valid ODP manifest. Returns {@link
+     *     ClassNotFoundException} if the handler class is not found. Returns an {@link
+     *     OnDevicePersonalizationException} if execution of the handler fails.
      */
     public void execute(
             @NonNull ComponentName service,
             @NonNull PersistableBundle params,
             @NonNull @CallbackExecutor Executor executor,
-            @NonNull OutcomeReceiver<ExecuteResult, Exception> receiver
-    ) {
+            @NonNull OutcomeReceiver<ExecuteResult, Exception> receiver) {
         Objects.requireNonNull(service);
         Objects.requireNonNull(params);
         Objects.requireNonNull(executor);
@@ -345,18 +326,11 @@ public class OnDevicePersonalizationManager {
      * @param request the {@link ExecuteInIsolatedServiceRequest} request
      * @param executor the {@link Executor} on which to invoke the callback.
      * @param receiver This returns a {@link ExecuteInIsolatedServiceResponse} object on success or
-     *     an {@link Exception} on failure. If the {@link IsolatedService} returned a {@link
-     *     RenderingConfig} to be displayed, {@link ExecuteResult#getSurfacePackageToken()} will
-     *     return a non-null {@link SurfacePackageToken}. The {@link SurfacePackageToken} object can
-     *     be used in a subsequent {@link #requestSurfacePackage(SurfacePackageToken, IBinder, int,
-     *     int, int, Executor, OutcomeReceiver)} call to display the result in a view. The returned
-     *     {@link SurfacePackageToken} may be null to indicate that no output is expected to be
-     *     displayed for this request. If the {@link ExecuteInIsolatedServiceRequest.OutputParams}
-     *     is set to {@link ExecuteInIsolatedServiceRequest.OutputParams#OUTPUT_TYPE_BEST_VALUE} and
-     *     {@link IsolatedService} returns an integer value, {@link
-     *     ExecuteInIsolatedServiceResponse#getBestValue()} will return a positive value.
-     * @hide
+     *     an {@link Exception} on failure. For success case, refer to {@link
+     *     ExecuteInIsolatedServiceResponse}. For error case, the receiver returns an {@link
+     *     OnDevicePersonalizationException} if execution of the handler fails.
      */
+    @FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void executeInIsolatedService(
             @NonNull ExecuteInIsolatedServiceRequest request,
             @NonNull @CallbackExecutor Executor executor,
@@ -395,9 +369,9 @@ public class OnDevicePersonalizationManager {
                                                         }
                                                     }
                                                     int intValue = -1;
-                                                    if (request.getOutputParams().getOutputType()
+                                                    if (request.getOutputSpec().getOutputType()
                                                             == ExecuteInIsolatedServiceRequest
-                                                                    .OutputParams
+                                                                    .OutputSpec
                                                                     .OUTPUT_TYPE_BEST_VALUE) {
                                                         intValue =
                                                                 callbackResult.getInt(
@@ -438,11 +412,14 @@ public class OnDevicePersonalizationManager {
                                     executor.execute(
                                             () -> {
                                                 receiver.onError(
-                                                        // TODO(b/336801193): skip error code
-                                                        // translate.
+                                                        // We can skip translating to legacy error
+                                                        // codes for the new API.
                                                         createException(
-                                                                errorCode, isolatedServiceErrorCode,
-                                                                serializedExceptionInfo, mContext));
+                                                                errorCode,
+                                                                isolatedServiceErrorCode,
+                                                                serializedExceptionInfo,
+                                                                mContext,
+                                                                /* translateToLegacyErrorCode= */ false));
                                             });
                                 } finally {
                                     Binder.restoreCallingIdentity(token);
@@ -470,9 +447,9 @@ public class OnDevicePersonalizationManager {
                         request.getService(),
                         wrappedParams,
                         new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
-                        request.getOutputParams() == null
+                        request.getOutputSpec() == null
                                 ? ExecuteOptionsParcel.DEFAULT
-                                : new ExecuteOptionsParcel(request.getOutputParams()),
+                                : new ExecuteOptionsParcel(request.getOutputSpec()),
                         callbackWrapper);
             } catch (Exception e) {
                 logApiCallStats(
@@ -674,19 +651,16 @@ public class OnDevicePersonalizationManager {
     }
 
     /**
-     * Convert error codes returned by the ODP Service to match calling package's target sdk
-     * version.
+     * Convert granular error codes returned by the ODP Service to legacy error codes if required.
      */
     private static int translateErrorCode(int errorCode, Context context) {
-        if (errorCode < Constants.STATUS_MANIFEST_PARSING_FAILED
-                || CompatChanges.isChangeEnabled(GRANULAR_EXCEPTION_ERROR_CODES)) {
+        if (errorCode < Constants.STATUS_MANIFEST_PARSING_FAILED) {
             // Return code unchanged since either the error code does not require translation
-            // (by virtue of being an old/original error code) or the package is targeted to the
-            // appropriate sdk version.
+            // by virtue of being an old/original error code.
             return errorCode;
         }
         // Translate to appropriate older error code if required.
-        sLogger.d(TAG, "Package " + context.getPackageName() + " has old target sdk version.");
+        sLogger.d(TAG, "Translating to legacy error codes for package " + context.getPackageName());
         // TODO (b/342672147): add translation for newer error codes
         int translatedCode = Constants.STATUS_INTERNAL_ERROR;
         switch (errorCode) {
@@ -702,12 +676,32 @@ public class OnDevicePersonalizationManager {
         return translatedCode;
     }
 
+    /**
+     * Helper method to create appropriate Exception that translates error codes to legacy error
+     * codes for compatibility.
+     */
     private static Exception createException(
             int errorCode,
             int isolatedServiceErrorCode,
             byte[] serializedExceptionInfo,
             Context context) {
-        errorCode = translateErrorCode(errorCode, context);
+        return createException(
+                errorCode,
+                isolatedServiceErrorCode,
+                serializedExceptionInfo,
+                context,
+                /* translateToLegacyErrorCode= */ true);
+    }
+
+    private static Exception createException(
+            int errorCode,
+            int isolatedServiceErrorCode,
+            byte[] serializedExceptionInfo,
+            Context context,
+            boolean translateToLegacyErrorCode) {
+        if (translateToLegacyErrorCode) {
+            errorCode = translateErrorCode(errorCode, context);
+        }
         Exception cause = ExceptionInfo.fromByteArray(serializedExceptionInfo);
         switch (errorCode) {
             case Constants.STATUS_NAME_NOT_FOUND:
