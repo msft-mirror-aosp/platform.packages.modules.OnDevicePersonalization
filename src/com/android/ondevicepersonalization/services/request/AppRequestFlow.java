@@ -85,8 +85,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     private final String mCallingPackageName;
     @NonNull
     private final ComponentName mService;
-    @NonNull
-    private final Bundle mWrappedParams;
+    @NonNull private final Bundle mWrappedParams;
     @NonNull
     private final IExecuteCallback mCallback;
     @NonNull
@@ -185,9 +184,11 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         mStartServiceTimeMillis.set(mInjector.getClock().elapsedRealtime());
 
         try {
-            ByteArrayParceledSlice paramsBuffer = Objects.requireNonNull(
-                    mWrappedParams.getParcelable(
-                            Constants.EXTRA_APP_PARAMS_SERIALIZED, ByteArrayParceledSlice.class));
+            ByteArrayParceledSlice paramsBuffer =
+                    Objects.requireNonNull(
+                            mWrappedParams.getParcelable(
+                                    Constants.EXTRA_APP_PARAMS_SERIALIZED,
+                                    ByteArrayParceledSlice.class));
             mSerializedAppParams = Objects.requireNonNull(paramsBuffer.getByteArray());
         } catch (Exception e) {
             sLogger.d(TAG + ": Failed to extract app params.", e);
@@ -254,8 +255,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new FederatedComputeServiceImpl(mService, mContext));
         serviceParams.putParcelable(
-                Constants.EXTRA_USER_DATA,
-                new UserDataAccessor().getUserData());
+                Constants.EXTRA_USER_DATA, new UserDataAccessor().getUserData());
         mModelServiceProvider.set(new IsolatedModelServiceProvider());
         IIsolatedModelService modelService = mModelServiceProvider.get().getModelService(mContext);
         serviceParams.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, modelService.asBinder());
@@ -433,7 +433,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             int bestValue = -1;
             if (isOutputDataAllowed()
                     && mOptions.getOutputType()
-                            == ExecuteInIsolatedServiceRequest.Options.OUTPUT_TYPE_BEST_VALUE) {
+                            == ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE) {
                 bestValue =
                         mInjector
                                 .getNoiseUtil()
