@@ -24,18 +24,12 @@ import android.adservices.common.AdServicesCommonManager;
 import android.adservices.common.AdServicesCommonStates;
 import android.adservices.common.AdServicesCommonStatesResponse;
 import android.adservices.common.AdServicesOutcomeReceiver;
-import android.adservices.ondevicepersonalization.Constants;
 import android.annotation.NonNull;
 import android.content.Context;
-import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
-import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
-import android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager;
-import android.os.Bundle;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.modules.utils.build.SdkLevel;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
@@ -45,7 +39,6 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationAppli
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
 import com.android.ondevicepersonalization.services.util.DebugUtils;
-
 
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -81,23 +74,6 @@ public final class UserPrivacyStatus {
 
     /** Returns an instance of UserPrivacyStatus. */
     public static UserPrivacyStatus getInstance() {
-        if (sUserPrivacyStatus == null) {
-            synchronized (UserPrivacyStatus.class) {
-                if (sUserPrivacyStatus == null) {
-                    sUserPrivacyStatus = new UserPrivacyStatus();
-                    // Restore personalization status from the system server on U+ devices.
-                    if (SdkLevel.isAtLeastU()) {
-                        sUserPrivacyStatus.restorePersonalizationStatus();
-                    }
-                }
-            }
-        }
-        return sUserPrivacyStatus;
-    }
-
-    /** Returns an instance of UserPrivacyStatus. */
-    @VisibleForTesting
-    public static UserPrivacyStatus getInstanceForTest() {
         if (sUserPrivacyStatus == null) {
             synchronized (UserPrivacyStatus.class) {
                 if (sUserPrivacyStatus == null) {
@@ -300,48 +276,5 @@ public final class UserPrivacyStatus {
                     return "getAdServicesCommonStates";
                 }
         );
-    }
-
-    // TODO (b/331684191): remove SecurityException after mocking all UserPrivacyStatus
-    private void restorePersonalizationStatus() {
-        if (isOverrideEnabled()) {
-            return;
-        }
-        Context odpContext = OnDevicePersonalizationApplication.getAppContext();
-        OnDevicePersonalizationSystemServiceManager systemServiceManager =
-                odpContext.getSystemService(OnDevicePersonalizationSystemServiceManager.class);
-        if (systemServiceManager != null) {
-            IOnDevicePersonalizationSystemService systemService =
-                    systemServiceManager.getService();
-            if (systemService != null) {
-                try {
-                    systemService.readPersonalizationStatus(
-                            new IOnDevicePersonalizationSystemServiceCallback.Stub() {
-                                @Override
-                                public void onResult(Bundle bundle) {
-                                    boolean personalizationStatus =
-                                            bundle.getBoolean(PERSONALIZATION_STATUS_KEY);
-                                    setPersonalizationStatusEnabled(personalizationStatus);
-                                }
-
-                                @Override
-                                public void onError(int errorCode) {
-                                    if (errorCode == Constants.STATUS_KEY_NOT_FOUND) {
-                                        sLogger.d(
-                                                TAG
-                                                        + ": Personalization status "
-                                                        + "not found in the system server");
-                                    }
-                                }
-                            });
-                } catch (Exception e) {
-                    sLogger.e(TAG + ": Error when reading personalization status.", e);
-                }
-            } else {
-                sLogger.w(TAG + ": System service is not ready.");
-            }
-        } else {
-            sLogger.w(TAG + ": Cannot find system server on U+ devices.");
-        }
     }
 }
