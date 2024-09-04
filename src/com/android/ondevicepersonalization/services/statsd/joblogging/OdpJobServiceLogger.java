@@ -36,12 +36,12 @@ import java.util.concurrent.Executor;
 /** A background job logger to log ODP background job stats. */
 public final class OdpJobServiceLogger extends JobServiceLogger {
     @GuardedBy("SINGLETON_LOCK")
-    private static volatile OdpJobServiceLogger sSingleton;
+    private static OdpJobServiceLogger sSingleton;
 
     private static final Object SINGLETON_LOCK = new Object();
 
     /** Create an instance of {@link JobServiceLogger}. */
-    public OdpJobServiceLogger(
+    private OdpJobServiceLogger(
             Context context,
             Clock clock,
             StatsdJobServiceLogger statsdLogger,
