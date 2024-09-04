@@ -92,7 +92,7 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
         try {
             if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
                 sLogger.d(TAG + ": measurement control is revoked.");
-                sendError(callback);
+                sendError(callback, Constants.STATUS_PERSONALIZATION_DISABLED);
                 return;
             }
 
