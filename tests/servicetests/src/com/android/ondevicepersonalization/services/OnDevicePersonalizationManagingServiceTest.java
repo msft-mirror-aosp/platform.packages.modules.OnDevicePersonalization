@@ -89,6 +89,7 @@ public class OnDevicePersonalizationManagingServiceTest {
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule =
             new ExtendedMockitoRule.Builder(this)
+                    .spyStatic(FlagsFactory.class)
                     .spyStatic(UserPrivacyStatus.class)
                     .spyStatic(DeviceUtils.class)
                     .spyStatic(OnDevicePersonalizationMaintenanceJobService.class)
@@ -100,7 +101,8 @@ public class OnDevicePersonalizationManagingServiceTest {
 
     @Before
     public void setup() throws Exception {
-        mService = new OnDevicePersonalizationManagingServiceDelegate(mContext, new TestInjector());
+        ExtendedMockito.doReturn(mMockFlags).when(FlagsFactory::getFlags);
+        mService = new OnDevicePersonalizationManagingServiceDelegate(mContext);
         when(mMockFlags.getGlobalKillSwitch()).thenReturn(false);
         when(mMockFlags.getMaxIntValuesLimit()).thenReturn(100);
         ExtendedMockito.doReturn(true).when(() -> DeviceUtils.isOdpSupported(any()));
@@ -720,13 +722,6 @@ public class OnDevicePersonalizationManagingServiceTest {
 
         public void await() throws Exception {
             mLatch.await();
-        }
-    }
-
-    private class TestInjector extends OnDevicePersonalizationManagingServiceDelegate.Injector {
-        @Override
-        Flags getFlags() {
-            return mMockFlags;
         }
     }
 }
