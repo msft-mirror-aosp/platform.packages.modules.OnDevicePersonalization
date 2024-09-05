@@ -137,6 +137,8 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.fcp_schedule_with_outcome_receiver_enabled") public final class FederatedComputeScheduleResponse {
+    ctor public FederatedComputeScheduleResponse(@NonNull android.adservices.ondevicepersonalization.FederatedComputeScheduleRequest);
+    method @NonNull public android.adservices.ondevicepersonalization.FederatedComputeScheduleRequest getFederatedComputeScheduleRequest();
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class FederatedComputeScheduler {
