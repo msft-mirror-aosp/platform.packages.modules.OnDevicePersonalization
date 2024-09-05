@@ -30,6 +30,7 @@ import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceReques
 import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceResponse;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.FederatedComputeInput;
+import android.adservices.ondevicepersonalization.FederatedComputeScheduleRequest;
 import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
 import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams;
@@ -197,6 +198,29 @@ public class DataClassesTest {
         assertEquals(5, params.getTrainingInterval().getMinimumInterval().toSeconds());
         assertEquals(TrainingInterval.SCHEDULING_MODE_RECURRENT,
                 params.getTrainingInterval().getSchedulingMode());
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
+    public void testFederatedComputeSchedulerRequest() {
+        // Test for Data classes associated with FederatedComputeScheduler's schedule API.
+        String testPopulation = "testPopulation";
+        Duration testInterval = Duration.ofSeconds(5);
+        int testSchedulingMode = TrainingInterval.SCHEDULING_MODE_RECURRENT;
+        TrainingInterval testData =
+                new TrainingInterval.Builder()
+                        .setSchedulingMode(testSchedulingMode)
+                        .setMinimumInterval(testInterval)
+                        .build();
+
+        FederatedComputeScheduler.Params params = new FederatedComputeScheduler.Params(testData);
+        FederatedComputeScheduleRequest request =
+                new FederatedComputeScheduleRequest(params, testPopulation);
+
+        assertEquals(testPopulation, request.getPopulationName());
+        assertEquals(testInterval, request.getParams().getTrainingInterval().getMinimumInterval());
+        assertEquals(
+                testSchedulingMode, request.getParams().getTrainingInterval().getSchedulingMode());
     }
 
     /** Test for RequestLogRecord class. */

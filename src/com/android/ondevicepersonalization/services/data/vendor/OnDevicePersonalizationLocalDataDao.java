@@ -25,7 +25,6 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 
-
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.DbUtils;
@@ -151,7 +150,11 @@ public class OnDevicePersonalizationLocalDataDao {
      * Creates local data tables and adds corresponding vendor_settings metadata
      */
     public boolean createTable() {
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            return false;
+        }
+
         try {
             db.beginTransactionNonExclusive();
             if (!createTableIfNotExists()) {
@@ -310,7 +313,12 @@ public class OnDevicePersonalizationLocalDataDao {
     public static void deleteTable(Context context, ComponentName owner, String certDigest) {
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstance(context);
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        SQLiteDatabase db = dbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            sLogger.e(TAG + ": Failed to get database.");
+            return;
+        }
+
         db.execSQL("DROP TABLE IF EXISTS " + getTableName(owner, certDigest));
     }
 }
