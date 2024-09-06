@@ -526,7 +526,7 @@ public class FederatedComputeWorker {
             // no active keys to encrypt the FL/FA computation results, stop the computation run.
             run.mTrainingEventLogger.logEventKind(
                     FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_ENCRYPTION_KEY_FETCH_FAILED);
-            reportFailureResultToServer(run, null);
+            reportFailureResultToServer(run);
             return Futures.immediateFailedFuture(
                     new IllegalStateException("No active key available on device."));
         }
@@ -545,7 +545,7 @@ public class FederatedComputeWorker {
         if (iterator == null) {
             run.mTrainingEventLogger.logEventKind(
                     FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_COMPUTATION_FAILED);
-            reportFailureResultToServer(run, FLRunnerResult.ErrorStatus.EXAMPLE_ITERATOR_ERROR);
+            reportFailureResultToServer(run);
             return Futures.immediateFailedFuture(
                     new IllegalStateException(
                             String.format(
@@ -668,15 +668,14 @@ public class FederatedComputeWorker {
                         mInjector.getBgExecutor());
     }
 
-    private void reportFailureResultToServer(
-            TrainingRun run, @Nullable FLRunnerResult.ErrorStatus failureStatus) {
-        FLRunnerResult.Builder runnerResultBuilder =
-                FLRunnerResult.newBuilder().setContributionResult(ContributionResult.FAIL);
-        if (failureStatus != null) {
-            runnerResultBuilder.setErrorStatus(failureStatus);
-        }
+    private void reportFailureResultToServer(TrainingRun run) {
         ComputationResult failedComputationResult =
-                new ComputationResult(null, runnerResultBuilder.build(), null);
+                new ComputationResult(
+                        null,
+                        FLRunnerResult.newBuilder()
+                                .setContributionResult(ContributionResult.FAIL)
+                                .build(),
+                        null);
         try {
             reportFailureResultToServer(
                     failedComputationResult,
