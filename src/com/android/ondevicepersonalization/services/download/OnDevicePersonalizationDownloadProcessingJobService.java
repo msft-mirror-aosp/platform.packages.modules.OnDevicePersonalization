@@ -90,44 +90,55 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
             return true;
         }
 
-        mFutures = new ArrayList<>();
-        for (PackageInfo packageInfo : this.getPackageManager().getInstalledPackages(
+        OnDevicePersonalizationExecutors.getHighPriorityBackgroundExecutor().execute(() -> {
+            mFutures = new ArrayList<>();
+            PackageManager packageManager = this.getPackageManager();
+
+            // Processing installed packages
+            for (PackageInfo packageInfo : packageManager.getInstalledPackages(
                 PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
-            String packageName = packageInfo.packageName;
-            if (AppManifestConfigHelper.manifestContainsOdpSettings(
-                    this, packageName)) {
-                if (!PartnerEnrollmentChecker.isIsolatedServiceEnrolled(packageName)) {
-                    sLogger.d(TAG + ": service %s has ODP manifest, but not enrolled",
-                            packageName);
-                    continue;
-                }
-                sLogger.d(TAG + ": service %s has ODP manifest and is enrolled", packageName);
-                mFutures.add(Futures.submitAsync(
-                        new OnDevicePersonalizationDataProcessingAsyncCallable(packageName,
-                                this),
+                String packageName = packageInfo.packageName;
+                if (AppManifestConfigHelper.manifestContainsOdpSettings(this, packageName)) {
+                    if (!PartnerEnrollmentChecker.isIsolatedServiceEnrolled(packageName)) {
+                        sLogger.d(TAG + ": service %s has ODP manifest, but not enrolled",
+                                packageName);
+                        continue;
+                    }
+                    sLogger.d(TAG + ": service %s has ODP manifest and is enrolled", packageName);
+                    mFutures.add(Futures.submitAsync(
+                        new OnDevicePersonalizationDataProcessingAsyncCallable(packageName, this),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor()));
-            }
-        }
-        var unused = Futures.whenAllComplete(mFutures).call(() -> {
-            boolean wantsReschedule = false;
-            boolean allSuccess = true;
-            for (ListenableFuture<Void> future : mFutures) {
-                try {
-                    future.get();
-                } catch (Exception e) {
-                    allSuccess = false;
-                    break;
                 }
             }
-            OdpJobServiceLogger.getInstance(
-                    OnDevicePersonalizationDownloadProcessingJobService.this)
-                    .recordJobFinished(
-                            DOWNLOAD_PROCESSING_TASK_JOB_ID,
-                            /* isSuccessful= */ allSuccess,
-                            wantsReschedule);
-            jobFinished(params, wantsReschedule);
-            return null;
-        }, OnDevicePersonalizationExecutors.getLightweightExecutor());
+
+            // Handling task completion asynchronously
+            Futures.whenAllComplete(mFutures).call(() -> {
+                boolean wantsReschedule = false;
+                boolean allSuccess = true;
+                int successTaskCount = 0;
+                int failureTaskCount = 0;
+                for (ListenableFuture<Void> future : mFutures) {
+                    try {
+                        future.get();
+                        successTaskCount++;
+                    } catch (Exception e) {
+                        sLogger.e(e, TAG + ": Error processing future");
+                        failureTaskCount++;
+                        allSuccess = false;
+                    }
+                }
+                sLogger.d(TAG + ": all download processing tasks finished, "
+                        + "%d succeeded, %d failed", successTaskCount, failureTaskCount);
+                OdpJobServiceLogger.getInstance(
+                        OnDevicePersonalizationDownloadProcessingJobService.this)
+                        .recordJobFinished(
+                                DOWNLOAD_PROCESSING_TASK_JOB_ID,
+                                /* isSuccessful = */ allSuccess,
+                                wantsReschedule);
+                jobFinished(params, wantsReschedule);
+                return null;
+            }, OnDevicePersonalizationExecutors.getLightweightExecutor());
+        });
 
         return true;
     }

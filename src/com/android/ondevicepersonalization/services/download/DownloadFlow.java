@@ -153,10 +153,10 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
             long existingSyncToken = mDao.getSyncToken();
 
             // If existingToken is greaterThan or equal to the new token, skip as there is
-            // no new data.
+            // no new data. Mark success to upstream caller for reporting purpose
             if (existingSyncToken >= syncToken) {
                 sLogger.d(TAG + ": syncToken is not newer than existing token.");
-                mCallback.onFailure(new IllegalArgumentException("SyncToken is stale."));
+                mCallback.onSuccess(null);
                 return false;
             }
 
@@ -388,7 +388,8 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
 
         if (cfg == null || cfg.getStatus() != ClientConfigProto.ClientFileGroup.Status.DOWNLOADED) {
             sLogger.d(TAG + mPackageName + " has no completed downloads.");
-            mCallback.onFailure(new IllegalArgumentException("No completed downloads."));
+            // No completed downloads is a valid case. Mark as success and return null.
+            mCallback.onSuccess(null);
             return null;
         }
 
