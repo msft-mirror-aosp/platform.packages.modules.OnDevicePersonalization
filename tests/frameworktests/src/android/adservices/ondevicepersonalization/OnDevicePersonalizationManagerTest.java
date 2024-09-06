@@ -20,7 +20,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
@@ -34,6 +33,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
+import android.os.SystemClock;
 import android.util.Log;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -60,11 +60,13 @@ public final class OnDevicePersonalizationManagerTest {
     private static final String KEY_OP = "op";
     private static final String KEY_STATUS_CODE = "status";
     private static final String KEY_SERVICE_ERROR_CODE = "serviceerror";
+    private static final String KEY_ERROR_MESSAGE = "errormessage";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final TestServiceBinder mTestBinder = new TestServiceBinder(
             IOnDevicePersonalizationManagingService.Stub.asInterface(new TestService()));
     private final OnDevicePersonalizationManager mManager =
             new OnDevicePersonalizationManager(mContext, mTestBinder);
+    private boolean mLogApiStatsCalled = false;
 
     @Parameterized.Parameter(0)
     public boolean mIsSipFeatureEnabled;
@@ -101,6 +103,7 @@ public final class OnDevicePersonalizationManagerTest {
         assertNotNull(receiver.getResult());
         assertEquals(receiver.getResult().getSurfacePackageToken().getTokenString(), "aaaa");
         assertArrayEquals(receiver.getResult().getOutputData(), new byte[]{1, 2, 3});
+        assertTrue(mLogApiStatsCalled);
     }
 
     @Test
@@ -116,6 +119,7 @@ public final class OnDevicePersonalizationManagerTest {
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
         assertTrue(receiver.getException() instanceof IllegalStateException);
+        assertTrue(mLogApiStatsCalled);
     }
 
     @Test
@@ -132,6 +136,7 @@ public final class OnDevicePersonalizationManagerTest {
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
         assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertTrue(mLogApiStatsCalled);
     }
 
     @Test
@@ -148,39 +153,63 @@ public final class OnDevicePersonalizationManagerTest {
                 receiver);
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
-        //assertEquals("a", receiver.getException().getClass().getSimpleName());
         assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
         assertEquals(OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
                 ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
         assertTrue(receiver.getException().getCause() instanceof IsolatedServiceException);
         assertEquals(42,
                 ((IsolatedServiceException) receiver.getException().getCause()).getErrorCode());
+        assertTrue(mLogApiStatsCalled);
     }
 
     @Test
-    public void testExecutePropagatesIae() throws Exception {
+    public void testExecuteErrorWithMessage() throws Exception {
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        params.putInt(KEY_STATUS_CODE, Constants.STATUS_SERVICE_FAILED);
+        params.putString(KEY_ERROR_MESSAGE, "TestErrorMessage");
+        var receiver = new ResultReceiver<ExecuteResult>();
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertEquals("TestErrorMessage", receiver.getException().getMessage());
+        assertTrue(mLogApiStatsCalled);
+    }
+
+    @Test
+    public void testExecuteCatchesIaeFromService() throws Exception {
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "iae");
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> mManager.execute(
-                        ComponentName.createRelative("com.example.service", ".Example"),
-                        params,
-                        Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<ExecuteResult>()));
+        var receiver = new ResultReceiver<ExecuteResult>();
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof IllegalArgumentException);
+        assertTrue(mLogApiStatsCalled);
     }
 
     @Test
-    public void testExecutePropagatesNpe() throws Exception {
+    public void testExecuteCatchesNpeFromService() throws Exception {
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "npe");
-        assertThrows(
-                NullPointerException.class,
-                () -> mManager.execute(
-                        ComponentName.createRelative("com.example.service", ".Example"),
-                        params,
-                        Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<ExecuteResult>()));
+        var receiver = new ResultReceiver<ExecuteResult>();
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof NullPointerException);
+        assertTrue(mLogApiStatsCalled);
     }
 
     @Test
@@ -196,6 +225,7 @@ public final class OnDevicePersonalizationManagerTest {
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
         assertTrue(receiver.getException() instanceof IllegalStateException);
+        assertTrue(mLogApiStatsCalled);
     }
 
     class TestService extends IOnDevicePersonalizationManagingService.Stub {
@@ -227,12 +257,17 @@ public final class OnDevicePersonalizationManagerTest {
                     Bundle bundle = new Bundle();
                     bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, "aaaa");
                     bundle.putByteArray(Constants.EXTRA_OUTPUT_DATA, new byte[]{1, 2, 3});
-                    callback.onSuccess(bundle);
+                    callback.onSuccess(bundle,
+                            new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
+                                    SystemClock.elapsedRealtime()).build());
                 } else if (op.equals("error")) {
                     int statusCode = params.getInt(KEY_STATUS_CODE,
                             Constants.STATUS_INTERNAL_ERROR);
                     int serviceErrorCode = params.getInt(KEY_SERVICE_ERROR_CODE, 0);
-                    callback.onError(statusCode, serviceErrorCode);
+                    String errorMessage = params.getString(KEY_ERROR_MESSAGE);
+                    callback.onError(statusCode, serviceErrorCode, errorMessage,
+                            new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
+                                    SystemClock.elapsedRealtime()).build());
                 } else if (op.equals("iae")) {
                     throw new IllegalArgumentException();
                 } else if (op.equals("npe")) {
@@ -266,6 +301,20 @@ public final class OnDevicePersonalizationManagerTest {
                 CallerMetadata metadata,
                 IRegisterMeasurementEventCallback callback) {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void logApiCallStats(
+                String sdkPackageName,
+                int apiName,
+                long latencyMillis,
+                long rpcCallLatencyMillis,
+                long rpcReturnLatencyMillis,
+                int responseCode) {
+            if (!sdkPackageName.equals("com.example.service")) {
+                return;
+            }
+            mLogApiStatsCalled = true;
         }
     }
 

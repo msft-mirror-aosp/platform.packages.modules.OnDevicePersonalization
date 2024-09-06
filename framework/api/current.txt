@@ -284,6 +284,7 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class TrainingExamplesInput {
+    method @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.fcp_model_version_enabled") @Nullable public String getCollectionName();
     method @NonNull public String getPopulationName();
     method @Nullable public byte[] getResumptionToken();
     method @NonNull public String getTaskName();

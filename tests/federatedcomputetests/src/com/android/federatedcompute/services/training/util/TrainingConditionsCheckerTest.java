@@ -26,10 +26,10 @@ import android.os.PowerManager;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.android.federatedcompute.services.common.BatteryInfo;
-import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.training.util.TrainingConditionsChecker.Condition;
+import com.android.odp.module.common.Clock;
 
 import com.google.flatbuffers.FlatBufferBuilder;
 
@@ -40,6 +40,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.nio.ByteBuffer;
+import java.util.EnumSet;
 import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
@@ -80,11 +81,25 @@ public final class TrainingConditionsCheckerTest {
         when(mBatteryInfo.batteryOkForTraining(anyBoolean())).thenReturn(false);
         when(mPowerManager.getCurrentThermalStatus())
                 .thenReturn(PowerManager.THERMAL_STATUS_SEVERE);
+        when(mFlags.getFcpMemorySizeLimit()).thenReturn(1000000000000L);
 
         Set<Condition> conditions =
                 mTrainingConditionsChecker.checkAllConditionsForFlTraining(
                         DEFAULT_TRAINING_CONSTRAINTS);
-        assertThat(conditions).containsAtLeast(Condition.BATTERY_NOT_OK, Condition.THERMALS_NOT_OK);
+        assertThat(conditions).containsExactlyElementsIn(EnumSet.allOf(Condition.class));
+    }
+
+    @Test
+    public void testCheckAllConditionsForFlTraining_memoryConditionNotOk() {
+        when(mClock.currentTimeMillis()).thenReturn(1000L);
+        when(mBatteryInfo.batteryOkForTraining(anyBoolean())).thenReturn(true);
+        when(mPowerManager.getCurrentThermalStatus()).thenReturn(PowerManager.THERMAL_STATUS_LIGHT);
+        when(mFlags.getFcpMemorySizeLimit()).thenReturn(1000000000000L);
+
+        assertThat(
+                mTrainingConditionsChecker.checkAllConditionsForFlTraining(
+                        DEFAULT_TRAINING_CONSTRAINTS))
+                .containsExactly(Condition.MEM_NOT_OK);
     }
 
     @Test

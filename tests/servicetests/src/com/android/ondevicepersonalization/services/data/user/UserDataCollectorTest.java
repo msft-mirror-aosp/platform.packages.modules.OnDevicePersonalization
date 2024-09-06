@@ -16,42 +16,90 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.net.NetworkCapabilities;
-import android.text.TextUtils;
 
 import androidx.test.core.app.ApplicationProvider;
+import androidx.test.core.content.pm.ApplicationInfoBuilder;
+
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.quality.Strictness;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 @RunWith(JUnit4.class)
+@MockStatic(FlagsFactory.class)
+@MockStatic(MonotonicClock.class)
 public class UserDataCollectorTest {
-    private final Context mContext = ApplicationProvider.getApplicationContext();
+    @Rule
+    public final ExtendedMockitoRule extendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
+
+    private static final String APP_NAME_1 = "com.app1";
+    private static final String APP_NAME_2 = "com.app2";
+    private static final String APP_NAME_3 = "com.app3";
+    private Context mContext;
     private UserDataCollector mCollector;
     private RawUserData mUserData;
 
+    @Mock private Clock mMockClock;
+    @Mock private Flags mMockFlags;
+    private UserDataDao mUserDataDao;
+
     @Before
     public void setup() {
-        mCollector = UserDataCollector.getInstanceForTest(mContext);
+        MockitoAnnotations.initMocks(this);
+        mContext = ApplicationProvider.getApplicationContext();
         mUserData = RawUserData.getInstance();
+        when(MonotonicClock.getInstance()).thenReturn(mMockClock);
+        when(FlagsFactory.getFlags()).thenReturn(mMockFlags);
+        mUserDataDao = UserDataDao.getInstanceForTest(mContext, mMockClock);
+        mCollector = UserDataCollector.getInstanceForTest(mContext, mUserDataDao);
         TimeZone pstTime = TimeZone.getTimeZone("GMT-08:00");
         TimeZone.setDefault(pstTime);
+    }
+
+    @After
+    public void cleanUp() {
+        OnDevicePersonalizationDbHelper dbHelper =
+                OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
+        dbHelper.getWritableDatabase().close();
+        dbHelper.getReadableDatabase().close();
+        dbHelper.close();
+        mCollector.clearUserData(mUserData);
+        mCollector.clearMetadata();
     }
 
     @Test
@@ -65,17 +113,49 @@ public class UserDataCollectorTest {
         assertTrue(mUserData.batteryPercentage >= 0);
         assertTrue(mUserData.batteryPercentage <= 100);
         assertNotNull(mUserData.networkCapabilities);
+
         assertTrue(UserDataCollector.ALLOWED_NETWORK_TYPE.contains(mUserData.dataNetworkType));
 
-        List<AppInfo> appsInfo = new ArrayList();
-        mCollector.getInstalledApps(appsInfo);
-        assertTrue(mUserData.appsInfo.size() > 0);
-        assertEquals(mUserData.appsInfo.size(), appsInfo.size());
-        for (int i = 0; i < mUserData.appsInfo.size(); ++i) {
-            assertFalse(TextUtils.isEmpty(mUserData.appsInfo.get(i).packageName));
-            assertEquals(mUserData.appsInfo.get(i).packageName, appsInfo.get(i).packageName);
-            assertEquals(mUserData.appsInfo.get(i).installed, appsInfo.get(i).installed);
-        }
+        mCollector.updateUserData(mUserData);
+        assertTrue(mUserData.installedApps.size() > 0);
+    }
+
+    @Test
+    public void updateInstalledAppsForUserData() {
+        when(mMockFlags.getAppInstallHistoryTtlInMillis()).thenReturn(300L);
+        when(mMockClock.currentTimeMillis()).thenReturn(200L);
+
+
+        mCollector.updateInstalledApps(mUserData);
+
+        Set<String> userDataInstallApp = mUserData.installedApps;
+        assertTrue(userDataInstallApp.size() > 0);
+        assertThat(mUserDataDao.getAppInstallMap().keySet()).isEqualTo(userDataInstallApp);
+    }
+
+    @Test
+    public void testUpdateInstalledAppHistory() {
+        when(mMockFlags.getAppInstallHistoryTtlInMillis()).thenReturn(300L);
+        when(mMockClock.currentTimeMillis()).thenReturn(200L);
+
+        List<ApplicationInfo> installedApps = createApplicationInfos(APP_NAME_1, APP_NAME_3);
+        Map<String, Long> existingAppMap = Map.of(APP_NAME_1, 100L, APP_NAME_2, 100L);
+
+        Map<String, Long> currentMap =
+                mCollector.updateExistingAppInstall(installedApps, existingAppMap);
+        assertThat(currentMap)
+                .containsExactly(APP_NAME_1, 200L, APP_NAME_2, 100L, APP_NAME_3, 200L);
+
+        when(mMockClock.currentTimeMillis()).thenReturn(450L);
+        currentMap = mCollector.updateExistingAppInstall(installedApps, existingAppMap);
+        // App2 is expired based on ttl.
+        assertThat(currentMap).containsExactly(APP_NAME_1, 450L, APP_NAME_3, 450L);
+    }
+
+    private List<ApplicationInfo> createApplicationInfos(String... packageNames) {
+        return Arrays.stream(packageNames)
+                .map(s -> ApplicationInfoBuilder.newBuilder().setPackageName(s).build())
+                .collect(Collectors.toList());
     }
 
     @Test
@@ -104,11 +184,5 @@ public class UserDataCollectorTest {
         assertArrayEquals(
                 new int[]{NetworkCapabilities.NET_CAPABILITY_NOT_METERED},
                 filteredCap.getCapabilities());
-    }
-
-    @After
-    public void cleanUp() {
-        mCollector.clearUserData(mUserData);
-        mCollector.clearMetadata();
     }
 }
