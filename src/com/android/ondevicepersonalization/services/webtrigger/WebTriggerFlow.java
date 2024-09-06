@@ -218,28 +218,33 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
 
     @Override
     public void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {
-        var unused = FluentFuture.from(runServiceFuture)
-                .transform(
-                        val -> {
-                            StatsUtils.writeServiceRequestMetrics(
-                                    Constants.API_NAME_SERVICE_ON_WEB_TRIGGER,
-                                    val, mInjector.getClock(),
-                                    Constants.STATUS_SUCCESS, mStartServiceTimeMillis);
-                            return val;
-                        },
-                        mInjector.getExecutor()
-                )
-                .catchingAsync(
-                        Exception.class,
-                        e -> {
-                            StatsUtils.writeServiceRequestMetrics(
-                                    Constants.API_NAME_SERVICE_ON_WEB_TRIGGER, /* result= */ null,
-                                    mInjector.getClock(),
-                                    Constants.STATUS_INTERNAL_ERROR, mStartServiceTimeMillis);
-                            return Futures.immediateFailedFuture(e);
-                        },
-                        mInjector.getExecutor()
-                );
+        var unused =
+                FluentFuture.from(runServiceFuture)
+                        .transform(
+                                val -> {
+                                    StatsUtils.writeServiceRequestMetrics(
+                                            Constants.API_NAME_SERVICE_ON_WEB_TRIGGER,
+                                            mServiceParcel.getIsolatedService().getPackageName(),
+                                            val,
+                                            mInjector.getClock(),
+                                            Constants.STATUS_SUCCESS,
+                                            mStartServiceTimeMillis);
+                                    return val;
+                                },
+                                mInjector.getExecutor())
+                        .catchingAsync(
+                                Exception.class,
+                                e -> {
+                                    StatsUtils.writeServiceRequestMetrics(
+                                            Constants.API_NAME_SERVICE_ON_WEB_TRIGGER,
+                                            mServiceParcel.getIsolatedService().getPackageName(),
+                                            /* result= */ null,
+                                            mInjector.getClock(),
+                                            Constants.STATUS_INTERNAL_ERROR,
+                                            mStartServiceTimeMillis);
+                                    return Futures.immediateFailedFuture(e);
+                                },
+                                mInjector.getExecutor());
     }
 
     @Override
