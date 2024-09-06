@@ -61,13 +61,13 @@ import com.google.internal.federatedcompute.v1.RejectionInfo;
 import com.google.internal.federatedcompute.v1.Resource;
 import com.google.internal.federatedcompute.v1.ResourceCapabilities;
 import com.google.internal.federatedcompute.v1.ResourceCompressionFormat;
+import com.google.internal.federatedcompute.v1.UploadInstruction;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentRequest;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentResponse;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultRequest;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultRequest.Result;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultResponse;
 import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
-import com.google.ondevicepersonalization.federatedcompute.proto.UploadInstruction;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.json.JSONObject;
