@@ -20,6 +20,15 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PE
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_USER_CONTROL_CACHE_IN_MILLIS;
 
+import android.adservices.common.AdServicesCommonManager;
+import android.adservices.common.AdServicesCommonStates;
+import android.adservices.common.AdServicesCommonStatesResponse;
+import android.adservices.common.AdServicesOutcomeReceiver;
+import android.annotation.NonNull;
+import android.content.Context;
+
+import androidx.concurrent.futures.CallbackToFutureAdapter;
+
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
@@ -27,10 +36,11 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
 import com.android.ondevicepersonalization.services.util.DebugUtils;
 
-import java.util.Objects;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * A singleton class that stores all user privacy statuses in memory.
@@ -51,9 +61,8 @@ public final class UserPrivacyStatus {
     private boolean mProtectedAudienceReset;
     private boolean mMeasurementReset;
     private long mLastUserControlCacheUpdate;
-    private final AdServicesCommonStatesWrapper mAdServicesCommonStatesWrapper;
 
-    private UserPrivacyStatus(AdServicesCommonStatesWrapper wrapper) {
+    private UserPrivacyStatus() {
         // Assume the more privacy-safe option until updated.
         mPersonalizationStatusEnabled = false;
         mProtectedAudienceEnabled = false;
@@ -61,7 +70,6 @@ public final class UserPrivacyStatus {
         mProtectedAudienceReset = false;
         mMeasurementReset = false;
         mLastUserControlCacheUpdate = -1L;
-        mAdServicesCommonStatesWrapper = Objects.requireNonNull(wrapper);
     }
 
     /** Returns an instance of UserPrivacyStatus. */
@@ -69,9 +77,7 @@ public final class UserPrivacyStatus {
         if (sUserPrivacyStatus == null) {
             synchronized (UserPrivacyStatus.class) {
                 if (sUserPrivacyStatus == null) {
-                    sUserPrivacyStatus = new UserPrivacyStatus(
-                            new AdServicesCommonStatesWrapperImpl(
-                                    OnDevicePersonalizationApplication.getAppContext()));
+                    sUserPrivacyStatus = new UserPrivacyStatus();
                 }
             }
         }
@@ -199,8 +205,9 @@ public final class UserPrivacyStatus {
     private void fetchStateFromAdServices() {
         try {
             // IPC.
-            AdServicesCommonStatesWrapper.CommonStatesResult commonStates =
-                    mAdServicesCommonStatesWrapper.getCommonStates().get();
+            AdServicesCommonManager adServicesCommonManager = getAdServicesCommonManager();
+            AdServicesCommonStates commonStates =
+                            getAdServicesCommonStates(adServicesCommonManager);
 
             // update cache.
             int updatedProtectedAudienceState = commonStates.getPaState();
@@ -215,5 +222,59 @@ public final class UserPrivacyStatus {
         if (isMeasurementReset() || isProtectedAudienceReset()) {
             ResetDataJobService.schedule();
         }
+    }
+
+    /**
+     * Get AdServices common manager from ODP.
+     */
+    private static AdServicesCommonManager getAdServicesCommonManager() {
+        Context odpContext = OnDevicePersonalizationApplication.getAppContext();
+        try {
+            return odpContext.getSystemService(AdServicesCommonManager.class);
+        } catch (NoClassDefFoundError e) {
+            throw new IllegalStateException("Cannot find AdServicesCommonManager.", e);
+        }
+    }
+
+    /**
+     * Get common states from AdServices, such as user control.
+     */
+    private AdServicesCommonStates getAdServicesCommonStates(
+                    @NonNull AdServicesCommonManager adServicesCommonManager) {
+        ListenableFuture<AdServicesCommonStatesResponse> response =
+                        getAdServicesResponse(adServicesCommonManager);
+        try {
+            return response.get().getAdServicesCommonStates();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed when calling "
+                    + "AdServicesCommonManager#getAdServicesCommonStates().", e);
+        }
+    }
+
+    /**
+     * IPC to AdServices API.
+     */
+    private ListenableFuture<AdServicesCommonStatesResponse> getAdServicesResponse(
+                    @NonNull AdServicesCommonManager adServicesCommonManager) {
+        return CallbackToFutureAdapter.getFuture(
+                completer -> {
+                    adServicesCommonManager.getAdservicesCommonStates(
+                            OnDevicePersonalizationExecutors.getBackgroundExecutor(),
+                            new AdServicesOutcomeReceiver<AdServicesCommonStatesResponse,
+                                    Exception>() {
+                                @Override
+                                public void onResult(AdServicesCommonStatesResponse result) {
+                                    completer.set(result);
+                                }
+
+                                @Override
+                                public void onError(Exception error) {
+                                    completer.setException(error);
+                                }
+                            });
+                    // For debugging purpose only.
+                    return "getAdServicesCommonStates";
+                }
+        );
     }
 }

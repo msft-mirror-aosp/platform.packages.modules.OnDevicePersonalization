@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.android.odp.module.common;
+package com.android.federatedcompute.services.http;
 
-import static com.android.odp.module.common.HttpClientUtils.CONTENT_ENCODING_HDR;
-import static com.android.odp.module.common.HttpClientUtils.GZIP_ENCODING_HDR;
+import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_ENCODING_HDR;
+import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -26,14 +26,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class OdpHttpResponse {
+/** Class to hold FederatedCompute http response. */
+public class FederatedComputeHttpResponse {
     private Integer mStatusCode;
     private Map<String, List<String>> mHeaders = new HashMap<>();
     private byte[] mPayload;
     private String mPayloadFileName;
     private long mDownloadedPayloadSize;
 
-    private OdpHttpResponse() {}
+    private FederatedComputeHttpResponse() {}
 
     public int getStatusCode() {
         return mStatusCode;
@@ -70,13 +71,13 @@ public class OdpHttpResponse {
         return false;
     }
 
-    /** Builder for {@link OdpHttpResponse}. */
+    /** Builder for FederatedComputeHttpResponse. */
     public static final class Builder {
-        private final OdpHttpResponse mHttpResponse;
+        private final FederatedComputeHttpResponse mHttpResponse;
 
-        /** Default constructor of {@link OdpHttpResponse}. */
+        /** Default constructor of {@link FederatedComputeHttpResponse}. */
         public Builder() {
-            mHttpResponse = new OdpHttpResponse();
+            mHttpResponse = new FederatedComputeHttpResponse();
         }
 
         /** Set the status code of http response. */
@@ -109,8 +110,8 @@ public class OdpHttpResponse {
             return this;
         }
 
-        /** Build {@link OdpHttpResponse}. */
-        public OdpHttpResponse build() {
+        /** Build {@link FederatedComputeHttpResponse}. */
+        public FederatedComputeHttpResponse build() {
             if (mHttpResponse.mStatusCode == null) {
                 throw new IllegalArgumentException("Empty status code.");
             }

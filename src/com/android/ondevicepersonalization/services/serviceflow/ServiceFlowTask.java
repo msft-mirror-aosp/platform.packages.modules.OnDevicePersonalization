@@ -80,10 +80,8 @@ public class ServiceFlowTask {
     /** Executes the given service flow. */
     public void run() {
         try {
-            boolean isServiceFlowReady = mServiceFlow.isServiceFlowReady();
-            if (mIsCompleted || !isServiceFlowReady) {
-                sLogger.d(TAG + " skipped running %s, isCompleted: %s, isServiceFlowReady: %s",
-                        mServiceFlowType, mIsCompleted, isServiceFlowReady);
+            if (mIsCompleted || !mServiceFlow.isServiceFlowReady()) {
+                sLogger.d(TAG + ": Unexpected service flow state for " + mServiceFlowType);
                 return;
             }
 

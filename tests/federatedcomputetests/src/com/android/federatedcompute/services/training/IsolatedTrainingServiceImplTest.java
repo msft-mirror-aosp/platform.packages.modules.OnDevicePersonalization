@@ -32,13 +32,13 @@ import android.os.ParcelFileDescriptor;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
+import com.android.federatedcompute.services.common.FileUtils;
 import com.android.federatedcompute.services.data.fbs.TrainingFlags;
 import com.android.federatedcompute.services.testutils.FakeExampleStoreIterator;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
-import com.android.odp.module.common.FileUtils;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;

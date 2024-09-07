@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.android.odp.module.common;
+package com.android.federatedcompute.services.http;
 
-import static com.android.odp.module.common.HttpClientUtils.OCTET_STREAM;
+import static com.android.federatedcompute.services.http.HttpClientUtil.OCTET_STREAM;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 @RunWith(JUnit4.class)
-public final class OdpHttpResponseTest {
+public final class FederatedComputeHttpResponseTest {
     @Test
     public void testBuildWithAllValues() {
         final int responseCode = 200;
@@ -48,8 +48,8 @@ public final class OdpHttpResponseTest {
                         "api-key",
                         ImmutableList.of("xyz"));
 
-        OdpHttpResponse response =
-                new OdpHttpResponse.Builder()
+        FederatedComputeHttpResponse response =
+                new FederatedComputeHttpResponse.Builder()
                         .setStatusCode(responseCode)
                         .setPayload(payload)
                         .setHeaders(headers)
@@ -63,8 +63,8 @@ public final class OdpHttpResponseTest {
     @Test
     public void testBuildWithMinimalRequiredValues() {
         final int responseCode = 200;
-        OdpHttpResponse response =
-                new OdpHttpResponse.Builder().setStatusCode(responseCode).build();
+        FederatedComputeHttpResponse response =
+                new FederatedComputeHttpResponse.Builder().setStatusCode(responseCode).build();
 
         assertThat(response.getStatusCode()).isEqualTo(responseCode);
     }
@@ -73,17 +73,20 @@ public final class OdpHttpResponseTest {
     public void testBuildStatusCodeNull_invalid() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new OdpHttpResponse.Builder().setPayload("payload".getBytes(UTF_8)).build());
+                () ->
+                        new FederatedComputeHttpResponse.Builder()
+                                .setPayload("payload".getBytes(UTF_8))
+                                .build());
     }
 
     @Test
     public void testGetBody_success() {
         final byte[] uncompressedBody = "payload".getBytes(UTF_8);
         Map<String, List<String>> expectedHeaders = new HashMap<>();
-        expectedHeaders.put(HttpClientUtils.CONTENT_TYPE_HDR, ImmutableList.of(OCTET_STREAM));
+        expectedHeaders.put(HttpClientUtil.CONTENT_TYPE_HDR, ImmutableList.of(OCTET_STREAM));
 
-        OdpHttpResponse response =
-                new OdpHttpResponse.Builder()
+        FederatedComputeHttpResponse response =
+                new FederatedComputeHttpResponse.Builder()
                         .setStatusCode(200)
                         .setPayload(uncompressedBody)
                         .setHeaders(expectedHeaders)

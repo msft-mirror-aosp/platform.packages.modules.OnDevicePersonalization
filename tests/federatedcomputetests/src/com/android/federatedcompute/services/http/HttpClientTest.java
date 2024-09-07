@@ -18,28 +18,37 @@ package com.android.federatedcompute.services.http;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.android.federatedcompute.services.common.PhFlags;
+import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.odp.module.common.HttpClientUtils;
-import com.android.odp.module.common.OdpHttpRequest;
-import com.android.odp.module.common.OdpHttpResponse;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -54,10 +63,10 @@ public final class HttpClientTest {
     public final ExtendedMockitoRule extendedMockitoRule =
             new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
 
-    public static final OdpHttpRequest DEFAULT_GET_REQUEST =
-            OdpHttpRequest.create(
+    public static final FederatedComputeHttpRequest DEFAULT_GET_REQUEST =
+            FederatedComputeHttpRequest.create(
                     "https://google.com",
-                    HttpClientUtils.HttpMethod.GET,
+                    HttpMethod.GET,
                     new HashMap<>(),
                     HttpClientUtil.EMPTY_BODY);
 
@@ -75,83 +84,158 @@ public final class HttpClientTest {
     }
 
     @Test
+    public void testUnableToOpenconnection_returnFailure() throws Exception {
+        FederatedComputeHttpRequest request =
+                FederatedComputeHttpRequest.create(
+                        "https://google.com",
+                        HttpMethod.POST,
+                        new HashMap<>(),
+                        HttpClientUtil.EMPTY_BODY);
+        doThrow(new IOException()).when(mHttpClient).setup(ArgumentMatchers.any());
+
+        assertThrows(IOException.class, () -> mHttpClient.performRequest(request));
+    }
+
+    @Test
+    public void testPerformGetRequestSuccess() throws Exception {
+        String successMessage = "Success!";
+        InputStream mockStream = new ByteArrayInputStream(successMessage.getBytes(UTF_8));
+        Map<String, List<String>> mockHeaders = new HashMap<>();
+        mockHeaders.put("Header1", Arrays.asList("Value1"));
+        when(mMockHttpURLConnection.getInputStream()).thenReturn(mockStream);
+        when(mMockHttpURLConnection.getResponseCode()).thenReturn(200);
+        when(mMockHttpURLConnection.getHeaderFields()).thenReturn(mockHeaders);
+        doReturn(mMockHttpURLConnection).when(mHttpClient).setup(ArgumentMatchers.any());
+        when(mMockHttpURLConnection.getContentLengthLong())
+                .thenReturn((long) successMessage.length());
+
+        FederatedComputeHttpResponse response = mHttpClient.performRequest(DEFAULT_GET_REQUEST);
+
+        assertThat(response.getStatusCode()).isEqualTo(200);
+        assertThat(response.getHeaders()).isEqualTo(mockHeaders);
+        assertThat(response.getPayload()).isEqualTo(successMessage.getBytes(UTF_8));
+    }
+
+    @Test
+    public void testPerformGetRequestPayloadIntoFileSuccess() throws Exception {
+        String successMessage = "Success!";
+        InputStream mockStream = new ByteArrayInputStream(successMessage.getBytes(UTF_8));
+        Map<String, List<String>> mockHeaders = new HashMap<>();
+        mockHeaders.put("Header1", Arrays.asList("Value1"));
+        when(mMockHttpURLConnection.getInputStream()).thenReturn(mockStream);
+        when(mMockHttpURLConnection.getResponseCode()).thenReturn(200);
+        when(mMockHttpURLConnection.getHeaderFields()).thenReturn(mockHeaders);
+        doReturn(mMockHttpURLConnection).when(mHttpClient).setup(ArgumentMatchers.any());
+        when(mMockHttpURLConnection.getContentLengthLong())
+                .thenReturn((long) successMessage.length());
+
+        FederatedComputeHttpResponse response =
+                mHttpClient.performRequest(DEFAULT_GET_REQUEST, true);
+
+        assertThat(response.getStatusCode()).isEqualTo(200);
+        assertThat(response.getHeaders()).isEqualTo(mockHeaders);
+        assertThat(response.getPayload()).isEqualTo(null);
+        assertThat(response.getPayloadFileName()).isNotEmpty();
+        assertThat(new FileInputStream(response.getPayloadFileName()).readAllBytes())
+                .isEqualTo(successMessage.getBytes(UTF_8));
+    }
+
+
+    @Test
+    public void testPerformGetRequestFails() throws Exception {
+        String failureMessage = "FAIL!";
+        InputStream mockStream = new ByteArrayInputStream(failureMessage.getBytes(UTF_8));
+        when(mMockHttpURLConnection.getErrorStream()).thenReturn(mockStream);
+        when(mMockHttpURLConnection.getResponseCode()).thenReturn(503);
+        when(mMockHttpURLConnection.getHeaderFields()).thenReturn(new HashMap<>());
+        doReturn(mMockHttpURLConnection).when(mHttpClient).setup(ArgumentMatchers.any());
+        when(mMockHttpURLConnection.getContentLengthLong())
+                .thenReturn((long) failureMessage.length());
+
+        FederatedComputeHttpResponse response = mHttpClient.performRequest(DEFAULT_GET_REQUEST);
+
+        assertThat(response.getStatusCode()).isEqualTo(503);
+        assertTrue(response.getHeaders().isEmpty());
+        assertThat(response.getPayload()).isEqualTo(failureMessage.getBytes(UTF_8));
+    }
+
+    @Test
     public void testPerformGetRequestFailsWithRetry() throws Exception {
         String failureMessage = "FAIL!";
-        OdpHttpResponse testFailedResponse =
-                new OdpHttpResponse.Builder()
-                        .setHeaders(new HashMap<>())
-                        .setPayload(failureMessage.getBytes(UTF_8))
-                        .setStatusCode(503)
-                        .build();
-        TestHttpIOSupplier testSupplier = new TestHttpIOSupplier(testFailedResponse);
+        when(mMockHttpURLConnection.getErrorStream())
+                .then(invocation -> new ByteArrayInputStream(failureMessage.getBytes(UTF_8)));
+        when(mMockHttpURLConnection.getResponseCode()).thenReturn(503);
+        when(mMockHttpURLConnection.getHeaderFields()).thenReturn(new HashMap<>());
+        when(mMockHttpURLConnection.getContentLengthLong())
+                .thenReturn((long) failureMessage.length());
+        doReturn(mMockHttpURLConnection).when(mHttpClient).setup(ArgumentMatchers.any());
 
-        OdpHttpResponse returnedResponse = mHttpClient.performRequestWithRetry(testSupplier);
+        FederatedComputeHttpResponse response =
+                mHttpClient.performRequestWithRetry(
+                        () -> mHttpClient.performRequest(DEFAULT_GET_REQUEST));
 
-        assertEquals(DEFAULT_RETRY_LIMIT, testSupplier.mCallCount.get());
-        assertThat(returnedResponse.getStatusCode()).isEqualTo(503);
-        assertTrue(returnedResponse.getHeaders().isEmpty());
-        assertThat(returnedResponse.getPayload()).isEqualTo(failureMessage.getBytes(UTF_8));
+        verify(mHttpClient, times(DEFAULT_RETRY_LIMIT)).performRequest(DEFAULT_GET_REQUEST);
+        assertThat(response.getStatusCode()).isEqualTo(503);
+        assertTrue(response.getHeaders().isEmpty());
+        assertThat(response.getPayload()).isEqualTo(failureMessage.getBytes(UTF_8));
     }
 
     @Test
     public void testPerformGetRequestSuccessWithRetry() throws Exception {
+        String failureMessage = "FAIL!";
+        InputStream mockStream = new ByteArrayInputStream(failureMessage.getBytes(UTF_8));
+        when(mMockHttpURLConnection.getErrorStream()).thenReturn(mockStream);
+        when(mMockHttpURLConnection.getResponseCode()).thenReturn(503);
+        when(mMockHttpURLConnection.getHeaderFields()).thenReturn(new HashMap<>());
+        HttpURLConnection mockSuccessfulHttpURLConnection = Mockito.mock(HttpURLConnection.class);
         Map<String, List<String>> mockHeaders = new HashMap<>();
         mockHeaders.put("Header1", Arrays.asList("Value1"));
-        String failureMessage = "FAIL!";
-        String successMessage = "Success!";
+        when(mockSuccessfulHttpURLConnection.getOutputStream())
+                .thenReturn(new ByteArrayOutputStream());
+        when(mockSuccessfulHttpURLConnection.getResponseCode()).thenReturn(200);
+        when(mockSuccessfulHttpURLConnection.getHeaderFields()).thenReturn(mockHeaders);
+        final AtomicInteger countCall = new AtomicInteger();
+        doAnswer(
+                        invocation -> {
+                            int count = countCall.incrementAndGet();
+                            if (count < 3) {
+                                return mMockHttpURLConnection;
+                            } else {
+                                return mockSuccessfulHttpURLConnection;
+                            }
+                        })
+                .when(mHttpClient)
+                .setup(ArgumentMatchers.any());
+        when(mMockHttpURLConnection.getContentLengthLong())
+                .thenReturn((long) failureMessage.length());
 
-        OdpHttpResponse testFailedResponse =
-                new OdpHttpResponse.Builder()
-                        .setHeaders(new HashMap<>())
-                        .setPayload(failureMessage.getBytes(UTF_8))
-                        .setStatusCode(503)
-                        .build();
-        OdpHttpResponse testSuccessfulResponse =
-                new OdpHttpResponse.Builder()
-                        .setPayload(successMessage.getBytes(UTF_8))
-                        .setStatusCode(200)
-                        .setHeaders(mockHeaders)
-                        .build();
-        TestHttpIOSupplier testSupplier =
-                new TestHttpIOSupplier(
-                        testSuccessfulResponse, testFailedResponse, DEFAULT_RETRY_LIMIT - 1);
+        FederatedComputeHttpResponse response =
+                mHttpClient.performRequestWithRetry(
+                        () -> mHttpClient.performRequest(DEFAULT_GET_REQUEST));
 
-        OdpHttpResponse response = mHttpClient.performRequestWithRetry(testSupplier);
-
-        assertEquals(DEFAULT_RETRY_LIMIT, testSupplier.mCallCount.get());
+        verify(mHttpClient, times(3)).performRequest(DEFAULT_GET_REQUEST);
         assertThat(response.getStatusCode()).isEqualTo(200);
         assertThat(response.getHeaders()).isEqualTo(mockHeaders);
     }
 
-    private static final class TestHttpIOSupplier
-            implements HttpClient.HttpIOSupplier<OdpHttpResponse> {
-        private AtomicInteger mCallCount = new AtomicInteger(0);
+    @Test
+    public void testPerformPostRequestSuccess() throws Exception {
+        FederatedComputeHttpRequest request =
+                FederatedComputeHttpRequest.create(
+                        "https://google.com",
+                        HttpMethod.POST,
+                        new HashMap<>(),
+                        "payload".getBytes(UTF_8));
+        Map<String, List<String>> mockHeaders = new HashMap<>();
+        mockHeaders.put("Header1", Arrays.asList("Value1"));
+        when(mMockHttpURLConnection.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+        when(mMockHttpURLConnection.getResponseCode()).thenReturn(200);
+        when(mMockHttpURLConnection.getHeaderFields()).thenReturn(mockHeaders);
+        doReturn(mMockHttpURLConnection).when(mHttpClient).setup(ArgumentMatchers.any());
 
-        private final OdpHttpResponse mSuccessfulResponse;
-        private final OdpHttpResponse mFailedResponse;
-        private final int mNumFailedCalls;
+        FederatedComputeHttpResponse response = mHttpClient.performRequest(request);
 
-        private TestHttpIOSupplier(OdpHttpResponse failedResponse) {
-            this(null, failedResponse, 0);
-        }
-
-        private TestHttpIOSupplier(
-                OdpHttpResponse successfulResponse,
-                OdpHttpResponse failedResponse,
-                int numFailedCalls) {
-            this.mSuccessfulResponse = successfulResponse;
-            this.mFailedResponse = failedResponse;
-            this.mNumFailedCalls = numFailedCalls;
-        }
-
-        @Override
-        public OdpHttpResponse get() throws IOException {
-            int callCount = mCallCount.incrementAndGet();
-            if (mSuccessfulResponse == null) {
-                return mFailedResponse;
-            }
-
-            return callCount > mNumFailedCalls ? mSuccessfulResponse : mFailedResponse;
-        }
+        assertThat(response.getStatusCode()).isEqualTo(200);
+        assertThat(response.getHeaders()).isEqualTo(mockHeaders);
     }
 }

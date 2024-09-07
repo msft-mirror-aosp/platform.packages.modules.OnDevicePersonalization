@@ -31,12 +31,12 @@ import android.os.Trace;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
+import com.android.federatedcompute.services.common.FileUtils;
 import com.android.federatedcompute.services.data.fbs.TrainingFlags;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
 import com.android.federatedcompute.services.training.aidl.IIsolatedTrainingService;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
 import com.android.federatedcompute.services.training.util.ListenableSupplier;
-import com.android.odp.module.common.FileUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.FutureCallback;

@@ -28,16 +28,12 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.PersistableBundle;
 
-import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-
 import com.google.android.libraries.mobiledatadownload.TaskScheduler;
 
 /**
  * MddTaskScheduler that uses JobScheduler to schedule MDD background tasks
  */
 public class MddTaskScheduler implements TaskScheduler {
-    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
-    private static final String TAG = MddTaskScheduler.class.getSimpleName();
     static final String MDD_TASK_TAG_KEY = "MDD_TASK_TAG_KEY";
     private static final String MDD_TASK_SHARED_PREFS = "mdd_worker_task_periods";
     private final Context mContext;
@@ -82,28 +78,21 @@ public class MddTaskScheduler implements TaskScheduler {
 
         // When the period change, we will need to update the existing works.
         boolean updateCurrent = false;
-        if (getCurrentPeriodValue(prefs, mddTaskTag) != periodSeconds) {
+        if (prefs.getLong(mddTaskTag, 0) != periodSeconds) {
             SharedPreferences.Editor editor = prefs.edit();
             editor.putLong(mddTaskTag, periodSeconds);
             editor.apply();
             updateCurrent = true;
         }
 
-        JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
-        if (jobScheduler.getPendingJob(getMddTaskJobId(mddTaskTag)) == null) {
-            sLogger.d(TAG + ": MddJob %s is not scheduled, scheduling now", mddTaskTag);
-            schedulePeriodicTaskWithUpdate(jobScheduler, mddTaskTag, periodSeconds, networkState);
-        } else if (updateCurrent) {
-            sLogger.d(TAG + ": scheduling MddJob %s with frequency update", mddTaskTag);
-            schedulePeriodicTaskWithUpdate(jobScheduler, mddTaskTag, periodSeconds, networkState);
-        } else {
-            sLogger.d(TAG + ": MddJob %s already scheduled and frequency unchanged,"
-                    + " not scheduling", mddTaskTag);
+        if (updateCurrent) {
+            schedulePeriodicTaskWithUpdate(mddTaskTag, periodSeconds, networkState);
         }
     }
 
-    private void schedulePeriodicTaskWithUpdate(JobScheduler jobScheduler, String mddTaskTag,
-            long periodSeconds, NetworkState networkState) {
+    private void schedulePeriodicTaskWithUpdate(String mddTaskTag, long periodSeconds,
+            NetworkState networkState) {
+        final JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
 
         // We use Extra to pass the MDD Task Tag. This will be used in the MddJobService.
         PersistableBundle extras = new PersistableBundle();
@@ -123,15 +112,5 @@ public class MddTaskScheduler implements TaskScheduler {
                         .setExtras(extras)
                         .build();
         jobScheduler.schedule(job);
-    }
-
-    private long getCurrentPeriodValue(SharedPreferences prefs, String mddTaskTag) {
-        try {
-            return prefs.getLong(mddTaskTag, 0);
-        } catch (ClassCastException e) {
-            sLogger.w(e, TAG + ": ClassCastException retrieving long value from prefs for tag: %s",
-                    mddTaskTag);
-            return 0;
-        }
     }
 }

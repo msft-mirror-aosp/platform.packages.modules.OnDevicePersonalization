@@ -176,9 +176,7 @@ public class FederatedComputeScheduler {
                                     Constants.API_NAME_FEDERATED_COMPUTE_SCHEDULE,
                                     System.currentTimeMillis() - startTimeMillis,
                                     Constants.STATUS_SUCCESS);
-                            outcomeReceiver.onResult(
-                                    new FederatedComputeScheduleResponse(
-                                            federatedComputeScheduleRequest));
+                            outcomeReceiver.onResult(new FederatedComputeScheduleResponse());
                         }
 
                         @Override

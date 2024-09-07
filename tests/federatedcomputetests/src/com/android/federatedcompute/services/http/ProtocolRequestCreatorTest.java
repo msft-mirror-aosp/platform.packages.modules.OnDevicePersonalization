@@ -24,8 +24,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 
-import com.android.odp.module.common.HttpClientUtils;
-import com.android.odp.module.common.OdpHttpRequest;
+import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 
 import com.google.internal.federatedcompute.v1.ForwardingInfo;
 
@@ -46,12 +45,12 @@ public final class ProtocolRequestCreatorTest {
         ProtocolRequestCreator requestCreator =
                 new ProtocolRequestCreator(REQUEST_BASE_URI, new HashMap<String, String>());
 
-        OdpHttpRequest request =
+        FederatedComputeHttpRequest request =
                 requestCreator.createProtoRequest(
-                        "/v1/request", HttpClientUtils.HttpMethod.POST, REQUEST_BODY, true);
+                        "/v1/request", HttpMethod.POST, REQUEST_BODY, true);
 
         assertThat(request.getUri()).isEqualTo("https://initial.uri/v1/request");
-        assertThat(request.getHttpMethod()).isEqualTo(HttpClientUtils.HttpMethod.POST);
+        assertThat(request.getHttpMethod()).isEqualTo(HttpMethod.POST);
         assertThat(request.getBody()).isEqualTo(REQUEST_BODY);
         HashMap<String, String> expectedHeaders = new HashMap<String, String>();
         expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(12));
@@ -81,10 +80,7 @@ public final class ProtocolRequestCreatorTest {
                         IllegalArgumentException.class,
                         () ->
                                 requestCreator.createProtoRequest(
-                                        "v1/request",
-                                        HttpClientUtils.HttpMethod.POST,
-                                        REQUEST_BODY,
-                                        false));
+                                        "v1/request", HttpMethod.POST, REQUEST_BODY, false));
 
         assertThat(exception)
                 .hasMessageThat()
@@ -97,9 +93,9 @@ public final class ProtocolRequestCreatorTest {
                 ForwardingInfo.newBuilder().setTargetUriPrefix(AGGREGATION_TARGET_URI).build();
         ProtocolRequestCreator requestCreator = ProtocolRequestCreator.create(forwardingInfo);
 
-        OdpHttpRequest request =
+        FederatedComputeHttpRequest request =
                 requestCreator.createProtoRequest(
-                        "/v1/request", HttpClientUtils.HttpMethod.POST, REQUEST_BODY, false);
+                        "/v1/request", HttpMethod.POST, REQUEST_BODY, false);
 
         assertThat(request.getUri()).isEqualTo("https://aggregation.uri/v1/request");
     }
@@ -109,12 +105,12 @@ public final class ProtocolRequestCreatorTest {
         ProtocolRequestCreator requestCreator =
                 new ProtocolRequestCreator(REQUEST_BASE_URI, new HashMap<String, String>());
 
-        OdpHttpRequest request =
+        FederatedComputeHttpRequest request =
                 requestCreator.createProtoRequest(
-                        "/v1/request", HttpClientUtils.HttpMethod.POST, REQUEST_BODY, true);
+                        "/v1/request", HttpMethod.POST, REQUEST_BODY, true);
 
         assertThat(request.getUri()).isEqualTo("https://initial.uri/v1/request");
-        assertThat(request.getHttpMethod()).isEqualTo(HttpClientUtils.HttpMethod.POST);
+        assertThat(request.getHttpMethod()).isEqualTo(HttpMethod.POST);
         assertThat(request.getBody()).isEqualTo(REQUEST_BODY);
         HashMap<String, String> expectedHeaders = new HashMap<String, String>();
         expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(12));
