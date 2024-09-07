@@ -24,12 +24,13 @@ import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDao;
-import com.android.federatedcompute.services.http.FederatedComputeHttpRequest;
-import com.android.federatedcompute.services.http.FederatedComputeHttpResponse;
 import com.android.federatedcompute.services.http.HttpClient;
 import com.android.federatedcompute.services.http.HttpClientUtil;
 import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.HttpClientUtils;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.OdpHttpRequest;
+import com.android.odp.module.common.OdpHttpResponse;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -143,12 +144,12 @@ public class FederatedComputeEncryptionKeyManager {
                     new IllegalArgumentException("Url to fetch active encryption keys is null")));
         }
 
-        FederatedComputeHttpRequest request;
+        OdpHttpRequest request;
         try {
             request =
-                    FederatedComputeHttpRequest.create(
+                    OdpHttpRequest.create(
                             fetchUri,
-                            HttpClientUtil.HttpMethod.GET,
+                            HttpClientUtils.HttpMethod.GET,
                             new HashMap<>(),
                             HttpClientUtil.EMPTY_BODY);
         } catch (Exception e) {
@@ -175,7 +176,7 @@ public class FederatedComputeEncryptionKeyManager {
     }
 
     private ImmutableList<FederatedComputeEncryptionKey> parseFetchEncryptionKeyPayload(
-            FederatedComputeHttpResponse keyFetchResponse,
+            OdpHttpResponse keyFetchResponse,
             @FederatedComputeEncryptionKey.KeyType int keyType,
             Long fetchTime) {
         String payload = new String(Objects.requireNonNull(keyFetchResponse.getPayload()));

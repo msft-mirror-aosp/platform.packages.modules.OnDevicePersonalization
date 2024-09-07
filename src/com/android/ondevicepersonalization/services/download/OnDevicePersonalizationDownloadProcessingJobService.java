@@ -115,15 +115,20 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
             Futures.whenAllComplete(mFutures).call(() -> {
                 boolean wantsReschedule = false;
                 boolean allSuccess = true;
+                int successTaskCount = 0;
+                int failureTaskCount = 0;
                 for (ListenableFuture<Void> future : mFutures) {
                     try {
                         future.get();
+                        successTaskCount++;
                     } catch (Exception e) {
                         sLogger.e(e, TAG + ": Error processing future");
+                        failureTaskCount++;
                         allSuccess = false;
-                        break;
                     }
                 }
+                sLogger.d(TAG + ": all download processing tasks finished, "
+                        + "%d succeeded, %d failed", successTaskCount, failureTaskCount);
                 OdpJobServiceLogger.getInstance(
                         OnDevicePersonalizationDownloadProcessingJobService.this)
                         .recordJobFinished(

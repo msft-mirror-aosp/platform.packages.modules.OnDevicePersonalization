@@ -93,7 +93,7 @@ public class UserDataCollectionJobServiceTest {
     }
 
     @Test
-    public void onStartJobTest() {
+    public void onStartJobTest() throws Exception {
         doReturn(mContext.getPackageManager()).when(mService).getPackageManager();
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
         ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
@@ -101,6 +101,7 @@ public class UserDataCollectionJobServiceTest {
 
         boolean result = mService.onStartJob(mock(JobParameters.class));
         assertTrue(result);
+        Thread.sleep(2000);
         verify(mService, times(1)).jobFinished(any(), eq(false));
     }
 
@@ -121,7 +122,7 @@ public class UserDataCollectionJobServiceTest {
     }
 
     @Test
-    public void onStartJobTestUserControlRevoked() {
+    public void onStartJobTestUserControlRevoked() throws Exception {
         mUserDataCollector.updateUserData(RawUserData.getInstance());
         assertTrue(mUserDataCollector.isInitialized());
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
@@ -131,6 +132,7 @@ public class UserDataCollectionJobServiceTest {
         boolean result = mService.onStartJob(mock(JobParameters.class));
 
         assertTrue(result);
+        Thread.sleep(2000);
         verify(mService, times(1)).jobFinished(any(), eq(false));
         assertFalse(mUserDataCollector.isInitialized());
     }

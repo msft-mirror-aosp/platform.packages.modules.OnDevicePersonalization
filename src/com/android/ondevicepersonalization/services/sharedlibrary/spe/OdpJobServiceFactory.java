@@ -22,11 +22,11 @@ import static com.android.ondevicepersonalization.services.OnDevicePersonalizati
 import android.content.Context;
 
 import com.android.adservices.shared.proto.ModuleJobPolicy;
-import com.android.adservices.shared.proto.ProtoParser;
 import com.android.adservices.shared.spe.framework.JobServiceFactory;
 import com.android.adservices.shared.spe.framework.JobWorker;
 import com.android.adservices.shared.spe.logging.JobSchedulingLogger;
 import com.android.adservices.shared.spe.logging.JobServiceLogger;
+import com.android.adservices.shared.util.ProtoParser;
 import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;

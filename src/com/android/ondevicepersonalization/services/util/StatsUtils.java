@@ -42,28 +42,24 @@ public class StatsUtils {
         return callerLatencyMillis - calleeLatencyMillis;
     }
 
-    /** Writes app request usage to statsd. */
-    public static void writeAppRequestMetrics(
-            int apiName, Clock clock, int responseCode, long startTimeMillis) {
-        int latencyMillis = (int) (clock.elapsedRealtime() - startTimeMillis);
-        ApiCallStats callStats = new ApiCallStats.Builder(apiName)
-                .setLatencyMillis(latencyMillis)
-                .setResponseCode(responseCode)
-                .build();
-        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
-    }
-
     /** Writes service request usage to statsd. */
     public static void writeServiceRequestMetrics(
-            int apiName, Bundle result, Clock clock, int responseCode, long startTimeMillis) {
+            int apiName,
+            String sdkPackageName,
+            Bundle result,
+            Clock clock,
+            int responseCode,
+            long startTimeMillis) {
         int latencyMillis = (int) (clock.elapsedRealtime() - startTimeMillis);
         int overheadLatencyMillis =
                 (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
-        ApiCallStats callStats = new ApiCallStats.Builder(apiName)
-                .setLatencyMillis(latencyMillis)
-                .setOverheadLatencyMillis(overheadLatencyMillis)
-                .setResponseCode(responseCode)
-                .build();
+        ApiCallStats callStats =
+                new ApiCallStats.Builder(apiName)
+                        .setLatencyMillis(latencyMillis)
+                        .setOverheadLatencyMillis(overheadLatencyMillis)
+                        .setResponseCode(responseCode)
+                        .setSdkPackageName(sdkPackageName == null ? "" : sdkPackageName)
+                        .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
     private StatsUtils() {}

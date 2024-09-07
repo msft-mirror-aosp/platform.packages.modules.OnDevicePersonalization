@@ -272,6 +272,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                                 val -> {
                                     StatsUtils.writeServiceRequestMetrics(
                                             Constants.API_NAME_SERVICE_ON_EXECUTE,
+                                            mService.getPackageName(),
                                             val,
                                             mInjector.getClock(),
                                             Constants.STATUS_SUCCESS,
@@ -284,6 +285,8 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                                 e -> {
                                     StatsUtils.writeServiceRequestMetrics(
                                             Constants.API_NAME_SERVICE_ON_EXECUTE,
+                                            mService.getPackageName(),
+
                                             /* result= */ null,
                                             mInjector.getClock(),
                                             Constants.STATUS_INTERNAL_ERROR,
