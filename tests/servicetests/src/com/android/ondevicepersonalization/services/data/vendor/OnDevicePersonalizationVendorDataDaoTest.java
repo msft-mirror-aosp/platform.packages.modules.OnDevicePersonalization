@@ -215,57 +215,13 @@ public class OnDevicePersonalizationVendorDataDaoTest {
         OnDevicePersonalizationVendorDataDao instance2Owner1 =
                 OnDevicePersonalizationVendorDataDao.getInstance(mContext, owner1,
                         TEST_CERT_DIGEST);
-        assertEquals(instance1Owner1, instance2Owner1);
         ComponentName owner2 = new ComponentName("owner2", "cls2");
         OnDevicePersonalizationVendorDataDao instance1Owner2 =
                 OnDevicePersonalizationVendorDataDao.getInstance(mContext, owner2,
                         TEST_CERT_DIGEST);
+
+        com.google.common.truth.Truth.assertThat(instance1Owner1).isSameInstanceAs(instance2Owner1);
         assertNotEquals(instance1Owner1, instance1Owner2);
-    }
-
-    @After
-    public void cleanup() {
-        OnDevicePersonalizationDbHelper dbHelper =
-                OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
-
-        File vendorDir = new File(mContext.getFilesDir(), "VendorData");
-        File localDir = new File(mContext.getFilesDir(), "LocalData");
-        FileUtils.deleteDirectory(vendorDir);
-        FileUtils.deleteDirectory(localDir);
-    }
-
-    private void addTestData(long timestamp) {
-        addTestData(timestamp, mDao);
-    }
-
-    private void addTestData(long timestamp, OnDevicePersonalizationVendorDataDao dao) {
-        List<VendorData> dataList = new ArrayList<>();
-        dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
-        dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
-        dataList.add(new VendorData.Builder().setKey("large").setData(new byte[111111]).build());
-        dataList.add(new VendorData.Builder().setKey("large2").setData(new byte[111111]).build());
-        dataList.add(new VendorData.Builder().setKey("xlarge").setData(new byte[5555555]).build());
-
-        List<String> retainedKeys = new ArrayList<>();
-        retainedKeys.add("key");
-        retainedKeys.add("key2");
-        retainedKeys.add("large");
-        retainedKeys.add("large2");
-        retainedKeys.add("xlarge");
-        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(dataList, retainedKeys,
-                timestamp));
-    }
-
-    private void addEventState(ComponentName service) {
-        EventState eventState = new EventState.Builder()
-                .setTaskIdentifier(TASK_IDENTIFIER)
-                .setService(service)
-                .setToken(new byte[]{1})
-                .build();
-        mEventsDao.updateOrInsertEventState(eventState);
     }
 
     @Test
@@ -318,5 +274,50 @@ public class OnDevicePersonalizationVendorDataDaoTest {
                 mContext, Collections.emptyList());
         assertFalse(dir.exists());
         assertNull(mEventsDao.getEventState(TASK_IDENTIFIER, TEST_OWNER));
+    }
+
+    @After
+    public void cleanup() {
+        OnDevicePersonalizationDbHelper dbHelper =
+                OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
+        dbHelper.getWritableDatabase().close();
+        dbHelper.getReadableDatabase().close();
+        dbHelper.close();
+
+        File vendorDir = new File(mContext.getFilesDir(), "VendorData");
+        File localDir = new File(mContext.getFilesDir(), "LocalData");
+        FileUtils.deleteDirectory(vendorDir);
+        FileUtils.deleteDirectory(localDir);
+    }
+
+    private void addTestData(long timestamp) {
+        addTestData(timestamp, mDao);
+    }
+
+    private static void addTestData(long timestamp, OnDevicePersonalizationVendorDataDao dao) {
+        List<VendorData> dataList = new ArrayList<>();
+        dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
+        dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
+        dataList.add(new VendorData.Builder().setKey("large").setData(new byte[111111]).build());
+        dataList.add(new VendorData.Builder().setKey("large2").setData(new byte[111111]).build());
+        dataList.add(new VendorData.Builder().setKey("xlarge").setData(new byte[5555555]).build());
+
+        List<String> retainedKeys = new ArrayList<>();
+        retainedKeys.add("key");
+        retainedKeys.add("key2");
+        retainedKeys.add("large");
+        retainedKeys.add("large2");
+        retainedKeys.add("xlarge");
+        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(dataList, retainedKeys, timestamp));
+    }
+
+    private void addEventState(ComponentName service) {
+        EventState eventState =
+                new EventState.Builder()
+                        .setTaskIdentifier(TASK_IDENTIFIER)
+                        .setService(service)
+                        .setToken(new byte[] {1})
+                        .build();
+        mEventsDao.updateOrInsertEventState(eventState);
     }
 }

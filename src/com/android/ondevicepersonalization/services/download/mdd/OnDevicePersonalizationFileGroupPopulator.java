@@ -16,11 +16,8 @@
 
 package com.android.ondevicepersonalization.services.download.mdd;
 
-import static android.content.pm.PackageManager.GET_META_DATA;
-
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.SystemProperties;
@@ -30,7 +27,6 @@ import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
-import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 
 import com.google.android.libraries.mobiledatadownload.AddFileGroupRequest;
@@ -202,76 +198,75 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
         GetFileGroupsByFilterRequest request =
                 GetFileGroupsByFilterRequest.newBuilder().setIncludeAllGroups(true).build();
         return FluentFuture.from(mobileDataDownload.getFileGroupsByFilter(request))
-                .transformAsync(fileGroupList -> {
-                    Set<String> fileGroupsToRemove = new HashSet<>();
-                    for (ClientConfigProto.ClientFileGroup fileGroup : fileGroupList) {
-                        fileGroupsToRemove.add(fileGroup.getGroupName());
-                    }
-                    List<ListenableFuture<Boolean>> mFutures = new ArrayList<>();
-                    for (PackageInfo packageInfo : mContext.getPackageManager()
-                            .getInstalledPackages(
-                                    PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
-                        String packageName = packageInfo.packageName;
-                        if (AppManifestConfigHelper.manifestContainsOdpSettings(
-                                mContext, packageName)) {
-                            if (!PartnerEnrollmentChecker.isIsolatedServiceEnrolled(packageName)) {
-                                sLogger.d(TAG + ": service %s has ODP manifest, "
-                                        + "but not enrolled", packageName);
-                                continue;
+                .transformAsync(
+                        fileGroupList -> {
+                            Set<String> fileGroupsToRemove = new HashSet<>();
+                            for (ClientConfigProto.ClientFileGroup fileGroup : fileGroupList) {
+                                fileGroupsToRemove.add(fileGroup.getGroupName());
                             }
-                            sLogger.d(TAG + ": service %s has ODP manifest and is enrolled",
-                                    packageName);
-                            try {
-                                String groupName = createPackageFileGroupName(
-                                        packageName,
-                                        mContext);
-                                fileGroupsToRemove.remove(groupName);
-                                String ownerPackage = mContext.getPackageName();
-                                String fileId = groupName;
-                                int byteSize = 0;
-                                String checksum = "";
-                                ChecksumType checksumType = ChecksumType.NONE;
-                                String downloadUrl = createDownloadUrl(packageName,
-                                        mContext);
-                                DeviceNetworkPolicy deviceNetworkPolicy =
-                                        DeviceNetworkPolicy.DOWNLOAD_ONLY_ON_WIFI;
-                                DataFileGroup dataFileGroup = createDataFileGroup(
-                                        groupName,
-                                        ownerPackage,
-                                        new String[]{fileId},
-                                        new int[]{byteSize},
-                                        new String[]{checksum},
-                                        new ChecksumType[]{checksumType},
-                                        new String[]{downloadUrl},
-                                        deviceNetworkPolicy);
-                                mFutures.add(mobileDataDownload.addFileGroup(
-                                        AddFileGroupRequest.newBuilder().setDataFileGroup(
-                                                dataFileGroup).build()));
-                            } catch (Exception e) {
-                                sLogger.e(TAG + ": Failed to create file group for "
-                                        + packageName, e);
-                            }
-                        }
-                    }
-
-                    for (String group : fileGroupsToRemove) {
-                        sLogger.d(TAG + ": Removing file group: " + group);
-                        mFutures.add(mobileDataDownload.removeFileGroup(
-                                RemoveFileGroupRequest.newBuilder().setGroupName(group).build()));
-                    }
-
-                    return PropagatedFutures.transform(
-                            Futures.successfulAsList(mFutures),
-                            result -> {
-                                if (result.contains(null)) {
-                                    sLogger.d(TAG + ": Failed to add or remove a file group");
-                                } else {
-                                    sLogger.d(TAG + ": Successfully updated all file groups");
+                            List<ListenableFuture<Boolean>> mFutures = new ArrayList<>();
+                            for (String packageName :
+                                    AppManifestConfigHelper.getOdpPackages(
+                                            mContext, /* enrolledOnly= */ true)) {
+                                try {
+                                    String groupName =
+                                            createPackageFileGroupName(packageName, mContext);
+                                    fileGroupsToRemove.remove(groupName);
+                                    String ownerPackage = mContext.getPackageName();
+                                    String fileId = groupName;
+                                    int byteSize = 0;
+                                    String checksum = "";
+                                    ChecksumType checksumType = ChecksumType.NONE;
+                                    String downloadUrl = createDownloadUrl(packageName, mContext);
+                                    DeviceNetworkPolicy deviceNetworkPolicy =
+                                            DeviceNetworkPolicy.DOWNLOAD_ONLY_ON_WIFI;
+                                    DataFileGroup dataFileGroup =
+                                            createDataFileGroup(
+                                                    groupName,
+                                                    ownerPackage,
+                                                    new String[] {fileId},
+                                                    new int[] {byteSize},
+                                                    new String[] {checksum},
+                                                    new ChecksumType[] {checksumType},
+                                                    new String[] {downloadUrl},
+                                                    deviceNetworkPolicy);
+                                    mFutures.add(
+                                            mobileDataDownload.addFileGroup(
+                                                    AddFileGroupRequest.newBuilder()
+                                                            .setDataFileGroup(dataFileGroup)
+                                                            .build()));
+                                } catch (Exception e) {
+                                    sLogger.e(
+                                            TAG
+                                                    + ": Failed to create file group for "
+                                                    + packageName,
+                                            e);
                                 }
-                                return null;
-                            },
-                            OnDevicePersonalizationExecutors.getBackgroundExecutor()
-                    );
-                }, OnDevicePersonalizationExecutors.getBackgroundExecutor());
+                            }
+
+                            for (String group : fileGroupsToRemove) {
+                                sLogger.d(TAG + ": Removing file group: " + group);
+                                mFutures.add(
+                                        mobileDataDownload.removeFileGroup(
+                                                RemoveFileGroupRequest.newBuilder()
+                                                        .setGroupName(group)
+                                                        .build()));
+                            }
+
+                            return PropagatedFutures.transform(
+                                    Futures.successfulAsList(mFutures),
+                                    result -> {
+                                        if (result.contains(null)) {
+                                            sLogger.d(
+                                                    TAG + ": Failed to add or remove a file group");
+                                        } else {
+                                            sLogger.d(
+                                                    TAG + ": Successfully updated all file groups");
+                                        }
+                                        return null;
+                                    },
+                                    OnDevicePersonalizationExecutors.getBackgroundExecutor());
+                        },
+                        OnDevicePersonalizationExecutors.getBackgroundExecutor());
     }
 }

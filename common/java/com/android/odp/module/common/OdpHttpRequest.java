@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.http;
+package com.android.odp.module.common;
 
-import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
+import static com.android.odp.module.common.HttpClientUtils.CONTENT_LENGTH_HDR;
 
-import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
+import com.android.odp.module.common.HttpClientUtils.HttpMethod;
 
 import java.util.Map;
 
-/** Class to hold FederatedCompute http request. */
-public final class FederatedComputeHttpRequest {
+/** Class to hold http requests for federated compute and other odp use-cases. */
+public final class OdpHttpRequest {
     private static final String TAG = "FCPHttpRequest";
     private static final String HTTPS_SCHEMA = "https://";
     private static final String LOCAL_HOST_URI = "http://localhost:";
@@ -33,7 +33,7 @@ public final class FederatedComputeHttpRequest {
     private final Map<String, String> mExtraHeaders;
     private final byte[] mBody;
 
-    private FederatedComputeHttpRequest(
+    private OdpHttpRequest(
             String uri, HttpMethod httpMethod, Map<String, String> extraHeaders, byte[] body) {
         this.mUri = uri;
         this.mHttpMethod = httpMethod;
@@ -41,8 +41,8 @@ public final class FederatedComputeHttpRequest {
         this.mBody = body;
     }
 
-    /** Creates a {@link FederatedComputeHttpRequest} based on given inputs. */
-    public static FederatedComputeHttpRequest create(
+    /** Creates a {@link OdpHttpRequest} based on given inputs. */
+    public static OdpHttpRequest create(
             String uri, HttpMethod httpMethod, Map<String, String> extraHeaders, byte[] body) {
         if (!uri.startsWith(HTTPS_SCHEMA) && !uri.startsWith(LOCAL_HOST_URI)) {
             throw new IllegalArgumentException("Non-HTTPS URIs are not supported: " + uri);
@@ -57,7 +57,7 @@ public final class FederatedComputeHttpRequest {
             }
             extraHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(body.length));
         }
-        return new FederatedComputeHttpRequest(uri, httpMethod, extraHeaders, body);
+        return new OdpHttpRequest(uri, httpMethod, extraHeaders, body);
     }
 
     public String getUri() {

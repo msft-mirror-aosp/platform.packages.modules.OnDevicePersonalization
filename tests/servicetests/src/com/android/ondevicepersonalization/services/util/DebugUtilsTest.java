@@ -162,11 +162,13 @@ public class DebugUtilsTest {
                 .thenReturn(0);
     }
 
-    class TestFlags implements Flags {
-        public boolean mIsolatedServiceDebuggingEnabled;
+    private static final class TestFlags implements Flags {
+        private final boolean mIsolatedServiceDebuggingEnabled;
+
         TestFlags(boolean value) {
             mIsolatedServiceDebuggingEnabled = value;
         }
+
         @Override public boolean isIsolatedServiceDebuggingEnabled() {
             return mIsolatedServiceDebuggingEnabled;
         }

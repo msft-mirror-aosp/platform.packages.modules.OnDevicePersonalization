@@ -159,28 +159,33 @@ public class WebViewFlow implements ServiceFlow<EventOutputParcel> {
 
     @Override
     public void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {
-        var unused = FluentFuture.from(runServiceFuture)
-                .transform(
-                        result -> {
-                            StatsUtils.writeServiceRequestMetrics(
-                                    Constants.API_NAME_SERVICE_ON_EVENT,
-                                    result, mInjector.getClock(),
-                                    Constants.STATUS_SUCCESS,
-                                    mStartServiceTimeMillis);
-                            return null;
-                        },
-                        mInjector.getExecutor())
-                .catchingAsync(
-                        Exception.class,
-                        e -> {
-                            StatsUtils.writeServiceRequestMetrics(
-                                    Constants.API_NAME_SERVICE_ON_EVENT,
-                                    /* result= */ null, mInjector.getClock(),
-                                    Constants.STATUS_INTERNAL_ERROR,
-                                    mStartServiceTimeMillis);
-                            return Futures.immediateFailedFuture(e);
-                        },
-                        mInjector.getExecutor());
+        var unused =
+                FluentFuture.from(runServiceFuture)
+                        .transform(
+                                result -> {
+                                    StatsUtils.writeServiceRequestMetrics(
+                                            Constants.API_NAME_SERVICE_ON_EVENT,
+                                            mService.getPackageName(),
+                                            result,
+                                            mInjector.getClock(),
+                                            Constants.STATUS_SUCCESS,
+                                            mStartServiceTimeMillis);
+                                    return null;
+                                },
+                                mInjector.getExecutor())
+                        .catchingAsync(
+                                Exception.class,
+                                e -> {
+                                    StatsUtils.writeServiceRequestMetrics(
+                                            Constants.API_NAME_SERVICE_ON_EVENT,
+                                            mService.getPackageName(),
+                                            /* result= */ null,
+                                            mInjector.getClock(),
+                                            Constants.STATUS_INTERNAL_ERROR,
+                                            mStartServiceTimeMillis);
+                                    return Futures.immediateFailedFuture(e);
+                                },
+                                mInjector.getExecutor());
     }
 
     @Override
