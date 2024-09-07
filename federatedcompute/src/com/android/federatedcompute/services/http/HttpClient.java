@@ -17,31 +17,21 @@
 package com.android.federatedcompute.services.http;
 
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBlockingExecutor;
-import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
-import static com.android.federatedcompute.services.common.FileUtils.writeToFile;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
 
 import android.annotation.NonNull;
-import android.annotation.Nullable;
 
-import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.PhFlags;
+import com.android.odp.module.common.HttpClientUtils;
+import com.android.odp.module.common.OdpHttpRequest;
+import com.android.odp.module.common.OdpHttpResponse;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
@@ -51,7 +41,7 @@ import java.util.concurrent.TimeUnit;
 public class HttpClient {
 
     interface HttpIOSupplier<T> {
-        T get() throws IOException; // Declares to throw IOException
+        T get() throws IOException; // Declared to throw IOException
     }
 
     private static final String TAG = HttpClient.class.getSimpleName();
@@ -63,24 +53,14 @@ public class HttpClient {
         mFlags = PhFlags.getInstance();
     }
 
-    @NonNull
-    @VisibleForTesting
-    URLConnection setup(@NonNull URL url) throws IOException {
-        Objects.requireNonNull(url);
-        URLConnection urlConnection = url.openConnection();
-        urlConnection.setConnectTimeout(NETWORK_CONNECT_TIMEOUT_MS);
-        urlConnection.setReadTimeout(NETWORK_READ_TIMEOUT_MS);
-        return urlConnection;
-    }
-
     /**
      * Perform HTTP requests based on given information asynchronously with retries in case http
      * will return not OK response code.
      */
     @NonNull
-    public ListenableFuture<FederatedComputeHttpResponse> performRequestAsyncWithRetry(
-            FederatedComputeHttpRequest request) {
-        return performCallableAsync(() -> performRequestWithRetry(() -> performRequest(request)));
+    public ListenableFuture<OdpHttpResponse> performRequestAsyncWithRetry(OdpHttpRequest request) {
+        return performCallableAsync(
+                () -> performRequestWithRetry(() -> HttpClientUtils.performRequest(request)));
     }
 
     /**
@@ -88,10 +68,10 @@ public class HttpClient {
      * will return not OK response code. Payload will be saved directly into the file.
      */
     @NonNull
-    public ListenableFuture<FederatedComputeHttpResponse> performRequestIntoFileAsyncWithRetry(
-            FederatedComputeHttpRequest request) {
+    public ListenableFuture<OdpHttpResponse> performRequestIntoFileAsyncWithRetry(
+            OdpHttpRequest request) {
         return performCallableAsync(
-                () -> performRequestWithRetry(() -> performRequest(request, true)));
+                () -> performRequestWithRetry(() -> HttpClientUtils.performRequest(request, true)));
     }
 
     /**
@@ -99,8 +79,8 @@ public class HttpClient {
      * will return not OK response code.
      */
     @NonNull
-    public ListenableFuture<FederatedComputeHttpResponse> performCallableAsync(
-            Callable<FederatedComputeHttpResponse> callable) {
+    public ListenableFuture<OdpHttpResponse> performCallableAsync(
+            Callable<OdpHttpResponse> callable) {
         try {
             return getBlockingExecutor().submit(callable);
         } catch (Exception e) {
@@ -111,9 +91,9 @@ public class HttpClient {
     /** Perform HTTP requests based on given information with retries. */
     @NonNull
     @VisibleForTesting
-    FederatedComputeHttpResponse performRequestWithRetry(
-            HttpIOSupplier<FederatedComputeHttpResponse> supplier) throws IOException {
-        FederatedComputeHttpResponse response = null;
+    OdpHttpResponse performRequestWithRetry(HttpIOSupplier<OdpHttpResponse> supplier)
+            throws IOException {
+        OdpHttpResponse response = null;
         int retryLimit = mFlags.getHttpRequestRetryLimit();
         while (retryLimit > 0) {
             try {
@@ -132,135 +112,5 @@ public class HttpClient {
             }
         }
         return response;
-    }
-
-    /** Perform HTTP requests based on given information. */
-    @NonNull
-    @VisibleForTesting
-    FederatedComputeHttpResponse performRequest(FederatedComputeHttpRequest request)
-            throws IOException {
-        return performRequest(request, false);
-    }
-
-    /** Perform HTTP requests based on given information. */
-    @NonNull
-    @VisibleForTesting
-    FederatedComputeHttpResponse performRequest(FederatedComputeHttpRequest request,
-            boolean savePayloadIntoFile)
-            throws IOException {
-        if (request.getUri() == null || request.getHttpMethod() == null) {
-            LogUtil.e(TAG, "Endpoint or http method is empty");
-            throw new IllegalArgumentException("Endpoint or http method is empty");
-        }
-
-        URL url;
-        try {
-            url = new URL(request.getUri());
-        } catch (MalformedURLException e) {
-            LogUtil.e(TAG, e, "Malformed registration target URL");
-            throw new IllegalArgumentException("Malformed registration target URL", e);
-        }
-
-        HttpURLConnection urlConnection;
-        try {
-            urlConnection = (HttpURLConnection) setup(url);
-        } catch (IOException e) {
-            LogUtil.e(TAG, e, "Failed to open target URL");
-            throw new IOException("Failed to open target URL", e);
-        }
-
-        try {
-            urlConnection.setRequestMethod(request.getHttpMethod().name());
-            urlConnection.setInstanceFollowRedirects(true);
-
-            if (request.getExtraHeaders() != null && !request.getExtraHeaders().isEmpty()) {
-                for (Map.Entry<String, String> entry : request.getExtraHeaders().entrySet()) {
-                    urlConnection.setRequestProperty(entry.getKey(), entry.getValue());
-                }
-            }
-
-            if (request.getBody() != null && request.getBody().length > 0) {
-                urlConnection.setDoOutput(true);
-                try (BufferedOutputStream out =
-                        new BufferedOutputStream(urlConnection.getOutputStream())) {
-                    out.write(request.getBody());
-                }
-            }
-
-            int responseCode = urlConnection.getResponseCode();
-            if (HTTP_OK_STATUS.contains(responseCode)) {
-                FederatedComputeHttpResponse.Builder builder =
-                        new FederatedComputeHttpResponse.Builder()
-                                .setHeaders(urlConnection.getHeaderFields())
-                                .setStatusCode(responseCode);
-                if (savePayloadIntoFile) {
-                    String inputFile = createTempFile("input", ".tmp");
-                    long downloadedSize =
-                            saveIntoFile(
-                                    inputFile,
-                                    urlConnection.getInputStream(),
-                                    urlConnection.getContentLengthLong());
-                    if (downloadedSize != 0) {
-                        builder.setPayloadFileName(inputFile);
-                        builder.setDownloadedPayloadSize(downloadedSize);
-                    }
-                } else {
-                    builder.setPayload(
-                            getByteArray(
-                                    urlConnection.getInputStream(),
-                                    urlConnection.getContentLengthLong()));
-                }
-                return builder.build();
-            } else {
-                return new FederatedComputeHttpResponse.Builder()
-                        .setPayload(
-                                getByteArray(
-                                        urlConnection.getErrorStream(),
-                                        urlConnection.getContentLengthLong()))
-                        .setHeaders(urlConnection.getHeaderFields())
-                        .setStatusCode(responseCode)
-                        .build();
-            }
-        } catch (IOException e) {
-            LogUtil.e(TAG, e, "Failed to get registration response");
-            throw new IOException("Failed to get registration response", e);
-        } finally {
-            if (urlConnection != null) {
-                urlConnection.disconnect();
-            }
-        }
-    }
-
-    private static long saveIntoFile(String fileName,
-            @Nullable InputStream in, long contentLength)
-            throws IOException {
-        if (contentLength == 0) {
-            return 0;
-        }
-        try (in) {
-            // Process download resource.
-            long downloadedSize = writeToFile(fileName, in);
-            LogUtil.d(TAG, "Downloaded data file size: %d", downloadedSize);
-            return downloadedSize;
-        }
-    }
-
-    private static byte[] getByteArray(@Nullable InputStream in, long contentLength)
-            throws IOException {
-        if (contentLength == 0) {
-            return HttpClientUtil.EMPTY_BODY;
-        }
-        try {
-            // TODO(b/297952090): evaluate the large file download.
-            byte[] buffer = new byte[HttpClientUtil.DEFAULT_BUFFER_SIZE];
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            int bytesRead;
-            while ((bytesRead = in.read(buffer)) != -1) {
-                out.write(buffer, 0, bytesRead);
-            }
-            return out.toByteArray();
-        } finally {
-            in.close();
-        }
     }
 }
