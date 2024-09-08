@@ -19,7 +19,8 @@ package com.android.federatedcompute.services.http;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_TYPE_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.PROTOBUF_CONTENT_TYPE;
 
-import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
+import com.android.odp.module.common.HttpClientUtils.HttpMethod;
+import com.android.odp.module.common.OdpHttpRequest;
 
 import com.google.internal.federatedcompute.v1.ForwardingInfo;
 
@@ -52,18 +53,18 @@ public final class ProtocolRequestCreator {
         return new ProtocolRequestCreator(forwardingInfo.getTargetUriPrefix(), extraHeaders);
     }
 
-    /** Creates a {@link FederatedComputeHttpRequest} with base uri and compression setting. */
-    public FederatedComputeHttpRequest createProtoRequest(
+    /** Creates a {@link OdpHttpRequest} with base uri and compression setting. */
+    public OdpHttpRequest createProtoRequest(
             String uri, HttpMethod httpMethod, byte[] requestBody, boolean isProtobufEncoded) {
         HashMap<String, String> extraHeaders = new HashMap<>();
         return createProtoRequest(uri, httpMethod, extraHeaders, requestBody, isProtobufEncoded);
     }
 
     /**
-     * Creates a {@link FederatedComputeHttpRequest} with base uri, request headers and compression
-     * setting.
+     * Creates a {@link com.android.odp.module.common.OdpHttpRequest} with base uri, request headers
+     * and compression setting.
      */
-    public FederatedComputeHttpRequest createProtoRequest(
+    public OdpHttpRequest createProtoRequest(
             String uri,
             HttpMethod httpMethod,
             Map<String, String> extraHeaders,
@@ -76,7 +77,7 @@ public final class ProtocolRequestCreator {
         if (isProtobufEncoded && requestBody.length > 0) {
             requestHeader.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
         }
-        return FederatedComputeHttpRequest.create(
+        return OdpHttpRequest.create(
                 joinBaseUriWithSuffix(mRequestBaseUri, uri),
                 httpMethod,
                 requestHeader,
