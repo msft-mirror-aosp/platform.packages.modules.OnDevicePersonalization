@@ -106,6 +106,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
     @Override
     public void startQuery(@NonNull Bundle params, @NonNull QueryCallback callback) {
         try {
+            long startTime = mInjector.getClock().currentTimeMillis();
             ContextData contextData =
                     ContextData.fromByteArray(
                             Objects.requireNonNull(
@@ -126,6 +127,13 @@ public final class OdpExampleStoreService extends ExampleStoreService {
             if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
                 privacyStatusEligible = false;
                 sLogger.w(TAG + ": Measurement control is not given.");
+                StatsUtils.writeServiceRequestMetrics(
+                        Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
+                        packageName,
+                        null,
+                        mInjector.getClock(),
+                        Constants.STATUS_PERSONALIZATION_DISABLED,
+                        startTime);
             }
 
             // Cancel job if on longer valid. This is written to the table during scheduling
@@ -133,6 +141,15 @@ public final class OdpExampleStoreService extends ExampleStoreService {
             // during maintenance for uninstalled packages.
             ComponentName owner = ComponentName.createRelative(packageName, ownerClassName);
             EventState eventStatePopulation = eventDao.getEventState(populationName, owner);
+            if (eventStatePopulation == null) {
+                StatsUtils.writeServiceRequestMetrics(
+                        Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
+                        packageName,
+                        null,
+                        mInjector.getClock(),
+                        Constants.STATUS_KEY_NOT_FOUND,
+                        startTime);
+            }
             if (!privacyStatusEligible || eventStatePopulation == null) {
                 sLogger.w("Job was either cancelled or package was uninstalled");
                 // Cancel job.
@@ -288,7 +305,9 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                         val -> {
                             StatsUtils.writeServiceRequestMetrics(
                                     Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
-                                    val, mInjector.getClock(),
+                                    packageName,
+                                    val,
+                                    mInjector.getClock(),
                                     Constants.STATUS_SUCCESS,
                                     isolatedServiceInfo.getStartTimeMillis());
                             return val;
@@ -299,7 +318,9 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                         e -> {
                             StatsUtils.writeServiceRequestMetrics(
                                     Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
-                                    /* result= */ null, mInjector.getClock(),
+                                    packageName,
+                                    /* result= */ null,
+                                    mInjector.getClock(),
                                     Constants.STATUS_INTERNAL_ERROR,
                                     isolatedServiceInfo.getStartTimeMillis());
                             return Futures.immediateFailedFuture(e);
