@@ -16,74 +16,92 @@
 
 package com.android.ondevicepersonalization.services.policyengine
 
-import androidx.test.core.app.ApplicationProvider;
-import androidx.test.ext.junit.runners.AndroidJUnit4
-
-import org.junit.Before
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
-import org.junit.Test
-
-import android.util.Log
-
 import android.adservices.ondevicepersonalization.AppInfo
 import android.adservices.ondevicepersonalization.OSVersion
 import android.adservices.ondevicepersonalization.UserData
+import android.net.NetworkCapabilities
 import android.os.Parcel
-import android.util.ArrayMap
-
-import com.android.libraries.pcc.chronicle.util.MutableTypedMap
-import com.android.libraries.pcc.chronicle.util.TypedMap
+import android.telephony.TelephonyManager.NETWORK_TYPE_LTE
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.android.dx.mockito.inline.extended.ExtendedMockito
 import com.android.libraries.pcc.chronicle.api.ConnectionRequest
 import com.android.libraries.pcc.chronicle.api.ConnectionResult
-import com.android.libraries.pcc.chronicle.api.ReadConnection
-import com.android.libraries.pcc.chronicle.api.error.ChronicleError
-import com.android.libraries.pcc.chronicle.api.error.PolicyNotFound
-import com.android.libraries.pcc.chronicle.api.error.PolicyViolation
-import com.android.libraries.pcc.chronicle.api.error.Disabled
 import com.android.libraries.pcc.chronicle.api.ProcessorNode
-
+import com.android.libraries.pcc.chronicle.api.error.ChronicleError
+import com.android.libraries.pcc.chronicle.api.error.Disabled
+import com.android.libraries.pcc.chronicle.api.error.PolicyViolation
+import com.android.libraries.pcc.chronicle.util.MutableTypedMap
+import com.android.libraries.pcc.chronicle.util.TypedMap
+import com.android.ondevicepersonalization.services.data.user.Carrier
+import com.android.ondevicepersonalization.services.data.user.RawUserData
 import com.android.ondevicepersonalization.services.policyengine.api.ChronicleManager
 import com.android.ondevicepersonalization.services.policyengine.data.UserDataReader
-import com.android.ondevicepersonalization.services.policyengine.data.impl.UserDataConnectionProvider
 import com.android.ondevicepersonalization.services.policyengine.policy.DataIngressPolicy
 import com.android.ondevicepersonalization.services.policyengine.policy.rules.KidStatusEnabled
 import com.android.ondevicepersonalization.services.policyengine.policy.rules.LimitedAdsTrackingEnabled
-
-import com.android.ondevicepersonalization.services.data.user.RawUserData
-import com.android.ondevicepersonalization.services.data.user.UserDataCollector
-
 import com.google.common.truth.Truth.assertThat
-
 import kotlin.test.fail
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.mockito.Mock
+import org.mockito.MockitoAnnotations
+import org.mockito.MockitoSession
+import org.mockito.quality.Strictness
+import org.mockito.Mockito.`when` as whenever
+
 
 @RunWith(AndroidJUnit4::class)
 class UserDataReaderTest : ProcessorNode {
-
     private lateinit var policyContext: MutableTypedMap
-    private val userDataCollector: UserDataCollector =
-            UserDataCollector.getInstanceForTest(ApplicationProvider.getApplicationContext())
-    private val rawUserData: RawUserData = RawUserData.getInstance()
+
+    @Mock
+    private lateinit var mockRawUserData: RawUserData
+    private lateinit var mockitoSession: MockitoSession
     private val TAG: String = "UserDataReaderTest"
 
     override val requiredConnectionTypes = setOf(UserDataReader::class.java)
 
-    private val chronicleManager: ChronicleManager = ChronicleManager.getInstance(
-        connectionProviders = setOf(UserDataConnectionProvider()),
-        policies = setOf(DataIngressPolicy.NPA_DATA_POLICY),
-        connectionContext = TypedMap()
-    )
+    private val chronicleManager: ChronicleManager = ChronicleManager.getInstance()
 
     @Before
     fun setUp() {
+        MockitoAnnotations.initMocks(this)
+        mockitoSession =
+            ExtendedMockito.mockitoSession()
+                    .mockStatic(RawUserData::class.java)
+                    .strictness(Strictness.LENIENT)
+                    .startMocking()
+        initialRawUserData()
+        whenever(RawUserData.getInstance()).thenReturn(mockRawUserData)
+
         policyContext = MutableTypedMap()
         policyContext[KidStatusEnabled] = false
         policyContext[LimitedAdsTrackingEnabled] = false
 
         chronicleManager.chronicle.updateConnectionContext(TypedMap(policyContext))
         chronicleManager.failNewConnections(false)
-        userDataCollector.updateUserData(rawUserData)
     }
+
+    private fun initialRawUserData() {
+        mockRawUserData.dataNetworkType = NETWORK_TYPE_LTE
+        mockRawUserData.batteryPercentage = 50
+        mockRawUserData.carrier = Carrier.AT_T
+        mockRawUserData.availableStorageBytes = 222
+        mockRawUserData.orientation = 1
+        mockRawUserData.utcOffset = 1
+        mockRawUserData.networkCapabilities =
+            NetworkCapabilities.Builder.withoutDefaultCapabilities()
+                    .setLinkDownstreamBandwidthKbps(100).build()
+        mockRawUserData.installedApps = setOf("app1", "app2", "app3")
+    }
+
+    @After
+    fun cleanup() {
+        mockitoSession.finishMocking()
+    }
+
 
     @Test
     fun testUserDataConnection() {
@@ -96,24 +114,24 @@ class UserDataReaderTest : ProcessorNode {
 
     @Test
     fun testUserDataReader() {
-        try {
-            val userDataReader: UserDataReader? = chronicleManager.chronicle.getConnectionOrThrow(
-                ConnectionRequest(UserDataReader::class.java, this, DataIngressPolicy.NPA_DATA_POLICY)
-            )
-            val userData: UserData? = userDataReader?.readUserData()
-            // Whether user data is null should not matter to policy engine
-            if (userData != null) {
-                verifyData(userData, rawUserData)
-                // test real-time data update
-                userDataCollector.getRealTimeData(rawUserData)
-                val updatedUserData: UserData? = userDataReader.readUserData()
-                if (updatedUserData != null) {
-                    verifyData(updatedUserData, rawUserData)
-                }
-            }
-        } catch (e: ChronicleError) {
-            Log.e(TAG, "Expect success but connection failed with: ", e)
-        }
+        val userDataReader: UserDataReader? = chronicleManager.chronicle.getConnectionOrThrow(
+            ConnectionRequest(UserDataReader::class.java, this, DataIngressPolicy.NPA_DATA_POLICY)
+        )
+        val userData: UserData = userDataReader?.readUserData()
+            ?: fail("User data should not be null")
+        verifyData(userData, mockRawUserData)
+        assertThat(userData.appInfos.keys).isEmpty()
+    }
+
+    @Test
+    fun testUserDataReaderWithAppInstall() {
+        val userDataReader: UserDataReader? = chronicleManager.chronicle.getConnectionOrThrow(
+            ConnectionRequest(UserDataReader::class.java, this, DataIngressPolicy.NPA_DATA_POLICY)
+        )
+        val userData: UserData = userDataReader?.readUserDataWithAppInstall()
+            ?: fail("User data should not be null")
+        verifyData(userData, mockRawUserData)
+        assertThat(userData.appInfos.keys).isEqualTo(mockRawUserData.installedApps)
     }
 
     @Test
@@ -194,11 +212,8 @@ class UserDataReaderTest : ProcessorNode {
         assertThat(userData.getAvailableStorageBytes()).isEqualTo(ref.availableStorageBytes)
         assertThat(userData.getBatteryPercentage()).isEqualTo(ref.batteryPercentage)
         assertThat(userData.getCarrier()).isEqualTo(ref.carrier.toString())
-
         assertThat(userData.getNetworkCapabilities()).isEqualTo(ref.networkCapabilities)
         assertThat(userData.getDataNetworkType()).isEqualTo(ref.dataNetworkType)
-
-        assertThat(userData.getAppInfos().size).isEqualTo(rawUserData.appsInfo.size)
     }
 
     private fun ConnectionResult<*>.expectFailure(cls: Class<out ChronicleError>) {

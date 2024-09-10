@@ -16,6 +16,7 @@
 
 package android.adservices.ondevicepersonalization;
 
+import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeCallback;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.annotation.FlaggedApi;
@@ -39,10 +40,13 @@ public class FederatedComputeScheduler {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
 
     private final IFederatedComputeService mFcService;
+    private final IDataAccessService mDataAccessService;
 
     /** @hide */
-    public FederatedComputeScheduler(IFederatedComputeService binder) {
+    public FederatedComputeScheduler(
+            IFederatedComputeService binder, IDataAccessService dataService) {
         mFcService = binder;
+        mDataAccessService = dataService;
     }
 
     // TODO(b/300461799): add federated compute server document.
@@ -58,10 +62,13 @@ public class FederatedComputeScheduler {
      */
     @WorkerThread
     public void schedule(@NonNull Params params, @NonNull FederatedComputeInput input) {
+        final long startTimeMillis = System.currentTimeMillis();
+        int responseCode = Constants.STATUS_INTERNAL_ERROR;
         if (mFcService == null) {
             throw new IllegalStateException(
                     "FederatedComputeScheduler not available for this instance.");
         }
+
         android.federatedcompute.common.TrainingInterval trainingInterval =
                 convertTrainingInterval(params.getTrainingInterval());
         TrainingOptions trainingOptions =
@@ -88,11 +95,21 @@ public class FederatedComputeScheduler {
                     });
             latch.await();
             if (err[0] != 0) {
-                throw new IllegalStateException("Internal failure occurred while scheduling job");
+                // Fail silently for now. TODO(b/346827691): update schedule/cancel API to return
+                // error status to caller.
+                sLogger.e("Internal failure occurred while scheduling job, error code %d", err[0]);
+                responseCode = Constants.STATUS_INTERNAL_ERROR;
+                return;
             }
+            responseCode = Constants.STATUS_SUCCESS;
         } catch (RemoteException | InterruptedException e) {
             sLogger.e(TAG + ": Failed to schedule federated compute job", e);
             throw new IllegalStateException(e);
+        } finally {
+            logApiCallStats(
+                    Constants.API_NAME_FEDERATED_COMPUTE_SCHEDULE,
+                    System.currentTimeMillis() - startTimeMillis,
+                    responseCode);
         }
     }
 
@@ -107,6 +124,8 @@ public class FederatedComputeScheduler {
      */
     @WorkerThread
     public void cancel(@NonNull FederatedComputeInput input) {
+        final long startTimeMillis = System.currentTimeMillis();
+        int responseCode = Constants.STATUS_INTERNAL_ERROR;
         if (mFcService == null) {
             throw new IllegalStateException(
                     "FederatedComputeScheduler not available for this instance.");
@@ -130,11 +149,21 @@ public class FederatedComputeScheduler {
                     });
             latch.await();
             if (err[0] != 0) {
-                throw new IllegalStateException("Internal failure occurred while cancelling job");
+                sLogger.e("Internal failure occurred while cancelling job, error code %d", err[0]);
+                responseCode = Constants.STATUS_INTERNAL_ERROR;
+                // Fail silently for now. TODO(b/346827691): update schedule/cancel API to return
+                // error status to caller.
+                return;
             }
+            responseCode = Constants.STATUS_SUCCESS;
         } catch (RemoteException | InterruptedException e) {
             sLogger.e(TAG + ": Failed to cancel federated compute job", e);
             throw new IllegalStateException(e);
+        } finally {
+            logApiCallStats(
+                    Constants.API_NAME_FEDERATED_COMPUTE_CANCEL,
+                    System.currentTimeMillis() - startTimeMillis,
+                    responseCode);
         }
     }
 
@@ -156,6 +185,14 @@ public class FederatedComputeScheduler {
             default:
                 throw new IllegalStateException(
                         "Unsupported scheduling mode " + interval.getSchedulingMode());
+        }
+    }
+
+    private void logApiCallStats(int apiName, long duration, int responseCode) {
+        try {
+            mDataAccessService.logApiCallStats(apiName, duration, responseCode);
+        } catch (Exception e) {
+            sLogger.d(e, TAG + ": failed to log metrics");
         }
     }
 

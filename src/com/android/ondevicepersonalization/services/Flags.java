@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services;
 
+import com.android.adservices.shared.common.flags.ConfigFlag;
+import com.android.adservices.shared.common.flags.FeatureFlag;
 import com.android.adservices.shared.common.flags.ModuleSharedFlags;
 
 /**
@@ -70,36 +72,29 @@ public interface Flags extends ModuleSharedFlags {
      */
     int WEB_TRIGGER_FLOW_DEADLINE_SECONDS = 30;
 
-
-    /**
-     * Default value for the list of trusted partner app names.
-     */
+    /** Default value for the list of trusted partner app names. */
     String DEFAULT_TRUSTED_PARTNER_APPS_LIST = "";
 
-    /**
-     * Default value for the shared isolated process feature.
-     */
+    /** Default value for the shared isolated process feature. */
     boolean DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED = true;
 
-    /**
-     * Default value for enabling client error logging.
-     */
+    /** Default value for enabling client error logging. */
     boolean DEFAULT_CLIENT_ERROR_LOGGING_ENABLED = false;
 
-    /**
-     * Default value for enabling background jobs logging.
-     */
-    boolean DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED = false;
+    /** Default value for the base64 encoded Job Policy proto for ODP background jobs. */
+    @ConfigFlag String DEFAULT_ODP_MODULE_JOB_POLICY = "";
 
-    /**
-     * Default value for background job sampling logging rate.
-     */
-    int DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE = 5;
+    /** Default value for SPE to be enabled for the pilot background jobs. */
+    @FeatureFlag boolean DEFAULT_SPE_PILOT_JOB_ENABLED = false;
 
-    /**
-     * Default value for isolated service debugging flag.
-     */
+    /** Default value for isolated service debugging flag. */
     boolean DEFAULT_ISOLATED_SERVICE_DEBUGGING_ENABLED = false;
+
+    /** Default delay before starting a data reset. */
+    int DEFAULT_RESET_DATA_DELAY_SECONDS = 24 * 60 * 60; // 24 hours
+
+    /** Default deadline for data reset. */
+    int DEFAULT_RESET_DATA_DEADLINE_SECONDS = 30 * 60 * 60; // 30 hours
 
     String DEFAULT_CALLER_APP_ALLOW_LIST =
             "android.ondevicepersonalization,"
@@ -146,9 +141,9 @@ public interface Flags extends ModuleSharedFlags {
     String DEFAULT_OUTPUT_DATA_ALLOW_LIST = "";
 
     /**
-     * Default value of valid duration of user consent cache in milliseconds (10 minutes).
+     * Default value of valid duration of user control cache in milliseconds (24 hours).
      */
-    long USER_CONSENT_CACHE_IN_MILLIS = 600000;
+    long USER_CONTROL_CACHE_IN_MILLIS = 86400000;
 
     default boolean getGlobalKillSwitch() {
         return GLOBAL_KILL_SWITCH;
@@ -225,8 +220,8 @@ public interface Flags extends ModuleSharedFlags {
         return DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
     }
 
-    default long getUserConsentCacheInMillis() {
-        return USER_CONSENT_CACHE_IN_MILLIS;
+    default long getUserControlCacheInMillis() {
+        return USER_CONTROL_CACHE_IN_MILLIS;
     }
 
     default String getOutputDataAllowList() {
@@ -235,6 +230,14 @@ public interface Flags extends ModuleSharedFlags {
 
     default boolean isIsolatedServiceDebuggingEnabled() {
         return DEFAULT_ISOLATED_SERVICE_DEBUGGING_ENABLED;
+    }
+
+    default String getOdpModuleJobPolicy() {
+        return DEFAULT_ODP_MODULE_JOB_POLICY;
+    }
+
+    default boolean getSpePilotJobEnabled() {
+        return DEFAULT_SPE_PILOT_JOB_ENABLED;
     }
 
     /** Set all stable flags. */
@@ -247,5 +250,20 @@ public interface Flags extends ModuleSharedFlags {
 
     default boolean getEnableClientErrorLogging() {
         return DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
+    }
+
+    default int getResetDataDelaySeconds() {
+        return DEFAULT_RESET_DATA_DELAY_SECONDS;
+    }
+
+    default int getResetDataDeadlineSeconds() {
+        return DEFAULT_RESET_DATA_DEADLINE_SECONDS;
+    }
+
+    // Keep app install in last 30 days.
+    long DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS = 30 * 24 * 60 * 60 * 1000L;
+
+    default long getAppInstallHistoryTtlInMillis() {
+        return DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS;
     }
 }
