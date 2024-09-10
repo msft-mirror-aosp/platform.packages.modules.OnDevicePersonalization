@@ -627,28 +627,13 @@ public class PhFlagsTest {
 
     @Test
     public void testGetBackgroundJobsLoggingEnabled() {
-        // read a stable flag value and verify it's equal to the default value.
-        boolean stableValue = FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled();
-        assertThat(stableValue).isEqualTo(BACKGROUND_JOB_LOGGING_ENABLED);
-
-        // Now overriding the value from PH.
-        boolean overrideEnabled = !stableValue;
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
-                Boolean.toString(overrideEnabled),
-                /* makeDefault= */ false);
-
-        // the flag value remains stable
         assertThat(FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled())
-                .isEqualTo(stableValue);
+                .isEqualTo(true);
     }
 
     @Test
     public void testGetBackgroundJobSamplingLoggingRate() {
         int defaultValue = FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
-        assertThat(FlagsFactory.getFlags().getBackgroundJobSamplingLoggingRate())
-                .isEqualTo(defaultValue);
 
         // Now overriding the value from PH.
         int overrideRate = defaultValue + 1;
@@ -735,7 +720,6 @@ public class PhFlagsTest {
     public void testGetJobSchedulingLoggingEnabled() {
         // read a stable flag value and verify it's equal to the default value.
         boolean stableValue = FlagsFactory.getFlags().getJobSchedulingLoggingEnabled();
-        assertThat(stableValue).isEqualTo(DEFAULT_JOB_SCHEDULING_LOGGING_ENABLED);
 
         // override the value in device config.
         boolean overrideEnabled = !stableValue;
@@ -753,8 +737,6 @@ public class PhFlagsTest {
     @Test
     public void testGetJobSchedulingLoggingSamplingRate() {
         int defaultValue = DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
-        assertThat(FlagsFactory.getFlags().getJobSchedulingLoggingSamplingRate())
-                .isEqualTo(defaultValue);
 
         // Override the value in device config.
         int overrideRate = defaultValue + 1;

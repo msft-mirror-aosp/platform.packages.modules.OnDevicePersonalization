@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.common;
+package com.android.odp.module.common;
 
 import android.os.ParcelFileDescriptor;
 
@@ -63,6 +63,13 @@ public class FileUtils {
         FileOutputStream out = new FileOutputStream(fileName);
         out.write(data);
         out.close();
+    }
+
+    /** Write the provided data to the file. */
+    public static long writeToFile(String fileName, InputStream inputStream) throws IOException {
+        try (FileOutputStream out = new FileOutputStream(fileName)) {
+            return inputStream.transferTo(out);
+        }
     }
 
     /** Read the input file content to a byte array. */
