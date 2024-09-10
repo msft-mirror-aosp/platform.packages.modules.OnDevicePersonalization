@@ -26,8 +26,6 @@ import static com.android.federatedcompute.services.common.Constants.TRACE_WORKE
 import static com.android.federatedcompute.services.common.Constants.TRACE_WORKER_START_TRAINING_RUN;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBackgroundExecutor;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getLightweightExecutor;
-import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
-import static com.android.federatedcompute.services.common.FileUtils.createTempFileDescriptor;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_NOT_CONFIGURED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_ERROR;
@@ -43,6 +41,8 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_WITH_EXCEPTION;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_WITH_REJECTION;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_STARTED;
+import static com.android.odp.module.common.FileUtils.createTempFile;
+import static com.android.odp.module.common.FileUtils.createTempFileDescriptor;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -63,7 +63,6 @@ import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.ExampleStats;
-import com.android.federatedcompute.services.common.FileUtils;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
@@ -91,6 +90,7 @@ import com.android.federatedcompute.services.training.util.TrainingConditionsChe
 import com.android.federatedcompute.services.training.util.TrainingConditionsChecker.Condition;
 import com.android.internal.annotations.GuardedBy;
 import com.android.internal.util.Preconditions;
+import com.android.odp.module.common.FileUtils;
 import com.android.odp.module.common.PackageUtils;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -142,12 +142,12 @@ public class FederatedComputeWorker {
     private TrainingRun mActiveRun = null;
 
     private HttpFederatedProtocol mHttpFederatedProtocol;
-    private ExampleStoreServiceProvider mExampleStoreServiceProvider;
+    private final ExampleStoreServiceProvider mExampleStoreServiceProvider;
     private AbstractServiceBinder<IIsolatedTrainingService> mIsolatedTrainingServiceBinder;
-    private FederatedComputeEncryptionKeyManager mEncryptionKeyManager;
+    private final FederatedComputeEncryptionKeyManager mEncryptionKeyManager;
 
     @VisibleForTesting
-    public FederatedComputeWorker(
+    FederatedComputeWorker(
             Context context,
             FederatedComputeJobManager jobManager,
             TrainingConditionsChecker trainingConditionsChecker,
@@ -526,7 +526,7 @@ public class FederatedComputeWorker {
             // no active keys to encrypt the FL/FA computation results, stop the computation run.
             run.mTrainingEventLogger.logEventKind(
                     FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_ENCRYPTION_KEY_FETCH_FAILED);
-            reportFailureResultToServer(run);
+            reportFailureResultToServer(run, null);
             return Futures.immediateFailedFuture(
                     new IllegalStateException("No active key available on device."));
         }
@@ -545,7 +545,7 @@ public class FederatedComputeWorker {
         if (iterator == null) {
             run.mTrainingEventLogger.logEventKind(
                     FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_COMPUTATION_FAILED);
-            reportFailureResultToServer(run);
+            reportFailureResultToServer(run, FLRunnerResult.ErrorStatus.EXAMPLE_ITERATOR_ERROR);
             return Futures.immediateFailedFuture(
                     new IllegalStateException(
                             String.format(
@@ -668,14 +668,15 @@ public class FederatedComputeWorker {
                         mInjector.getBgExecutor());
     }
 
-    private void reportFailureResultToServer(TrainingRun run) {
+    private void reportFailureResultToServer(
+            TrainingRun run, @Nullable FLRunnerResult.ErrorStatus failureStatus) {
+        FLRunnerResult.Builder runnerResultBuilder =
+                FLRunnerResult.newBuilder().setContributionResult(ContributionResult.FAIL);
+        if (failureStatus != null) {
+            runnerResultBuilder.setErrorStatus(failureStatus);
+        }
         ComputationResult failedComputationResult =
-                new ComputationResult(
-                        null,
-                        FLRunnerResult.newBuilder()
-                                .setContributionResult(ContributionResult.FAIL)
-                                .build(),
-                        null);
+                new ComputationResult(null, runnerResultBuilder.build(), null);
         try {
             reportFailureResultToServer(
                     failedComputationResult,
