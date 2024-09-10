@@ -91,14 +91,7 @@ public class MddJobService extends JobService {
     private void runPrivacyStatusChecksInBackgroundAndExecute(final JobParameters params) {
         int jobId = getMddTaskJobId(params);
         OnDevicePersonalizationExecutors.getHighPriorityBackgroundExecutor().execute(() -> {
-            boolean isMeasurementEnabled = UserPrivacyStatus.getInstance().isMeasurementEnabled();
-            boolean isProtectedAudienceEnabled =
-                    UserPrivacyStatus.getInstance().isProtectedAudienceEnabled();
-
-            sLogger.d(TAG + ": isMeasurementEnabled: %s, isProtectedAudienceEnabled: %s",
-                    isMeasurementEnabled, isProtectedAudienceEnabled);
-
-            if (!isMeasurementEnabled && !isProtectedAudienceEnabled) {
+            if (UserPrivacyStatus.getInstance().isProtectedAudienceAndMeasurementBothDisabled()) {
                 // User control is revoked; handle this case
                 sLogger.d(TAG + ": User control is not given for all ODP services.");
                 OdpJobServiceLogger.getInstance(MddJobService.this)

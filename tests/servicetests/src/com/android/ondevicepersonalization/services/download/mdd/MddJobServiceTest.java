@@ -119,8 +119,8 @@ public class MddJobServiceTest {
         ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
                 OnDevicePersonalizationExecutors::getBackgroundExecutor);
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
-        ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
+        ExtendedMockito.doReturn(false).when(mUserPrivacyStatus)
+                .isProtectedAudienceAndMeasurementBothDisabled();
 
         JobParameters jobParameters = mock(JobParameters.class);
         PersistableBundle extras = new PersistableBundle();
@@ -167,8 +167,8 @@ public class MddJobServiceTest {
     @Test
     public void onStartJobTestUserControlRevoked() throws Exception {
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(false).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
-        ExtendedMockito.doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
+        ExtendedMockito.doReturn(true).when(mUserPrivacyStatus)
+                .isProtectedAudienceAndMeasurementBothDisabled();
         JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
         PersistableBundle extras = new PersistableBundle();
         extras.putString(MDD_TASK_TAG_KEY, WIFI_CHARGING_PERIODIC_TASK);
@@ -208,8 +208,8 @@ public class MddJobServiceTest {
     @Test
     public void onStartJobFailHandleTaskTest() throws Exception {
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
-        ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
+        ExtendedMockito.doReturn(false).when(mUserPrivacyStatus)
+                .isProtectedAudienceAndMeasurementBothDisabled();
 
         JobParameters jobParameters = mock(JobParameters.class);
         PersistableBundle extras = new PersistableBundle();
