@@ -20,6 +20,9 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ERROR_EXAMPLE_ITERATOR;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_ERROR;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_START;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_SUCCESS;
 
 import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreIterator;
@@ -157,12 +160,16 @@ public class EligibilityDecider {
             ExampleSelector exampleSelector) {
         try {
             long callStartTimeNanos = SystemClock.elapsedRealtimeNanos();
+            logger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_START);
             IExampleStoreService exampleStoreService =
                     mExampleStoreServiceProvider.getExampleStoreService(
                             task.appPackageName(), context);
             if (exampleStoreService == null) {
                 logger.logEventKind(
                         FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ERROR_EXAMPLE_ITERATOR);
+                logger.logEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_ERROR);
                 LogUtil.e(
                         TAG,
                         "Failed to compute DataAvailabilityPolicy due to bind ExampleStore"
@@ -172,6 +179,8 @@ public class EligibilityDecider {
                         taskId);
                 return false;
             }
+            logger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_SUCCESS);
             exampleStats.mBindToExampleStoreLatencyNanos.addAndGet(
                     SystemClock.elapsedRealtimeNanos() - callStartTimeNanos);
             callStartTimeNanos = SystemClock.elapsedRealtimeNanos();
@@ -181,7 +190,8 @@ public class EligibilityDecider {
                             task,
                             taskId,
                             dataAvailabilityPolicy.getMinExampleCount(),
-                            exampleSelector);
+                            exampleSelector,
+                            logger);
             if (iterator == null) {
                 LogUtil.d(
                         TAG,

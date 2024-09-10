@@ -16,10 +16,6 @@
 
 package com.android.ondevicepersonalization.services;
 
-import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
-import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService;
-import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
-
 import java.util.Map;
 
 /** Hard-coded configs for OnDevicePersonalization */
@@ -60,42 +56,60 @@ public class OnDevicePersonalizationConfig {
 
     /**
      * Job ID for Download Processing Task ({@link
-     * OnDevicePersonalizationDownloadProcessingJobService})
+     * com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService})
      */
     public static final int DOWNLOAD_PROCESSING_TASK_JOB_ID = 1004;
+
     public static final String DOWNLOAD_PROCESSING_TASK_JOB_NAME =
             "DOWNLOAD_PROCESSING_TASK_JOB";
 
-    /** Job ID for Maintenance Task ({@link OnDevicePersonalizationMaintenanceJobService}) */
+    /**
+     * Job ID for Maintenance Task ({@link
+     * com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService})
+     */
     public static final int MAINTENANCE_TASK_JOB_ID = 1005;
+
     public static final String MAINTENANCE_TASK_JOB_NAME =
             "MAINTENANCE_TASK_JOB";
 
-    /** Job ID for User Data Collection Task ({@link UserDataCollectionJobService}) */
+    /**
+     * Job ID for User Data Collection Task ({@link
+     * com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService})
+     */
     public static final int USER_DATA_COLLECTION_ID = 1006;
+
     public static final String USER_DATA_COLLECTION_JOB_NAME =
             "USER_DATA_COLLECTION_JOB";
 
-    /** Job ID for Reset Task ({@link ResetDataJobService}) */
+    /**
+     * Job ID for Reset Task ({@link
+     * com.android.ondevicepersonalization.services.reset.ResetDataJobService})
+     */
     public static final int RESET_DATA_JOB_ID = 1007;
+
     public static final String RESET_DATA_JOB_NAME = "RESET_JOB";
 
-    public static final Map<Integer, String> JOB_ID_TO_NAME_MAP = Map.of(
-            MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID,
-            MDD_MAINTENANCE_PERIODIC_TASK_JOB_NAME,
-            MDD_CHARGING_PERIODIC_TASK_JOB_ID,
-            MDD_CHARGING_PERIODIC_TASK_JOB_NAME,
-            MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID,
-            MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_NAME,
-            MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID,
-            MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_NAME,
-            DOWNLOAD_PROCESSING_TASK_JOB_ID,
-            DOWNLOAD_PROCESSING_TASK_JOB_NAME,
-            MAINTENANCE_TASK_JOB_ID,
-            MAINTENANCE_TASK_JOB_NAME,
-            USER_DATA_COLLECTION_ID,
-            USER_DATA_COLLECTION_JOB_NAME,
-            RESET_DATA_JOB_ID,
-            RESET_DATA_JOB_NAME
-    );
+    public static final int AGGREGATE_ERROR_DATA_REPORTING_JOB_ID = 1008;
+    public static final String AGGREGATED_ERROR_DATA_REPORTING_JOB_NAME =
+            "ERROR_DATA_REPORTING_JOB";
+    public static final Map<Integer, String> JOB_ID_TO_NAME_MAP =
+            Map.of(
+                    MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID,
+                    MDD_MAINTENANCE_PERIODIC_TASK_JOB_NAME,
+                    MDD_CHARGING_PERIODIC_TASK_JOB_ID,
+                    MDD_CHARGING_PERIODIC_TASK_JOB_NAME,
+                    MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID,
+                    MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_NAME,
+                    MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID,
+                    MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_NAME,
+                    DOWNLOAD_PROCESSING_TASK_JOB_ID,
+                    DOWNLOAD_PROCESSING_TASK_JOB_NAME,
+                    MAINTENANCE_TASK_JOB_ID,
+                    MAINTENANCE_TASK_JOB_NAME,
+                    USER_DATA_COLLECTION_ID,
+                    USER_DATA_COLLECTION_JOB_NAME,
+                    RESET_DATA_JOB_ID,
+                    RESET_DATA_JOB_NAME,
+                    AGGREGATE_ERROR_DATA_REPORTING_JOB_ID,
+                    AGGREGATED_ERROR_DATA_REPORTING_JOB_NAME);
 }
