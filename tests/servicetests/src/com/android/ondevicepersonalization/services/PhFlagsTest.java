@@ -16,11 +16,14 @@
 
 package com.android.ondevicepersonalization.services;
 
-import static com.android.adservices.shared.common.flags.ModuleSharedFlags.BACKGROUND_JOB_LOGGING_ENABLED;
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
-import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_ENABLED;
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
 import static com.android.ondevicepersonalization.services.Flags.APP_REQUEST_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_THRESHOLD;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORT_TTL_DAYS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
@@ -40,16 +43,20 @@ import static com.android.ondevicepersonalization.services.Flags.RENDER_FLOW_DEA
 import static com.android.ondevicepersonalization.services.Flags.WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.WEB_VIEW_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.APP_INSTALL_HISTORY_TTL;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_AGGREGATED_ERROR_REPORTING_PATH;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_AGGREGATED_ERROR_REPORTING;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_DEBUGGING_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_JOB_SCHEDULING_LOGGING_ENABLED;
@@ -513,28 +520,13 @@ public class PhFlagsTest {
 
     @Test
     public void testGetBackgroundJobsLoggingEnabled() {
-        // read a stable flag value and verify it's equal to the default value.
-        boolean stableValue = FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled();
-        assertThat(stableValue).isEqualTo(BACKGROUND_JOB_LOGGING_ENABLED);
-
-        // override the value in device config.
-        boolean overrideEnabled = !stableValue;
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
-                Boolean.toString(overrideEnabled),
-                /* makeDefault= */ false);
-
-        // the flag value remains stable
         assertThat(FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled())
-                .isEqualTo(stableValue);
+                .isEqualTo(true);
     }
 
     @Test
     public void testGetBackgroundJobSamplingLoggingRate() {
         int defaultValue = BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
-        assertThat(FlagsFactory.getFlags().getBackgroundJobSamplingLoggingRate())
-                .isEqualTo(defaultValue);
 
         // Override the value in device config.
         int overrideRate = defaultValue + 1;
@@ -551,7 +543,6 @@ public class PhFlagsTest {
     public void testGetJobSchedulingLoggingEnabled() {
         // read a stable flag value and verify it's equal to the default value.
         boolean stableValue = FlagsFactory.getFlags().getJobSchedulingLoggingEnabled();
-        assertThat(stableValue).isEqualTo(DEFAULT_JOB_SCHEDULING_LOGGING_ENABLED);
 
         // override the value in device config.
         boolean overrideEnabled = !stableValue;
@@ -569,8 +560,6 @@ public class PhFlagsTest {
     @Test
     public void testGetJobSchedulingLoggingSamplingRate() {
         int defaultValue = DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
-        assertThat(FlagsFactory.getFlags().getJobSchedulingLoggingSamplingRate())
-                .isEqualTo(defaultValue);
 
         // Override the value in device config.
         int overrideRate = defaultValue + 1;
@@ -632,5 +621,114 @@ public class PhFlagsTest {
         // the flag value remains stable
         assertThat(FlagsFactory.getFlags().getAppInstallHistoryTtlInMillis())
                 .isEqualTo(overrideEnabled);
+    }
+
+    @Test
+    public void testAggregateErrorReportingEnabled() {
+        boolean testValue = !DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ENABLE_AGGREGATED_ERROR_REPORTING,
+                Boolean.toString(testValue),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingEnabled())
+                .isEqualTo(testValue);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ENABLE_AGGREGATED_ERROR_REPORTING,
+                Boolean.toString(DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED),
+                /* makeDefault */ false);
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingEnabled())
+                .isEqualTo(DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED);
+    }
+
+    @Test
+    public void testAggregateErrorReportingTtlDays() {
+        int testValue = 4;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS,
+                Integer.toString(testValue),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingTtlInDays())
+                .isEqualTo(testValue);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS,
+                Integer.toString(DEFAULT_AGGREGATED_ERROR_REPORT_TTL_DAYS),
+                /* makeDefault */ false);
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingTtlInDays())
+                .isEqualTo(DEFAULT_AGGREGATED_ERROR_REPORT_TTL_DAYS);
+    }
+
+    @Test
+    public void testAggregateErrorReportingUrlPath() {
+        String testValue = "foo/bar";
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_AGGREGATED_ERROR_REPORTING_PATH,
+                testValue,
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingServerPath())
+                .isEqualTo(testValue);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_AGGREGATED_ERROR_REPORTING_PATH,
+                DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH,
+                /* makeDefault */ false);
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingServerPath())
+                .isEqualTo(DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH);
+    }
+
+    @Test
+    public void testAggregateErrorReportingThreshold() {
+        int testValue = 5;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD,
+                Integer.toString(testValue),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorMinThreshold()).isEqualTo(testValue);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD,
+                Integer.toString(DEFAULT_AGGREGATED_ERROR_REPORTING_THRESHOLD),
+                /* makeDefault */ false);
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorMinThreshold())
+                .isEqualTo(DEFAULT_AGGREGATED_ERROR_REPORTING_THRESHOLD);
+    }
+
+    @Test
+    public void testAggregateErrorReportingInterval() {
+        int testValue = 4;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS,
+                Integer.toString(testValue),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingIntervalInHours())
+                .isEqualTo(testValue);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS,
+                Integer.toString(DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS),
+                /* makeDefault */ false);
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingIntervalInHours())
+                .isEqualTo(DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS);
     }
 }

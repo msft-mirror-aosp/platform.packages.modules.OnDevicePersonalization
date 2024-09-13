@@ -20,34 +20,17 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PE
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_USER_CONTROL_CACHE_IN_MILLIS;
 
-import android.adservices.common.AdServicesCommonManager;
-import android.adservices.common.AdServicesCommonStates;
-import android.adservices.common.AdServicesCommonStatesResponse;
-import android.adservices.common.AdServicesOutcomeReceiver;
-import android.adservices.ondevicepersonalization.Constants;
-import android.annotation.NonNull;
-import android.content.Context;
-import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
-import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
-import android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager;
-import android.os.Bundle;
-
-import androidx.concurrent.futures.CallbackToFutureAdapter;
-
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.modules.utils.build.SdkLevel;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
-import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
 import com.android.ondevicepersonalization.services.util.DebugUtils;
 
-
-import com.google.common.util.concurrent.ListenableFuture;
+import java.util.Objects;
 
 /**
  * A singleton class that stores all user privacy statuses in memory.
@@ -68,8 +51,9 @@ public final class UserPrivacyStatus {
     private boolean mProtectedAudienceReset;
     private boolean mMeasurementReset;
     private long mLastUserControlCacheUpdate;
+    private final AdServicesCommonStatesWrapper mAdServicesCommonStatesWrapper;
 
-    private UserPrivacyStatus() {
+    private UserPrivacyStatus(AdServicesCommonStatesWrapper wrapper) {
         // Assume the more privacy-safe option until updated.
         mPersonalizationStatusEnabled = false;
         mProtectedAudienceEnabled = false;
@@ -77,6 +61,7 @@ public final class UserPrivacyStatus {
         mProtectedAudienceReset = false;
         mMeasurementReset = false;
         mLastUserControlCacheUpdate = -1L;
+        mAdServicesCommonStatesWrapper = Objects.requireNonNull(wrapper);
     }
 
     /** Returns an instance of UserPrivacyStatus. */
@@ -84,24 +69,9 @@ public final class UserPrivacyStatus {
         if (sUserPrivacyStatus == null) {
             synchronized (UserPrivacyStatus.class) {
                 if (sUserPrivacyStatus == null) {
-                    sUserPrivacyStatus = new UserPrivacyStatus();
-                    // Restore personalization status from the system server on U+ devices.
-                    if (SdkLevel.isAtLeastU()) {
-                        sUserPrivacyStatus.restorePersonalizationStatus();
-                    }
-                }
-            }
-        }
-        return sUserPrivacyStatus;
-    }
-
-    /** Returns an instance of UserPrivacyStatus. */
-    @VisibleForTesting
-    public static UserPrivacyStatus getInstanceForTest() {
-        if (sUserPrivacyStatus == null) {
-            synchronized (UserPrivacyStatus.class) {
-                if (sUserPrivacyStatus == null) {
-                    sUserPrivacyStatus = new UserPrivacyStatus();
+                    sUserPrivacyStatus = new UserPrivacyStatus(
+                            new AdServicesCommonStatesWrapperImpl(
+                                    OnDevicePersonalizationApplication.getAppContext()));
                 }
             }
         }
@@ -128,6 +98,22 @@ public final class UserPrivacyStatus {
             return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
         }
         return mPersonalizationStatusEnabled;
+    }
+
+    /**
+     * Return if both Protected Audience (PA) and Measurement consent status are disabled
+     */
+    public boolean isProtectedAudienceAndMeasurementBothDisabled() {
+        Flags flags = FlagsFactory.getFlags();
+        if (isOverrideEnabled()) {
+            return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
+        }
+        if (isUserControlCacheValid()) {
+            return !mProtectedAudienceEnabled && !mMeasurementEnabled;
+        }
+        // make request to AdServices#getCommonStates API once
+        fetchStateFromAdServices();
+        return !mProtectedAudienceEnabled && !mMeasurementEnabled;
     }
 
     /**
@@ -229,9 +215,8 @@ public final class UserPrivacyStatus {
     private void fetchStateFromAdServices() {
         try {
             // IPC.
-            AdServicesCommonManager adServicesCommonManager = getAdServicesCommonManager();
-            AdServicesCommonStates commonStates =
-                            getAdServicesCommonStates(adServicesCommonManager);
+            AdServicesCommonStatesWrapper.CommonStatesResult commonStates =
+                    mAdServicesCommonStatesWrapper.getCommonStates().get();
 
             // update cache.
             int updatedProtectedAudienceState = commonStates.getPaState();
@@ -245,103 +230,6 @@ public final class UserPrivacyStatus {
     private void handleResetIfNeeded() {
         if (isMeasurementReset() || isProtectedAudienceReset()) {
             ResetDataJobService.schedule();
-        }
-    }
-
-    /**
-     * Get AdServices common manager from ODP.
-     */
-    private static AdServicesCommonManager getAdServicesCommonManager() {
-        Context odpContext = OnDevicePersonalizationApplication.getAppContext();
-        try {
-            return odpContext.getSystemService(AdServicesCommonManager.class);
-        } catch (NoClassDefFoundError e) {
-            throw new IllegalStateException("Cannot find AdServicesCommonManager.", e);
-        }
-    }
-
-    /**
-     * Get common states from AdServices, such as user control.
-     */
-    private AdServicesCommonStates getAdServicesCommonStates(
-                    @NonNull AdServicesCommonManager adServicesCommonManager) {
-        ListenableFuture<AdServicesCommonStatesResponse> response =
-                        getAdServicesResponse(adServicesCommonManager);
-        try {
-            return response.get().getAdServicesCommonStates();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed when calling "
-                    + "AdServicesCommonManager#getAdServicesCommonStates().", e);
-        }
-    }
-
-    /**
-     * IPC to AdServices API.
-     */
-    private ListenableFuture<AdServicesCommonStatesResponse> getAdServicesResponse(
-                    @NonNull AdServicesCommonManager adServicesCommonManager) {
-        return CallbackToFutureAdapter.getFuture(
-                completer -> {
-                    adServicesCommonManager.getAdservicesCommonStates(
-                            OnDevicePersonalizationExecutors.getBackgroundExecutor(),
-                            new AdServicesOutcomeReceiver<AdServicesCommonStatesResponse,
-                                    Exception>() {
-                                @Override
-                                public void onResult(AdServicesCommonStatesResponse result) {
-                                    completer.set(result);
-                                }
-
-                                @Override
-                                public void onError(Exception error) {
-                                    completer.setException(error);
-                                }
-                            });
-                    // For debugging purpose only.
-                    return "getAdServicesCommonStates";
-                }
-        );
-    }
-
-    // TODO (b/331684191): remove SecurityException after mocking all UserPrivacyStatus
-    private void restorePersonalizationStatus() {
-        if (isOverrideEnabled()) {
-            return;
-        }
-        Context odpContext = OnDevicePersonalizationApplication.getAppContext();
-        OnDevicePersonalizationSystemServiceManager systemServiceManager =
-                odpContext.getSystemService(OnDevicePersonalizationSystemServiceManager.class);
-        if (systemServiceManager != null) {
-            IOnDevicePersonalizationSystemService systemService =
-                    systemServiceManager.getService();
-            if (systemService != null) {
-                try {
-                    systemService.readPersonalizationStatus(
-                            new IOnDevicePersonalizationSystemServiceCallback.Stub() {
-                                @Override
-                                public void onResult(Bundle bundle) {
-                                    boolean personalizationStatus =
-                                            bundle.getBoolean(PERSONALIZATION_STATUS_KEY);
-                                    setPersonalizationStatusEnabled(personalizationStatus);
-                                }
-
-                                @Override
-                                public void onError(int errorCode) {
-                                    if (errorCode == Constants.STATUS_KEY_NOT_FOUND) {
-                                        sLogger.d(
-                                                TAG
-                                                        + ": Personalization status "
-                                                        + "not found in the system server");
-                                    }
-                                }
-                            });
-                } catch (Exception e) {
-                    sLogger.e(TAG + ": Error when reading personalization status.", e);
-                }
-            } else {
-                sLogger.w(TAG + ": System service is not ready.");
-            }
-        } else {
-            sLogger.w(TAG + ": Cannot find system server on U+ devices.");
         }
     }
 }
