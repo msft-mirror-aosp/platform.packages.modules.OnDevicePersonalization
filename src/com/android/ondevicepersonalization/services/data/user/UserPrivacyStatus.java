@@ -101,6 +101,22 @@ public final class UserPrivacyStatus {
     }
 
     /**
+     * Return if both Protected Audience (PA) and Measurement consent status are disabled
+     */
+    public boolean isProtectedAudienceAndMeasurementBothDisabled() {
+        Flags flags = FlagsFactory.getFlags();
+        if (isOverrideEnabled()) {
+            return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
+        }
+        if (isUserControlCacheValid()) {
+            return !mProtectedAudienceEnabled && !mMeasurementEnabled;
+        }
+        // make request to AdServices#getCommonStates API once
+        fetchStateFromAdServices();
+        return !mProtectedAudienceEnabled && !mMeasurementEnabled;
+    }
+
+    /**
      * Returns the user control status of Protected Audience (PA).
      */
     public boolean isProtectedAudienceEnabled() {
