@@ -106,7 +106,9 @@ public final class UserPrivacyStatus {
     public boolean isProtectedAudienceAndMeasurementBothDisabled() {
         Flags flags = FlagsFactory.getFlags();
         if (isOverrideEnabled()) {
-            return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
+            boolean overrideToBothEnabled =
+                    (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
+            return !overrideToBothEnabled;
         }
         if (isUserControlCacheValid()) {
             return !mProtectedAudienceEnabled && !mMeasurementEnabled;
