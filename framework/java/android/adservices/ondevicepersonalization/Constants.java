@@ -62,6 +62,9 @@ public class Constants {
 
     /** Internal code that tracks remote exception when run operation. */
     public static final int STATUS_REMOTE_EXCEPTION = 113;
+    /** Internal code that tracks method not found. */
+    public static final int STATUS_METHOD_NOT_FOUND = 114;
+    public static final int STATUS_CALLER_NOT_ALLOWED = 115;
 
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
@@ -137,6 +140,7 @@ public class Constants {
     public static final int API_NAME_MODEL_MANAGER_RUN = 20;
     public static final int API_NAME_FEDERATED_COMPUTE_CANCEL = 21;
     public static final int API_NAME_NOTIFY_MEASUREMENT_EVENT = 22;
+    public static final int API_NAME_ADSERVICES_GET_COMMON_STATES = 23;
 
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;
