@@ -16,6 +16,13 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import static android.adservices.ondevicepersonalization.Constants.API_NAME_ADSERVICES_GET_COMMON_STATES;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_CALLER_NOT_ALLOWED;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_INTERNAL_ERROR;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_METHOD_NOT_FOUND;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_REMOTE_EXCEPTION;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_SUCCESS;
+
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_USER_CONTROL_CACHE_IN_MILLIS;
@@ -29,6 +36,7 @@ import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
 import com.android.ondevicepersonalization.services.util.DebugUtils;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import java.util.Objects;
 
@@ -98,6 +106,24 @@ public final class UserPrivacyStatus {
             return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
         }
         return mPersonalizationStatusEnabled;
+    }
+
+    /**
+     * Return if both Protected Audience (PA) and Measurement consent status are disabled
+     */
+    public boolean isProtectedAudienceAndMeasurementBothDisabled() {
+        Flags flags = FlagsFactory.getFlags();
+        if (isOverrideEnabled()) {
+            boolean overrideToBothEnabled =
+                    (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
+            return !overrideToBothEnabled;
+        }
+        if (isUserControlCacheValid()) {
+            return !mProtectedAudienceEnabled && !mMeasurementEnabled;
+        }
+        // make request to AdServices#getCommonStates API once
+        fetchStateFromAdServices();
+        return !mProtectedAudienceEnabled && !mMeasurementEnabled;
     }
 
     /**
@@ -197,17 +223,33 @@ public final class UserPrivacyStatus {
     }
 
     private void fetchStateFromAdServices() {
+        long startTime = sClock.elapsedRealtime();
+        String packageName = OnDevicePersonalizationApplication.getAppContext().getPackageName();
         try {
             // IPC.
             AdServicesCommonStatesWrapper.CommonStatesResult commonStates =
                     mAdServicesCommonStatesWrapper.getCommonStates().get();
-
+            StatsUtils.writeServiceRequestMetrics(
+                    API_NAME_ADSERVICES_GET_COMMON_STATES,
+                    packageName,
+                    null,
+                    sClock,
+                    STATUS_SUCCESS,
+                    startTime);
             // update cache.
             int updatedProtectedAudienceState = commonStates.getPaState();
             int updatedMeasurementState = commonStates.getMeasurementState();
             updateUserControlCache(updatedProtectedAudienceState, updatedMeasurementState);
         } catch (Exception e) {
             sLogger.e(TAG + ": fetchStateFromAdServices error", e);
+            int statusCode = getExceptionStatus(e);
+            StatsUtils.writeServiceRequestMetrics(
+                    API_NAME_ADSERVICES_GET_COMMON_STATES,
+                    packageName,
+                    null,
+                    sClock,
+                    statusCode,
+                    startTime);
         }
     }
 
@@ -215,5 +257,19 @@ public final class UserPrivacyStatus {
         if (isMeasurementReset() || isProtectedAudienceReset()) {
             ResetDataJobService.schedule();
         }
+    }
+
+    @VisibleForTesting
+    int getExceptionStatus(Exception e) {
+        if (e instanceof NoSuchMethodException) {
+            return STATUS_METHOD_NOT_FOUND;
+        }
+        if (e instanceof SecurityException) {
+            return STATUS_CALLER_NOT_ALLOWED;
+        }
+        if (e instanceof IllegalArgumentException) {
+            return STATUS_INTERNAL_ERROR;
+        }
+        return STATUS_REMOTE_EXCEPTION;
     }
 }
