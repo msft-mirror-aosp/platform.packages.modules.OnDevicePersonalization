@@ -47,6 +47,7 @@ android_test {
         "androidx.test.ext.junit",
         "androidx.test.ext.truth",
         "androidx.test.rules",
+        "federated-compute-java-proto-lite",
         "mockito-target-extended-minus-junit4",
         "kotlin-stdlib",
         "kotlin-test",
