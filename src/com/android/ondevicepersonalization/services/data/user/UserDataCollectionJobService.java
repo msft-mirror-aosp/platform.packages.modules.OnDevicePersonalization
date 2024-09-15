@@ -111,13 +111,12 @@ public class UserDataCollectionJobService extends JobService {
 
     private void runPrivacyStatusChecksInBackground(final JobParameters params) {
         OnDevicePersonalizationExecutors.getHighPriorityBackgroundExecutor().execute(() -> {
-            boolean isProtectedAudienceEnabled =
-                    UserPrivacyStatus.getInstance().isProtectedAudienceEnabled();
-            boolean isMeasurementEnabled =
-                    UserPrivacyStatus.getInstance().isMeasurementEnabled();
-            sLogger.d(TAG + ": isProtectedAudienceEnabled: %s, isMeasurementEnabled: %s",
-                    isProtectedAudienceEnabled, isMeasurementEnabled);
-            if (!isProtectedAudienceEnabled && !isMeasurementEnabled) {
+            boolean isProtectedAudienceAndMeasurementBothDisabled =
+                    UserPrivacyStatus.getInstance()
+                            .isProtectedAudienceAndMeasurementBothDisabled();
+            sLogger.d(TAG + ": is ProtectedAudience and Measurement both disabled: %s",
+                    isProtectedAudienceAndMeasurementBothDisabled);
+            if (isProtectedAudienceAndMeasurementBothDisabled) {
                 handlePrivacyControlsRevoked(params);
             } else {
                 startUserDataCollectionJob(params);
