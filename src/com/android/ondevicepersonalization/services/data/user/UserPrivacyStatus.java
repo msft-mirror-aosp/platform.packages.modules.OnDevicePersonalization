@@ -205,6 +205,7 @@ public final class UserPrivacyStatus {
      */
     @VisibleForTesting
     void resetUserControlForTesting() {
+        mPersonalizationStatusEnabled = false;
         mProtectedAudienceEnabled = false;
         mMeasurementEnabled = false;
         mProtectedAudienceReset = false;
