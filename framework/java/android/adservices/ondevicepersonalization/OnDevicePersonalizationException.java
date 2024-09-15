@@ -41,6 +41,37 @@ public class OnDevicePersonalizationException extends Exception {
      */
     public static final int ERROR_PERSONALIZATION_DISABLED = 2;
 
+    /**
+     * The ODP module was unable to load the {@link IsolatedService}.
+     * @hide
+     */
+    public static final int  ERROR_ISOLATED_SERVICE_LOADING_FAILED = 3;
+
+    /**
+     * The ODP specific manifest settings for the {@link IsolatedService} are either missing or
+     * misconfigured.
+     * @hide
+     */
+    public static final int ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED = 4;
+
+    /**
+     * The {@link IsolatedService} was invoked but timed out before returning successfully.
+     * @hide
+     */
+    public static final int ERROR_ISOLATED_SERVICE_TIMEOUT = 5;
+
+    /**
+     * The {@link IsolatedService}'s output failed validation checks.
+     * @hide
+     */
+    public static final int ERROR_OUTPUT_VALIDATION_FAILED = 6;
+
+    /**
+     * The {@link IsolatedService}'s call to {@link FederatedComputeScheduler} failed.
+     * @hide
+     */
+    public static final int ERROR_ISOLATED_SERVICE_FAILED_TRAINING = 7;
+
     /** @hide */
     @IntDef(prefix = "ERROR_", value = {
             ERROR_ISOLATED_SERVICE_FAILED,
@@ -53,6 +84,13 @@ public class OnDevicePersonalizationException extends Exception {
 
     /** @hide */
     public OnDevicePersonalizationException(@ErrorCode int errorCode) {
+        mErrorCode = errorCode;
+    }
+
+    /** @hide */
+    public OnDevicePersonalizationException(
+            @ErrorCode int errorCode, String message) {
+        super(message);
         mErrorCode = errorCode;
     }
 

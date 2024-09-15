@@ -26,6 +26,8 @@ import android.os.Bundle;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.libraries.plugin.FailureType;
 import com.android.ondevicepersonalization.libraries.plugin.PluginCallback;
@@ -35,8 +37,6 @@ import com.android.ondevicepersonalization.libraries.plugin.PluginManager;
 import com.android.ondevicepersonalization.libraries.plugin.impl.PluginManagerImpl;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
-import com.android.ondevicepersonalization.services.util.Clock;
-import com.android.ondevicepersonalization.services.util.MonotonicClock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;

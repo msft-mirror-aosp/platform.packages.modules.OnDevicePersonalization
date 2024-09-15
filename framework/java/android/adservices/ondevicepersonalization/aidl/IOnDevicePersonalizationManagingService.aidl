@@ -49,4 +49,13 @@ interface IOnDevicePersonalizationManagingService {
         in Bundle params,
         in CallerMetadata metadata,
         in IRegisterMeasurementEventCallback callback);
+
+    void logApiCallStats(
+        in String sdkPackageName,
+        in int apiName,
+        in long latencyMillis,
+        in long rpcCallLatencyMillis,
+        in long rpcReturnLatencyMillis,
+        in int responseCode
+    );
 }

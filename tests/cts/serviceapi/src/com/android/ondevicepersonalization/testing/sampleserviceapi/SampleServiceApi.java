@@ -29,6 +29,9 @@ public class SampleServiceApi {
     public static final String KEY_TABLE_VALUE_REPEAT_COUNT = "table_value_repeat_count";
     public static final String KEY_VALUE_LENGTH = "value_length";
     public static final String KEY_INFERENCE_RESULT = "inference_result";
+    public static final String KEY_EXPECTED_LOG_DATA_KEY = "expected_log_key";
+    public static final String KEY_EXPECTED_LOG_DATA_VALUE = "expected_log_value";
+    public static final String KEY_POPULATION_NAME = "value_population_name";
 
     // Values of opcodes.
     public static final String OPCODE_RENDER_AND_LOG = "render_and_log";
@@ -38,6 +41,12 @@ public class SampleServiceApi {
     public static final String OPCODE_READ_LOCAL_DATA = "read_local_data";
     public static final String OPCODE_CHECK_VALUE_LENGTH = "check_value_length";
     public static final String OPCODE_RUN_MODEL_INFERENCE = "run_model_inference";
+    public static final String OPCODE_RETURN_OUTPUT_DATA = "return_output_data";
+    public static final String OPCODE_READ_REMOTE_DATA = "read_remote_data";
+    public static final String OPCODE_READ_USER_DATA = "read_user_data";
+    public static final String OPCODE_READ_LOG = "read_log";
+    public static final String OPCODE_SCHEDULE_FEDERATED_JOB = "schedule_federated_job";
+    public static final String OPCODE_CANCEL_FEDERATED_JOB = "cancel_federated_job";
 
     // Event types in logs.
     public static final String KEY_EVENT_TYPE = "type";

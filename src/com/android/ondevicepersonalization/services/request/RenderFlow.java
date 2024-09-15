@@ -16,8 +16,7 @@
 
 package com.android.ondevicepersonalization.services.request;
 
-import static com.android.ondevicepersonalization.services.statsd.ApiCallStats.API_SERVICE_ON_RENDER;
-
+import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.RenderInputParcel;
 import android.adservices.ondevicepersonalization.RenderOutputParcel;
@@ -30,23 +29,25 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.os.SystemClock;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.DataAccessPermission;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
-import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.DebugUtils;
-import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
@@ -101,6 +102,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
     @NonNull
     private final Context mContext;
     private final long mStartTimeMillis;
+    private final long mServiceEntryTimeMillis;
     @NonNull
     private final Injector mInjector;
     @NonNull
@@ -118,9 +120,10 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
             int height,
             @NonNull IRequestSurfacePackageCallback callback,
             @NonNull Context context,
-            long startTimeMillis) {
+            long startTimeMillis,
+            long serviceEntryTimeMillis) {
         this(slotResultToken, hostToken, displayId, width, height,
-                callback, context, startTimeMillis,
+                callback, context, startTimeMillis, serviceEntryTimeMillis,
                 new Injector(),
                 new DisplayHelper(context));
     }
@@ -135,6 +138,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
             @NonNull IRequestSurfacePackageCallback callback,
             @NonNull Context context,
             long startTimeMillis,
+            long serviceEntryTimeMillis,
             @NonNull Injector injector,
             @NonNull DisplayHelper displayHelper) {
         sLogger.d(TAG + ": RenderFlow created.");
@@ -145,6 +149,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
         mHeight = height;
         mCallback = Objects.requireNonNull(callback);
         mStartTimeMillis = startTimeMillis;
+        mServiceEntryTimeMillis = serviceEntryTimeMillis;
         mInjector = Objects.requireNonNull(injector);
         mContext = Objects.requireNonNull(context);
         mDisplayHelper = Objects.requireNonNull(displayHelper);
@@ -155,8 +160,8 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
         mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
 
         try {
-            if (!isPersonalizationStatusEnabled()) {
-                sLogger.d(TAG + ": Personalization is disabled.");
+            if (!UserPrivacyStatus.getInstance().isProtectedAudienceEnabled()) {
+                sLogger.d(TAG + ": User control is not given for targeting.");
                 sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED, 0);
                 return false;
             }
@@ -196,8 +201,8 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                         .build());
         serviceParams.putBinder(
                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new DataAccessServiceImpl(
-                        mService, mContext, /* includeLocalData */ false,
-                        /* includeEventData */ false));
+                        mService, mContext, /* includeLocalData */ DataAccessPermission.DENIED,
+                        /* includeEventData */ DataAccessPermission.DENIED));
 
         return serviceParams;
     }
@@ -208,7 +213,8 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                 .transform(
                         val -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    API_SERVICE_ON_RENDER, val, mInjector.getClock(),
+                                    Constants.API_NAME_SERVICE_ON_RENDER,
+                                    val, mInjector.getClock(),
                                     Constants.STATUS_SUCCESS, mStartServiceTimeMillis);
                             return val;
                         },
@@ -218,7 +224,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                         Exception.class,
                         e -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    API_SERVICE_ON_RENDER, /* result= */ null,
+                                    Constants.API_NAME_SERVICE_ON_RENDER, /* result= */ null,
                                     mInjector.getClock(),
                                     Constants.STATUS_INTERNAL_ERROR, mStartServiceTimeMillis);
                             return Futures.immediateFailedFuture(e);
@@ -282,7 +288,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                                     DebugUtils.getIsolatedServiceExceptionCode(
                                             mContext, mService, e));
                         } else {
-                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0);
+                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, t);
                         }
                     }
                 },
@@ -304,27 +310,42 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
     private void sendSuccessResult(SurfacePackage surfacePackage) {
         int responseCode = Constants.STATUS_SUCCESS;
         try {
-            mCallback.onSuccess(surfacePackage);
+            mCallback.onSuccess(
+                    surfacePackage,
+                    new CalleeMetadata.Builder()
+                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
+                            .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
-        } finally {
-            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), responseCode, mStartTimeMillis);
         }
     }
 
     private void sendErrorResult(int errorCode, int isolatedServiceErrorCode) {
         try {
-            mCallback.onError(errorCode, isolatedServiceErrorCode);
+            mCallback.onError(
+                    errorCode,
+                    isolatedServiceErrorCode,
+                    null,
+                    new CalleeMetadata.Builder()
+                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
+                            .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
-        } finally {
-            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), errorCode, mStartTimeMillis);
         }
     }
 
-    private boolean isPersonalizationStatusEnabled() {
-        UserPrivacyStatus privacyStatus = UserPrivacyStatus.getInstance();
-        return privacyStatus.isPersonalizationStatusEnabled();
+    private void sendErrorResult(int errorCode, Throwable t) {
+        try {
+            mCallback.onError(
+                    errorCode,
+                    0,
+                    DebugUtils.getErrorMessage(mContext, t),
+                    new CalleeMetadata.Builder()
+                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
+                            .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
+        } catch (RemoteException e) {
+            sLogger.w(TAG + ": Callback error", e);
+        }
     }
 }

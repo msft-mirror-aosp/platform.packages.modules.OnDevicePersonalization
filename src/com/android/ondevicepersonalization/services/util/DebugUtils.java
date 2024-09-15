@@ -24,6 +24,7 @@ import android.content.Context;
 import android.os.Build;
 import android.provider.Settings;
 
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
@@ -62,6 +63,19 @@ public class DebugUtils {
             sLogger.e(e2, TAG + ": failed to get code");
         }
         return 0;
+    }
+
+    /** Returns the exception message if debugging is allowed. */
+    public static String getErrorMessage(@NonNull Context context, Throwable t) {
+        try {
+            if (t != null && isDeveloperModeEnabled(context)
+                    && FlagsFactory.getFlags().isIsolatedServiceDebuggingEnabled()) {
+                return t.getClass().getSimpleName() + ": " + t.getMessage();
+            }
+        } catch (Exception e) {
+            sLogger.e(e, TAG + ": failed to get message");
+        }
+        return null;
     }
 
     private DebugUtils() {}

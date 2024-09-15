@@ -60,8 +60,9 @@ public class MddJobService extends JobService {
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON);
         }
 
-        if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
-            sLogger.d(TAG + ": Personalization is not allowed, finishing job.");
+        if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()
+                && !UserPrivacyStatus.getInstance().isProtectedAudienceEnabled()) {
+            sLogger.d(TAG + ": User control is not given for all ODP services.");
             OdpJobServiceLogger.getInstance(this).recordJobSkipped(jobId,
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_PERSONALIZATION_NOT_ENABLED);
             jobFinished(params, false);

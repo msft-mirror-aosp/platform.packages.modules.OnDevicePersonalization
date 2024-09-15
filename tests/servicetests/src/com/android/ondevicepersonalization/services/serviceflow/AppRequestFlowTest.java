@@ -20,10 +20,13 @@ package com.android.ondevicepersonalization.services.serviceflow;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
+import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.content.ComponentName;
@@ -37,9 +40,11 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.modules.utils.testing.TestableDeviceConfig;
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
@@ -51,7 +56,6 @@ import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
-import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import org.junit.After;
 import org.junit.Before;
@@ -60,6 +64,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
@@ -78,15 +83,19 @@ public class AppRequestFlowTest {
     private boolean mCallbackError;
     private int mCallbackErrorCode;
     private int mIsolatedServiceErrorCode;
+    private String mErrorMessage;
     private Bundle mExecuteCallback;
     private ServiceFlowOrchestrator mSfo;
 
     @Mock
     UserPrivacyStatus mUserPrivacyStatus;
 
+    @Spy
+    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .mockStatic(FlagsFactory.class)
             .spyStatic(UserPrivacyStatus.class)
             .setStrictness(Strictness.LENIENT)
             .build();
@@ -94,10 +103,13 @@ public class AppRequestFlowTest {
     @Before
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
+        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
-        PhFlagsTestUtil.disableGlobalKillSwitch();
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+        doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
+        doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
 
         setUpTestData();
 
@@ -112,26 +124,41 @@ public class AppRequestFlowTest {
     }
 
     @Test
-    public void testAppRequestFlow_PersonalizationDisabled() throws InterruptedException {
-        doReturn(false).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
+    public void testAppRequestFlow_MeasurementControlRevoked() throws InterruptedException {
+        int originalQueriesCount = getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME);
+        int originalEventsCount = getDbTableSize(EventsContract.EventsEntry.TABLE_NAME);
+        doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
 
         mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
+                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L, 110L);
         mLatch.await();
+        assertTrue(mCallbackSuccess);
+        assertFalse(mExecuteCallback.isEmpty());
+        // make sure no request or event records are written to the database
+        assertEquals(originalQueriesCount, getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME));
+        assertEquals(originalEventsCount, getDbTableSize(EventsContract.EventsEntry.TABLE_NAME));
+    }
 
-        assertTrue(mCallbackError);
-        assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
+    @Test
+    public void testAppRequestFlow_TargetingControlRevoked() throws InterruptedException {
+        doReturn(false).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
+
+        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
+                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L, 110L);
+        mLatch.await();
+        assertTrue(mCallbackSuccess);
+        assertTrue(mExecuteCallback.isEmpty());
     }
 
     @Test
     public void testAppRequestFlow_OutputDataBlocked() throws InterruptedException {
-        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
-        PhFlagsTestUtil.setOutputDataAllowList("");
+        when(mSpyFlags.getOutputDataAllowList()).thenReturn("");
 
         mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
+                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
@@ -142,13 +169,13 @@ public class AppRequestFlowTest {
 
     @Test
     public void testAppRequestFlow_OutputDataAllowed() throws InterruptedException {
-        PhFlagsTestUtil.setOutputDataAllowList(
-                mContext.getPackageName() + ";" + mContext.getPackageName());
-        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
+        String contextPackageName = mContext.getPackageName();
+        when(mSpyFlags.getOutputDataAllowList()).thenReturn(
+                contextPackageName + ";" + contextPackageName);
 
         mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
+                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
@@ -177,8 +204,13 @@ public class AppRequestFlowTest {
         byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
                 DbUtils.toTableValue(service), "AABBCCDD", rows);
         EventsDao.getInstanceForTest(mContext).insertQuery(
-                new Query.Builder().setService(service).setQueryData(
-                        queryDataBytes).build());
+                new Query.Builder(
+                        System.currentTimeMillis(),
+                        mContext.getPackageName(),
+                        service,
+                        "AABBCCDD",
+                        queryDataBytes)
+                        .build());
         EventsDao.getInstanceForTest(mContext);
 
         OnDevicePersonalizationVendorDataDao testVendorDao = OnDevicePersonalizationVendorDataDao
@@ -209,17 +241,19 @@ public class AppRequestFlowTest {
 
     class TestExecuteCallback extends IExecuteCallback.Stub {
         @Override
-        public void onSuccess(Bundle bundle) {
+        public void onSuccess(Bundle bundle, CalleeMetadata calleeMetadata) {
             mCallbackSuccess = true;
             mExecuteCallback = bundle;
             mLatch.countDown();
         }
 
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode) {
+        public void onError(int errorCode, int isolatedServiceErrorCode, String message,
+                CalleeMetadata calleeMetadata) {
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;
+            mErrorMessage = message;
             mLatch.countDown();
         }
     }

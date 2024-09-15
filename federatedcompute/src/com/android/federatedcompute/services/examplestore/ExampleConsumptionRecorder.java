@@ -52,11 +52,15 @@ public class ExampleConsumptionRecorder {
         @GuardedBy("SingleQueryRecorder.this")
         private byte[] mResumptionToken;
 
-        private SingleQueryRecorder(String taskId, byte[] criteria) {
+        @Nullable private final String mCollectionUri;
+
+        private SingleQueryRecorder(
+                String taskId, byte[] criteria, @Nullable String collectionUri) {
             this.mTaskId = taskId;
             this.mCriteria = criteria;
             this.mExampleCount = 0;
             this.mResumptionToken = null;
+            this.mCollectionUri = collectionUri;
         }
 
         /** Increment the number of examples that has been used, and update the resumption token. */
@@ -71,19 +75,31 @@ public class ExampleConsumptionRecorder {
 
         /** Returns a single recorded of {@link ExampleConsumption}. */
         public synchronized ExampleConsumption finishRecordingAndGet() {
-            return new ExampleConsumption.Builder()
-                    .setTaskId(mTaskId)
-                    .setSelectionCriteria(mCriteria)
-                    .setExampleCount(mExampleCount)
-                    .setResumptionToken(mResumptionToken)
-                    .build();
+            ExampleConsumption.Builder builder =
+                    new ExampleConsumption.Builder()
+                            .setTaskId(mTaskId)
+                            .setSelectionCriteria(mCriteria)
+                            .setExampleCount(mExampleCount)
+                            .setResumptionToken(mResumptionToken);
+            if (mCollectionUri != null) {
+                builder.setCollectionUri(mCollectionUri);
+            }
+            return builder.build();
         }
     }
 
     /** Create a {@link SingleQueryRecorder} for the current task. */
     public synchronized SingleQueryRecorder createRecorderForTracking(
             String taskId, byte[] criteria) {
-        SingleQueryRecorder recorder = new SingleQueryRecorder(taskId, criteria);
+        SingleQueryRecorder recorder = new SingleQueryRecorder(taskId, criteria, null);
+        mSingleQueryRecorders.add(recorder);
+        return recorder;
+    }
+
+    /** Create a {@link SingleQueryRecorder} for the current task. */
+    public synchronized SingleQueryRecorder createRecorderForTracking(
+            String taskId, byte[] criteria, String collectionUri) {
+        SingleQueryRecorder recorder = new SingleQueryRecorder(taskId, criteria, collectionUri);
         mSingleQueryRecorders.add(recorder);
         return recorder;
     }

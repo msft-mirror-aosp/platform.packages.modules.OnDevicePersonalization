@@ -24,6 +24,7 @@ android_test {
         ":ondevicepersonalization-fbs",
         ":chronicle-sources",
         ":statslog-ondevicepersonalization-java-gen",
+        ":common-ondevicepersonalization-sources",
     ],
     libs: [
         "android.test.base.stubs.system",
