@@ -333,6 +333,40 @@ public class OdpExampleStoreServiceTests {
         assertFalse(mQueryCallbackOnFailureCalled);
     }
 
+    @Test
+    public void testStartQuery_isolatedServiceThrowsException() throws Exception {
+        mEventsDao.updateOrInsertEventState(
+                new EventState.Builder()
+                        .setTaskIdentifier("throw_exception")
+                        .setService(mIsolatedService)
+                        .setToken()
+                        .build());
+        mService.onCreate();
+        Intent intent = new Intent();
+        intent.setAction(EXAMPLE_STORE_ACTION).setPackage(mContext.getPackageName());
+        IExampleStoreService binder =
+                IExampleStoreService.Stub.asInterface(mService.onBind(intent));
+        assertNotNull(binder);
+        TestQueryCallback callback = new TestQueryCallback();
+        Bundle input = new Bundle();
+        ContextData contextData =
+                new ContextData(mIsolatedService.getPackageName(), mIsolatedService.getClassName());
+        input.putByteArray(
+                ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
+        input.putString(ClientConstants.EXTRA_POPULATION_NAME, "throw_exception");
+        input.putString(ClientConstants.EXTRA_TASK_ID, "TaskName");
+        input.putString(ClientConstants.EXTRA_COLLECTION_URI, "CollectionUri");
+        input.putInt(ClientConstants.EXTRA_ELIGIBILITY_MIN_EXAMPLE, 4);
+
+        binder.startQuery(input, callback);
+        assertTrue(
+                "timeout reached while waiting for countdownlatch!",
+                mLatch.await(5000, TimeUnit.MILLISECONDS));
+
+        assertFalse(mQueryCallbackOnSuccessCalled);
+        assertTrue(mQueryCallbackOnFailureCalled);
+    }
+
     public class TestIteratorCallback implements IExampleStoreIteratorCallback {
         byte[] mExpectedExample;
         byte[] mExpectedResumptionToken;
