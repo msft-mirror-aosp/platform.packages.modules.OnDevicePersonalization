@@ -26,7 +26,7 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_IS
 
 import android.provider.DeviceConfig;
 
-import androidx.test.InstrumentationRegistry;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 public class PhFlagsTestUtil {
     private static final String WRITE_DEVICE_CONFIG_PERMISSION =
