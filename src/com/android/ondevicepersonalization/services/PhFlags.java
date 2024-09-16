@@ -118,10 +118,7 @@ public final class PhFlags implements Flags {
 
     private final Map<String, Object> mStableFlags = new HashMap<>();
 
-    PhFlags() {
-        // This is only called onece so stable flags require process restart to be reset.
-        setStableFlags();
-    }
+    PhFlags() {}
 
     /** Returns the singleton instance of the PhFlags. */
     @NonNull
@@ -131,42 +128,6 @@ public final class PhFlags implements Flags {
 
     private static class PhFlagsLazyInstanceHolder {
         private static final PhFlags sSingleton = new PhFlags();
-    }
-
-    /** Sets the stable flag map. */
-    public void setStableFlags() {
-        mStableFlags.put(KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS,
-                getAppRequestFlowDeadlineSeconds());
-        mStableFlags.put(KEY_RENDER_FLOW_DEADLINE_SECONDS,
-                getRenderFlowDeadlineSeconds());
-        mStableFlags.put(KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS,
-                getWebTriggerFlowDeadlineSeconds());
-        mStableFlags.put(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS,
-                getWebViewFlowDeadlineSeconds());
-        mStableFlags.put(KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS,
-                getExampleStoreFlowDeadlineSeconds());
-        mStableFlags.put(KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS,
-                getDownloadFlowDeadlineSeconds());
-        mStableFlags.put(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
-                isSharedIsolatedProcessFeatureEnabled());
-        mStableFlags.put(KEY_TRUSTED_PARTNER_APPS_LIST,
-                getTrustedPartnerAppsList());
-        mStableFlags.put(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED,
-                isArtImageLoadingOptimizationEnabled());
-        mStableFlags.put(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE,
-                isPersonalizationStatusOverrideEnabled());
-        mStableFlags.put(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE,
-                getPersonalizationStatusOverrideValue());
-        mStableFlags.put(KEY_USER_CONTROL_CACHE_IN_MILLIS,
-                getUserControlCacheInMillis());
-    }
-
-    /** Gets a stable flag value based on flag name. */
-    public Object getStableFlag(String flagName) {
-        if (!mStableFlags.containsKey(flagName)) {
-            throw new IllegalArgumentException("Flag " + flagName + " is not stable.");
-        }
-        return mStableFlags.get(flagName);
     }
 
     // Group of All Killswitches

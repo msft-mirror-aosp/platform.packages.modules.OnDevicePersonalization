@@ -35,15 +35,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.when;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
 import com.android.ondevicepersonalization.services.util.DebugUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
@@ -54,7 +53,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 @RunWith(JUnit4.class)
@@ -62,8 +60,11 @@ public final class UserPrivacyStatusTest {
     private UserPrivacyStatus mUserPrivacyStatus;
     private static final int CONTROL_RESET_STATUS_CODE = 5;
 
-    @Spy
-    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+    private Flags mSpyFlags = new Flags() {
+        @Override public boolean getGlobalKillSwitch() {
+            return false;
+        }
+    };
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
@@ -71,6 +72,7 @@ public final class UserPrivacyStatusTest {
             .mockStatic(FlagsFactory.class)
             .mockStatic(StatsUtils.class)
             .spyStatic(ResetDataJobService.class)
+            .spyStatic(StableFlags.class)
             .setStrictness(Strictness.LENIENT)
             .build();
 
@@ -80,9 +82,10 @@ public final class UserPrivacyStatusTest {
         ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
         ExtendedMockito.doNothing().when(() -> StatsUtils.writeServiceRequestMetrics(
                 anyInt(), anyString(), any(), any(), anyInt(), anyLong()));
-        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
-        when(mSpyFlags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)).thenReturn(false);
-        when(mSpyFlags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE)).thenReturn(false);
+        ExtendedMockito.doReturn(false).when(
+                () -> StableFlags.get(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE));
+        ExtendedMockito.doReturn(false).when(
+                () -> StableFlags.get(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE));
         mUserPrivacyStatus = UserPrivacyStatus.getInstance();
         doReturn(RESULT_SUCCESS).when(ResetDataJobService::schedule);
     }
@@ -132,8 +135,10 @@ public final class UserPrivacyStatusTest {
 
     @Test
     public void testOverrideEnabledOnDeveloperModeOverrideTrue() {
-        when(mSpyFlags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)).thenReturn(true);
-        when(mSpyFlags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE)).thenReturn(true);
+        ExtendedMockito.doReturn(true).when(
+                () -> StableFlags.get(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE));
+        ExtendedMockito.doReturn(true).when(
+                () -> StableFlags.get(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE));
         doReturn(true).when(() -> DebugUtils.isDeveloperModeEnabled(any()));
 
         assertFalse(mUserPrivacyStatus.isProtectedAudienceAndMeasurementBothDisabled());
@@ -144,8 +149,10 @@ public final class UserPrivacyStatusTest {
 
     @Test
     public void testOverrideEnabledOnDeveloperModeOverrideFalse() {
-        when(mSpyFlags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)).thenReturn(true);
-        when(mSpyFlags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE)).thenReturn(false);
+        ExtendedMockito.doReturn(true).when(
+                () -> StableFlags.get(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE));
+        ExtendedMockito.doReturn(false).when(
+                () -> StableFlags.get(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE));
         doReturn(true).when(() -> DebugUtils.isDeveloperModeEnabled(any()));
 
         assertTrue(mUserPrivacyStatus.isProtectedAudienceAndMeasurementBothDisabled());
@@ -156,8 +163,10 @@ public final class UserPrivacyStatusTest {
 
     @Test
     public void testOverrideDisabledOnNonDeveloperMode() {
-        when(mSpyFlags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)).thenReturn(true);
-        when(mSpyFlags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE)).thenReturn(true);
+        ExtendedMockito.doReturn(true).when(
+                () -> StableFlags.get(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE));
+        ExtendedMockito.doReturn(true).when(
+                () -> StableFlags.get(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE));
         doReturn(false).when(() -> DebugUtils.isDeveloperModeEnabled(any()));
 
         assertFalse(mUserPrivacyStatus.isPersonalizationStatusEnabled());

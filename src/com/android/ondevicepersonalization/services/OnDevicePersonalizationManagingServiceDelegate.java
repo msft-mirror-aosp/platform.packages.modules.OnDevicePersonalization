@@ -251,7 +251,6 @@ public class OnDevicePersonalizationManagingServiceDelegate
     private boolean getGlobalKillSwitch() {
         long origId = Binder.clearCallingIdentity();
         boolean globalKillSwitch = mInjector.getFlags().getGlobalKillSwitch();
-        mInjector.getFlags().setStableFlags();
         Binder.restoreCallingIdentity(origId);
         return globalKillSwitch;
     }
