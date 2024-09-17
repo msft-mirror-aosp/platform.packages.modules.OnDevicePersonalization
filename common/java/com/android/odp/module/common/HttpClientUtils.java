@@ -28,6 +28,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.protobuf.ByteString;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -287,9 +288,9 @@ public class HttpClientUtils {
         if (contentLength == 0) {
             return 0;
         }
-        try (in) {
+        try (InputStream bufIn = new BufferedInputStream(in)) {
             // Process download resource.
-            long downloadedSize = writeToFile(fileName, in);
+            long downloadedSize = writeToFile(fileName, bufIn);
             return downloadedSize;
         }
     }
