@@ -98,19 +98,6 @@ public class PhFlagsTest {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testInvalidStableFlags() {
-        FlagsFactory.getFlags().getStableFlag("INVALID_FLAG_NAME");
-    }
-
-    @Test
-    public void testValidStableFlags() {
-        Object isSipFeatureEnabled = FlagsFactory.getFlags()
-                .getStableFlag(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
-
-        assertThat(isSipFeatureEnabled).isNotNull();
-    }
-
     @Test
     public void testGetGlobalKillSwitch() {
         // Without any overriding, the value is the hard coded constant.

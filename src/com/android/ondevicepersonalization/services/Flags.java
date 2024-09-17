@@ -239,14 +239,6 @@ public interface Flags extends ModuleSharedFlags {
         return DEFAULT_SPE_PILOT_JOB_ENABLED;
     }
 
-    /** Set all stable flags. */
-    default void setStableFlags() {}
-
-    /** Get a stable flag based on the flag name. */
-    default Object getStableFlag(String flagName) {
-        return null;
-    }
-
     default boolean getEnableClientErrorLogging() {
         return DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
     }
