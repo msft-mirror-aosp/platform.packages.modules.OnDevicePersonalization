@@ -74,6 +74,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -382,7 +383,8 @@ public final class HttpFederatedProtocol {
             checkpointFileSize =
                     writeToFile(
                             checkpointFile,
-                            new GZIPInputStream(new FileInputStream(payloadFileName)));
+                            new GZIPInputStream(
+                                    new BufferedInputStream(new FileInputStream(payloadFileName))));
             LogUtil.d(TAG, "Uncompressed checkpoint data file size: %d", checkpointFileSize);
             payloadFileName = checkpointFile;
         }
