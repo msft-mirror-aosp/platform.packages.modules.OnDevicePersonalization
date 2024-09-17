@@ -113,13 +113,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new IllegalArgumentException("missing service class name");
         }
 
-        if (options.getOutputType()
-                        == ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE
-                && options.getMaxIntValue() > mInjector.getFlags().getMaxIntValuesLimit()) {
-            throw new IllegalArgumentException(
-                    "The maxIntValue in OutputSpec can not exceed limit "
-                            + mInjector.getFlags().getMaxIntValuesLimit());
-        }
+        checkExecutionsOptions(options);
 
         final int uid = Binder.getCallingUid();
         enforceCallingPackageBelongsToUid(callingPackageName, uid);
@@ -284,6 +278,21 @@ public class OnDevicePersonalizationManagingServiceDelegate
                         service.getPackageName());
                 throw new IllegalStateException(
                         "Service skipped as the isolated service is not enrolled to access ODP.");
+            }
+        } finally {
+            Binder.restoreCallingIdentity(origId);
+        }
+    }
+
+    private void checkExecutionsOptions(@NonNull ExecuteOptionsParcel options) {
+        long origId = Binder.clearCallingIdentity();
+        try {
+            if (options.getOutputType()
+                    == ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE
+                    && options.getMaxIntValue() > mInjector.getFlags().getMaxIntValuesLimit()) {
+                throw new IllegalArgumentException(
+                        "The maxIntValue in OutputSpec can not exceed limit "
+                                + mInjector.getFlags().getMaxIntValuesLimit());
             }
         } finally {
             Binder.restoreCallingIdentity(origId);
