@@ -337,4 +337,13 @@ public interface Flags extends ModuleSharedFlags {
     default int getMaxIntValuesLimit() {
         return DEFAULT_MAX_INT_VALUES;
     }
+
+    /**
+     * Default max wait time until timeout for AdServices IPC call
+     */
+    long DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS = 5000L;
+
+    default long getAdservicesIpcCallTimeoutInMillis() {
+        return DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS;
+    }
 }

@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services;
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
 import static com.android.ondevicepersonalization.services.Flags.APP_REQUEST_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_THRESHOLD;
@@ -43,6 +44,7 @@ import static com.android.ondevicepersonalization.services.Flags.RENDER_FLOW_DEA
 import static com.android.ondevicepersonalization.services.Flags.WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.WEB_VIEW_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.APP_INSTALL_HISTORY_TTL;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_AGGREGATED_ERROR_REPORTING_PATH;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD;
@@ -730,5 +732,27 @@ public class PhFlagsTest {
                 /* makeDefault */ false);
         assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingIntervalInHours())
                 .isEqualTo(DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS);
+    }
+
+    @Test
+    public void testGetAdservicesIpcCallTimeoutInMillis() {
+        long testTimeoutValue = 100L;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS,
+                Long.toString(testTimeoutValue),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getAdservicesIpcCallTimeoutInMillis())
+                .isEqualTo(testTimeoutValue);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS,
+                Long.toString(DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS),
+                /* makeDefault */ false);
+        assertThat(FlagsFactory.getFlags().getAdservicesIpcCallTimeoutInMillis())
+                .isEqualTo(DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS);
     }
 }

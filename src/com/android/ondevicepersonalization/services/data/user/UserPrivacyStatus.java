@@ -22,6 +22,7 @@ import static android.adservices.ondevicepersonalization.Constants.STATUS_INTERN
 import static android.adservices.ondevicepersonalization.Constants.STATUS_METHOD_NOT_FOUND;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_REMOTE_EXCEPTION;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_SUCCESS;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_TIMEOUT;
 
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
@@ -39,6 +40,8 @@ import com.android.ondevicepersonalization.services.util.DebugUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 /**
  * A singleton class that stores all user privacy statuses in memory.
@@ -242,8 +245,8 @@ public final class UserPrivacyStatus {
             int updatedMeasurementState = commonStates.getMeasurementState();
             updateUserControlCache(updatedProtectedAudienceState, updatedMeasurementState);
         } catch (Exception e) {
-            sLogger.e(TAG + ": fetchStateFromAdServices error", e);
             int statusCode = getExceptionStatus(e);
+            sLogger.e(e, TAG + ": fetchStateFromAdServices error, status code %d", statusCode);
             StatsUtils.writeServiceRequestMetrics(
                     API_NAME_ADSERVICES_GET_COMMON_STATES,
                     packageName,
@@ -262,6 +265,9 @@ public final class UserPrivacyStatus {
 
     @VisibleForTesting
     int getExceptionStatus(Exception e) {
+        if (e instanceof ExecutionException && e.getCause() instanceof TimeoutException) {
+            return STATUS_TIMEOUT;
+        }
         if (e instanceof NoSuchMethodException) {
             return STATUS_METHOD_NOT_FOUND;
         }

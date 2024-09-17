@@ -20,6 +20,7 @@ import static android.adservices.ondevicepersonalization.Constants.STATUS_CALLER
 import static android.adservices.ondevicepersonalization.Constants.STATUS_INTERNAL_ERROR;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_METHOD_NOT_FOUND;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_REMOTE_EXCEPTION;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_TIMEOUT;
 import static android.app.job.JobScheduler.RESULT_SUCCESS;
 
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
@@ -56,6 +57,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.Spy;
 import org.mockito.quality.Strictness;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 @RunWith(JUnit4.class)
 public final class UserPrivacyStatusTest {
@@ -165,6 +169,9 @@ public final class UserPrivacyStatusTest {
 
     @Test
     public void testGetStatusCode() {
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("timeout testing", new TimeoutException())))
+                .isEqualTo(STATUS_TIMEOUT);
         assertThat(mUserPrivacyStatus.getExceptionStatus(new NoSuchMethodException()))
                 .isEqualTo(STATUS_METHOD_NOT_FOUND);
         assertThat(mUserPrivacyStatus.getExceptionStatus(new SecurityException()))
