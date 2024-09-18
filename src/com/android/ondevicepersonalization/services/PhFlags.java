@@ -113,6 +113,9 @@ public final class PhFlags implements Flags {
 
     public static final String MAX_INT_VALUES_LIMIT = "max_int_values_limit";
 
+    public static final String KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS =
+            "adservices_ipc_call_timeout_in_millis";
+
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
 
@@ -469,5 +472,13 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ MAX_INT_VALUES_LIMIT,
                 /* defaultValue= */ DEFAULT_MAX_INT_VALUES);
+    }
+
+    @Override
+    public long getAdservicesIpcCallTimeoutInMillis() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS,
+                /* defaultValue= */ DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS);
     }
 }
