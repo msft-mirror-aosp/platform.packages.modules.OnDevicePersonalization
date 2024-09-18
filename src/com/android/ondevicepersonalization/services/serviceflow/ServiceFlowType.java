@@ -30,34 +30,34 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_RENDER_FL
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS;
 
-import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.ondevicepersonalization.services.StableFlags;
 
 /** Collection of on-device personalization service flows. */
 public enum ServiceFlowType {
 
     APP_REQUEST_FLOW(
             "AppRequest", OP_EXECUTE, Priority.HIGH,
-            (int) FlagsFactory.getFlags().getStableFlag(KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS)),
+            (int) StableFlags.get(KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS)),
 
     RENDER_FLOW(
             "Render", OP_RENDER, Priority.HIGH,
-            (int) FlagsFactory.getFlags().getStableFlag(KEY_RENDER_FLOW_DEADLINE_SECONDS)),
+            (int) StableFlags.get(KEY_RENDER_FLOW_DEADLINE_SECONDS)),
 
     WEB_TRIGGER_FLOW(
             "WebTrigger", OP_WEB_TRIGGER, Priority.NORMAL,
-            (int) FlagsFactory.getFlags().getStableFlag(KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS)),
+            (int) StableFlags.get(KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS)),
 
     WEB_VIEW_FLOW(
             "ComputeEventMetrics", OP_WEB_VIEW_EVENT, Priority.NORMAL,
-            (int) FlagsFactory.getFlags().getStableFlag(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS)),
+            (int) StableFlags.get(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS)),
 
     EXAMPLE_STORE_FLOW(
             "ExampleStore", OP_TRAINING_EXAMPLE, Priority.NORMAL,
-            (int) FlagsFactory.getFlags().getStableFlag(KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS)),
+            (int) StableFlags.get(KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS)),
 
     DOWNLOAD_FLOW(
             "DownloadJob", OP_DOWNLOAD, Priority.LOW,
-            (int) FlagsFactory.getFlags().getStableFlag(KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS));
+            (int) StableFlags.get(KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS));
 
     final String mTaskName;
     final int mOperationCode;

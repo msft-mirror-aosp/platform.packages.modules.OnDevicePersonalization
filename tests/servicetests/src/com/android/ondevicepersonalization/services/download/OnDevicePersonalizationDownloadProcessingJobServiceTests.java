@@ -32,7 +32,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import android.app.job.JobParameters;
 import android.app.job.JobScheduler;
@@ -57,7 +56,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.util.concurrent.CountDownLatch;
@@ -66,8 +64,14 @@ import java.util.concurrent.CountDownLatch;
 public class OnDevicePersonalizationDownloadProcessingJobServiceTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
-    @Spy
-    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+    static class TestFlags implements Flags {
+        boolean mGlobalKillSwitch = false;
+        @Override public boolean getGlobalKillSwitch() {
+            return mGlobalKillSwitch;
+        }
+    }
+
+    private TestFlags mSpyFlags = new TestFlags();
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
@@ -82,7 +86,6 @@ public class OnDevicePersonalizationDownloadProcessingJobServiceTests {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
         // Use direct executor to keep all work sequential for the tests
         ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
         MobileDataDownloadFactory.getMdd(mContext, executorService, executorService);
@@ -125,7 +128,7 @@ public class OnDevicePersonalizationDownloadProcessingJobServiceTests {
 
     @Test
     public void onStartJobTestKillSwitchEnabled() {
-        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(true);
+        mSpyFlags.mGlobalKillSwitch = true;
         doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
         boolean result = mSpyService.onStartJob(mock(JobParameters.class));
         assertTrue(result);

@@ -33,7 +33,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import android.app.job.JobParameters;
 import android.app.job.JobScheduler;
@@ -70,7 +69,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.io.File;
@@ -94,8 +92,22 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     private EventsDao mEventsDao;
     private OnDevicePersonalizationMaintenanceJobService mSpyService;
 
-    @Spy
-    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+    class TestFlags implements Flags {
+        boolean mGetGlobalKillSwitch = false;
+        boolean mSpePilotJobEnabled = false;
+        String mIsolatedServiceAllowList = "*";
+        @Override public boolean getGlobalKillSwitch() {
+            return mGetGlobalKillSwitch;
+        }
+        @Override public boolean getSpePilotJobEnabled() {
+            return mSpePilotJobEnabled;
+        }
+        @Override public String getIsolatedServiceAllowList() {
+            return mIsolatedServiceAllowList;
+        }
+    }
+
+    private TestFlags mSpyFlags = new TestFlags();
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
@@ -152,11 +164,6 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
-        when(mSpyFlags.getPersonalizationStatusOverrideValue()).thenReturn(false);
-
-        // By default, disable SPE.
-        when(mSpyFlags.getSpePilotJobEnabled()).thenReturn(false);
 
         // Clean data up directories
         File vendorDir = new File(mContext.getFilesDir(), "VendorData");
@@ -200,7 +207,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
     @Test
     public void onStartJobTestKillSwitchEnabled() {
-        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(true);
+        mSpyFlags.mGetGlobalKillSwitch = true;
         doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
         mSpyService.schedule(mContext, /* forceSchedule= */ false);
         assertTrue(
@@ -219,7 +226,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     @MockStatic(OdpJobScheduler.class)
     public void onStartJobSpeEnabled() {
         // Enable SPE.
-        when(mSpyFlags.getSpePilotJobEnabled()).thenReturn(true);
+        mSpyFlags.mSpePilotJobEnabled = true;
         // Mock OdpJobScheduler to not actually schedule the job.
         OdpJobScheduler mockedScheduler = mock(OdpJobScheduler.class);
         doReturn(mockedScheduler).when(() -> OdpJobScheduler.getInstance(any()));
@@ -245,10 +252,10 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         addEventData(TEST_OWNER, timestamp);
 
         var originalIsolatedServiceAllowList =
-                FlagsFactory.getFlags().getIsolatedServiceAllowList();
-        when(mSpyFlags.getIsolatedServiceAllowList()).thenReturn(mContext.getPackageName());
+                mSpyFlags.getIsolatedServiceAllowList();
+        mSpyFlags.mIsolatedServiceAllowList = mContext.getPackageName();
         OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
-        when(mSpyFlags.getIsolatedServiceAllowList()).thenReturn(originalIsolatedServiceAllowList);
+        mSpyFlags.mIsolatedServiceAllowList = originalIsolatedServiceAllowList;
         File dir = new File(OnDevicePersonalizationVendorDataDao.getFileDir(
                 OnDevicePersonalizationVendorDataDao.getTableName(
                         mService,
@@ -275,11 +282,11 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         assertEquals(6, dir.listFiles().length);
 
         originalIsolatedServiceAllowList =
-                FlagsFactory.getFlags().getIsolatedServiceAllowList();
-        when(mSpyFlags.getIsolatedServiceAllowList()).thenReturn(
-                "com.android.ondevicepersonalization.servicetests");
+                mSpyFlags.getIsolatedServiceAllowList();
+        mSpyFlags.mIsolatedServiceAllowList =
+                "com.android.ondevicepersonalization.servicetests";
         OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
-        when(mSpyFlags.getIsolatedServiceAllowList()).thenReturn(originalIsolatedServiceAllowList);
+        mSpyFlags.mIsolatedServiceAllowList = originalIsolatedServiceAllowList;
         assertEquals(2, dir.listFiles().length);
         assertTrue(new File(dir, "large_" + (timestamp + 20)).exists());
         assertTrue(new File(dir, "large2_" + (timestamp + 20)).exists());
@@ -333,11 +340,11 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         assertEquals(3, localDir.listFiles().length);
 
         var originalIsolatedServiceAllowList =
-                FlagsFactory.getFlags().getIsolatedServiceAllowList();
-        when(mSpyFlags.getIsolatedServiceAllowList()).thenReturn(
-                "com.android.ondevicepersonalization.servicetests");
+                mSpyFlags.getIsolatedServiceAllowList();
+        mSpyFlags.mIsolatedServiceAllowList =
+                "com.android.ondevicepersonalization.servicetests";
         OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
-        when(mSpyFlags.getIsolatedServiceAllowList()).thenReturn(originalIsolatedServiceAllowList);
+        mSpyFlags.mIsolatedServiceAllowList = originalIsolatedServiceAllowList;
         assertEquals(1, vendorDir.listFiles().length);
         assertEquals(1, localDir.listFiles().length);
     }

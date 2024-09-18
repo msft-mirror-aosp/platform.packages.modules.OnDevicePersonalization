@@ -20,8 +20,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.DownloadCompletedOutputParcel;
 import android.content.ComponentName;
@@ -60,7 +58,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
@@ -109,8 +106,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         );
     }
 
-    @Spy
-    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+    private Flags mSpyFlags = new Flags() {
+        @Override public boolean isSharedIsolatedProcessFeatureEnabled() {
+                return SdkLevel.isAtLeastU() && mIsSipFeatureEnabled;
+        }
+    };
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
@@ -138,8 +138,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
 
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        when(mSpyFlags.isSharedIsolatedProcessFeatureEnabled())
-                .thenReturn(SdkLevel.isAtLeastU() && mIsSipFeatureEnabled);
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
 
         mLatch = new CountDownLatch(1);
