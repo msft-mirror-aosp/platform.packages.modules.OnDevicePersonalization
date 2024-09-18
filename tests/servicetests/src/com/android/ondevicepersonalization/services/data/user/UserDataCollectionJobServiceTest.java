@@ -96,8 +96,8 @@ public class UserDataCollectionJobServiceTest {
     public void onStartJobTest() throws Exception {
         doReturn(mContext.getPackageManager()).when(mService).getPackageManager();
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
-        ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
+        ExtendedMockito.doReturn(false).when(mUserPrivacyStatus)
+                .isProtectedAudienceAndMeasurementBothDisabled();
 
         boolean result = mService.onStartJob(mock(JobParameters.class));
         assertTrue(result);
@@ -126,8 +126,8 @@ public class UserDataCollectionJobServiceTest {
         mUserDataCollector.updateUserData(RawUserData.getInstance());
         assertTrue(mUserDataCollector.isInitialized());
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
-        ExtendedMockito.doReturn(false).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
+        ExtendedMockito.doReturn(true).when(mUserPrivacyStatus)
+                .isProtectedAudienceAndMeasurementBothDisabled();
 
         boolean result = mService.onStartJob(mock(JobParameters.class));
 

@@ -16,13 +16,26 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import static android.adservices.ondevicepersonalization.Constants.STATUS_CALLER_NOT_ALLOWED;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_INTERNAL_ERROR;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_METHOD_NOT_FOUND;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_REMOTE_EXCEPTION;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_TIMEOUT;
 import static android.app.job.JobScheduler.RESULT_SUCCESS;
 
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
+
+import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
@@ -33,6 +46,8 @@ import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
+import com.android.ondevicepersonalization.services.util.DebugUtils;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import org.junit.After;
 import org.junit.Before;
@@ -42,6 +57,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.Spy;
 import org.mockito.quality.Strictness;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 @RunWith(JUnit4.class)
 public final class UserPrivacyStatusTest {
@@ -53,7 +71,9 @@ public final class UserPrivacyStatusTest {
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .mockStatic(DebugUtils.class)
             .mockStatic(FlagsFactory.class)
+            .mockStatic(StatsUtils.class)
             .spyStatic(ResetDataJobService.class)
             .setStrictness(Strictness.LENIENT)
             .build();
@@ -62,8 +82,11 @@ public final class UserPrivacyStatusTest {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
+        ExtendedMockito.doNothing().when(() -> StatsUtils.writeServiceRequestMetrics(
+                anyInt(), anyString(), any(), any(), anyInt(), anyLong()));
         when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
-        when(mSpyFlags.getPersonalizationStatusOverrideValue()).thenReturn(false);
+        when(mSpyFlags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)).thenReturn(false);
+        when(mSpyFlags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE)).thenReturn(false);
         mUserPrivacyStatus = UserPrivacyStatus.getInstance();
         doReturn(RESULT_SUCCESS).when(ResetDataJobService::schedule);
     }
@@ -109,6 +132,54 @@ public final class UserPrivacyStatusTest {
     public void testExpiredUserControlCache() {
         mUserPrivacyStatus.invalidateUserControlCacheForTesting();
         assertFalse(mUserPrivacyStatus.isUserControlCacheValid());
+    }
+
+    @Test
+    public void testOverrideEnabledOnDeveloperModeOverrideTrue() {
+        when(mSpyFlags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)).thenReturn(true);
+        when(mSpyFlags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE)).thenReturn(true);
+        doReturn(true).when(() -> DebugUtils.isDeveloperModeEnabled(any()));
+
+        assertFalse(mUserPrivacyStatus.isProtectedAudienceAndMeasurementBothDisabled());
+        assertTrue(mUserPrivacyStatus.isMeasurementEnabled());
+        assertTrue(mUserPrivacyStatus.isProtectedAudienceEnabled());
+        assertTrue(mUserPrivacyStatus.isPersonalizationStatusEnabled());
+    }
+
+    @Test
+    public void testOverrideEnabledOnDeveloperModeOverrideFalse() {
+        when(mSpyFlags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)).thenReturn(true);
+        when(mSpyFlags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE)).thenReturn(false);
+        doReturn(true).when(() -> DebugUtils.isDeveloperModeEnabled(any()));
+
+        assertTrue(mUserPrivacyStatus.isProtectedAudienceAndMeasurementBothDisabled());
+        assertFalse(mUserPrivacyStatus.isMeasurementEnabled());
+        assertFalse(mUserPrivacyStatus.isProtectedAudienceEnabled());
+        assertFalse(mUserPrivacyStatus.isPersonalizationStatusEnabled());
+    }
+
+    @Test
+    public void testOverrideDisabledOnNonDeveloperMode() {
+        when(mSpyFlags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)).thenReturn(true);
+        when(mSpyFlags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE)).thenReturn(true);
+        doReturn(false).when(() -> DebugUtils.isDeveloperModeEnabled(any()));
+
+        assertFalse(mUserPrivacyStatus.isPersonalizationStatusEnabled());
+    }
+
+    @Test
+    public void testGetStatusCode() {
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("timeout testing", new TimeoutException())))
+                .isEqualTo(STATUS_TIMEOUT);
+        assertThat(mUserPrivacyStatus.getExceptionStatus(new NoSuchMethodException()))
+                .isEqualTo(STATUS_METHOD_NOT_FOUND);
+        assertThat(mUserPrivacyStatus.getExceptionStatus(new SecurityException()))
+                .isEqualTo(STATUS_CALLER_NOT_ALLOWED);
+        assertThat(mUserPrivacyStatus.getExceptionStatus(new IllegalArgumentException()))
+                .isEqualTo(STATUS_INTERNAL_ERROR);
+        assertThat(mUserPrivacyStatus.getExceptionStatus(new Exception()))
+                .isEqualTo(STATUS_REMOTE_EXCEPTION);
     }
 
     @After
