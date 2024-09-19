@@ -27,7 +27,7 @@ public class OdpServiceException extends Exception {
     private final int mErrorCode;
 
     public OdpServiceException(int errorCode) {
-        this(errorCode, "");
+        this(errorCode, "ErrorCode: " + errorCode);
     }
 
     public OdpServiceException(int errorCode, @NonNull String errorMessage) {
@@ -36,7 +36,7 @@ public class OdpServiceException extends Exception {
     }
 
     public OdpServiceException(int errorCode, @NonNull Throwable cause) {
-        this(errorCode, "", cause);
+        this(errorCode, "ErrorCode: " + errorCode, cause);
     }
 
     public OdpServiceException(
