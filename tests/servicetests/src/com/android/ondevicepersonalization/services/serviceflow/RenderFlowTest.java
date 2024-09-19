@@ -19,8 +19,6 @@ package com.android.ondevicepersonalization.services.serviceflow;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
@@ -58,7 +56,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
@@ -98,8 +95,12 @@ public class RenderFlowTest {
         );
     }
 
-    @Spy
-    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+    private Flags mSpyFlags = new Flags() {
+        @Override
+        public boolean isSharedIsolatedProcessFeatureEnabled() {
+            return mIsSipFeatureEnabled;
+        }
+    };
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
@@ -114,7 +115,7 @@ public class RenderFlowTest {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
         ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        when(mSpyFlags.isSharedIsolatedProcessFeatureEnabled()).thenReturn(mIsSipFeatureEnabled);
+        //when(mSpyFlags.isSharedIsolatedProcessFeatureEnabled()).thenReturn(mIsSipFeatureEnabled);
 
         setUpTestDate();
 
