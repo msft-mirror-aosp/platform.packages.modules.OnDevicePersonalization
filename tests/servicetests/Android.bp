@@ -61,6 +61,7 @@ android_test {
         "compatibility-device-util-axt",
         "tensorflowlite_java",
         "adservices-shared-spe",
+        "ondevicepersonalization-testing-utils",
     ],
     sdk_version: "module_current",
     target_sdk_version: "current",
