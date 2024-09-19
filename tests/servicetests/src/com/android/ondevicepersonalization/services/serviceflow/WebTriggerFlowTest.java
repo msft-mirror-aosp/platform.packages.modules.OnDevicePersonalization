@@ -19,8 +19,6 @@ package com.android.ondevicepersonalization.services.serviceflow;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
@@ -54,7 +52,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
@@ -75,8 +72,15 @@ public class WebTriggerFlowTest {
 
     @Mock UserPrivacyStatus mUserPrivacyStatus;
 
-    @Spy
-    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+    static class TestFlags implements Flags {
+        boolean mGlobalKillSwitch = false;
+        @Override
+        public boolean getGlobalKillSwitch() {
+            return mGlobalKillSwitch;
+        }
+    };
+
+    private TestFlags mSpyFlags = new TestFlags();
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
@@ -90,7 +94,6 @@ public class WebTriggerFlowTest {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
         ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
         doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
@@ -109,7 +112,7 @@ public class WebTriggerFlowTest {
 
     @Test
     public void testWebTriggerFlow_GlobalKillswitchOn() throws Exception {
-        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(true);
+        mSpyFlags.mGlobalKillSwitch = true;
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
                 new TestWebCallback(), 100L, 110L);

@@ -110,7 +110,7 @@ public class MainActivity extends Activity {
         registerReportConversionButton();
         registerCancelTrainingButton();
 
-        Futures.submit(
+        Object unusedFuture = Futures.submit(
                 () -> printDebuggingInfo(),
                 sCallbackExecutor);
     }
