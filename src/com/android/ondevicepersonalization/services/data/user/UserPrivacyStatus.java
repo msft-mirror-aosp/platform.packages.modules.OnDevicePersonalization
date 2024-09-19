@@ -32,9 +32,8 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-import com.android.ondevicepersonalization.services.Flags;
-import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
+import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
 import com.android.ondevicepersonalization.services.util.DebugUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
@@ -90,23 +89,20 @@ public final class UserPrivacyStatus {
     }
 
     private static boolean isOverrideEnabled() {
-        Flags flags = FlagsFactory.getFlags();
         return DebugUtils.isDeveloperModeEnabled(
                 OnDevicePersonalizationApplication.getAppContext())
-                && (boolean) flags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE);
+                && (boolean) StableFlags.get(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE);
     }
 
     public void setPersonalizationStatusEnabled(boolean personalizationStatusEnabled) {
-        Flags flags = FlagsFactory.getFlags();
         if (!isOverrideEnabled()) {
             mPersonalizationStatusEnabled = personalizationStatusEnabled;
         }
     }
 
     public boolean isPersonalizationStatusEnabled() {
-        Flags flags = FlagsFactory.getFlags();
         if (isOverrideEnabled()) {
-            return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
+            return (boolean) StableFlags.get(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
         }
         return mPersonalizationStatusEnabled;
     }
@@ -115,10 +111,9 @@ public final class UserPrivacyStatus {
      * Return if both Protected Audience (PA) and Measurement consent status are disabled
      */
     public boolean isProtectedAudienceAndMeasurementBothDisabled() {
-        Flags flags = FlagsFactory.getFlags();
         if (isOverrideEnabled()) {
             boolean overrideToBothEnabled =
-                    (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
+                    (boolean) StableFlags.get(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
             return !overrideToBothEnabled;
         }
         if (isUserControlCacheValid()) {
@@ -133,9 +128,8 @@ public final class UserPrivacyStatus {
      * Returns the user control status of Protected Audience (PA).
      */
     public boolean isProtectedAudienceEnabled() {
-        Flags flags = FlagsFactory.getFlags();
         if (isOverrideEnabled()) {
-            return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
+            return (boolean) StableFlags.get(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
         }
         if (isUserControlCacheValid()) {
             return mProtectedAudienceEnabled;
@@ -149,9 +143,8 @@ public final class UserPrivacyStatus {
      * Returns the user control status of Measurement.
      */
     public boolean isMeasurementEnabled() {
-        Flags flags = FlagsFactory.getFlags();
         if (isOverrideEnabled()) {
-            return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
+            return (boolean) StableFlags.get(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
         }
         if (isUserControlCacheValid()) {
             return mMeasurementEnabled;
@@ -199,8 +192,7 @@ public final class UserPrivacyStatus {
         }
         long cacheDuration = sClock.currentTimeMillis() - mLastUserControlCacheUpdate;
         return cacheDuration >= 0
-                        && cacheDuration < (long) FlagsFactory.getFlags().getStableFlag(
-                                        KEY_USER_CONTROL_CACHE_IN_MILLIS);
+                && cacheDuration < (long) StableFlags.get(KEY_USER_CONTROL_CACHE_IN_MILLIS);
     }
 
     /**
@@ -222,8 +214,7 @@ public final class UserPrivacyStatus {
     @VisibleForTesting
     void invalidateUserControlCacheForTesting() {
         mLastUserControlCacheUpdate = sClock.currentTimeMillis()
-                        - 2 * (long) FlagsFactory.getFlags().getStableFlag(
-                                        KEY_USER_CONTROL_CACHE_IN_MILLIS);
+                        - 2 * (long) StableFlags.get(KEY_USER_CONTROL_CACHE_IN_MILLIS);
     }
 
     private void fetchStateFromAdServices() {
