@@ -18,15 +18,20 @@ package com.android.ondevicepersonalization.services.data.errors;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
 import android.content.ComponentName;
 import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.odp.module.common.PackageUtils;
 
@@ -41,10 +46,12 @@ import org.mockito.quality.Strictness;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationAggregatedErrorDataDaoTest {
-    private static final ComponentName TEST_OWNER = new ComponentName("ownerPkg", "ownerCls");
-    private static final ComponentName OTHER_OWNER = new ComponentName("otherPkg", "otherCls");
-    private static final String TEST_CERT_DIGEST = "certDigest";
-    private static final String TASK_IDENTIFIER = "task";
+    private static final String TEST_PACKAGE = "ownerPkg";
+    private static final String OTHER_PACKAGE = "otherPkg";
+    private static final ComponentName TEST_OWNER = new ComponentName(TEST_PACKAGE, "ownerCls");
+    private static final ComponentName OTHER_OWNER = new ComponentName(OTHER_PACKAGE, "otherCls");
+    private static final String TEST_CERT_DIGEST = "certDigest1";
+    private static final String OTHER_CERT_DIGEST = "certDigest2";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationAggregatedErrorDataDao mDao;
 
@@ -63,6 +70,12 @@ public class OnDevicePersonalizationAggregatedErrorDataDaoTest {
 
         // Cleanup any existing records
         mDao.deleteExceptionData();
+        ExtendedMockito.doReturn(TEST_CERT_DIGEST)
+                .when(() -> PackageUtils.getCertDigest(any(), eq(TEST_PACKAGE)));
+        ExtendedMockito.doReturn(OTHER_CERT_DIGEST)
+                .when(() -> PackageUtils.getCertDigest(any(), eq(OTHER_PACKAGE)));
+        OnDevicePersonalizationAggregatedErrorDataDao.cleanupErrorData(
+                mContext, /* excludedServices= */ ImmutableList.of());
     }
 
     @Test
@@ -95,19 +108,43 @@ public class OnDevicePersonalizationAggregatedErrorDataDaoTest {
 
     @Test
     public void testGetInstance() {
-        ComponentName owner1 = new ComponentName("owner1", "cls1");
-        OnDevicePersonalizationAggregatedErrorDataDao instance1Owner1 =
+        OnDevicePersonalizationAggregatedErrorDataDao owner1Instance1 =
                 OnDevicePersonalizationAggregatedErrorDataDao.getInstance(
-                        mContext, owner1, TEST_CERT_DIGEST);
-        OnDevicePersonalizationAggregatedErrorDataDao instance2Owner1 =
+                        mContext, TEST_OWNER, TEST_CERT_DIGEST);
+        OnDevicePersonalizationAggregatedErrorDataDao owner1Instance2 =
                 OnDevicePersonalizationAggregatedErrorDataDao.getInstance(
-                        mContext, owner1, TEST_CERT_DIGEST);
-        ComponentName owner2 = new ComponentName("owner2", "cls2");
-        OnDevicePersonalizationAggregatedErrorDataDao instance1Owner2 =
+                        mContext, TEST_OWNER, TEST_CERT_DIGEST);
+        OnDevicePersonalizationAggregatedErrorDataDao owner2Instance1 =
                 OnDevicePersonalizationAggregatedErrorDataDao.getInstance(
-                        mContext, owner2, TEST_CERT_DIGEST);
+                        mContext, OTHER_OWNER, TEST_CERT_DIGEST);
 
-        assertThat(instance1Owner1).isSameInstanceAs(instance2Owner1);
-        assertNotEquals(instance1Owner1, instance1Owner2);
+        assertNotNull(owner1Instance1);
+        assertNotNull(owner2Instance1);
+        assertThat(owner1Instance1).isSameInstanceAs(owner1Instance2);
+        assertNotEquals(owner1Instance1, owner2Instance1);
+    }
+
+    @Test
+    public void testGetMatchingTables() {
+        // Given two tables with some error data
+        OnDevicePersonalizationAggregatedErrorDataDao instance1 =
+                OnDevicePersonalizationAggregatedErrorDataDao.getInstance(
+                        mContext, TEST_OWNER, TEST_CERT_DIGEST);
+        OnDevicePersonalizationAggregatedErrorDataDao instance2 =
+                OnDevicePersonalizationAggregatedErrorDataDao.getInstance(
+                        mContext, OTHER_OWNER, TEST_CERT_DIGEST);
+        instance1.addExceptionCount(1, 1);
+        instance2.addExceptionCount(2, 1);
+        int originalCount =
+                OnDevicePersonalizationAggregatedErrorDataDao.getErrorDataTableNames(mContext)
+                        .size();
+
+        // Expect that no tables exist after cleanup
+        OnDevicePersonalizationAggregatedErrorDataDao.cleanupErrorData(
+                mContext, /* excludedServices= */ ImmutableList.of());
+
+        assertEquals(2, originalCount);
+        assertThat(OnDevicePersonalizationAggregatedErrorDataDao.getErrorDataTableNames(mContext))
+                .isEmpty();
     }
 }
