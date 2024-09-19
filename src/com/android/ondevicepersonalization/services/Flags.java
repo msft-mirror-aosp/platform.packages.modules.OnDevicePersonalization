@@ -338,4 +338,16 @@ public interface Flags extends ModuleSharedFlags {
     default long getAdservicesIpcCallTimeoutInMillis() {
         return DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS;
     }
+
+    String DEFAULT_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST = "";
+
+    default String getPlatformDataForTrainingAllowlist() {
+        return DEFAULT_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST;
+    }
+
+    String DEFAULT_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST = "";
+
+    default String getDefaultPlatformDataForExecuteAllowlist() {
+        return DEFAULT_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST;
+    }
 }
