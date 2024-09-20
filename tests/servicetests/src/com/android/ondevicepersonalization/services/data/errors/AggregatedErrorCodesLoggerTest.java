@@ -79,13 +79,13 @@ public class AggregatedErrorCodesLoggerTest {
 
         ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService())
                 .when(OnDevicePersonalizationExecutors::getBackgroundExecutor);
+        doReturn(TEST_CERT_DIGEST).when(() -> PackageUtils.getCertDigest(any(), any()));
         mErrorDataDao.deleteExceptionData();
     }
 
     @Test
     public void logIsolatedServiceErrorCode_flagDisabled_skipsLogging() throws Exception {
         doReturn(new TestFlags(false)).when(FlagsFactory::getFlags);
-        doReturn(TEST_CERT_DIGEST).when(() -> PackageUtils.getCertDigest(any(), any()));
 
         ListenableFuture<?> loggingFuture =
                 AggregatedErrorCodesLogger.logIsolatedServiceErrorCode(
@@ -96,9 +96,8 @@ public class AggregatedErrorCodesLoggerTest {
     }
 
     @Test
-    public void logIsolatedServiceErrorCode_flagEnabled_logsException() throws Exception {
+    public void logIsolatedServiceErrorCode_flagEnabled_logsException() {
         doReturn(new TestFlags(true)).when(FlagsFactory::getFlags);
-        doReturn(TEST_CERT_DIGEST).when(() -> PackageUtils.getCertDigest(any(), any()));
 
         ListenableFuture<?> loggingFuture =
                 AggregatedErrorCodesLogger.logIsolatedServiceErrorCode(
@@ -108,6 +107,35 @@ public class AggregatedErrorCodesLoggerTest {
         assertTrue(loggingFuture.isDone());
         assertEquals(1, exceptionData.size());
         assertEquals(getExpectedErrorData(mDayIndexUtc), exceptionData.get(0));
+    }
+
+    @Test
+    public void cleanupAggregatedErrorData_flagDisabled_skipsCleanup() {
+        doReturn(new TestFlags(false)).when(FlagsFactory::getFlags);
+        mErrorDataDao.addExceptionCount(TEST_ISOLATED_SERVICE_ERROR_CODE, /* exceptionCount= */ 1);
+
+        ListenableFuture<?> cleanupFuture =
+                AggregatedErrorCodesLogger.cleanupAggregatedErrorData(mContext);
+
+        List<ErrorData> exceptionData = mErrorDataDao.getExceptionData();
+        assertTrue(cleanupFuture.isDone());
+        assertEquals(1, exceptionData.size());
+        assertEquals(getExpectedErrorData(mDayIndexUtc), exceptionData.get(0));
+    }
+
+    @Test
+    public void cleanupAggregatedErrorData_flagEnabled_performsCleanup() {
+        doReturn(new TestFlags(true)).when(FlagsFactory::getFlags);
+        mErrorDataDao.addExceptionCount(TEST_ISOLATED_SERVICE_ERROR_CODE, /* exceptionCount= */ 1);
+
+        ListenableFuture<?> cleanupFuture =
+                AggregatedErrorCodesLogger.cleanupAggregatedErrorData(mContext);
+
+        assertTrue(cleanupFuture.isDone());
+        assertTrue(mErrorDataDao.getExceptionData().isEmpty());
+        assertTrue(
+                OnDevicePersonalizationAggregatedErrorDataDao.getErrorDataTableNames(mContext)
+                        .isEmpty());
     }
 
     @After

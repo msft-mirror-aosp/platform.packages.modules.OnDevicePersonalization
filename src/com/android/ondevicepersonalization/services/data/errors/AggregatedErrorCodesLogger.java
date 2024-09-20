@@ -24,7 +24,10 @@ import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -47,7 +50,7 @@ public final class AggregatedErrorCodesLogger {
     public static ListenableFuture<Void> logIsolatedServiceErrorCode(
             int isolatedServiceErrorCode, ComponentName componentName, Context context) {
         if (!FlagsFactory.getFlags().getAggregatedErrorReportingEnabled()) {
-            sLogger.e(TAG + ": Aggregated error code logging disabled");
+            sLogger.e(TAG + ": Skipping logging, aggregated error code logging disabled");
             return Futures.immediateVoidFuture();
         }
 
@@ -65,10 +68,61 @@ public final class AggregatedErrorCodesLogger {
             sLogger.e(TAG + ": failed to get cert digest.", nne);
             return;
         }
+
         OnDevicePersonalizationAggregatedErrorDataDao dao =
                 OnDevicePersonalizationAggregatedErrorDataDao.getInstance(
                         context, componentName, certDigest);
         dao.addExceptionCount(isolatedServiceErrorCode, /* exceptionCount= */ 1);
+    }
+
+    /**
+     * Deletes any aggregate error data tables on device except for those ODP services that are
+     * still installed and enrolled.
+     *
+     * <p>No-op if the aggregate error reporting flag is disabled.
+     *
+     * <p>Can use the {@link #cleanupErrorData(Context)} if already calling on an {@code executor}.
+     *
+     * @param context calling service context.
+     * @return {@link ListenableFuture} that resolves successfully when the deletion is successful.
+     */
+    public static ListenableFuture<Void> cleanupAggregatedErrorData(Context context) {
+        if (!FlagsFactory.getFlags().getAggregatedErrorReportingEnabled()) {
+            sLogger.e(TAG + ": Skipping cleanup, aggregated error code logging disabled");
+            return Futures.immediateVoidFuture();
+        }
+
+        return (ListenableFuture<Void>)
+                OnDevicePersonalizationExecutors.getBackgroundExecutor()
+                        .submit(() -> cleanupErrorData(context));
+    }
+
+    /**
+     * Deletes any aggregate error data tables on device except for those ODP services that are
+     * still installed and enrolled.
+     *
+     * <p>No-op if the aggregate error reporting flag is disabled.
+     *
+     * <p>Should be called on an appropriate {@link OnDevicePersonalizationExecutors}.
+     *
+     * @param context calling service context.
+     */
+    public static void cleanupErrorData(Context context) {
+        // Delete all error data for any services that are no longer installed
+        ImmutableList<ComponentName> odpServices =
+                AppManifestConfigHelper.getOdpServices(context, /* enrolledOnly= */ true);
+        OnDevicePersonalizationAggregatedErrorDataDao.cleanupErrorData(context, odpServices);
+    }
+
+    /**
+     * Test only method that returns count of error data tables on device.
+     *
+     * @param context calling service context.
+     * @return the number of error data tables on device.
+     */
+    @VisibleForTesting
+    public static int getErrorDataTableCount(Context context) {
+        return OnDevicePersonalizationAggregatedErrorDataDao.getErrorDataTableNames(context).size();
     }
 
     private AggregatedErrorCodesLogger() {}
