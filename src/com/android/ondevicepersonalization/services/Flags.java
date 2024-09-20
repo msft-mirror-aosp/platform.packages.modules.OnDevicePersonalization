@@ -350,4 +350,10 @@ public interface Flags extends ModuleSharedFlags {
     default String getDefaultPlatformDataForExecuteAllowlist() {
         return DEFAULT_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST;
     }
+
+    String DEFAULT_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST = "";
+
+    default String getLogIsolatedServiceErrorCodeNonAggregatedAllowlist() {
+        return DEFAULT_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST;
+    }
 }

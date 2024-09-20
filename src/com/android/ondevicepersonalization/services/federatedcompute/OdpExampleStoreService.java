@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.federatedcompute;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.TrainingExampleRecord;
 import android.adservices.ondevicepersonalization.TrainingExamplesInputParcel;
 import android.adservices.ondevicepersonalization.TrainingExamplesOutputParcel;
@@ -278,7 +279,14 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                             if (t instanceof TimeoutException) {
                                 status = Constants.STATUS_TIMEOUT;
                             } else if (t instanceof OdpServiceException exp) {
-                                status = exp.getErrorCode();
+                                if (exp.getCause() instanceof IsolatedServiceException
+                                        && isLogIsolatedServiceErrorCodeNonAggregatedAllowed(
+                                                packageName)) {
+                                    status = ((IsolatedServiceException) exp.getCause())
+                                            .getErrorCode();
+                                } else {
+                                    status = exp.getErrorCode();
+                                }
                             }
                             sLogger.w(t, "%s : Request failed.", TAG);
                             StatsUtils.writeServiceRequestMetrics(
@@ -356,6 +364,18 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                     mInjector.getFlags().getDefaultPlatformDataForExecuteAllowlist());
         } catch (Exception e) {
             sLogger.d(TAG + ": allow list error", e);
+            return false;
+        }
+    }
+
+    private boolean isLogIsolatedServiceErrorCodeNonAggregatedAllowed(String packageName) {
+        try {
+            return AllowListUtils.isAllowListed(
+                    packageName,
+                    null,
+                    mInjector.getFlags().getLogIsolatedServiceErrorCodeNonAggregatedAllowlist());
+        } catch (Exception e) {
+            sLogger.d(e, TAG + ": check isLogIsolatedServiceErrorCodeNonAggregatedAllowed error");
             return false;
         }
     }
