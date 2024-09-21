@@ -184,6 +184,9 @@ public final class UserPrivacyStatusTest {
 
     @Test
     public void testOverrideEnabledOnDeveloperModeOverrideTrue() {
+        mUserPrivacyStatus.updateUserControlCache(
+                UserPrivacyStatus.CONTROL_REVOKED_STATUS_CODE,
+                UserPrivacyStatus.CONTROL_REVOKED_STATUS_CODE);
         ExtendedMockito.doReturn(true).when(
                 () -> StableFlags.get(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE));
         ExtendedMockito.doReturn(true).when(
@@ -193,11 +196,13 @@ public final class UserPrivacyStatusTest {
         assertFalse(mUserPrivacyStatus.isProtectedAudienceAndMeasurementBothDisabled());
         assertTrue(mUserPrivacyStatus.isMeasurementEnabled());
         assertTrue(mUserPrivacyStatus.isProtectedAudienceEnabled());
-        assertTrue(mUserPrivacyStatus.isPersonalizationStatusEnabled());
     }
 
     @Test
     public void testOverrideEnabledOnDeveloperModeOverrideFalse() {
+        mUserPrivacyStatus.updateUserControlCache(
+                UserPrivacyStatus.CONTROL_GIVEN_STATUS_CODE,
+                UserPrivacyStatus.CONTROL_GIVEN_STATUS_CODE);
         ExtendedMockito.doReturn(true).when(
                 () -> StableFlags.get(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE));
         ExtendedMockito.doReturn(false).when(
@@ -207,18 +212,21 @@ public final class UserPrivacyStatusTest {
         assertTrue(mUserPrivacyStatus.isProtectedAudienceAndMeasurementBothDisabled());
         assertFalse(mUserPrivacyStatus.isMeasurementEnabled());
         assertFalse(mUserPrivacyStatus.isProtectedAudienceEnabled());
-        assertFalse(mUserPrivacyStatus.isPersonalizationStatusEnabled());
     }
 
     @Test
-    public void testOverrideDisabledOnNonDeveloperMode() {
+    public void testOverrideNotAllowedOnNonDeveloperMode() {
+        mUserPrivacyStatus.updateUserControlCache(
+                UserPrivacyStatus.CONTROL_REVOKED_STATUS_CODE,
+                UserPrivacyStatus.CONTROL_REVOKED_STATUS_CODE);
         ExtendedMockito.doReturn(true).when(
                 () -> StableFlags.get(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE));
         ExtendedMockito.doReturn(true).when(
                 () -> StableFlags.get(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE));
         doReturn(false).when(() -> DebugUtils.isDeveloperModeEnabled(any()));
-
-        assertFalse(mUserPrivacyStatus.isPersonalizationStatusEnabled());
+        assertTrue(mUserPrivacyStatus.isProtectedAudienceAndMeasurementBothDisabled());
+        assertFalse(mUserPrivacyStatus.isMeasurementEnabled());
+        assertFalse(mUserPrivacyStatus.isProtectedAudienceEnabled());
     }
 
     @Test

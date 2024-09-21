@@ -115,6 +115,13 @@ public final class PhFlags implements Flags {
 
     public static final String KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS =
             "adservices_ipc_call_timeout_in_millis";
+    public static final String KEY_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST =
+            "platform_data_for_training_allowlist";
+    public static final String KEY_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST =
+            "platform_data_for_execute_allowlist";
+
+    public static final String KEY_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST =
+            "log_isolated_service_error_code_non_aggregated_allowlist";
 
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
@@ -441,5 +448,30 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS,
                 /* defaultValue= */ DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS);
+    }
+
+    @Override
+    public String getPlatformDataForTrainingAllowlist() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST,
+                /* defaultValue= */ DEFAULT_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST);
+    }
+
+    @Override
+    public String getDefaultPlatformDataForExecuteAllowlist() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST,
+                /* defaultValue= */ DEFAULT_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST);
+    }
+
+    @Override
+    public String getLogIsolatedServiceErrorCodeNonAggregatedAllowlist() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST,
+                /* defaultValue= */
+                DEFAULT_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST);
     }
 }
