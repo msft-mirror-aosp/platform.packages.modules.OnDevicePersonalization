@@ -106,6 +106,8 @@ public class AppRequestFlowTest {
     class TestFlags implements Flags {
         int mIsolatedServiceDeadlineSeconds = 30;
         String mOutputDataAllowList = "*;*";
+        String mPlatformDataAllowList = "";
+
         @Override public boolean getGlobalKillSwitch() {
             return false;
         }
@@ -114,6 +116,11 @@ public class AppRequestFlowTest {
         }
         @Override public String getOutputDataAllowList() {
             return mOutputDataAllowList;
+        }
+
+        @Override
+        public String getDefaultPlatformDataForExecuteAllowlist() {
+            return mPlatformDataAllowList;
         }
     }
 
@@ -236,7 +243,7 @@ public class AppRequestFlowTest {
     }
 
     @Test
-    public void testAppRequestFlow_getBestValueBlocked() throws InterruptedException {
+    public void testAppRequestFlow_notInOutputDataAllowlist_blocked() throws InterruptedException {
         mSpyFlags.mOutputDataAllowList = "";
         ExecuteOptionsParcel options =
                 new ExecuteOptionsParcel(
@@ -262,10 +269,43 @@ public class AppRequestFlowTest {
     }
 
     @Test
-    public void testAppRequestFlow_getBestValue() throws InterruptedException {
+    public void testAppRequestFlow_notInPlatformDataAllowlist_blocked()
+            throws InterruptedException {
+        String contextPackageName = mContext.getPackageName();
+        mSpyFlags.mOutputDataAllowList = contextPackageName + ";" + contextPackageName;
+        mSpyFlags.mPlatformDataAllowList = "";
+        ExecuteOptionsParcel options =
+                new ExecuteOptionsParcel(
+                        ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE, 10);
+
+        mSfo.scheduleForTest(
+                ServiceFlowType.APP_REQUEST_FLOW,
+                mContext.getPackageName(),
+                mTestServiceComponentName,
+                createWrappedAppParams(),
+                new TestExecuteCallback(),
+                mContext,
+                100L,
+                110L,
+                options,
+                new AppTestInjector());
+        mLatch.await();
+
+        assertTrue(mCallbackSuccess);
+        assertThat(mExecuteCallback.getInt(Constants.EXTRA_OUTPUT_BEST_VALUE)).isEqualTo(-1);
+        assertEquals(2, getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME));
+        assertEquals(1, getDbTableSize(EventsContract.EventsEntry.TABLE_NAME));
+    }
+
+    @Test
+    public void testAppRequestFlow_getBestValue() throws Exception {
         String contextPackageName = mContext.getPackageName();
         mSpyFlags.mOutputDataAllowList =
                 contextPackageName + ";" + contextPackageName;
+        mSpyFlags.mPlatformDataAllowList =
+                contextPackageName
+                        + ":"
+                        + PackageUtils.getCertDigest(mContext, mContext.getPackageName());
         ExecuteOptionsParcel options =
                 new ExecuteOptionsParcel(
                         ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE, 10);
