@@ -26,6 +26,8 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.internal.annotations.VisibleForTesting;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.internal.federatedcompute.v1.ResourceCapabilities;
+import com.google.internal.federatedcompute.v1.ResourceCompressionFormat;
 import com.google.protobuf.ByteString;
 
 import java.io.BufferedInputStream;
@@ -65,28 +67,35 @@ public class HttpClientUtils {
     public static final String OCTET_STREAM = "application/octet-stream";
     public static final ImmutableSet<Integer> HTTP_OK_STATUS = ImmutableSet.of(200, 201);
 
-    public static final Integer HTTP_UNAUTHENTICATED_STATUS = 401;
-
-    public static final Integer HTTP_UNAUTHORIZED_STATUS = 403;
-
-    public static final ImmutableSet<Integer> HTTP_OK_OR_UNAUTHENTICATED_STATUS =
-            ImmutableSet.of(200, 201, 401);
-
-    // This key indicates the key attestation record used for authentication.
-    public static final String ODP_AUTHENTICATION_KEY = "odp-authentication-key";
-
-    // This key indicates a UUID as a verified token for the device.
-    public static final String ODP_AUTHORIZATION_KEY = "odp-authorization-key";
-
-    public static final String ODP_IDEMPOTENCY_KEY = "odp-idempotency-key";
-
-    public static final String FCP_OWNER_ID_DIGEST = "fcp-owner-id-digest";
 
     public static final int DEFAULT_BUFFER_SIZE = 1024;
     public static final byte[] EMPTY_BODY = new byte[0];
 
+    /** Returns the full URI based on the provided base URL and suffix. */
+    public static String joinBaseUriWithSuffix(String baseUri, String suffix) {
+        if (suffix.isEmpty() || !suffix.startsWith("/")) {
+            throw new IllegalArgumentException("uri_suffix be empty or must have a leading '/'");
+        }
+
+        if (baseUri.endsWith("/")) {
+            baseUri = baseUri.substring(0, baseUri.length() - 1);
+        }
+        suffix = suffix.substring(1);
+        return String.join("/", baseUri, suffix);
+    }
+
     interface HttpURLConnectionSupplier {
         HttpURLConnection get() throws IOException; // Declared to throw IOException
+    }
+
+    /** Get the current client capabilities. */
+    public static ResourceCapabilities getResourceCapabilities() {
+        // Compression formats supported for resources downloaded via `Resource.uri`.
+        // All clients are assumed to support uncompressed payloads.
+        return ResourceCapabilities.newBuilder()
+                .addSupportedCompressionFormats(
+                        ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP)
+                .build();
     }
 
     /** Compresses the input data using Gzip. */
@@ -102,7 +111,7 @@ public class HttpClientUtils {
         }
     }
 
-    /** Uncompresses the input data using Gzip. */
+    /** Un-compresses the input data using Gzip. */
     public static byte[] uncompressWithGzip(byte[] data) {
         try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
                 GZIPInputStream gzip = new GZIPInputStream(inputStream);
@@ -115,7 +124,7 @@ public class HttpClientUtils {
             return result.toByteArray();
         } catch (Exception e) {
             LogUtil.e(TAG, e, "Failed to decompress the data.");
-            throw new IllegalStateException("Failed to unscompress using Gzip", e);
+            throw new IllegalStateException("Failed to un-compress using Gzip", e);
         }
     }
 

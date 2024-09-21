@@ -16,9 +16,7 @@
 
 package com.android.federatedcompute.services.http;
 
-import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_TYPE_HDR;
-import static com.android.federatedcompute.services.http.HttpClientUtil.PROTOBUF_CONTENT_TYPE;
-
+import com.android.odp.module.common.HttpClientUtils;
 import com.android.odp.module.common.HttpClientUtils.HttpMethod;
 import com.android.odp.module.common.OdpHttpRequest;
 
@@ -28,14 +26,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * A helper class to create FederatedComputeHttpRequest with base uri, request headers and
- * compression setting.
+ * A helper class to create {@link OdpHttpRequest} with base uri, request headers and compression
+ * setting for federated compute.
  */
-public final class ProtocolRequestCreator {
+final class ProtocolRequestCreator {
     private final String mRequestBaseUri;
     private final HashMap<String, String> mHeaderList;
 
-    public ProtocolRequestCreator(String requestBaseUri, HashMap<String, String> headerList) {
+    ProtocolRequestCreator(String requestBaseUri, HashMap<String, String> headerList) {
         this.mRequestBaseUri = requestBaseUri;
         this.mHeaderList = headerList;
     }
@@ -44,7 +42,7 @@ public final class ProtocolRequestCreator {
      * Creates a {@link ProtocolRequestCreator} based on forwarding info. Validates and extracts the
      * base URI for the subsequent requests.
      */
-    public static ProtocolRequestCreator create(ForwardingInfo forwardingInfo) {
+    static ProtocolRequestCreator create(ForwardingInfo forwardingInfo) {
         if (forwardingInfo.getTargetUriPrefix().isEmpty()) {
             throw new IllegalArgumentException("Missing `ForwardingInfo.target_uri_prefix`");
         }
@@ -54,17 +52,14 @@ public final class ProtocolRequestCreator {
     }
 
     /** Creates a {@link OdpHttpRequest} with base uri and compression setting. */
-    public OdpHttpRequest createProtoRequest(
+    OdpHttpRequest createProtoRequest(
             String uri, HttpMethod httpMethod, byte[] requestBody, boolean isProtobufEncoded) {
         HashMap<String, String> extraHeaders = new HashMap<>();
         return createProtoRequest(uri, httpMethod, extraHeaders, requestBody, isProtobufEncoded);
     }
 
-    /**
-     * Creates a {@link com.android.odp.module.common.OdpHttpRequest} with base uri, request headers
-     * and compression setting.
-     */
-    public OdpHttpRequest createProtoRequest(
+    /** Creates a {@link OdpHttpRequest} with base uri, request headers and compression setting. */
+    OdpHttpRequest createProtoRequest(
             String uri,
             HttpMethod httpMethod,
             Map<String, String> extraHeaders,
@@ -75,24 +70,14 @@ public final class ProtocolRequestCreator {
         requestHeader.putAll(extraHeaders);
 
         if (isProtobufEncoded && requestBody.length > 0) {
-            requestHeader.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
+            requestHeader.put(
+                    HttpClientUtils.CONTENT_TYPE_HDR, HttpClientUtils.PROTOBUF_CONTENT_TYPE);
         }
         return OdpHttpRequest.create(
-                joinBaseUriWithSuffix(mRequestBaseUri, uri),
+                HttpClientUtils.joinBaseUriWithSuffix(mRequestBaseUri, uri),
                 httpMethod,
                 requestHeader,
                 requestBody);
     }
 
-    private String joinBaseUriWithSuffix(String baseUri, String suffix) {
-        if (suffix.isEmpty() || !suffix.startsWith("/")) {
-            throw new IllegalArgumentException("uri_suffix be empty or must have a leading '/'");
-        }
-
-        if (baseUri.endsWith("/")) {
-            baseUri = baseUri.substring(0, baseUri.length() - 1);
-        }
-        suffix = suffix.substring(1);
-        return String.join("/", baseUri, suffix);
-    }
 }
