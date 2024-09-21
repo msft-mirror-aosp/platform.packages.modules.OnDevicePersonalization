@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,33 +14,27 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.http;
+package com.android.odp.module.common;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.android.federatedcompute.services.common.PhFlags;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.odp.module.common.HttpClientUtils;
-import com.android.odp.module.common.OdpHttpRequest;
-import com.android.odp.module.common.OdpHttpResponse;
 
-import org.junit.Before;
+import com.google.common.util.concurrent.MoreExecutors;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -48,31 +42,18 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(JUnit4.class)
-@ExtendedMockitoRule.MockStatic(PhFlags.class)
 public final class HttpClientTest {
     @Rule
     public final ExtendedMockitoRule extendedMockitoRule =
             new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
 
-    public static final OdpHttpRequest DEFAULT_GET_REQUEST =
-            OdpHttpRequest.create(
-                    "https://google.com",
-                    HttpClientUtils.HttpMethod.GET,
-                    new HashMap<>(),
-                    HttpClientUtil.EMPTY_BODY);
-
     private static final int DEFAULT_RETRY_LIMIT = 3;
+    private static final int HTTP_UNAVAILABLE = 503;
+    private static final int HTTP_OK = 200;
 
-    @Spy private HttpClient mHttpClient = new HttpClient();
-
-    @Mock private HttpURLConnection mMockHttpURLConnection;
-    @Mock private PhFlags mMocKFlags;
-
-    @Before
-    public void setUp() throws Exception {
-        when(PhFlags.getInstance()).thenReturn(mMocKFlags);
-        when(mMocKFlags.getHttpRequestRetryLimit()).thenReturn(DEFAULT_RETRY_LIMIT);
-    }
+    @Spy
+    private HttpClient mHttpClient =
+            new HttpClient(DEFAULT_RETRY_LIMIT, MoreExecutors.newDirectExecutorService());
 
     @Test
     public void testPerformGetRequestFailsWithRetry() throws Exception {
@@ -81,14 +62,14 @@ public final class HttpClientTest {
                 new OdpHttpResponse.Builder()
                         .setHeaders(new HashMap<>())
                         .setPayload(failureMessage.getBytes(UTF_8))
-                        .setStatusCode(503)
+                        .setStatusCode(HTTP_UNAVAILABLE)
                         .build();
         TestHttpIOSupplier testSupplier = new TestHttpIOSupplier(testFailedResponse);
 
         OdpHttpResponse returnedResponse = mHttpClient.performRequestWithRetry(testSupplier);
 
         assertEquals(DEFAULT_RETRY_LIMIT, testSupplier.mCallCount.get());
-        assertThat(returnedResponse.getStatusCode()).isEqualTo(503);
+        assertThat(returnedResponse.getStatusCode()).isEqualTo(HTTP_UNAVAILABLE);
         assertTrue(returnedResponse.getHeaders().isEmpty());
         assertThat(returnedResponse.getPayload()).isEqualTo(failureMessage.getBytes(UTF_8));
     }
@@ -99,17 +80,16 @@ public final class HttpClientTest {
         mockHeaders.put("Header1", Arrays.asList("Value1"));
         String failureMessage = "FAIL!";
         String successMessage = "Success!";
-
         OdpHttpResponse testFailedResponse =
                 new OdpHttpResponse.Builder()
                         .setHeaders(new HashMap<>())
                         .setPayload(failureMessage.getBytes(UTF_8))
-                        .setStatusCode(503)
+                        .setStatusCode(HTTP_UNAVAILABLE)
                         .build();
         OdpHttpResponse testSuccessfulResponse =
                 new OdpHttpResponse.Builder()
                         .setPayload(successMessage.getBytes(UTF_8))
-                        .setStatusCode(200)
+                        .setStatusCode(HTTP_OK)
                         .setHeaders(mockHeaders)
                         .build();
         TestHttpIOSupplier testSupplier =
@@ -119,13 +99,13 @@ public final class HttpClientTest {
         OdpHttpResponse response = mHttpClient.performRequestWithRetry(testSupplier);
 
         assertEquals(DEFAULT_RETRY_LIMIT, testSupplier.mCallCount.get());
-        assertThat(response.getStatusCode()).isEqualTo(200);
+        assertThat(response.getStatusCode()).isEqualTo(HTTP_OK);
         assertThat(response.getHeaders()).isEqualTo(mockHeaders);
     }
 
     private static final class TestHttpIOSupplier
             implements HttpClient.HttpIOSupplier<OdpHttpResponse> {
-        private AtomicInteger mCallCount = new AtomicInteger(0);
+        private final AtomicInteger mCallCount = new AtomicInteger(0);
 
         private final OdpHttpResponse mSuccessfulResponse;
         private final OdpHttpResponse mFailedResponse;

@@ -17,8 +17,8 @@
 package com.android.federatedcompute.services.http;
 
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
-import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_TYPE_HDR;
-import static com.android.federatedcompute.services.http.HttpClientUtil.PROTOBUF_CONTENT_TYPE;
+import static com.android.odp.module.common.HttpClientUtils.CONTENT_TYPE_HDR;
+import static com.android.odp.module.common.HttpClientUtils.PROTOBUF_CONTENT_TYPE;
 
 import static com.google.common.truth.Truth.assertThat;
 

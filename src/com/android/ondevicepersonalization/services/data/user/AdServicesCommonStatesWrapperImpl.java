@@ -22,9 +22,12 @@ import android.adservices.common.AdServicesCommonStatesResponse;
 import android.adservices.common.AdServicesOutcomeReceiver;
 import android.annotation.NonNull;
 import android.content.Context;
+import android.os.Binder;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 
 import com.google.common.util.concurrent.FluentFuture;
@@ -33,12 +36,15 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A wrapper for the AdServicesCommonStates API. Used by UserPrivacyStatus to
  * fetch common states from AdServices.
  */
 class AdServicesCommonStatesWrapperImpl implements AdServicesCommonStatesWrapper {
+    private static final String TAG = AdServicesCommonStatesWrapperImpl.class.getSimpleName();
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private final Context mContext;
 
     AdServicesCommonStatesWrapperImpl(Context context) {
@@ -49,7 +55,18 @@ class AdServicesCommonStatesWrapperImpl implements AdServicesCommonStatesWrapper
         try {
             AdServicesCommonManager manager =
                     Objects.requireNonNull(getAdServicesCommonManager());
-            return FluentFuture.from(getAdServicesResponse(manager))
+            sLogger.d(TAG + ": IPC getAdServicesCommonStates() started");
+            long origId = Binder.clearCallingIdentity();
+            long timeoutInMillis = FlagsFactory.getFlags().getAdservicesIpcCallTimeoutInMillis();
+            Binder.restoreCallingIdentity(origId);
+            ListenableFuture<AdServicesCommonStatesResponse> futureWithTimeout =
+                    Futures.withTimeout(
+                            getAdServicesResponse(manager),
+                            timeoutInMillis,
+                            TimeUnit.MILLISECONDS,
+                            OnDevicePersonalizationExecutors.getScheduledExecutor());
+
+            return FluentFuture.from(futureWithTimeout)
                     .transform(
                             v -> getResultFromResponse(v),
                             MoreExecutors.newDirectExecutorService());
@@ -83,11 +100,15 @@ class AdServicesCommonStatesWrapperImpl implements AdServicesCommonStatesWrapper
                                     Exception>() {
                                 @Override
                                 public void onResult(AdServicesCommonStatesResponse result) {
+                                    sLogger.d(
+                                            TAG + ": IPC getAdServicesCommonStates() success");
                                     completer.set(result);
                                 }
 
                                 @Override
                                 public void onError(Exception error) {
+                                    sLogger.e(error,
+                                            TAG + ": IPC getAdServicesCommonStates() error");
                                     completer.setException(error);
                                 }
                             });

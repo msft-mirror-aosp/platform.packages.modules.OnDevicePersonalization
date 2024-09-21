@@ -80,6 +80,9 @@
     },
     {
       "name": "CtsOnDevicePersonalizationE2ETests"
+    },
+    {
+      "name": "CtsOnDevicePersonalizationConfigTests"
     }
   ]
 }
