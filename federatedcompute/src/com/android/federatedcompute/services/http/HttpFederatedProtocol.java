@@ -19,6 +19,7 @@ package com.android.federatedcompute.services.http;
 import static com.android.federatedcompute.services.common.Constants.TRACE_HTTP_ISSUE_CHECKIN;
 import static com.android.federatedcompute.services.common.Constants.TRACE_HTTP_REPORT_RESULT;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBackgroundExecutor;
+import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBlockingExecutor;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getLightweightExecutor;
 import static com.android.federatedcompute.services.common.TrainingEventLogger.getTaskIdForLogging;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
@@ -48,6 +49,7 @@ import com.android.federatedcompute.services.encryption.Encrypter;
 import com.android.federatedcompute.services.http.HttpClientUtil.FederatedComputePayloadDataContract;
 import com.android.federatedcompute.services.security.AuthorizationContext;
 import com.android.federatedcompute.services.training.util.ComputationResult;
+import com.android.odp.module.common.HttpClient;
 import com.android.odp.module.common.HttpClientUtils;
 import com.android.odp.module.common.OdpHttpRequest;
 import com.android.odp.module.common.OdpHttpResponse;
@@ -61,7 +63,6 @@ import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federatedcompute.v1.ClientVersion;
 import com.google.internal.federatedcompute.v1.RejectionInfo;
 import com.google.internal.federatedcompute.v1.Resource;
-import com.google.internal.federatedcompute.v1.ResourceCapabilities;
 import com.google.internal.federatedcompute.v1.ResourceCompressionFormat;
 import com.google.internal.federatedcompute.v1.UploadInstruction;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentRequest;
@@ -74,6 +75,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -121,7 +123,8 @@ public final class HttpFederatedProtocol {
                 entryUri,
                 clientVersion,
                 populationName,
-                new HttpClient(),
+                new HttpClient(
+                        FlagsFactory.getFlags().getHttpRequestRetryLimit(), getBlockingExecutor()),
                 encrypter,
                 trainingEventLogger);
     }
@@ -277,11 +280,7 @@ public final class HttpFederatedProtocol {
                         .setClientVersion(
                                 ClientVersion.newBuilder()
                                         .setVersionCode(String.valueOf(mClientVersion)))
-                        .setResourceCapabilities(
-                                ResourceCapabilities.newBuilder()
-                                        .addSupportedCompressionFormats(
-                                                ResourceCompressionFormat
-                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP))
+                        .setResourceCapabilities(HttpClientUtils.getResourceCapabilities())
                         .build();
 
         String taskAssignmentUriSuffix =
@@ -382,7 +381,8 @@ public final class HttpFederatedProtocol {
             checkpointFileSize =
                     writeToFile(
                             checkpointFile,
-                            new GZIPInputStream(new FileInputStream(payloadFileName)));
+                            new GZIPInputStream(
+                                    new BufferedInputStream(new FileInputStream(payloadFileName))));
             LogUtil.d(TAG, "Uncompressed checkpoint data file size: %d", checkpointFileSize);
             payloadFileName = checkpointFile;
         }
@@ -416,11 +416,7 @@ public final class HttpFederatedProtocol {
         ReportResultRequest startDataUploadRequest =
                 ReportResultRequest.newBuilder()
                         .setResult(result)
-                        .setResourceCapabilities(
-                                ResourceCapabilities.newBuilder()
-                                        .addSupportedCompressionFormats(
-                                                ResourceCompressionFormat
-                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP))
+                        .setResourceCapabilities(HttpClientUtils.getResourceCapabilities())
                         .build();
         String startDataUploadUri =
                 String.format(
@@ -468,13 +464,8 @@ public final class HttpFederatedProtocol {
                     == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP) {
                 outputBytes = HttpClientUtils.compressWithGzip(outputBytes);
             }
-            HashMap<String, String> requestHeader = new HashMap<>();
-            uploadInstruction
-                    .getExtraRequestHeadersMap()
-                    .forEach(
-                            (key, value) -> {
-                                requestHeader.put(key, value);
-                            });
+            HashMap<String, String> requestHeader =
+                    new HashMap<>(uploadInstruction.getExtraRequestHeadersMap());
             LogUtil.d(
                     TAG,
                     "Start upload training result: population name %s, task name %s,"
@@ -525,7 +516,7 @@ public final class HttpFederatedProtocol {
         return body.toString().getBytes();
     }
 
-    private void validateHttpResponseStatus(String stage, OdpHttpResponse httpResponse) {
+    private static void validateHttpResponseStatus(String stage, OdpHttpResponse httpResponse) {
         if (!HTTP_OK_STATUS.contains(httpResponse.getStatusCode())) {
             throw new IllegalStateException(stage + " failed: " + httpResponse.getStatusCode());
         }
@@ -533,7 +524,8 @@ public final class HttpFederatedProtocol {
         LogUtil.i(TAG, stage + " success.");
     }
 
-    private void validateHttpResponseAllowAuthStatus(String stage, OdpHttpResponse httpResponse) {
+    private static void validateHttpResponseAllowAuthStatus(
+            String stage, OdpHttpResponse httpResponse) {
         if (!HTTP_OK_OR_UNAUTHENTICATED_STATUS.contains(httpResponse.getStatusCode())) {
             throw new IllegalStateException(stage + " failed: " + httpResponse.getStatusCode());
         }

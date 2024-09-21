@@ -73,10 +73,9 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
         this.mContext = context;
     }
 
-    /**
-     * A helper function to create a DataFilegroup.
-     */
-    public static DataFileGroup createDataFileGroup(
+    /** A helper function to create a DataFilegroup. */
+    @VisibleForTesting
+    static DataFileGroup createDataFileGroup(
             String groupName,
             String ownerPackage,
             String[] fileId,
@@ -134,12 +133,12 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
      * Creates the MDD download URL for the given package
      *
      * @param packageName PackageName of the package owning the fileGroup
-     * @param context     Context of the calling service/application
+     * @param context Context of the calling service/application
      * @return The created MDD URL for the package.
      */
     @VisibleForTesting
-    public static String createDownloadUrl(String packageName, Context context) throws
-            PackageManager.NameNotFoundException {
+    static String createDownloadUrl(String packageName, Context context)
+            throws PackageManager.NameNotFoundException {
         String baseURL = AppManifestConfigHelper.getDownloadUrlFromOdpSettings(
                 context, packageName);
 

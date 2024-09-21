@@ -49,7 +49,7 @@ import com.android.federatedcompute.services.common.PhFlagsTestUtil;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDao;
-import com.android.federatedcompute.services.http.HttpClient;
+import com.android.odp.module.common.HttpClient;
 import com.android.odp.module.common.MonotonicClock;
 
 import com.google.common.util.concurrent.FluentFuture;
@@ -98,7 +98,7 @@ public class BackgroundKeyFetchJobServiceTest {
         mContext = ApplicationProvider.getApplicationContext();
         mInjector = new TestInjector();
         mEncryptionDao = FederatedComputeEncryptionKeyDao.getInstanceForTest(mContext);
-        mHttpClient = new HttpClient();
+        mHttpClient = new HttpClient(/* retryLimit= */ 3, MoreExecutors.newDirectExecutorService());
         mSpyService = spy(new BackgroundKeyFetchJobService(new TestInjector()));
         doReturn(mSpyService).when(mSpyService).getApplicationContext();
         doNothing().when(mSpyService).jobFinished(any(), anyBoolean());

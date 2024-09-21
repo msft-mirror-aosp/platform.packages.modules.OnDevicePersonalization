@@ -37,8 +37,8 @@ import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDao;
-import com.android.federatedcompute.services.http.HttpClient;
 import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.HttpClient;
 import com.android.odp.module.common.MonotonicClock;
 import com.android.odp.module.common.OdpHttpResponse;
 

@@ -21,7 +21,9 @@ import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.SystemProperties;
 import android.provider.Settings;
 
 import com.android.odp.module.common.PackageUtils;
@@ -38,6 +40,11 @@ public class DebugUtils {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = DebugUtils.class.getSimpleName();
     private static final int MAX_EXCEPTION_CHAIN_DEPTH = 3;
+
+    private static final String OVERRIDE_FC_SERVER_URL_PACKAGE =
+            "debug.ondevicepersonalization.override_fc_server_url_package";
+    private static final String OVERRIDE_FC_SERVER_URL =
+            "debug.ondevicepersonalization.override_fc_server_url";
 
     /** Returns true if the device is debuggable. */
     public static boolean isDeveloperModeEnabled(@NonNull Context context) {
@@ -84,6 +91,43 @@ public class DebugUtils {
             sLogger.e(e, TAG + ": failed to serialize exception info");
             return null;
         }
+    }
+
+    /**
+     * Returns an override URL for federated compute for the provided package if one exists, else
+     * returns empty if a matching override is not found.
+     *
+     * @param applicationContext the application context.
+     * @param packageName the package for which to check for override.
+     * @return override URL or empty string if an override is not found.
+     */
+    public static String getFcServerOverrideUrl(Context applicationContext, String packageName) {
+        String url = "";
+        // Check for override manifest url property, if package is debuggable
+        try {
+            if (!PackageUtils.isPackageDebuggable(applicationContext, packageName)) {
+                return url;
+            }
+        } catch (PackageManager.NameNotFoundException nne) {
+            sLogger.e(TAG + ": failed to get override URL for package." + nne);
+            return url;
+        }
+
+        // Check system properties first
+        if (SystemProperties.get(OVERRIDE_FC_SERVER_URL_PACKAGE, "").equals(packageName)) {
+            String overrideManifestUrl = SystemProperties.get(OVERRIDE_FC_SERVER_URL, "");
+            if (!overrideManifestUrl.isEmpty()) {
+                sLogger.d(
+                        TAG
+                                + ": Overriding FC server URL from system properties for package"
+                                + packageName
+                                + " to "
+                                + overrideManifestUrl);
+                url = overrideManifestUrl;
+            }
+        }
+
+        return url;
     }
 
     private DebugUtils() {}
