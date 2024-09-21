@@ -48,40 +48,44 @@ import java.util.concurrent.TimeoutException;
 public final class UserPrivacyStatus {
     private static final String TAG = "UserPrivacyStatus";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
-    private static final Clock sClock = MonotonicClock.getInstance();
     private static final String PERSONALIZATION_STATUS_KEY = "PERSONALIZATION_STATUS";
     @VisibleForTesting
     static final int CONTROL_GIVEN_STATUS_CODE = 3;
     @VisibleForTesting
     static final int CONTROL_REVOKED_STATUS_CODE = 2;
-    static volatile UserPrivacyStatus sUserPrivacyStatus = null;
-    private boolean mPersonalizationStatusEnabled;
+    private static final Object sLock = new Object();
+    private static volatile UserPrivacyStatus sUserPrivacyStatus = null;
     private boolean mProtectedAudienceEnabled;
     private boolean mMeasurementEnabled;
     private boolean mProtectedAudienceReset;
     private boolean mMeasurementReset;
     private long mLastUserControlCacheUpdate;
+    private final Clock mClock;
     private final AdServicesCommonStatesWrapper mAdServicesCommonStatesWrapper;
 
-    private UserPrivacyStatus(AdServicesCommonStatesWrapper wrapper) {
+    @VisibleForTesting
+    UserPrivacyStatus(
+            AdServicesCommonStatesWrapper wrapper,
+            Clock clock) {
         // Assume the more privacy-safe option until updated.
-        mPersonalizationStatusEnabled = false;
         mProtectedAudienceEnabled = false;
         mMeasurementEnabled = false;
         mProtectedAudienceReset = false;
         mMeasurementReset = false;
         mLastUserControlCacheUpdate = -1L;
         mAdServicesCommonStatesWrapper = Objects.requireNonNull(wrapper);
+        mClock = Objects.requireNonNull(clock);
     }
 
     /** Returns an instance of UserPrivacyStatus. */
     public static UserPrivacyStatus getInstance() {
         if (sUserPrivacyStatus == null) {
-            synchronized (UserPrivacyStatus.class) {
+            synchronized (sLock) {
                 if (sUserPrivacyStatus == null) {
                     sUserPrivacyStatus = new UserPrivacyStatus(
                             new AdServicesCommonStatesWrapperImpl(
-                                    OnDevicePersonalizationApplication.getAppContext()));
+                                    OnDevicePersonalizationApplication.getAppContext()),
+                            MonotonicClock.getInstance());
                 }
             }
         }
@@ -92,19 +96,6 @@ public final class UserPrivacyStatus {
         return DebugUtils.isDeveloperModeEnabled(
                 OnDevicePersonalizationApplication.getAppContext())
                 && (boolean) StableFlags.get(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE);
-    }
-
-    public void setPersonalizationStatusEnabled(boolean personalizationStatusEnabled) {
-        if (!isOverrideEnabled()) {
-            mPersonalizationStatusEnabled = personalizationStatusEnabled;
-        }
-    }
-
-    public boolean isPersonalizationStatusEnabled() {
-        if (isOverrideEnabled()) {
-            return (boolean) StableFlags.get(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
-        }
-        return mPersonalizationStatusEnabled;
     }
 
     /**
@@ -178,7 +169,7 @@ public final class UserPrivacyStatus {
         mMeasurementEnabled = (measurementState != CONTROL_REVOKED_STATUS_CODE);
         mProtectedAudienceReset = (protectedAudienceState != CONTROL_GIVEN_STATUS_CODE);
         mMeasurementReset = (measurementState != CONTROL_GIVEN_STATUS_CODE);
-        mLastUserControlCacheUpdate = sClock.currentTimeMillis();
+        mLastUserControlCacheUpdate = mClock.currentTimeMillis();
         handleResetIfNeeded();
     }
 
@@ -190,7 +181,7 @@ public final class UserPrivacyStatus {
         if (mLastUserControlCacheUpdate == -1L) {
             return false;
         }
-        long cacheDuration = sClock.currentTimeMillis() - mLastUserControlCacheUpdate;
+        long cacheDuration = mClock.currentTimeMillis() - mLastUserControlCacheUpdate;
         return cacheDuration >= 0
                 && cacheDuration < (long) StableFlags.get(KEY_USER_CONTROL_CACHE_IN_MILLIS);
     }
@@ -200,7 +191,6 @@ public final class UserPrivacyStatus {
      */
     @VisibleForTesting
     void resetUserControlForTesting() {
-        mPersonalizationStatusEnabled = false;
         mProtectedAudienceEnabled = false;
         mMeasurementEnabled = false;
         mProtectedAudienceReset = false;
@@ -213,12 +203,12 @@ public final class UserPrivacyStatus {
      */
     @VisibleForTesting
     void invalidateUserControlCacheForTesting() {
-        mLastUserControlCacheUpdate = sClock.currentTimeMillis()
+        mLastUserControlCacheUpdate = mClock.currentTimeMillis()
                         - 2 * (long) StableFlags.get(KEY_USER_CONTROL_CACHE_IN_MILLIS);
     }
 
     private void fetchStateFromAdServices() {
-        long startTime = sClock.elapsedRealtime();
+        long startTime = mClock.elapsedRealtime();
         String packageName = OnDevicePersonalizationApplication.getAppContext().getPackageName();
         try {
             // IPC.
@@ -228,7 +218,7 @@ public final class UserPrivacyStatus {
                     API_NAME_ADSERVICES_GET_COMMON_STATES,
                     packageName,
                     null,
-                    sClock,
+                    mClock,
                     STATUS_SUCCESS,
                     startTime);
             // update cache.
@@ -242,7 +232,7 @@ public final class UserPrivacyStatus {
                     API_NAME_ADSERVICES_GET_COMMON_STATES,
                     packageName,
                     null,
-                    sClock,
+                    mClock,
                     statusCode,
                     startTime);
         }

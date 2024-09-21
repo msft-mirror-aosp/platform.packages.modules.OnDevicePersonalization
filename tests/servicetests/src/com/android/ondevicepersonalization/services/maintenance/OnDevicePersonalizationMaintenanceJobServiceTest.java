@@ -52,6 +52,7 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecu
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
+import com.android.ondevicepersonalization.services.data.errors.AggregatedErrorCodesLogger;
 import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -63,6 +64,7 @@ import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonal
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.sharedlibrary.spe.OdpJobScheduler;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import org.junit.After;
@@ -95,7 +97,9 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     class TestFlags implements Flags {
         boolean mGetGlobalKillSwitch = false;
         boolean mSpePilotJobEnabled = false;
+        boolean mGetAggregatedErrorReportingEnabled = false;
         String mIsolatedServiceAllowList = "*";
+
         @Override public boolean getGlobalKillSwitch() {
             return mGetGlobalKillSwitch;
         }
@@ -104,6 +108,11 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         }
         @Override public String getIsolatedServiceAllowList() {
             return mIsolatedServiceAllowList;
+        }
+
+        @Override
+        public boolean getAggregatedErrorReportingEnabled() {
+            return mGetAggregatedErrorReportingEnabled;
         }
     }
 
@@ -115,50 +124,6 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
             .spyStatic(OnDevicePersonalizationExecutors.class)
             .setStrictness(Strictness.LENIENT)
             .build();
-
-    private static void addTestData(long timestamp, OnDevicePersonalizationVendorDataDao dao) {
-        // Add vendor data
-        List<VendorData> dataList = new ArrayList<>();
-        dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
-        dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
-        dataList.add(new VendorData.Builder().setKey("large").setData(new byte[111111]).build());
-        dataList.add(new VendorData.Builder().setKey("large2").setData(new byte[111111]).build());
-        List<String> retainedKeys = new ArrayList<>();
-        retainedKeys.add("key");
-        retainedKeys.add("key2");
-        retainedKeys.add("large");
-        retainedKeys.add("large2");
-        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(dataList, retainedKeys,
-                timestamp));
-    }
-
-    private void addEventData(ComponentName service, long timestamp) {
-        Query query = new Query.Builder(
-                timestamp,
-                "com.app",
-                service,
-                TEST_CERT_DIGEST,
-                "query".getBytes(StandardCharsets.UTF_8))
-                .build();
-        long queryId = mEventsDao.insertQuery(query);
-
-        Event event = new Event.Builder()
-                .setType(1)
-                .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setService(service)
-                .setQueryId(queryId)
-                .setTimeMillis(timestamp)
-                .setRowIndex(0)
-                .build();
-        mEventsDao.insertEvent(event);
-
-        EventState eventState = new EventState.Builder()
-                .setTaskIdentifier(TASK_IDENTIFIER)
-                .setService(service)
-                .setToken(new byte[]{1})
-                .build();
-        mEventsDao.updateOrInsertEventState(eventState);
-    }
 
     @Before
     public void setup() throws Exception {
@@ -243,7 +208,28 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     }
 
     @Test
+    public void testVendorDataCleanup_clearAggregatedErrorData() throws Exception {
+        // when(mSpyFlags.getAggregatedErrorReportingEnabled()).thenReturn(true);
+        mSpyFlags.mGetAggregatedErrorReportingEnabled = true;
+        doReturn(MoreExecutors.newDirectExecutorService())
+                .when(OnDevicePersonalizationExecutors::getBackgroundExecutor);
+        var originalIsolatedServiceAllowList =
+                FlagsFactory.getFlags().getIsolatedServiceAllowList();
+        mSpyFlags.mIsolatedServiceAllowList = mContext.getPackageName();
+        addErrorCodeData(mService, mContext);
+
+        // Mark all the services un-enrolled
+        mSpyFlags.mIsolatedServiceAllowList = "";
+        OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
+
+        assertEquals(0, AggregatedErrorCodesLogger.getErrorDataTableCount(mContext));
+        // Reset original allow list and test cleanup successful
+        mSpyFlags.mIsolatedServiceAllowList = originalIsolatedServiceAllowList;
+    }
+
+    @Test
     public void testVendorDataCleanup() throws Exception {
+        // Add data
         long timestamp = System.currentTimeMillis();
         addTestData(timestamp, mTestDao);
         addTestData(timestamp, mDao);
@@ -251,8 +237,8 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         addEventData(mService, 100L);
         addEventData(TEST_OWNER, timestamp);
 
-        var originalIsolatedServiceAllowList =
-                mSpyFlags.getIsolatedServiceAllowList();
+        // Save original allow list and enable aggregate error reporting flag
+        var originalIsolatedServiceAllowList = mSpyFlags.getIsolatedServiceAllowList();
         mSpyFlags.mIsolatedServiceAllowList = mContext.getPackageName();
         OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
         mSpyFlags.mIsolatedServiceAllowList = originalIsolatedServiceAllowList;
@@ -361,5 +347,59 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         File localDir = new File(mContext.getFilesDir(), "LocalData");
         FileUtils.deleteDirectory(vendorDir);
         FileUtils.deleteDirectory(localDir);
+    }
+
+    private void addEventData(ComponentName service, long timestamp) {
+        Query query =
+                new Query.Builder(
+                                timestamp,
+                                "com.app",
+                                service,
+                                TEST_CERT_DIGEST,
+                                "query".getBytes(StandardCharsets.UTF_8))
+                        .build();
+        long queryId = mEventsDao.insertQuery(query);
+
+        Event event =
+                new Event.Builder()
+                        .setType(1)
+                        .setEventData("event".getBytes(StandardCharsets.UTF_8))
+                        .setService(service)
+                        .setQueryId(queryId)
+                        .setTimeMillis(timestamp)
+                        .setRowIndex(0)
+                        .build();
+        mEventsDao.insertEvent(event);
+
+        EventState eventState =
+                new EventState.Builder()
+                        .setTaskIdentifier(TASK_IDENTIFIER)
+                        .setService(service)
+                        .setToken(new byte[] {1})
+                        .build();
+        mEventsDao.updateOrInsertEventState(eventState);
+    }
+
+    private static void addTestData(long timestamp, OnDevicePersonalizationVendorDataDao dao) {
+        // Add vendor data
+        List<VendorData> dataList = new ArrayList<>();
+        dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
+        dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
+        dataList.add(new VendorData.Builder().setKey("large").setData(new byte[111111]).build());
+        dataList.add(new VendorData.Builder().setKey("large2").setData(new byte[111111]).build());
+        List<String> retainedKeys = new ArrayList<>();
+        retainedKeys.add("key");
+        retainedKeys.add("key2");
+        retainedKeys.add("large");
+        retainedKeys.add("large2");
+        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(dataList, retainedKeys, timestamp));
+    }
+
+    private static void addErrorCodeData(ComponentName service, Context context) {
+        // Add a single error code entry
+        ListenableFuture<?> loggingFuture =
+                AggregatedErrorCodesLogger.logIsolatedServiceErrorCode(1, service, context);
+        assertTrue(loggingFuture.isDone());
+        assertEquals(1, AggregatedErrorCodesLogger.getErrorDataTableCount(context));
     }
 }
