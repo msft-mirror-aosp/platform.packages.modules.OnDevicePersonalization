@@ -62,11 +62,6 @@
                 <action android:name="android.OnDevicePersonalizationService" />
             </intent-filter>
         </service>
-        <service android:name=".OnDevicePersonalizationConfigServiceImpl" android:exported="true">
-            <intent-filter>
-                <action android:name="android.OnDevicePersonalizationConfigService"/>
-            </intent-filter>
-        </service>
         <service android:name=".OnDevicePersonalizationDebugServiceImpl" android:exported="true">
             <intent-filter>
                 <action android:name="android.OnDevicePersonalizationDebugService"/>
