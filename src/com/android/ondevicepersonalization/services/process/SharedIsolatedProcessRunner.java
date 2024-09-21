@@ -138,12 +138,12 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                                 }
                                 return Futures.immediateFailedFuture(
                                         new OdpServiceException(
-                                                Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED));
+                                            Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED, e));
                             },
                             mInjector.getExecutor());
         } catch (Exception e) {
             return Futures.immediateFailedFuture(
-                    new OdpServiceException(Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED));
+                    new OdpServiceException(Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED, e));
         }
     }
 
