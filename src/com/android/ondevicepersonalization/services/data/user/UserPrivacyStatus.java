@@ -55,7 +55,6 @@ public final class UserPrivacyStatus {
     static final int CONTROL_REVOKED_STATUS_CODE = 2;
     private static final Object sLock = new Object();
     private static volatile UserPrivacyStatus sUserPrivacyStatus = null;
-    private boolean mPersonalizationStatusEnabled;
     private boolean mProtectedAudienceEnabled;
     private boolean mMeasurementEnabled;
     private boolean mProtectedAudienceReset;
@@ -69,7 +68,6 @@ public final class UserPrivacyStatus {
             AdServicesCommonStatesWrapper wrapper,
             Clock clock) {
         // Assume the more privacy-safe option until updated.
-        mPersonalizationStatusEnabled = false;
         mProtectedAudienceEnabled = false;
         mMeasurementEnabled = false;
         mProtectedAudienceReset = false;
@@ -98,19 +96,6 @@ public final class UserPrivacyStatus {
         return DebugUtils.isDeveloperModeEnabled(
                 OnDevicePersonalizationApplication.getAppContext())
                 && (boolean) StableFlags.get(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE);
-    }
-
-    public void setPersonalizationStatusEnabled(boolean personalizationStatusEnabled) {
-        if (!isOverrideEnabled()) {
-            mPersonalizationStatusEnabled = personalizationStatusEnabled;
-        }
-    }
-
-    public boolean isPersonalizationStatusEnabled() {
-        if (isOverrideEnabled()) {
-            return (boolean) StableFlags.get(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
-        }
-        return mPersonalizationStatusEnabled;
     }
 
     /**
@@ -206,7 +191,6 @@ public final class UserPrivacyStatus {
      */
     @VisibleForTesting
     void resetUserControlForTesting() {
-        mPersonalizationStatusEnabled = false;
         mProtectedAudienceEnabled = false;
         mMeasurementEnabled = false;
         mProtectedAudienceReset = false;
