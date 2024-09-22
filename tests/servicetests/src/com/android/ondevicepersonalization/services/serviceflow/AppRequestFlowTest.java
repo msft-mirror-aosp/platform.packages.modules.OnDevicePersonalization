@@ -48,7 +48,6 @@ import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.services.Flags;
-import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
@@ -71,7 +70,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
@@ -105,8 +103,28 @@ public class AppRequestFlowTest {
     UserPrivacyStatus mUserPrivacyStatus;
     @Mock private NoiseUtil mMockNoiseUtil;
 
-    @Spy
-    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+    class TestFlags implements Flags {
+        int mIsolatedServiceDeadlineSeconds = 30;
+        String mOutputDataAllowList = "*;*";
+        String mPlatformDataAllowList = "";
+
+        @Override public boolean getGlobalKillSwitch() {
+            return false;
+        }
+        @Override public int getIsolatedServiceDeadlineSeconds() {
+            return mIsolatedServiceDeadlineSeconds;
+        }
+        @Override public String getOutputDataAllowList() {
+            return mOutputDataAllowList;
+        }
+
+        @Override
+        public String getDefaultPlatformDataForExecuteAllowlist() {
+            return mPlatformDataAllowList;
+        }
+    }
+
+    private TestFlags mSpyFlags = new TestFlags();
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule =
@@ -117,9 +135,6 @@ public class AppRequestFlowTest {
 
     @Before
     public void setup() throws Exception {
-        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
-        // default for service deadline is 30 seconds
-        when(mSpyFlags.getIsolatedServiceDeadlineSeconds()).thenReturn(30);
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
@@ -228,8 +243,8 @@ public class AppRequestFlowTest {
     }
 
     @Test
-    public void testAppRequestFlow_getBestValueBlocked() throws InterruptedException {
-        when(mSpyFlags.getOutputDataAllowList()).thenReturn("");
+    public void testAppRequestFlow_notInOutputDataAllowlist_blocked() throws InterruptedException {
+        mSpyFlags.mOutputDataAllowList = "";
         ExecuteOptionsParcel options =
                 new ExecuteOptionsParcel(
                         ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE, 10);
@@ -254,10 +269,43 @@ public class AppRequestFlowTest {
     }
 
     @Test
-    public void testAppRequestFlow_getBestValue() throws InterruptedException {
+    public void testAppRequestFlow_notInPlatformDataAllowlist_blocked()
+            throws InterruptedException {
         String contextPackageName = mContext.getPackageName();
-        when(mSpyFlags.getOutputDataAllowList()).thenReturn(
-                contextPackageName + ";" + contextPackageName);
+        mSpyFlags.mOutputDataAllowList = contextPackageName + ";" + contextPackageName;
+        mSpyFlags.mPlatformDataAllowList = "";
+        ExecuteOptionsParcel options =
+                new ExecuteOptionsParcel(
+                        ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE, 10);
+
+        mSfo.scheduleForTest(
+                ServiceFlowType.APP_REQUEST_FLOW,
+                mContext.getPackageName(),
+                mTestServiceComponentName,
+                createWrappedAppParams(),
+                new TestExecuteCallback(),
+                mContext,
+                100L,
+                110L,
+                options,
+                new AppTestInjector());
+        mLatch.await();
+
+        assertTrue(mCallbackSuccess);
+        assertThat(mExecuteCallback.getInt(Constants.EXTRA_OUTPUT_BEST_VALUE)).isEqualTo(-1);
+        assertEquals(2, getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME));
+        assertEquals(1, getDbTableSize(EventsContract.EventsEntry.TABLE_NAME));
+    }
+
+    @Test
+    public void testAppRequestFlow_getBestValue() throws Exception {
+        String contextPackageName = mContext.getPackageName();
+        mSpyFlags.mOutputDataAllowList =
+                contextPackageName + ";" + contextPackageName;
+        mSpyFlags.mPlatformDataAllowList =
+                contextPackageName
+                        + ":"
+                        + PackageUtils.getCertDigest(mContext, mContext.getPackageName());
         ExecuteOptionsParcel options =
                 new ExecuteOptionsParcel(
                         ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE, 10);
@@ -287,9 +335,9 @@ public class AppRequestFlowTest {
         // When the request fails due to the test service timing out, the callback should fail
         // with the service timeout error code.
         String contextPackageName = mContext.getPackageName();
-        when(mSpyFlags.getOutputDataAllowList())
-                .thenReturn(contextPackageName + ";" + contextPackageName);
-        when(mSpyFlags.getIsolatedServiceDeadlineSeconds()).thenReturn(TEST_TIMEOUT_SECONDS);
+        mSpyFlags.mOutputDataAllowList =
+                contextPackageName + ";" + contextPackageName;
+        mSpyFlags.mIsolatedServiceDeadlineSeconds = TEST_TIMEOUT_SECONDS;
 
         mSfo.scheduleForTest(
                 ServiceFlowType.APP_REQUEST_FLOW,
@@ -317,8 +365,8 @@ public class AppRequestFlowTest {
         // with the service failed error code. Clear vendor data to cause output
         // validation check to fail.
         String contextPackageName = mContext.getPackageName();
-        when(mSpyFlags.getOutputDataAllowList())
-                .thenReturn(contextPackageName + ";" + contextPackageName);
+        mSpyFlags.mOutputDataAllowList =
+                contextPackageName + ";" + contextPackageName;
         clearVendorDataDao();
 
         mSfo.scheduleForTest(
