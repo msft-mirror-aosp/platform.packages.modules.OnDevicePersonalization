@@ -15,7 +15,7 @@
  */
 package com.android.ondevicepersonalization.cts.e2e;
 
-import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertArrayEquals;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -318,7 +318,7 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    public void testExecuteWithOutputDataDisabled() throws InterruptedException {
+    public void testExecuteWithOutputData() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
@@ -334,7 +334,7 @@ public class CtsOdpManagerTests {
                 Executors.newSingleThreadExecutor(),
                 receiver);
         assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        assertThat(receiver.getResult().getOutputData()).isNull();
+        assertArrayEquals(new byte[] {'A'}, receiver.getResult().getOutputData());
     }
 
     @Test
