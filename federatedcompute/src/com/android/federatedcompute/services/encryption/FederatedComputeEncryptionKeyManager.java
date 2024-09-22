@@ -24,9 +24,9 @@ import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDao;
-import com.android.federatedcompute.services.http.HttpClient;
 import com.android.federatedcompute.services.http.HttpClientUtil;
 import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.HttpClient;
 import com.android.odp.module.common.HttpClientUtils;
 import com.android.odp.module.common.MonotonicClock;
 import com.android.odp.module.common.OdpHttpRequest;
@@ -104,7 +104,9 @@ public class FederatedComputeEncryptionKeyManager {
                                     MonotonicClock.getInstance(),
                                     encryptionKeyDao,
                                     FlagsFactory.getFlags(),
-                                    new HttpClient(),
+                                    new HttpClient(
+                                            FlagsFactory.getFlags().getHttpRequestRetryLimit(),
+                                            FederatedComputeExecutors.getBlockingExecutor()),
                                     FederatedComputeExecutors.getBackgroundExecutor());
                 }
             }

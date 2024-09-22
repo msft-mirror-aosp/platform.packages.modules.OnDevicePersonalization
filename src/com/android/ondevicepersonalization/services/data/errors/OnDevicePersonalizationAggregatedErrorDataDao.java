@@ -26,6 +26,7 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
@@ -34,14 +35,18 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 
 import java.io.File;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Dao used to manage access to per vendor aggregated error codes that are returned by {@link
  * android.adservices.ondevicepersonalization.IsolatedService} implementations.
+ *
+ * <p>The Dao should all be called on appropriate {@code executor}.
  */
-public class OnDevicePersonalizationAggregatedErrorDataDao {
+class OnDevicePersonalizationAggregatedErrorDataDao {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG =
             OnDevicePersonalizationAggregatedErrorDataDao.class.getSimpleName();
@@ -67,6 +72,75 @@ public class OnDevicePersonalizationAggregatedErrorDataDao {
         this.mCertDigest = certDigest;
         this.mTableName = getTableName(owner, certDigest);
         this.mPackageVersion = packageVersion;
+    }
+
+    /**
+     * Clears all the aggregated error data tables except for the provided excluded services.
+     *
+     * @param context The context of the application
+     * @param excludedServices the services whose tables/data that should not be cleaned up.
+     *     <p>Synchronized to avoid any concurrent modifications to the underlying {@link
+     *     #sVendorDataDaos}.
+     */
+    static synchronized void cleanupErrorData(
+            Context context, ImmutableList<ComponentName> excludedServices) {
+        ImmutableList<String> existingTables = getErrorDataTableNames(context);
+        if (existingTables.isEmpty()) {
+            sLogger.d(TAG + ": no tables found to delete");
+            return;
+        }
+
+        Set<String> excludedTableNames = new HashSet<>();
+        for (ComponentName service : excludedServices) {
+            String certDigest = getCertDigest(context, service.getPackageName());
+            if (certDigest.isEmpty()) {
+                sLogger.d(
+                        TAG
+                                + ": unable to get cert digest skipping deletion for service "
+                                + service);
+                continue;
+            }
+
+            excludedTableNames.add(getTableName(service, certDigest));
+        }
+
+        OnDevicePersonalizationDbHelper dbHelper =
+                OnDevicePersonalizationDbHelper.getInstance(context);
+        SQLiteDatabase db = dbHelper == null ? null : dbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            sLogger.e(TAG + ": failed to get the db while deleting exception data.");
+            return;
+        }
+
+        db.beginTransactionNonExclusive();
+        try {
+            for (String tableName : existingTables) {
+                if (excludedTableNames.contains(tableName)) {
+                    sLogger.d(TAG + ": skipping deletion for " + tableName);
+                    continue;
+                }
+                db.execSQL("DROP TABLE IF EXISTS " + tableName);
+                sVendorDataDaos.remove(tableName);
+            }
+            db.setTransactionSuccessful();
+        } catch (Exception e) {
+            sLogger.e(TAG + ": Failed to delete exception data.", e);
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    /**
+     * Helper method that returns an empty cert-digest if the underlying {@code PackageManager} call
+     * fails.
+     */
+    private static String getCertDigest(Context context, String packageName) {
+        try {
+            return PackageUtils.getCertDigest(context, packageName);
+        } catch (PackageManager.NameNotFoundException nne) {
+            sLogger.e(TAG + ": failed to get cert digest for " + packageName);
+        }
+        return "";
     }
 
     /**
@@ -339,7 +413,46 @@ public class OnDevicePersonalizationAggregatedErrorDataDao {
             sLogger.e(TAG + ": Failed to create table: " + tableName, e);
             return false;
         }
-        sLogger.i(TAG + ": Successfully created table: " + tableName);
+        sLogger.d(TAG + ": Successfully created table: " + tableName);
         return true;
+    }
+
+    @VisibleForTesting
+    /** Get existing error data tables in the DB. */
+    static ImmutableList<String> getErrorDataTableNames(Context context) {
+        try {
+            OnDevicePersonalizationDbHelper db =
+                    OnDevicePersonalizationDbHelper.getInstance(context);
+            return getMatchingTableNames(
+                    db.safeGetReadableDatabase(), ERROR_DATA_TABLE_NAME_PREFIX);
+        } catch (SQLException e) {
+            sLogger.e(TAG + ": Failed to get matching tables ", e);
+            return ImmutableList.of();
+        }
+    }
+
+    private static ImmutableList<String> getMatchingTableNames(
+            SQLiteDatabase db, String tablePrefix) {
+        try (Cursor cursor =
+                db.rawQuery(
+                        "SELECT name,sql FROM sqlite_master WHERE type='table' AND name LIKE '%"
+                                + tablePrefix
+                                + "%'",
+                        /* selectionArgs= */ null)) {
+            if (!cursor.moveToFirst()) {
+                sLogger.d(TAG + ": no tables found.");
+                return ImmutableList.of();
+            }
+
+            ImmutableList.Builder<String> listBuilder = new ImmutableList.Builder<>();
+            do {
+                String name = cursor.getString(/* columnIndex= */ 0);
+                if (name != null) {
+                    listBuilder.add(name);
+                }
+            } while (cursor.moveToNext());
+
+            return listBuilder.build();
+        }
     }
 }
