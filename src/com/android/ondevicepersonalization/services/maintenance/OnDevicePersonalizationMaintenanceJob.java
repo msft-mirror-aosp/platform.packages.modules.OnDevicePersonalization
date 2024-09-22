@@ -35,6 +35,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.errors.AggregatedErrorCodesLogger;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
@@ -138,5 +139,6 @@ public final class OnDevicePersonalizationMaintenanceJob implements JobWorker {
 
         OnDevicePersonalizationVendorDataDao.deleteVendorTables(context, services);
         deleteEventsAndQueries(context);
+        AggregatedErrorCodesLogger.cleanupErrorData(context);
     }
 }
