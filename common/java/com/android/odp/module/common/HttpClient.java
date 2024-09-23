@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,29 +14,23 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.http;
+package com.android.odp.module.common;
 
-import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBlockingExecutor;
-import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
+import static com.android.odp.module.common.HttpClientUtils.HTTP_OK_STATUS;
 
 import android.annotation.NonNull;
-
-import com.android.federatedcompute.services.common.Flags;
-import com.android.federatedcompute.services.common.PhFlags;
-import com.android.odp.module.common.HttpClientUtils;
-import com.android.odp.module.common.OdpHttpRequest;
-import com.android.odp.module.common.OdpHttpResponse;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 
 /**
- * The HTTP client to be used by the FederatedCompute to communicate with remote federated servers.
+ * The HTTP client to be used by FederatedCompute and ODP services/jobs to communicate with remote
+ * servers.
  */
 public class HttpClient {
 
@@ -44,18 +38,22 @@ public class HttpClient {
         T get() throws IOException; // Declared to throw IOException
     }
 
-    private static final String TAG = HttpClient.class.getSimpleName();
-    private static final int NETWORK_CONNECT_TIMEOUT_MS = (int) TimeUnit.SECONDS.toMillis(5);
-    private static final int NETWORK_READ_TIMEOUT_MS = (int) TimeUnit.SECONDS.toMillis(30);
-    private final Flags mFlags;
+    private final int mRetryLimit;
 
-    public HttpClient() {
-        mFlags = PhFlags.getInstance();
+    /** The executor to use for making http requests. */
+    private final ListeningExecutorService mBlockingExecutor;
+
+    public HttpClient(int retryLimit, ListeningExecutorService blockingExecutor) {
+        mRetryLimit = retryLimit;
+        mBlockingExecutor = blockingExecutor;
     }
 
     /**
-     * Perform HTTP requests based on given information asynchronously with retries in case http
-     * will return not OK response code.
+     * Perform HTTP requests based on given {@link OdpHttpRequest} asynchronously with configured
+     * number of retries.
+     *
+     * <p>Retry limit provided during construction is used in case http does not return {@code OK}
+     * response code.
      */
     @NonNull
     public ListenableFuture<OdpHttpResponse> performRequestAsyncWithRetry(OdpHttpRequest request) {
@@ -79,10 +77,10 @@ public class HttpClient {
      * will return not OK response code.
      */
     @NonNull
-    public ListenableFuture<OdpHttpResponse> performCallableAsync(
+    private ListenableFuture<OdpHttpResponse> performCallableAsync(
             Callable<OdpHttpResponse> callable) {
         try {
-            return getBlockingExecutor().submit(callable);
+            return mBlockingExecutor.submit(callable);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
@@ -94,7 +92,7 @@ public class HttpClient {
     OdpHttpResponse performRequestWithRetry(HttpIOSupplier<OdpHttpResponse> supplier)
             throws IOException {
         OdpHttpResponse response = null;
-        int retryLimit = mFlags.getHttpRequestRetryLimit();
+        int retryLimit = mRetryLimit;
         while (retryLimit > 0) {
             try {
                 response = supplier.get();
