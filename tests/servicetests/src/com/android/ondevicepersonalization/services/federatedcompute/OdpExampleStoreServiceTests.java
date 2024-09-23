@@ -25,6 +25,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
@@ -54,6 +55,7 @@ import com.android.ondevicepersonalization.services.data.OnDevicePersonalization
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
 
 import org.junit.After;
 import org.junit.Before;
@@ -107,6 +109,7 @@ public class OdpExampleStoreServiceTests {
 
     @Before
     public void setUp() throws Exception {
+        assumeTrue(DeviceSupportHelper.isDeviceSupported());
         initMocks(this);
         when(mMockContext.getApplicationContext()).thenReturn(mContext);
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
