@@ -89,9 +89,10 @@ public class PluginExecutorService extends Service {
                             info, publicPluginCallback, pluginHost, pluginContextInitData);
                 } catch (RemoteException e) {
                     try {
+                        Log.e(TAG, "PluginExecutor.load failed", e);
                         pluginCallback.onFailure(FailureType.ERROR_LOADING_PLUGIN);
                     } catch (RemoteException e2) {
-                        Log.e(TAG, "load() failed to call pluginCallback.onFailure()");
+                        Log.e(TAG, "load() failed to call pluginCallback.onFailure()", e2);
                     }
                 }
             }
@@ -108,9 +109,10 @@ public class PluginExecutorService extends Service {
                     mPluginExecutor.execute(input, pluginName, publicPluginCallback);
                 } catch (RemoteException e) {
                     try {
+                        Log.e(TAG, "PluginExecutor.execute failed", e);
                         pluginCallback.onFailure(FailureType.ERROR_EXECUTING_PLUGIN);
                     } catch (RemoteException e2) {
-                        Log.e(TAG, "execute() failed to call pluginCallback.onFailure()");
+                        Log.e(TAG, "execute() failed to call pluginCallback.onFailure()", e2);
                     }
                 }
             }
@@ -123,9 +125,10 @@ public class PluginExecutorService extends Service {
                     mPluginExecutor.unload(pluginName, publicPluginCallback);
                 } catch (RemoteException e) {
                     try {
+                        Log.e(TAG, "PluginExecutor.unload failed", e);
                         pluginCallback.onFailure(FailureType.ERROR_UNLOADING_PLUGIN);
                     } catch (RemoteException e2) {
-                        Log.e(TAG, "unload() failed to call pluginCallback.onFailure()");
+                        Log.e(TAG, "unload() failed to call pluginCallback.onFailure()", e2);
                     }
                 }
             }
@@ -136,9 +139,11 @@ public class PluginExecutorService extends Service {
                     mPluginExecutor.checkPluginState(pluginName, stateCallback);
                 } catch (RemoteException e) {
                     try {
+                        Log.e(TAG, "PluginExecutor.checkPluginState failed", e);
                         stateCallback.onState(PluginState.STATE_EXCEPTION_THROWN);
                     } catch (RemoteException e2) {
-                        Log.e(TAG, "checkPluginState() failed to call stateCallback.onState()");
+                        Log.e(TAG, "checkPluginState() failed to call stateCallback.onState()",
+                                e2);
                     }
                 }
             }
