@@ -56,15 +56,13 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.runners.JUnit4;
 import org.mockito.quality.Strictness;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 
-@RunWith(Parameterized.class)
+@RunWith(JUnit4.class)
 public class WebViewFlowTest {
 
     private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
@@ -76,18 +74,6 @@ public class WebViewFlowTest {
     private WebView mWebView;
     private FlowCallback mCallback;
     private static final ServiceFlowOrchestrator sSfo = ServiceFlowOrchestrator.getInstance();
-
-    @Parameterized.Parameter(0)
-    public boolean mIsSipFeatureEnabled;
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(
-                new Object[][] {
-                        {true}, {false}
-                }
-        );
-    }
 
     private Flags mSpyFlags = new Flags() {
         int mIsolatedServiceDeadlineSeconds = 30;
@@ -107,7 +93,7 @@ public class WebViewFlowTest {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
         ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        ExtendedMockito.doReturn(SdkLevel.isAtLeastU() && mIsSipFeatureEnabled).when(
+        ExtendedMockito.doReturn(SdkLevel.isAtLeastU()).when(
                 () -> StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED));
 
         mDao = EventsDao.getInstanceForTest(mContext);

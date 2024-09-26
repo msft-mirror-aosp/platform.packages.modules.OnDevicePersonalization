@@ -71,18 +71,16 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.runners.JUnit4;
 import org.mockito.quality.Strictness;
 
 import java.net.HttpURLConnection;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
-@RunWith(Parameterized.class)
+@RunWith(JUnit4.class)
 public class OdpWebViewClientTests {
     public final String TAG = OdpWebViewClientTests.class.getSimpleName();
     private static final long QUERY_ID = 1L;
@@ -103,22 +101,9 @@ public class OdpWebViewClientTests {
     private String mOpenedUrl;
 
     private CountDownLatch mLatch;
-
-    @Parameterized.Parameter(0)
-    public boolean mIsSipFeatureEnabled;
-
     private FutureCallback mTestCallback;
     private boolean mCallbackSuccess;
     private boolean mCallbackFailure;
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(
-                new Object[][] {
-                        {true}, {false}
-                }
-        );
-    }
 
     private Flags mSpyFlags = new Flags() {
         int mIsolatedServiceDeadlineSeconds = 30;
@@ -138,7 +123,7 @@ public class OdpWebViewClientTests {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        ExtendedMockito.doReturn(SdkLevel.isAtLeastU() && mIsSipFeatureEnabled).when(
+        ExtendedMockito.doReturn(SdkLevel.isAtLeastU()).when(
                 () -> StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED));
         mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         mDao = EventsDao.getInstanceForTest(mContext);

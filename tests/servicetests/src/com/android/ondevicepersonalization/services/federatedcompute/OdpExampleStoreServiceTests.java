@@ -48,6 +48,7 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
@@ -62,17 +63,15 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.runners.JUnit4;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-@RunWith(Parameterized.class)
+@RunWith(JUnit4.class)
 public class OdpExampleStoreServiceTests {
     private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
     private final Context mContext = ApplicationProvider.getApplicationContext();
@@ -98,15 +97,6 @@ public class OdpExampleStoreServiceTests {
     private boolean mQueryCallbackOnFailureCalled = false;
 
     private final EventsDao mEventsDao = EventsDao.getInstanceForTest(mContext);
-
-    @Parameterized.Parameter(0)
-    public boolean mIsSipFeatureEnabled;
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {{true}, {false}});
-    }
-
     @Before
     public void setUp() throws Exception {
         assumeTrue(DeviceSupportHelper.isDeviceSupported());
@@ -120,7 +110,7 @@ public class OdpExampleStoreServiceTests {
         mLatch = new CountDownLatch(1);
         mIsolatedService = new ComponentName(mContext.getPackageName(), SERVICE_CLASS);
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
-        PhFlagsTestUtil.setSharedIsolatedProcessFeatureEnabled(mIsSipFeatureEnabled);
+        PhFlagsTestUtil.setSharedIsolatedProcessFeatureEnabled(SdkLevel.isAtLeastU());
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
     }
 
