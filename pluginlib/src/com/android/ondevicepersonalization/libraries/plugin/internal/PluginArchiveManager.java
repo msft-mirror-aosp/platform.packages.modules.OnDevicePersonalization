@@ -58,7 +58,7 @@ import java.util.concurrent.TimeoutException;
 public final class PluginArchiveManager {
     private static final String TAG = "PluginArchiveManager";
     private static final String CHECKSUM_SUFFIX = ".md5";
-    private static final long BIND_TIMEOUT_MS = 2_000;
+    private static final long BIND_TIMEOUT_MS = 5_000;
     private final Context mApplicationContext;
 
     public PluginArchiveManager(Context applicationContext) {
