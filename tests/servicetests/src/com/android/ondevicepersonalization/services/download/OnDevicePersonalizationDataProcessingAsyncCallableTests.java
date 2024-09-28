@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services.download;
 
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -36,6 +38,7 @@ import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
@@ -57,17 +60,15 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.runners.JUnit4;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
-@RunWith(Parameterized.class)
+@RunWith(JUnit4.class)
 public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationFileGroupPopulator mPopulator;
@@ -94,27 +95,18 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     private boolean mCallbackSuccess;
     private boolean mCallbackFailure;
     private CountDownLatch mLatch;
-    @Parameterized.Parameter(0)
-    public boolean mIsSipFeatureEnabled;
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(
-                new Object[][] {
-                        {true}, {false}
-                }
-        );
-    }
 
     private Flags mSpyFlags = new Flags() {
-        @Override public boolean isSharedIsolatedProcessFeatureEnabled() {
-                return SdkLevel.isAtLeastU() && mIsSipFeatureEnabled;
+        int mIsolatedServiceDeadlineSeconds = 30;
+        @Override public int getIsolatedServiceDeadlineSeconds() {
+            return mIsolatedServiceDeadlineSeconds;
         }
     };
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
             .mockStatic(FlagsFactory.class)
+            .spyStatic(StableFlags.class)
             .setStrictness(Strictness.LENIENT)
             .build();
 
@@ -138,6 +130,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
 
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
+        ExtendedMockito.doReturn(SdkLevel.isAtLeastU()).when(
+                () -> StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED));
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
 
         mLatch = new CountDownLatch(1);

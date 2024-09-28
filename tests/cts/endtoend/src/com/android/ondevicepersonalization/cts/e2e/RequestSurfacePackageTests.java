@@ -44,6 +44,7 @@ import androidx.test.uiautomator.UiDevice;
 import androidx.test.uiautomator.UiObject2;
 
 import com.android.compatibility.common.util.ShellUtils;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
 import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
 import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
@@ -54,11 +55,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.runners.JUnit4;
 
-
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -66,12 +64,9 @@ import java.util.concurrent.Executors;
 /**
  * CTS Test cases for OnDevicePersonalizationManager#requestSurfacePackage.
  */
-@RunWith(Parameterized.class)
+@RunWith(JUnit4.class)
 @ScreenRecordRule.ScreenRecord
 public class RequestSurfacePackageTests {
-
-    @Parameterized.Parameter(0)
-    public boolean mIsSipFeatureEnabled;
 
     @Rule public final ScreenRecordRule sScreenRecordRule = new ScreenRecordRule();
 
@@ -86,15 +81,6 @@ public class RequestSurfacePackageTests {
 
     private UiDevice mDevice;
 
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(
-                new Object[][] {
-                        {true}, {false}
-                }
-        );
-    }
-
     @Before
     public void setUp() {
         // Skip the test if it runs on unsupported platforms.
@@ -103,7 +89,7 @@ public class RequestSurfacePackageTests {
         ShellUtils.runShellCommand(
                 "device_config put on_device_personalization "
                         + "shared_isolated_process_feature_enabled "
-                        + mIsSipFeatureEnabled);
+                        + SdkLevel.isAtLeastU());
         ShellUtils.runShellCommand(
                 "device_config put on_device_personalization "
                         + "debug.validate_rendering_config_keys "
