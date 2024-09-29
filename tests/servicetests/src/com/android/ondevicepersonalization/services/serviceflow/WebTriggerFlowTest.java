@@ -54,16 +54,14 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.runners.JUnit4;
 import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 
-@RunWith(Parameterized.class)
+@RunWith(JUnit4.class)
 public class WebTriggerFlowTest {
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
@@ -77,18 +75,6 @@ public class WebTriggerFlowTest {
     private ServiceFlowOrchestrator mSfo;
 
     @Mock UserPrivacyStatus mUserPrivacyStatus;
-
-    @Parameterized.Parameter(0)
-    public boolean mIsSipFeatureEnabled;
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(
-                new Object[][] {
-                        {true}, {false}
-                }
-        );
-    }
 
     static class TestFlags implements Flags {
         int mIsolatedServiceDeadlineSeconds = 30;
@@ -117,7 +103,7 @@ public class WebTriggerFlowTest {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
         ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        ExtendedMockito.doReturn(SdkLevel.isAtLeastU() && mIsSipFeatureEnabled).when(
+        ExtendedMockito.doReturn(SdkLevel.isAtLeastU()).when(
                 () -> StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED));
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
