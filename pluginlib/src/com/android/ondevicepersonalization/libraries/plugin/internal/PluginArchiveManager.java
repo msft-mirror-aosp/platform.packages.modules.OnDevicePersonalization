@@ -58,7 +58,7 @@ import java.util.concurrent.TimeoutException;
 public final class PluginArchiveManager {
     private static final String TAG = "PluginArchiveManager";
     private static final String CHECKSUM_SUFFIX = ".md5";
-    private static final long BIND_TIMEOUT_MS = 2_000;
+    private static final long BIND_TIMEOUT_MS = 5_000;
     private final Context mApplicationContext;
 
     public PluginArchiveManager(Context applicationContext) {
@@ -159,9 +159,10 @@ public final class PluginArchiveManager {
                     TAG,
                     String.format(
                             "Error trying to call %s for the plugin: %s",
-                            serviceName, pluginArchives));
+                            serviceName, pluginArchives),
+                    e);
         } catch (IOException e) {
-            Log.e(TAG, String.format("Error trying to load the plugin: %s", pluginArchives));
+            Log.e(TAG, String.format("Error trying to load the plugin: %s", pluginArchives), e);
         }
         return false;
     }
@@ -207,7 +208,7 @@ public final class PluginArchiveManager {
                 return readiness.get(BIND_TIMEOUT_MS, MILLISECONDS);
             }
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            Log.e(TAG, String.format("Error binding to %s", serviceName));
+            Log.e(TAG, String.format("Error binding to %s", serviceName), e);
             return false;
         }
         return true;
@@ -230,7 +231,8 @@ public final class PluginArchiveManager {
             try {
                 assetManager = packageAssetManager(pluginArchive.packageName());
             } catch (NameNotFoundException e) {
-                Log.e(TAG, String.format("Unknown package name %s", pluginArchive.packageName()));
+                Log.e(TAG, String.format("Unknown package name %s", pluginArchive.packageName()),
+                        e);
                 return DEFAULT_CHECKSUM;
             }
         } else {
@@ -278,12 +280,12 @@ public final class PluginArchiveManager {
                 FileUtils.copy(pluginSrc, pluginDst);
                 return true;
             } catch (IOException e) {
-                Log.e(TAG, String.format("Error copying %s to cache dir", pluginArchive));
+                Log.e(TAG, String.format("Error copying %s to cache dir", pluginArchive), e);
             }
             return false;
 
         } catch (NameNotFoundException e) {
-            Log.e(TAG, String.format("Unknown package name %s", pluginArchive.packageName()));
+            Log.e(TAG, String.format("Unknown package name %s", pluginArchive.packageName()), e);
         }
         return false;
     }
@@ -293,7 +295,7 @@ public final class PluginArchiveManager {
             AssetManager assetManager = packageAssetManager(pluginArchive.packageName());
             return copyPluginToCacheDir(pluginArchive.filename(), assetManager);
         } catch (NameNotFoundException e) {
-            Log.e(TAG, String.format("Unknown package name %s", pluginArchive.packageName()));
+            Log.e(TAG, String.format("Unknown package name %s", pluginArchive.packageName()), e);
         }
         return false;
     }
@@ -332,7 +334,8 @@ public final class PluginArchiveManager {
         } catch (IOException e) {
             Log.e(
                     TAG,
-                    String.format("Error copying %s/%s to cache dir", pluginArchive, checksumFile));
+                    String.format("Error copying %s/%s to cache dir", pluginArchive, checksumFile),
+                    e);
         }
         return false;
     }
