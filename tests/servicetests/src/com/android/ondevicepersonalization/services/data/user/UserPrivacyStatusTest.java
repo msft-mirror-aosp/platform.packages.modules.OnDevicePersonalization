@@ -17,8 +17,10 @@
 package com.android.ondevicepersonalization.services.data.user;
 
 import static android.adservices.ondevicepersonalization.Constants.STATUS_CALLER_NOT_ALLOWED;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_CLASS_NOT_FOUND;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_INTERNAL_ERROR;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_METHOD_NOT_FOUND;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_NULL_ADSERVICES_COMMON_MANAGER;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_REMOTE_EXCEPTION;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_TIMEOUT;
 import static android.app.job.JobScheduler.RESULT_SUCCESS;
@@ -232,14 +234,27 @@ public final class UserPrivacyStatusTest {
     @Test
     public void testGetStatusCode() {
         assertThat(mUserPrivacyStatus.getExceptionStatus(
-                new ExecutionException("timeout testing", new TimeoutException())))
+                new ExecutionException("timeout exception", new TimeoutException())))
                 .isEqualTo(STATUS_TIMEOUT);
-        assertThat(mUserPrivacyStatus.getExceptionStatus(new NoSuchMethodException()))
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("no such method", new NoSuchMethodException())))
                 .isEqualTo(STATUS_METHOD_NOT_FOUND);
-        assertThat(mUserPrivacyStatus.getExceptionStatus(new SecurityException()))
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("security exception", new SecurityException())))
                 .isEqualTo(STATUS_CALLER_NOT_ALLOWED);
-        assertThat(mUserPrivacyStatus.getExceptionStatus(new IllegalArgumentException()))
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("illegal state", new IllegalStateException())))
                 .isEqualTo(STATUS_INTERNAL_ERROR);
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("illegal argument", new IllegalArgumentException())))
+                .isEqualTo(STATUS_INTERNAL_ERROR);
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("no class def found", new NoClassDefFoundError())))
+                .isEqualTo(STATUS_CLASS_NOT_FOUND);
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("null adservices common manager",
+                        new AdServicesCommonStatesWrapper.NullAdServiceCommonManagerException())))
+                .isEqualTo(STATUS_NULL_ADSERVICES_COMMON_MANAGER);
         assertThat(mUserPrivacyStatus.getExceptionStatus(new Exception()))
                 .isEqualTo(STATUS_REMOTE_EXCEPTION);
     }
