@@ -72,7 +72,7 @@ public class RemoteDataTest {
         assertNull(mRemoteData.get("z"));
 
         mRemoteDataService.mLatch.await();
-        assertThat(mRemoteDataService.mResponseCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
+        assertThat(mRemoteDataService.mResponseCode).isEqualTo(Constants.STATUS_SERVICE_FAILED);
     }
 
     @Test
@@ -148,7 +148,7 @@ public class RemoteDataTest {
             if (key.equals("z")) {
                 // Raise expected error.
                 try {
-                    callback.onError(Constants.STATUS_INTERNAL_ERROR);
+                    callback.onError(Constants.STATUS_SERVICE_FAILED);
                 } catch (RemoteException e) {
                     // Ignored.
                 }
