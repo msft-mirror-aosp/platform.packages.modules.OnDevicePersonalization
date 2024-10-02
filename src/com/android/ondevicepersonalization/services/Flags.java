@@ -286,7 +286,7 @@ public interface Flags extends ModuleSharedFlags {
     }
 
     String DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH =
-            "debugreporting/v1/exceptions:report-exceptions";
+            "/debugreporting/v1/exceptions:report-exceptions";
 
     /**
      * URL suffix that the reporting job will use to send adopters daily aggregated counts of {@link
@@ -318,6 +318,26 @@ public interface Flags extends ModuleSharedFlags {
      */
     default int getAggregatedErrorReportingIntervalInHours() {
         return DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
+    }
+
+    boolean DEFAULT_AGGREGATED_ERROR_REPORTING_ENCRYPTION = false;
+
+    default boolean getAggregatedErrorReportingEncryptionEnabled() {
+        return DEFAULT_AGGREGATED_ERROR_REPORTING_ENCRYPTION;
+    }
+
+    int DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_TIMEOUT_SECONDS = 30;
+
+    /** Timeout for http reporting of aggregated error data. */
+    default int getAggregatedErrorReportingHttpTimeoutSeconds() {
+        return DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_TIMEOUT_SECONDS;
+    }
+
+    int DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_RETRY_LIMIT = 3;
+
+    /** Timeout for http reporting of aggregated error data. */
+    default int getAggregatedErrorReportingHttpRetryLimit() {
+        return DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_RETRY_LIMIT;
     }
 
     /**
