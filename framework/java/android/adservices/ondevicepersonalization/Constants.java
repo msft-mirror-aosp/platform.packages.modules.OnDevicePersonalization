@@ -67,6 +67,25 @@ public class Constants {
     public static final int STATUS_CALLER_NOT_ALLOWED = 115;
     public static final int STATUS_NULL_ADSERVICES_COMMON_MANAGER = 116;
 
+    // Internal code that tracks data access not included result returned from data storage.
+    public static final int STATUS_PERMISSION_DENIED = 117;
+    // Internal code that tracks local data read only result returned from data storage.
+    public static final int STATUS_LOCAL_DATA_READ_ONLY = 118;
+    // Internal code that tracks request timestamps invalid.
+    public static final int STATUS_REQUEST_TIMESTAMPS_INVALID = 120;
+    // Internal code that tracks request model table id invalid.
+    public static final int STATUS_MODEL_TABLE_ID_INVALID = 122;
+    // Internal code that tracks request model DB lookup failed.
+    public static final int STATUS_MODEL_DB_LOOKUP_FAILED = 123;
+    // Internal code that tracks request model lookup generic failure.
+    public static final int STATUS_MODEL_LOOKUP_FAILURE = 124;
+    // Internal code that tracks unsupported operation failure.
+    public static final int STATUS_DATA_ACCESS_UNSUPPORTED_OP = 125;
+    // Internal code that tracks generic data access failure.
+    public static final int STATUS_DATA_ACCESS_FAILURE = 126;
+    // Internal code that tracks local data access failure.
+    public static final int STATUS_LOCAL_WRITE_DATA_ACCESS_FAILURE = 127;
+
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
     public static final int OP_DOWNLOAD = 2;
