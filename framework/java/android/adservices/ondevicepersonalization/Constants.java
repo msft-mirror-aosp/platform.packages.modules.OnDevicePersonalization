@@ -65,6 +65,7 @@ public class Constants {
     /** Internal code that tracks method not found. */
     public static final int STATUS_METHOD_NOT_FOUND = 114;
     public static final int STATUS_CALLER_NOT_ALLOWED = 115;
+    public static final int STATUS_NULL_ADSERVICES_COMMON_MANAGER = 116;
 
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
