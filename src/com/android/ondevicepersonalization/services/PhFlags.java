@@ -111,6 +111,15 @@ public final class PhFlags implements Flags {
     public static final String KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS =
             "aggregated_error_reporting_interval_hours";
 
+    public static final String KEY_AGGREGATED_ERROR_REPORTING_ENCRYPTION_ENABLED =
+            "aggregated_error_reporting_encryption_enabled";
+
+    public static final String KEY_AGGREGATED_ERROR_REPORTING_HTTP_TIMEOUT_SECONDS =
+            "aggregated_error_reporting_http_timeout_seconds";
+
+    public static final String KEY_AGGREGATED_ERROR_REPORTING_HTTP_RETRY_LIMIT =
+            "aggregated_error_reporting_http_retry_limit";
+
     public static final String MAX_INT_VALUES_LIMIT = "max_int_values_limit";
 
     public static final String KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS =
@@ -432,6 +441,30 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS,
                 /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS);
+    }
+
+    @Override
+    public boolean getAggregatedErrorReportingEncryptionEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_AGGREGATED_ERROR_REPORTING_ENCRYPTION_ENABLED,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORTING_ENCRYPTION);
+    }
+
+    @Override
+    public int getAggregatedErrorReportingHttpTimeoutSeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_AGGREGATED_ERROR_REPORTING_HTTP_TIMEOUT_SECONDS,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_TIMEOUT_SECONDS);
+    }
+
+    @Override
+    public int getAggregatedErrorReportingHttpRetryLimit() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_AGGREGATED_ERROR_REPORTING_HTTP_RETRY_LIMIT,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_RETRY_LIMIT);
     }
 
     @Override
