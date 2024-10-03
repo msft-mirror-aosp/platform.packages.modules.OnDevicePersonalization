@@ -42,6 +42,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -61,6 +62,8 @@ public class AggregateErrorDataReportingServiceTest {
 
     @Mock private Flags mMockFlags;
 
+    @Mock private AggregatedErrorReportingWorker mMockReportingWorker;
+
     @Before
     public void setup() throws Exception {
         MockitoAnnotations.initMocks(this);
@@ -75,6 +78,33 @@ public class AggregateErrorDataReportingServiceTest {
             // Cleanup any pending jobs
             mJobScheduler.cancel(AGGREGATE_ERROR_DATA_REPORTING_JOB_ID);
         }
+    }
+
+    @Test
+    public void onStartJob_errorReportingEnabled_callsWorker() {
+        // Given that the aggregate error reporting is enabled and the job is
+        // scheduled successfully.
+        when(mMockFlags.getGlobalKillSwitch()).thenReturn(false);
+        when(mMockFlags.getAggregatedErrorReportingEnabled()).thenReturn(true);
+        when(mMockReportingWorker.reportAggregateErrors(any()))
+                .thenReturn(Futures.immediateVoidFuture());
+        assertEquals(
+                JobScheduler.RESULT_SUCCESS,
+                AggregateErrorDataReportingService.scheduleIfNeeded(mContext, mMockFlags));
+        assertNotNull(
+                mJobScheduler.getPendingJob(
+                        OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID));
+
+        // When the job is started.
+        boolean result = mService.onStartJob(mock(JobParameters.class));
+
+        // Expect that the worker is called once and the pending job is not cancelled.
+        assertTrue(result);
+        verify(mService, times(1)).jobFinished(any(), eq(false));
+        verify(mMockReportingWorker, times(1)).reportAggregateErrors(any());
+        assertNotNull(
+                mJobScheduler.getPendingJob(
+                        OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID));
     }
 
     @Test
@@ -157,6 +187,11 @@ public class AggregateErrorDataReportingServiceTest {
         @Override
         Flags getFlags() {
             return mMockFlags;
+        }
+
+        @Override
+        AggregatedErrorReportingWorker getErrorReportingWorker() {
+            return mMockReportingWorker;
         }
     }
 }
