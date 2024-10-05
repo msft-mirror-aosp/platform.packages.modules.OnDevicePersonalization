@@ -108,4 +108,6 @@ public class FileUtils {
         }
         return outputStream.toByteArray();
     }
+
+    private FileUtils() {}
 }

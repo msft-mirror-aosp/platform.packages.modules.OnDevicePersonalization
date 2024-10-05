@@ -51,6 +51,7 @@ import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
@@ -111,6 +112,7 @@ public class AppRequestFlowTest {
         int mIsolatedServiceDeadlineSeconds = 30;
         String mOutputDataAllowList = "*;*";
         String mPlatformDataAllowList = "";
+        boolean mIsIsolatedServiceDebuggingEnabled = true;
 
         @Override public boolean getGlobalKillSwitch() {
             return false;
@@ -126,6 +128,11 @@ public class AppRequestFlowTest {
         public String getDefaultPlatformDataForExecuteAllowlist() {
             return mPlatformDataAllowList;
         }
+
+        @Override
+        public boolean isIsolatedServiceDebuggingEnabled() {
+            return mIsIsolatedServiceDebuggingEnabled;
+        }
     }
 
     private TestFlags mSpyFlags = new TestFlags();
@@ -133,6 +140,7 @@ public class AppRequestFlowTest {
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule =
             new ExtendedMockitoRule.Builder(this)
+                    .mockStatic(FlagsFactory.class)
                     .spyStatic(StableFlags.class)
                     .spyStatic(UserPrivacyStatus.class)
                     .setStrictness(Strictness.LENIENT)
@@ -143,6 +151,7 @@ public class AppRequestFlowTest {
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
         ExtendedMockito.doReturn(SdkLevel.isAtLeastU()).when(
                 () -> StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED));
         doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();

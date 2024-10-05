@@ -31,7 +31,6 @@ import java.util.Objects;
  * The input data for {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
  *
  */
-@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public final class ExecuteInput {
     @NonNull private final String mAppPackageName;
     @NonNull private final Object mAppParamsLock = new Object();

@@ -45,6 +45,7 @@ public class DateTimeUtilsTest {
 
     // PST: Friday, August 23, 2024 10:59:11 PM
     private static final long DEFAULT_CURRENT_TIME_MILLIS = 1724479151000L;
+
     private static final int CURRENT_DAYS_EPOCH_PST = 19958;
     private Context mContext;
 
@@ -73,5 +74,14 @@ public class DateTimeUtilsTest {
         int dayEpoch = DateTimeUtils.dayIndexLocal(mMockClock);
 
         assertEquals(CURRENT_DAYS_EPOCH_PST, dayEpoch);
+    }
+
+    @Test
+    public void testEpochSecondsUtc() {
+        long currentMillis = 1726812886190L;
+        long expectedUtcSeconds = 1726812886;
+        when(mMockClock.currentTimeMillis()).thenReturn(currentMillis);
+
+        assertEquals(expectedUtcSeconds, DateTimeUtils.epochSecondsUtc(mMockClock));
     }
 }
