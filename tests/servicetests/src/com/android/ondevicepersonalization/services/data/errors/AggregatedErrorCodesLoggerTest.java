@@ -53,7 +53,7 @@ public class AggregatedErrorCodesLoggerTest {
     private static final String TEST_PACKAGE = "test_package";
     private static final String TEST_CLASS = "test_class";
 
-    private static final int TEST_ISOLATED_SERVICE_ERROR_CODE = 2;
+    static final int TEST_ISOLATED_SERVICE_ERROR_CODE = 2;
 
     private static final ComponentName TEST_COMPONENT_NAME =
             new ComponentName(TEST_PACKAGE, TEST_CLASS);
@@ -143,7 +143,7 @@ public class AggregatedErrorCodesLoggerTest {
         mSession.finishMocking();
     }
 
-    private static ErrorData getExpectedErrorData(int dayIndexUtc) {
+    static ErrorData getExpectedErrorData(int dayIndexUtc) {
         return new ErrorData.Builder(TEST_ISOLATED_SERVICE_ERROR_CODE, 1, dayIndexUtc, 0).build();
     }
 
