@@ -53,8 +53,10 @@ class AdServicesCommonStatesWrapperImpl implements AdServicesCommonStatesWrapper
 
     @Override public ListenableFuture<CommonStatesResult> getCommonStates() {
         try {
-            AdServicesCommonManager manager =
-                    Objects.requireNonNull(getAdServicesCommonManager());
+            AdServicesCommonManager manager = getAdServicesCommonManager();
+            if (manager == null) {
+                throw new NullAdServiceCommonManagerException();
+            }
             sLogger.d(TAG + ": IPC getAdServicesCommonStates() started");
             long origId = Binder.clearCallingIdentity();
             long timeoutInMillis = FlagsFactory.getFlags().getAdservicesIpcCallTimeoutInMillis();
@@ -70,17 +72,13 @@ class AdServicesCommonStatesWrapperImpl implements AdServicesCommonStatesWrapper
                     .transform(
                             v -> getResultFromResponse(v),
                             MoreExecutors.newDirectExecutorService());
-        } catch (Exception e) {
+        } catch (Throwable e) {
             return Futures.immediateFailedFuture(e);
         }
     }
 
-    private AdServicesCommonManager getAdServicesCommonManager() {
-        try {
-            return mContext.getSystemService(AdServicesCommonManager.class);
-        } catch (NoClassDefFoundError e) {
-            throw new IllegalStateException("Cannot find AdServicesCommonManager.", e);
-        }
+    private AdServicesCommonManager getAdServicesCommonManager() throws NoClassDefFoundError {
+        return mContext.getSystemService(AdServicesCommonManager.class);
     }
 
     private static CommonStatesResult getResultFromResponse(
