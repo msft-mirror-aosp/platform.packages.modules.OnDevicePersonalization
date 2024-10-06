@@ -16,8 +16,8 @@
 
 package com.android.federatedcompute.services.data;
 
-public final class FederatedComputeEncryptionKeyContract {
-    public static final String ENCRYPTION_KEY_TABLE = "encryption_keys";
+final class FederatedComputeEncryptionKeyContract {
+    static final String ENCRYPTION_KEY_TABLE = "encryption_keys";
 
     private FederatedComputeEncryptionKeyContract() {}
 
@@ -25,7 +25,7 @@ public final class FederatedComputeEncryptionKeyContract {
         private FederatedComputeEncryptionColumns() {}
 
         /**
-         * A unique identifier of the key, in thd form of UUID. FCP server uses key_identifier to
+         * A unique identifier of the key, in the form of a UUID. FCP server uses key_identifier to
          * get private key.
          */
         public static final String KEY_IDENTIFIER = "key_identifier";
@@ -34,8 +34,8 @@ public final class FederatedComputeEncryptionKeyContract {
         public static final String PUBLIC_KEY = "public_key";
 
         /**
-         * The type of the key in @link {com.android.federatedcompute.services.data.fbs.KeyType}
-         * Currently only encryption key is allowed.
+         * The type of the key in {@link FederatedComputeEncryptionKey.KeyType}. Currently only
+         * encryption key is allowed.
          */
         public static final String KEY_TYPE = "key_type";
 
