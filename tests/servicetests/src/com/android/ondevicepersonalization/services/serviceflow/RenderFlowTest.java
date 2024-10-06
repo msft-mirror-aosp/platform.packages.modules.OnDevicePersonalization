@@ -86,8 +86,14 @@ public class RenderFlowTest {
     @Mock CryptUtils mCryptUtils;
     private Flags mSpyFlags = new Flags() {
         int mIsolatedServiceDeadlineSeconds = 30;
+        boolean mIsIsolatedServiceDebuggingEnabled = true;
         @Override public int getIsolatedServiceDeadlineSeconds() {
             return mIsolatedServiceDeadlineSeconds;
+        }
+
+        @Override
+        public boolean isIsolatedServiceDebuggingEnabled() {
+            return mIsIsolatedServiceDebuggingEnabled;
         }
     };
 

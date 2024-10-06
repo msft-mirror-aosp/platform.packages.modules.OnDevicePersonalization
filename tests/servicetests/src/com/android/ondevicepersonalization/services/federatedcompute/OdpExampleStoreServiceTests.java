@@ -20,6 +20,8 @@ import static android.federatedcompute.common.ClientConstants.EXAMPLE_STORE_ACTI
 import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESULT;
 import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN;
 
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -50,8 +52,7 @@ import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.modules.utils.testing.TestableDeviceConfig;
-import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -83,8 +84,8 @@ public class OdpExampleStoreServiceTests {
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .addStaticMockFixtures(TestableDeviceConfig::new)
             .spyStatic(UserPrivacyStatus.class)
+            .spyStatic(StableFlags.class)
             .setStrictness(Strictness.LENIENT)
             .build();
     private CountDownLatch mLatch;
@@ -109,8 +110,8 @@ public class OdpExampleStoreServiceTests {
         mQueryCallbackOnFailureCalled = false;
         mLatch = new CountDownLatch(1);
         mIsolatedService = new ComponentName(mContext.getPackageName(), SERVICE_CLASS);
-        PhFlagsTestUtil.setUpDeviceConfigPermissions();
-        PhFlagsTestUtil.setSharedIsolatedProcessFeatureEnabled(SdkLevel.isAtLeastU());
+        ExtendedMockito.doReturn(SdkLevel.isAtLeastU()).when(
+                () -> StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED));
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
     }
 
