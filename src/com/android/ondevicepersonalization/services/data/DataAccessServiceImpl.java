@@ -158,7 +158,9 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             case Constants.DATA_ACCESS_OP_REMOTE_DATA_LOOKUP:
                 String lookupKey = params.getString(Constants.EXTRA_LOOKUP_KEYS);
                 if (lookupKey == null || lookupKey.isEmpty()) {
-                    throw new IllegalArgumentException("Missing lookup key.");
+                    sLogger.w(TAG + "Missing lookup key.");
+                    sendError(callback, Constants.STATUS_KEY_NOT_FOUND);
+                    break;
                 }
                 mInjector.getExecutor().execute(
                         () -> remoteDataLookup(
@@ -170,11 +172,15 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 break;
             case Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP:
                 if (mLocalDataPermission == DataAccessPermission.DENIED) {
-                    throw new IllegalStateException("LocalData is not included for this instance.");
+                    sLogger.w(TAG + "LocalData is not included for this instance.");
+                    sendError(callback, Constants.STATUS_PERMISSION_DENIED);
+                    break;
                 }
                 lookupKey = params.getString(Constants.EXTRA_LOOKUP_KEYS);
                 if (lookupKey == null || lookupKey.isEmpty()) {
-                    throw new IllegalArgumentException("Missing lookup key.");
+                    sLogger.w(TAG + "Missing lookup key.");
+                    sendError(callback, Constants.STATUS_KEY_NOT_FOUND);
+                    break;
                 }
                 mInjector.getExecutor().execute(
                         () -> localDataLookup(
@@ -182,17 +188,23 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 break;
             case Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET:
                 if (mLocalDataPermission == DataAccessPermission.DENIED) {
-                    throw new IllegalStateException("LocalData is not included for this instance.");
+                    sLogger.w(TAG + "LocalData is not included for this instance.");
+                    sendError(callback, Constants.STATUS_PERMISSION_DENIED);
+                    break;
                 }
                 mInjector.getExecutor().execute(
                         () -> localDataKeyset(callback));
                 break;
             case Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT:
                 if (mLocalDataPermission == DataAccessPermission.DENIED) {
-                    throw new IllegalStateException("LocalData is not included for this instance.");
+                    sLogger.w(TAG + "LocalData is not included for this instance.");
+                    sendError(callback, Constants.STATUS_PERMISSION_DENIED);
+                    break;
                 }
                 if (mLocalDataPermission == DataAccessPermission.READ_ONLY) {
-                    throw new IllegalStateException("LocalData is read-only for this instance.");
+                    sLogger.w(TAG + "LocalData is read-only for this instance.");
+                    sendError(callback, Constants.STATUS_LOCAL_DATA_READ_ONLY);
+                    break;
                 }
                 String putKey = params.getString(Constants.EXTRA_LOOKUP_KEYS);
                 ByteArrayParceledSlice parceledValue = params.getParcelable(
@@ -206,14 +218,20 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 break;
             case Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE:
                 if (mLocalDataPermission == DataAccessPermission.DENIED) {
-                    throw new IllegalStateException("LocalData is not included for this instance.");
+                    sLogger.w(TAG + "LocalData is not included for this instance.");
+                    sendError(callback, Constants.STATUS_PERMISSION_DENIED);
+                    break;
                 }
                 if (mLocalDataPermission == DataAccessPermission.READ_ONLY) {
-                    throw new IllegalStateException("LocalData is read-only for this instance.");
+                    sLogger.w(TAG + "LocalData is read-only for this instance.");
+                    sendError(callback, Constants.STATUS_LOCAL_DATA_READ_ONLY);
+                    break;
                 }
                 String deleteKey = params.getString(Constants.EXTRA_LOOKUP_KEYS);
                 if (deleteKey == null || deleteKey.isEmpty()) {
-                    throw new IllegalArgumentException("Invalid key provided for delete.");
+                    sLogger.w(TAG + "Missing delete key.");
+                    sendError(callback, Constants.STATUS_KEY_NOT_FOUND);
+                    break;
                 }
                 mInjector.getExecutor().execute(
                         () -> localDataDelete(deleteKey, callback));
@@ -231,38 +249,47 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 break;
             case Constants.DATA_ACCESS_OP_GET_REQUESTS:
                 if (mEventDataPermission == DataAccessPermission.DENIED) {
-                    throw new IllegalStateException(
-                            "request and event data are not included for this instance.");
+                    sLogger.w(TAG + "Request and event data are not included for this instance.");
+                    sendError(callback, Constants.STATUS_PERMISSION_DENIED);
+                    break;
                 }
                 long[] requestTimes = Objects.requireNonNull(params.getLongArray(
                         Constants.EXTRA_LOOKUP_KEYS));
                 if (requestTimes.length != 2) {
-                    throw new IllegalArgumentException("Invalid request timestamps provided.");
+                    sLogger.w(TAG + "Invalid request timestamps provided.");
+                    sendError(callback, Constants.STATUS_REQUEST_TIMESTAMPS_INVALID);
+                    break;
                 }
                 mInjector.getExecutor().execute(
                         () -> getRequests(requestTimes[0], requestTimes[1], callback));
                 break;
             case Constants.DATA_ACCESS_OP_GET_JOINED_EVENTS:
                 if (mEventDataPermission == DataAccessPermission.DENIED) {
-                    throw new IllegalStateException(
-                            "request and event data are not included for this instance.");
+                    sLogger.w(TAG + "Request and event data are not included for this instance.");
+                    sendError(callback, Constants.STATUS_PERMISSION_DENIED);
+                    break;
                 }
                 long[] eventTimes = Objects.requireNonNull(params.getLongArray(
                         Constants.EXTRA_LOOKUP_KEYS));
                 if (eventTimes.length != 2) {
-                    throw new IllegalArgumentException("Invalid event timestamps provided.");
+                    sLogger.w(TAG + "Invalid request timestamps provided.");
+                    sendError(callback, Constants.STATUS_REQUEST_TIMESTAMPS_INVALID);
+                    break;
                 }
                 mInjector.getExecutor().execute(
                         () -> getJoinedEvents(eventTimes[0], eventTimes[1], callback));
                 break;
             case Constants.DATA_ACCESS_OP_GET_MODEL:
-                ModelId modelId =
-                        Objects.requireNonNull(
-                                params.getParcelable(Constants.EXTRA_MODEL_ID, ModelId.class));
+                ModelId modelId = params.getParcelable(Constants.EXTRA_MODEL_ID, ModelId.class);
+                if (modelId == null) {
+                    sLogger.w(TAG + "Model Id is not provided.");
+                    sendError(callback, Constants.STATUS_KEY_NOT_FOUND);
+                    break;
+                }
                 mInjector.getExecutor().execute(() -> getModelFileDescriptor(modelId, callback));
                 break;
             default:
-                sendError(callback);
+                sendError(callback, Constants.STATUS_DATA_ACCESS_UNSUPPORTED_OP);
         }
     }
 
@@ -321,7 +348,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     Constants.EXTRA_RESULT, new ByteArrayParceledSlice(data));
             sendResult(result, callback);
         } catch (Exception e) {
-            sendError(callback);
+            sendError(callback, Constants.STATUS_DATA_ACCESS_FAILURE);
         }
     }
 
@@ -333,7 +360,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     Constants.EXTRA_RESULT, new ByteArrayParceledSlice(data));
             sendResult(result, callback);
         } catch (Exception e) {
-            sendError(callback);
+            sendError(callback, Constants.STATUS_DATA_ACCESS_FAILURE);
         }
     }
 
@@ -344,14 +371,14 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             byte[] existingData = mLocalDataDao.readSingleLocalDataRow(key);
             if (!mLocalDataDao.updateOrInsertLocalData(
                     new LocalData.Builder().setKey(key).setData(data).build())) {
-                sendError(callback);
+                sendError(callback, Constants.STATUS_LOCAL_WRITE_DATA_ACCESS_FAILURE);
             }
             Bundle result = new Bundle();
             result.putParcelable(
                     Constants.EXTRA_RESULT, new ByteArrayParceledSlice(existingData));
             sendResult(result, callback);
         } catch (Exception e) {
-            sendError(callback);
+            sendError(callback, Constants.STATUS_DATA_ACCESS_FAILURE);
         }
     }
 
@@ -364,7 +391,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     Constants.EXTRA_RESULT, new ByteArrayParceledSlice(existingData));
             sendResult(result, callback);
         } catch (Exception e) {
-            sendError(callback);
+            sendError(callback, Constants.STATUS_DATA_ACCESS_FAILURE);
         }
     }
 
@@ -390,7 +417,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             sendResult(result, callback);
         } catch (Exception e) {
             sLogger.d(TAG + ": getEventUrl() failed.", e);
-            sendError(callback);
+            sendError(callback, Constants.STATUS_DATA_ACCESS_FAILURE);
         }
     }
 
@@ -414,7 +441,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     new OdpParceledListSlice<>(requestLogRecords));
             sendResult(result, callback);
         } catch (Exception e) {
-            sendError(callback);
+            sendError(callback, Constants.STATUS_DATA_ACCESS_FAILURE);
         }
     }
 
@@ -446,7 +473,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     new OdpParceledListSlice<>(joinedLogRecords));
             sendResult(result, callback);
         } catch (Exception e) {
-            sendError(callback);
+            sendError(callback, Constants.STATUS_DATA_ACCESS_FAILURE);
         }
     }
 
@@ -462,13 +489,14 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     modelData = mLocalDataDao.readSingleLocalDataRow(modelId.getKey());
                     break;
                 default:
-                    throw new IllegalStateException(
-                            "Unsupported table name " + modelId.getTableId());
+                    sLogger.e(TAG + "Unsupported model table Id %d", modelId.getTableId());
+                    sendError(callback, Constants.STATUS_MODEL_TABLE_ID_INVALID);
+                    return;
             }
 
             if (modelData == null) {
                 sLogger.e(TAG + " Failed to find model data from database: " + modelId.getKey());
-                sendError(callback);
+                sendError(callback, Constants.STATUS_MODEL_DB_LOOKUP_FAILED);
                 return;
             }
             String modelFile =
@@ -481,8 +509,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             result.putParcelable(Constants.EXTRA_RESULT, modelFd);
             sendResult(result, callback);
         } catch (Exception e) {
-            sLogger.e(TAG + " Failed to find model data: " + modelId.getKey(), e);
-            sendError(callback);
+            sLogger.e(e, TAG + " Failed to find model data: %s ", modelId.getKey());
+            sendError(callback, Constants.STATUS_MODEL_LOOKUP_FAILURE);
         }
     }
 
@@ -496,11 +524,11 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         }
     }
 
-    private void sendError(@NonNull IDataAccessServiceCallback callback) {
+    private void sendError(@NonNull IDataAccessServiceCallback callback, int errorCode) {
         try {
-            callback.onError(Constants.STATUS_INTERNAL_ERROR);
+            callback.onError(errorCode);
         } catch (RemoteException e) {
-            sLogger.e(TAG + ": Callback error", e);
+            sLogger.e(e, TAG + ": Callback error! Failed to set error code %d", errorCode);
         }
     }
 

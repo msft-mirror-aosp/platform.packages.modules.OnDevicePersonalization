@@ -22,9 +22,9 @@ android_test {
         "src/**/*.java",
     ],
     libs: [
-        "android.test.base",
+        "android.test.base.stubs.system",
         "android.test.mock.stubs",
-        "android.test.runner",
+        "android.test.runner.stubs.system",
         "auto_value_annotations",
         "framework-annotations-lib",
         "framework-ondevicepersonalization.impl",

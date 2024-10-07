@@ -627,20 +627,8 @@ public class PhFlagsTest {
 
     @Test
     public void testGetBackgroundJobsLoggingEnabled() {
-        // read a stable flag value.
-        boolean stableValue = FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled();
-
-        // Now overriding the value from PH.
-        boolean overrideEnabled = !stableValue;
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
-                Boolean.toString(overrideEnabled),
-                /* makeDefault= */ false);
-
-        // the flag value remains stable
         assertThat(FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled())
-                .isEqualTo(stableValue);
+                .isEqualTo(true);
     }
 
     @Test

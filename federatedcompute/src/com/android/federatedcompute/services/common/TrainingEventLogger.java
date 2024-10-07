@@ -25,6 +25,9 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_PLAN_URI_RECEIVED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY_NO_TASK_AVAILABLE;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY_UNAUTHENTICATED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY_UNAUTHORIZED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_FAILURE_UPLOADED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_FAILURE_UPLOAD_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_INITIATE_REPORT_RESULT_AUTH_SUCCEEDED;
@@ -40,6 +43,8 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.statsd.FederatedComputeStatsdLogger;
 import com.android.federatedcompute.services.statsd.TrainingEventReported;
+
+import com.google.internal.federatedcompute.v1.RejectionInfo;
 
 /** The helper function to log {@link TrainingEventReported} in statsd. */
 public class TrainingEventLogger {
@@ -84,10 +89,28 @@ public class TrainingEventLogger {
     }
 
     /** Logs when device is turned away from federated training. */
-    public void logCheckinRejected(NetworkStats networkStats) {
-        logNetworkEvent(
-                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY,
-                networkStats);
+    public void logCheckinRejected(RejectionInfo rejectionInfo, NetworkStats networkStats) {
+        switch (rejectionInfo.getReason()) {
+            case UNAUTHORIZED:
+                logNetworkEvent(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY_UNAUTHORIZED,
+                        networkStats);
+                break;
+            case UNAUTHENTICATED:
+                logNetworkEvent(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY_UNAUTHENTICATED,
+                        networkStats);
+                break;
+            case NO_TASK_AVAILABLE:
+                logNetworkEvent(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY_NO_TASK_AVAILABLE,
+                        networkStats);
+                break;
+            default:
+                logNetworkEvent(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY,
+                        networkStats);
+        }
     }
 
     /**

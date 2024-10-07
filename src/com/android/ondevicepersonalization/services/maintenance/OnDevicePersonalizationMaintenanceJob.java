@@ -16,8 +16,6 @@
 
 package com.android.ondevicepersonalization.services.maintenance;
 
-import static android.content.pm.PackageManager.GET_META_DATA;
-
 import static com.android.adservices.shared.proto.JobPolicy.BatteryType.BATTERY_TYPE_REQUIRE_NOT_LOW;
 import static com.android.adservices.shared.spe.JobServiceConstants.JOB_ENABLED_STATUS_DISABLED_FOR_KILL_SWITCH_ON;
 import static com.android.adservices.shared.spe.JobServiceConstants.JOB_ENABLED_STATUS_ENABLED;
@@ -25,8 +23,6 @@ import static com.android.ondevicepersonalization.services.OnDevicePersonalizati
 
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 
 import com.android.adservices.shared.proto.JobPolicy;
 import com.android.adservices.shared.spe.framework.ExecutionResult;
@@ -39,9 +35,9 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.errors.AggregatedErrorCodesLogger;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
-import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.sharedlibrary.spe.OdpJobScheduler;
 import com.android.ondevicepersonalization.services.sharedlibrary.spe.OdpJobServiceFactory;
@@ -49,7 +45,7 @@ import com.android.ondevicepersonalization.services.sharedlibrary.spe.OdpJobServ
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.util.ArrayList;
+import java.util.List;
 
 /** The background job to handle the OnDevicePersonalization maintenance. */
 public final class OnDevicePersonalizationMaintenanceJob implements JobWorker {
@@ -138,29 +134,11 @@ public final class OnDevicePersonalizationMaintenanceJob implements JobWorker {
 
     @VisibleForTesting
     void cleanupVendorData(Context context) throws Exception {
-        ArrayList<ComponentName> services = new ArrayList<>();
-
-        for (PackageInfo packageInfo :
-                context.getPackageManager()
-                        .getInstalledPackages(PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
-            String packageName = packageInfo.packageName;
-
-            if (AppManifestConfigHelper.manifestContainsOdpSettings(context, packageName)) {
-                if (!PartnerEnrollmentChecker.isIsolatedServiceEnrolled(packageName)) {
-                    sLogger.d(TAG + ": service %s has ODP manifest, but not enrolled", packageName);
-                    continue;
-                }
-
-                sLogger.d(TAG + ": service %s has ODP manifest and is enrolled", packageName);
-
-                String serviceClass =
-                        AppManifestConfigHelper.getServiceNameFromOdpSettings(context, packageName);
-                ComponentName service = ComponentName.createRelative(packageName, serviceClass);
-                services.add(service);
-            }
-        }
+        List<ComponentName> services =
+                AppManifestConfigHelper.getOdpServices(context, /* enrolledOnly= */ true);
 
         OnDevicePersonalizationVendorDataDao.deleteVendorTables(context, services);
         deleteEventsAndQueries(context);
+        AggregatedErrorCodesLogger.cleanupErrorData(context);
     }
 }

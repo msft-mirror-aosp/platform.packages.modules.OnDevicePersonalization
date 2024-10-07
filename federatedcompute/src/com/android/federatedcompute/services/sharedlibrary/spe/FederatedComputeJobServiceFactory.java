@@ -22,11 +22,11 @@ import static com.android.federatedcompute.services.common.FederatedComputeJobIn
 import android.content.Context;
 
 import com.android.adservices.shared.proto.ModuleJobPolicy;
-import com.android.adservices.shared.proto.ProtoParser;
 import com.android.adservices.shared.spe.framework.JobServiceFactory;
 import com.android.adservices.shared.spe.framework.JobWorker;
 import com.android.adservices.shared.spe.logging.JobSchedulingLogger;
 import com.android.adservices.shared.spe.logging.JobServiceLogger;
+import com.android.adservices.shared.util.ProtoParser;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.Flags;
@@ -87,6 +87,7 @@ public class FederatedComputeJobServiceFactory implements JobServiceFactory {
                 ModuleJobPolicy policy =
                         ProtoParser.parseBase64EncodedStringToProto(
                                 ModuleJobPolicy.parser(),
+                                ClientErrorLogger.getInstance(),
                                 PROTO_PROPERTY_FOR_LOGCAT,
                                 flags.getFcpModuleJobPolicy());
                 sSingleton =

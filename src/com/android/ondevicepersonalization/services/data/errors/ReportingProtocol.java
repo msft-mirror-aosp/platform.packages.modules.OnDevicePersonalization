@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package android.adservices.ondevicepersonalization.aidl;
+package com.android.ondevicepersonalization.services.data.errors;
 
-import android.os.Bundle;
+import com.google.common.util.concurrent.ListenableFuture;
 
-/**
-  * Callback from a OnDevicePersonalizationConfigService.
-  * @hide
-  */
-oneway interface IOnDevicePersonalizationConfigServiceCallback {
-
-    void onSuccess();
-
-    void onFailure(int errorCode);
+interface ReportingProtocol {
+    /**
+     * Report the exception data for this vendor based on error data and URL provided during
+     * construction.
+     *
+     * @return a {@link ListenableFuture} that resolves with true/false when reporting is
+     *     successful/failed.
+     */
+    ListenableFuture<Boolean> reportExceptionData();
 }

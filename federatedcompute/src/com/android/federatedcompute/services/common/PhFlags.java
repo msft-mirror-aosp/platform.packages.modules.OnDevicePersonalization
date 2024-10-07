@@ -274,18 +274,16 @@ public final class PhFlags implements Flags {
                 /* defaultValue= */ ENABLE_CLIENT_ERROR_LOGGING);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>This method always return {@code true} because the underlying flag is fully launched on
+     * {@code FederatedCompute} but the method cannot be removed (as it's defined on {@code
+     * ModuleSharedFlags}).
+     */
     @Override
     public boolean getBackgroundJobsLoggingEnabled() {
-        // needs stable: execution stats may be less accurate if value changed during job execution
-        return (boolean)
-                sStableFlags.computeIfAbsent(
-                        FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
-                        key -> {
-                            return DeviceConfig.getBoolean(
-                                    /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                                    /* name= */ FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
-                                    /* defaultValue= */ BACKGROUND_JOB_LOGGING_ENABLED);
-                        });
+        return true;
     }
 
     @Override

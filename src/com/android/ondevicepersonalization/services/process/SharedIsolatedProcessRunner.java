@@ -28,6 +28,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
+import android.os.Binder;
 import android.os.Bundle;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
@@ -39,10 +40,11 @@ import com.android.odp.module.common.MonotonicClock;
 import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.ExceptionInfo;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.StableFlags;
+import com.android.ondevicepersonalization.services.data.errors.AggregatedErrorCodesLogger;
 import com.android.ondevicepersonalization.services.util.AllowListUtils;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -136,12 +138,12 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                                 }
                                 return Futures.immediateFailedFuture(
                                         new OdpServiceException(
-                                                Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED));
+                                            Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED, e));
                             },
                             mInjector.getExecutor());
         } catch (Exception e) {
             return Futures.immediateFailedFuture(
-                    new OdpServiceException(Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED));
+                    new OdpServiceException(Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED, e));
         }
     }
 
@@ -182,8 +184,19 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                                             Exception cause =
                                                     ExceptionInfo.fromByteArray(
                                                             serializedExceptionInfo);
-                                            if (isolatedServiceErrorCode > 0
-                                                    && isolatedServiceErrorCode < 128) {
+                                            if (isolatedServiceErrorCode > 0) {
+                                                final long token = Binder.clearCallingIdentity();
+                                                try {
+                                                    ListenableFuture<?> unused =
+                                                        AggregatedErrorCodesLogger
+                                                            .logIsolatedServiceErrorCode(
+                                                                isolatedServiceErrorCode,
+                                                                isolatedProcessInfo
+                                                                    .getComponentName(),
+                                                                mApplicationContext);
+                                                } finally {
+                                                    Binder.restoreCallingIdentity(token);
+                                                }
                                                 cause =
                                                         new IsolatedServiceException(
                                                                 isolatedServiceErrorCode, cause);
@@ -244,7 +257,7 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
     @VisibleForTesting
     String getSipInstanceName(String packageName) {
         String partnerAppsList =
-                (String) FlagsFactory.getFlags().getStableFlag(KEY_TRUSTED_PARTNER_APPS_LIST);
+                (String) StableFlags.get(KEY_TRUSTED_PARTNER_APPS_LIST);
         String packageCertificate = null;
         try {
             packageCertificate = PackageUtils.getCertDigest(mApplicationContext, packageName);
@@ -254,8 +267,7 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
         boolean isPartnerApp = AllowListUtils.isAllowListed(
                 packageName, packageCertificate, partnerAppsList);
         String sipInstanceName = isPartnerApp ? TRUSTED_PARTNER_APPS_SIP : UNKNOWN_APPS_SIP;
-        return (boolean) FlagsFactory.getFlags()
-                .getStableFlag(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED)
+        return (boolean) StableFlags.get(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED)
                     ? sipInstanceName + "_disable_art_image_" : sipInstanceName;
     }
 

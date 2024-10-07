@@ -38,7 +38,6 @@ import java.util.List;
  * in response to a call to {@code OnDevicePersonalizationManager#execute(ComponentName,
  * PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)} from a client app.
  */
-@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class ExecuteOutput {
     /**

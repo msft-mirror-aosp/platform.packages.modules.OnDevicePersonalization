@@ -27,7 +27,6 @@ import com.android.adservices.ondevicepersonalization.flags.Flags;
  * the {@link IsolatedService} in order to prevent data leakage from the {@link IsolatedService} to
  * an app. The platform does not interpret the error code, it only logs and aggregates it.
  */
-@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public final class IsolatedServiceException extends Exception {
     private final int mErrorCode;
 

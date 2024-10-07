@@ -47,11 +47,6 @@
                 <action android:name="android.OnDevicePersonalizationService" />
             </intent-filter>
         </service>
-        <service android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationConfigServiceImpl" android:exported="true" >
-            <intent-filter>
-                <action android:name="android.OnDevicePersonalizationConfigService" />
-            </intent-filter>
-        </service>
         <service android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationDebugServiceImpl" android:exported="true" >
             <intent-filter>
                 <action android:name="android.OnDevicePersonalizationService" />
@@ -79,6 +74,10 @@
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
         <service android:name="com.android.ondevicepersonalization.services.reset.ResetDataJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service android:name="com.android.ondevicepersonalization.services.data.errors.AggregateErrorDataReportingService"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>

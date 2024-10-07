@@ -37,10 +37,10 @@ import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDao;
-import com.android.federatedcompute.services.http.FederatedComputeHttpResponse;
-import com.android.federatedcompute.services.http.HttpClient;
 import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.HttpClient;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.OdpHttpResponse;
 
 import com.google.common.util.concurrent.Futures;
 
@@ -69,7 +69,7 @@ public class FederatedComputeKeyFetchManagerTest {
                     "Content-Type", List.of("json"));
 
     private static final String SAMPLE_RESPONSE_PAYLOAD =
-            """
+                    """
 { "keys": [{ "id": "0cc9b4c9-08bd", "key": "BQo+c1Tw6TaQ+VH/b+9PegZOjHuKAFkl8QdmS0IjRj8" """
                     + "} ] }";
 
@@ -166,7 +166,7 @@ public class FederatedComputeKeyFetchManagerTest {
     public void testFetchAndPersistActiveKeys_scheduled_success() throws Exception {
         doReturn(
                         Futures.immediateFuture(
-                                new FederatedComputeHttpResponse.Builder()
+                                new OdpHttpResponse.Builder()
                                         .setHeaders(SAMPLE_RESPONSE_HEADER)
                                         .setPayload(SAMPLE_RESPONSE_PAYLOAD.getBytes())
                                         .setStatusCode(200)
@@ -186,7 +186,7 @@ public class FederatedComputeKeyFetchManagerTest {
     public void testFetchAndPersistActiveKeys_nonScheduled_success() throws Exception {
         doReturn(
                         Futures.immediateFuture(
-                                new FederatedComputeHttpResponse.Builder()
+                                new OdpHttpResponse.Builder()
                                         .setHeaders(SAMPLE_RESPONSE_HEADER)
                                         .setPayload(SAMPLE_RESPONSE_PAYLOAD.getBytes())
                                         .setStatusCode(200)
@@ -280,7 +280,7 @@ public class FederatedComputeKeyFetchManagerTest {
     public void testFetchAndPersistActiveKeys_scheduledNoDeletion() throws Exception {
         doReturn(
                         Futures.immediateFuture(
-                                new FederatedComputeHttpResponse.Builder()
+                                new OdpHttpResponse.Builder()
                                         .setHeaders(SAMPLE_RESPONSE_HEADER)
                                         .setPayload(SAMPLE_RESPONSE_PAYLOAD.getBytes())
                                         .setStatusCode(200)
@@ -314,7 +314,7 @@ public class FederatedComputeKeyFetchManagerTest {
     public void testFetchAndPersistActiveKeys_nonScheduledNoDeletion() throws Exception {
         doReturn(
                         Futures.immediateFuture(
-                                new FederatedComputeHttpResponse.Builder()
+                                new OdpHttpResponse.Builder()
                                         .setHeaders(SAMPLE_RESPONSE_HEADER)
                                         .setPayload(SAMPLE_RESPONSE_PAYLOAD.getBytes())
                                         .setStatusCode(200)
@@ -348,7 +348,7 @@ public class FederatedComputeKeyFetchManagerTest {
     public void testFetchAndPersistActiveKeys_scheduledWithDeletion() throws Exception {
         doReturn(
                         Futures.immediateFuture(
-                                new FederatedComputeHttpResponse.Builder()
+                                new OdpHttpResponse.Builder()
                                         .setHeaders(SAMPLE_RESPONSE_HEADER)
                                         .setPayload(SAMPLE_RESPONSE_PAYLOAD.getBytes())
                                         .setStatusCode(200)
@@ -387,7 +387,7 @@ public class FederatedComputeKeyFetchManagerTest {
     public void testFetchAndPersistActiveKeys_nonScheduledWithDeletion() throws Exception {
         doReturn(
                         Futures.immediateFuture(
-                                new FederatedComputeHttpResponse.Builder()
+                                new OdpHttpResponse.Builder()
                                         .setHeaders(SAMPLE_RESPONSE_HEADER)
                                         .setPayload(SAMPLE_RESPONSE_PAYLOAD.getBytes())
                                         .setStatusCode(200)
@@ -429,7 +429,7 @@ public class FederatedComputeKeyFetchManagerTest {
     public void testGetOrFetchActiveKeys_fetch() {
         doReturn(
                         Futures.immediateFuture(
-                                new FederatedComputeHttpResponse.Builder()
+                                new OdpHttpResponse.Builder()
                                         .setHeaders(SAMPLE_RESPONSE_HEADER)
                                         .setPayload(SAMPLE_RESPONSE_PAYLOAD.getBytes())
                                         .setStatusCode(200)
@@ -458,7 +458,7 @@ public class FederatedComputeKeyFetchManagerTest {
                         .build());
         doReturn(
                         Futures.immediateFuture(
-                                new FederatedComputeHttpResponse.Builder()
+                                new OdpHttpResponse.Builder()
                                         .setHeaders(SAMPLE_RESPONSE_HEADER)
                                         .setPayload(SAMPLE_RESPONSE_PAYLOAD.getBytes())
                                         .setStatusCode(200)

@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.federatedcompute;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.TrainingExampleRecord;
 import android.adservices.ondevicepersonalization.TrainingExamplesInputParcel;
 import android.adservices.ondevicepersonalization.TrainingExamplesOutputParcel;
@@ -32,10 +33,12 @@ import android.os.OutcomeReceiver;
 
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessPermission;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
@@ -48,6 +51,7 @@ import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.PluginProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
+import com.android.ondevicepersonalization.services.util.AllowListUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
@@ -58,6 +62,7 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /** Implementation of ExampleStoreService for OnDevicePersonalization */
 public final class OdpExampleStoreService extends ExampleStoreService {
@@ -106,6 +111,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
     @Override
     public void startQuery(@NonNull Bundle params, @NonNull QueryCallback callback) {
         try {
+            long startTime = mInjector.getClock().currentTimeMillis();
             ContextData contextData =
                     ContextData.fromByteArray(
                             Objects.requireNonNull(
@@ -126,6 +132,13 @@ public final class OdpExampleStoreService extends ExampleStoreService {
             if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
                 privacyStatusEligible = false;
                 sLogger.w(TAG + ": Measurement control is not given.");
+                StatsUtils.writeServiceRequestMetrics(
+                        Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
+                        packageName,
+                        null,
+                        mInjector.getClock(),
+                        Constants.STATUS_PERSONALIZATION_DISABLED,
+                        startTime);
             }
 
             // Cancel job if on longer valid. This is written to the table during scheduling
@@ -133,6 +146,15 @@ public final class OdpExampleStoreService extends ExampleStoreService {
             // during maintenance for uninstalled packages.
             ComponentName owner = ComponentName.createRelative(packageName, ownerClassName);
             EventState eventStatePopulation = eventDao.getEventState(populationName, owner);
+            if (eventStatePopulation == null) {
+                StatsUtils.writeServiceRequestMetrics(
+                        Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
+                        packageName,
+                        null,
+                        mInjector.getClock(),
+                        Constants.STATUS_KEY_NOT_FOUND,
+                        startTime);
+            }
             if (!privacyStatusEligible || eventStatePopulation == null) {
                 sLogger.w("Job was either cancelled or package was uninstalled");
                 // Cancel job.
@@ -194,19 +216,12 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                             .loadIsolatedService(
                                     TASK_NAME,
                                     ComponentName.createRelative(packageName, className));
-            ListenableFuture<TrainingExamplesOutputParcel> resultFuture =
+            ListenableFuture<Bundle> resultFuture =
                     FluentFuture.from(loadFuture)
                             .transformAsync(
                                     result ->
                                             executeOnTrainingExamples(
                                                     result, input.build(), packageName),
-                                    OnDevicePersonalizationExecutors.getBackgroundExecutor())
-                            .transform(
-                                    result -> {
-                                        return result.getParcelable(
-                                                Constants.EXTRA_RESULT,
-                                                TrainingExamplesOutputParcel.class);
-                                    },
                                     OnDevicePersonalizationExecutors.getBackgroundExecutor())
                             .withTimeout(
                                     mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
@@ -215,29 +230,72 @@ public final class OdpExampleStoreService extends ExampleStoreService {
 
             Futures.addCallback(
                     resultFuture,
-                    new FutureCallback<TrainingExamplesOutputParcel>() {
+                    new FutureCallback<Bundle>() {
                         @Override
-                        public void onSuccess(
-                                TrainingExamplesOutputParcel trainingExamplesOutputParcel) {
-                            OdpParceledListSlice<TrainingExampleRecord> trainingExampleRecordList =
-                                    trainingExamplesOutputParcel.getTrainingExampleRecords();
-
-                            if (trainingExampleRecordList == null
-                                    || trainingExampleRecordList.getList().size()
-                                            < eligibilityMinExample) {
-                                callback.onStartQueryFailure(
-                                        ClientConstants.STATUS_NOT_ENOUGH_DATA);
-                            } else {
-                                callback.onStartQuerySuccess(
-                                        OdpExampleStoreIteratorFactory.getInstance()
-                                                .createIterator(
-                                                        trainingExampleRecordList.getList()));
+                        public void onSuccess(Bundle result) {
+                            int status = Constants.STATUS_SUCCESS;
+                            try {
+                                TrainingExamplesOutputParcel trainingExamplesOutputParcel =
+                                        result.getParcelable(
+                                                Constants.EXTRA_RESULT,
+                                                TrainingExamplesOutputParcel.class);
+                                if (trainingExamplesOutputParcel == null) {
+                                    status = Constants.STATUS_NAME_NOT_FOUND;
+                                    callback.onStartQueryFailure(
+                                            ClientConstants.STATUS_INTERNAL_ERROR);
+                                    return;
+                                }
+                                OdpParceledListSlice<TrainingExampleRecord>
+                                        trainingExampleRecordList =
+                                                trainingExamplesOutputParcel
+                                                        .getTrainingExampleRecords();
+                                if (trainingExampleRecordList == null
+                                        || trainingExampleRecordList.getList().isEmpty()
+                                        || trainingExampleRecordList.getList().size()
+                                                < eligibilityMinExample) {
+                                    status = Constants.STATUS_SUCCESS_EMPTY_RESULT;
+                                    callback.onStartQueryFailure(
+                                            ClientConstants.STATUS_NOT_ENOUGH_DATA);
+                                } else {
+                                    callback.onStartQuerySuccess(
+                                            OdpExampleStoreIteratorFactory.getInstance()
+                                                    .createIterator(
+                                                            trainingExampleRecordList.getList()));
+                                }
+                            } finally {
+                                StatsUtils.writeServiceRequestMetrics(
+                                        Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
+                                        packageName,
+                                        result,
+                                        mInjector.getClock(),
+                                        status,
+                                        startTime);
                             }
                         }
 
                         @Override
                         public void onFailure(Throwable t) {
+                            int status = Constants.STATUS_INTERNAL_ERROR;
+                            if (t instanceof TimeoutException) {
+                                status = Constants.STATUS_TIMEOUT;
+                            } else if (t instanceof OdpServiceException exp) {
+                                if (exp.getCause() instanceof IsolatedServiceException
+                                        && isLogIsolatedServiceErrorCodeNonAggregatedAllowed(
+                                                packageName)) {
+                                    status = ((IsolatedServiceException) exp.getCause())
+                                            .getErrorCode();
+                                } else {
+                                    status = exp.getErrorCode();
+                                }
+                            }
                             sLogger.w(t, "%s : Request failed.", TAG);
+                            StatsUtils.writeServiceRequestMetrics(
+                                    Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
+                                    packageName,
+                                    null,
+                                    mInjector.getClock(),
+                                    status,
+                                    startTime);
                             callback.onStartQueryFailure(ClientConstants.STATUS_INTERNAL_ERROR);
                         }
                     },
@@ -253,6 +311,9 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                                     OnDevicePersonalizationExecutors.getBackgroundExecutor());
         } catch (Exception e) {
             sLogger.w(e, "%s : Start query failed.", TAG);
+            StatsUtils.writeServiceRequestMetrics(
+                    Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
+                    Constants.STATUS_INTERNAL_ERROR);
             callback.onStartQueryFailure(ClientConstants.STATUS_INTERNAL_ERROR);
         }
     }
@@ -276,39 +337,46 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                         /* eventDataPermission */ DataAccessPermission.READ_ONLY);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
-        UserData userData = userDataAccessor.getUserDataWithAppInstall();
+        UserData userData;
+        // By default, we don't provide platform data for federated learning flow.
+        if (isPlatformDataProvided(packageName)) {
+            userData = userDataAccessor.getUserDataWithAppInstall();
+        } else {
+            userData = userDataAccessor.getUserData();
+        }
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
-        ListenableFuture<Bundle> result =
-                mInjector
-                        .getProcessRunner()
-                        .runIsolatedService(
-                                isolatedServiceInfo, Constants.OP_TRAINING_EXAMPLE, serviceParams);
-        return FluentFuture.from(result)
-                .transform(
-                        val -> {
-                            StatsUtils.writeServiceRequestMetrics(
-                                    Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
-                                    val, mInjector.getClock(),
-                                    Constants.STATUS_SUCCESS,
-                                    isolatedServiceInfo.getStartTimeMillis());
-                            return val;
-                        },
-                        OnDevicePersonalizationExecutors.getBackgroundExecutor())
-                .catchingAsync(
-                        Exception.class,
-                        e -> {
-                            StatsUtils.writeServiceRequestMetrics(
-                                    Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
-                                    /* result= */ null, mInjector.getClock(),
-                                    Constants.STATUS_INTERNAL_ERROR,
-                                    isolatedServiceInfo.getStartTimeMillis());
-                            return Futures.immediateFailedFuture(e);
-                        },
-                        OnDevicePersonalizationExecutors.getBackgroundExecutor());
+        return mInjector
+                .getProcessRunner()
+                .runIsolatedService(
+                        isolatedServiceInfo, Constants.OP_TRAINING_EXAMPLE, serviceParams);
     }
 
     // used for tests to provide mock/real implementation of context.
     private Context getContext() {
         return this.getApplicationContext();
+    }
+
+    private boolean isPlatformDataProvided(String packageName) {
+        try {
+            return AllowListUtils.isAllowListed(
+                    packageName,
+                    PackageUtils.getCertDigest(getContext(), packageName),
+                    mInjector.getFlags().getDefaultPlatformDataForExecuteAllowlist());
+        } catch (Exception e) {
+            sLogger.d(TAG + ": allow list error", e);
+            return false;
+        }
+    }
+
+    private boolean isLogIsolatedServiceErrorCodeNonAggregatedAllowed(String packageName) {
+        try {
+            return AllowListUtils.isAllowListed(
+                    packageName,
+                    null,
+                    mInjector.getFlags().getLogIsolatedServiceErrorCodeNonAggregatedAllowlist());
+        } catch (Exception e) {
+            sLogger.d(e, TAG + ": check isLogIsolatedServiceErrorCodeNonAggregatedAllowed error");
+            return false;
+        }
     }
 }
