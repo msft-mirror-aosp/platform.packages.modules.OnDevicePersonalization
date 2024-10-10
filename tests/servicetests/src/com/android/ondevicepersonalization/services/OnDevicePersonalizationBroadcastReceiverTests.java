@@ -33,6 +33,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.when;
 
 import android.app.job.JobScheduler;
 import android.content.ComponentName;
@@ -43,7 +44,6 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.odp.module.common.DeviceUtils;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
@@ -57,6 +57,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
 @RunWith(JUnit4.class)
@@ -87,11 +88,12 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
     private final OnDevicePersonalizationBroadcastReceiver mReceiverUnderTest =
             new OnDevicePersonalizationBroadcastReceiver(mDirectExecutorService);
+    @Mock private Flags mMockFlags;
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule =
             new ExtendedMockitoRule.Builder(this)
-                    .addStaticMockFixtures(TestableDeviceConfig::new)
+                    .spyStatic(FlagsFactory.class)
                     .spyStatic(DeviceUtils.class)
                     .spyStatic(OnDevicePersonalizationMaintenanceJob.class)
                     .setStrictness(Strictness.LENIENT)
@@ -99,12 +101,13 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
     @Before
     public void setup() throws Exception {
-        PhFlagsTestUtil.setUpDeviceConfigPermissions();
-        PhFlagsTestUtil.disableGlobalKillSwitch();
+        ExtendedMockito.doReturn(mMockFlags).when(FlagsFactory::getFlags);
+        when(mMockFlags.getGlobalKillSwitch()).thenReturn(false);
 
         // By default, disable SPE and aggregate error reporting.
-        PhFlagsTestUtil.setSpePilotJobEnabled(false);
-        PhFlagsTestUtil.setAggregatedErrorReportingEnabled(false);
+        when(mMockFlags.getSpePilotJobEnabled()).thenReturn(false);
+        when(mMockFlags.getAggregatedErrorReportingEnabled()).thenReturn(false);
+
         ExtendedMockito.doReturn(true).when(() -> DeviceUtils.isOdpSupported(any()));
 
         // Cancel any pending maintenance and MDD jobs
@@ -115,7 +118,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
     @Test
     public void testOnReceive() {
-        PhFlagsTestUtil.setAggregatedErrorReportingEnabled(true);
+        when(mMockFlags.getAggregatedErrorReportingEnabled()).thenReturn(true);
         MobileDataDownloadFactory.getMdd(mContext, mDirectExecutorService, mDirectExecutorService);
 
         mReceiverUnderTest.onReceive(mContext, BOOT_COMPLETED_INTENT);
@@ -126,7 +129,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
     @Test
     public void testOnReceiveKillSwitchOn() {
-        PhFlagsTestUtil.enableGlobalKillSwitch();
+        when(mMockFlags.getGlobalKillSwitch()).thenReturn(true);
 
         mReceiverUnderTest.onReceive(mContext, BOOT_COMPLETED_INTENT);
 
