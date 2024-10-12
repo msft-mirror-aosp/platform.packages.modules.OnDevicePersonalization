@@ -152,33 +152,38 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
     public ListenableFuture<Boolean> reportExceptionData() {
         // TODO(b/329921267): add encryption and authorization support
         // First report ReportExceptionRequest, then upload result
-        Preconditions.checkState(!mErrorData.isEmpty() && !mRequestBaseUri.isEmpty());
-        String requestUri = getRequestUri(mRequestBaseUri, mInjector.getFlags());
+        try {
+            Preconditions.checkState(!mErrorData.isEmpty() && !mRequestBaseUri.isEmpty());
+            String requestUri = getRequestUri(mRequestBaseUri, mInjector.getFlags());
 
-        // Report exception request, to get upload location from server.
-        ListenableFuture<OdpHttpResponse> reportRequest =
-                mHttpClient.performRequestAsyncWithRetry(
-                        getHttpRequest(
-                                requestUri,
-                                new HashMap<>(mHeaderList),
-                                getReportRequest().toByteArray()));
+            // Report exception request, to get upload location from server.
+            ListenableFuture<OdpHttpResponse> reportRequest =
+                    mHttpClient.performRequestAsyncWithRetry(
+                            getHttpRequest(
+                                    requestUri,
+                                    new HashMap<>(mHeaderList),
+                                    getReportRequest().toByteArray()));
 
-        // Perform upload based on server provided response.
-        ListenableFuture<Boolean> reportFuture =
-                FluentFuture.from(reportRequest)
-                        .transformAsync(
-                                this::uploadExceptionData, mInjector.getBackgroundExecutor())
-                        .transform(
-                                response ->
-                                        validateHttpResponseStatus(
-                                                /* stage= */ "reportRequest", response),
-                                mInjector.getBackgroundExecutor());
+            // Perform upload based on server provided response.
+            ListenableFuture<Boolean> reportFuture =
+                    FluentFuture.from(reportRequest)
+                            .transformAsync(
+                                    this::uploadExceptionData, mInjector.getBackgroundExecutor())
+                            .transform(
+                                    response ->
+                                            validateHttpResponseStatus(
+                                                    /* stage= */ "reportRequest", response),
+                                    mInjector.getBackgroundExecutor());
 
-        return FluentFuture.from(reportFuture)
-                .withTimeout(
-                        mInjector.getFlags().getAggregatedErrorReportingHttpTimeoutSeconds(),
-                        TimeUnit.SECONDS,
-                        mInjector.getScheduledExecutor());
+            return FluentFuture.from(reportFuture)
+                    .withTimeout(
+                            mInjector.getFlags().getAggregatedErrorReportingHttpTimeoutSeconds(),
+                            TimeUnit.SECONDS,
+                            mInjector.getScheduledExecutor());
+        } catch (Exception e) {
+            sLogger.e(TAG + " : failed to  report exception data.", e);
+            return Futures.immediateFailedFuture(e);
+        }
     }
 
     @VisibleForTesting
