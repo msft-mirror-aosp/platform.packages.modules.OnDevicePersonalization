@@ -23,6 +23,7 @@ import static com.android.ondevicepersonalization.services.data.errors.Aggregate
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
@@ -42,6 +43,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 
 import org.junit.After;
 import org.junit.Before;
@@ -106,19 +108,13 @@ public class AggregatedErrorReportingWorkerTest {
         // Inject mock flags and a test ReportingProtocol object
         mTestReportingProtocol = new TestReportingProtocol();
         mTestInjector = new TestInjector(mTestReportingProtocol, mMockFlags);
-        mInstanceUnderTest = AggregatedErrorReportingWorker.getInstance(mTestInjector);
+        mInstanceUnderTest = AggregatedErrorReportingWorker.createWorker(mTestInjector);
     }
 
     @After
     public void cleanup() {
         AggregatedErrorReportingWorker.resetForTesting();
         mErrorDataDao.deleteExceptionData();
-    }
-
-    @Test
-    public void getInstance_sameInstance() {
-        AggregatedErrorReportingWorker worker1 = AggregatedErrorReportingWorker.getInstance();
-        assertThat(worker1).isSameInstanceAs(AggregatedErrorReportingWorker.getInstance());
     }
 
     @Test
@@ -149,7 +145,7 @@ public class AggregatedErrorReportingWorkerTest {
     }
 
     @Test
-    public void reportAggregateErrors_withErrorData() {
+    public void reportAggregateErrors_withErrorData_succeeds() {
         // When odp services are installed and there is error data present in the tables,
         // expect there to be single interaction with the injector and the test reporting object.
         doReturn(TEST_ODP_SERVICE_LIST)
@@ -187,16 +183,25 @@ public class AggregatedErrorReportingWorkerTest {
     }
 
     @Test
-    public void reportAggregateErrors_pendingRequest() throws Exception {
-        var unused = mInstanceUnderTest.reportAggregateErrors(mContext);
+    public void reportAggregateErrors_pendingRequest() {
+        // A second request when there is an existing request fails immediately.
+        doReturn(TEST_ODP_SERVICE_LIST)
+                .when(() -> AppManifestConfigHelper.getOdpServices(mContext, true));
+        mErrorDataDao.addExceptionCount(TEST_ISOLATED_SERVICE_ERROR_CODE, 1);
+        SettableFuture<Boolean> settableFuture = SettableFuture.create();
+        mTestReportingProtocol.mReturnFuture = settableFuture;
 
+        ListenableFuture<Void> firstRequest = mInstanceUnderTest.reportAggregateErrors(mContext);
         ListenableFuture<Void> secondRequest = mInstanceUnderTest.reportAggregateErrors(mContext);
 
+        assertFalse(firstRequest.isDone());
         assertTrue(secondRequest.isDone());
         ExecutionException outException =
                 assertThrows(ExecutionException.class, secondRequest::get);
         assertThat(outException.getCause()).isInstanceOf(IllegalStateException.class);
-        assertEquals(0, mTestInjector.mCallCount.get());
+        assertEquals(1, mTestInjector.mCallCount.get());
+        settableFuture.set(true);
+        assertTrue(firstRequest.isDone());
     }
 
     private static final class TestReportingProtocol implements ReportingProtocol {
