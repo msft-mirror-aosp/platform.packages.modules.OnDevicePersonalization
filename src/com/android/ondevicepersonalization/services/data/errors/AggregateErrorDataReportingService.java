@@ -73,7 +73,7 @@ public class AggregateErrorDataReportingService extends JobService {
         }
 
         AggregatedErrorReportingWorker getErrorReportingWorker() {
-            return AggregatedErrorReportingWorker.getInstance();
+            return AggregatedErrorReportingWorker.createWorker();
         }
     }
 
