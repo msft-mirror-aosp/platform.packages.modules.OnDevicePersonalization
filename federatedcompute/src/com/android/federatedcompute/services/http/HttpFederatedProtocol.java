@@ -32,10 +32,10 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEM
 import static com.android.odp.module.common.FileUtils.createTempFile;
 import static com.android.odp.module.common.FileUtils.readFileAsByteArray;
 import static com.android.odp.module.common.FileUtils.writeToFile;
-import static com.android.odp.module.common.HttpClientUtils.compressWithGzip;
-import static com.android.odp.module.common.HttpClientUtils.getTotalReceivedBytes;
-import static com.android.odp.module.common.HttpClientUtils.getTotalSentBytes;
-import static com.android.odp.module.common.HttpClientUtils.uncompressWithGzip;
+import static com.android.odp.module.common.http.HttpClientUtils.compressWithGzip;
+import static com.android.odp.module.common.http.HttpClientUtils.getTotalReceivedBytes;
+import static com.android.odp.module.common.http.HttpClientUtils.getTotalSentBytes;
+import static com.android.odp.module.common.http.HttpClientUtils.uncompressWithGzip;
 
 import android.os.Trace;
 import android.util.Base64;
@@ -49,10 +49,10 @@ import com.android.federatedcompute.services.encryption.Encrypter;
 import com.android.federatedcompute.services.http.HttpClientUtil.FederatedComputePayloadDataContract;
 import com.android.federatedcompute.services.security.AuthorizationContext;
 import com.android.federatedcompute.services.training.util.ComputationResult;
-import com.android.odp.module.common.HttpClient;
-import com.android.odp.module.common.HttpClientUtils;
-import com.android.odp.module.common.OdpHttpRequest;
-import com.android.odp.module.common.OdpHttpResponse;
+import com.android.odp.module.common.http.HttpClient;
+import com.android.odp.module.common.http.HttpClientUtils;
+import com.android.odp.module.common.http.OdpHttpRequest;
+import com.android.odp.module.common.http.OdpHttpResponse;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
