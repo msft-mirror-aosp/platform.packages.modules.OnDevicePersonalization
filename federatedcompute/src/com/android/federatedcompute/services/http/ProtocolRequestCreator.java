@@ -16,9 +16,9 @@
 
 package com.android.federatedcompute.services.http;
 
-import com.android.odp.module.common.HttpClientUtils;
-import com.android.odp.module.common.HttpClientUtils.HttpMethod;
-import com.android.odp.module.common.OdpHttpRequest;
+import com.android.odp.module.common.http.HttpClientUtils;
+import com.android.odp.module.common.http.HttpClientUtils.HttpMethod;
+import com.android.odp.module.common.http.OdpHttpRequest;
 
 import com.google.internal.federatedcompute.v1.ForwardingInfo;
 

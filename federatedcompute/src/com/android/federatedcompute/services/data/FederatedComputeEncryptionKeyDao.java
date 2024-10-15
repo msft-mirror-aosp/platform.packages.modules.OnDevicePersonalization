@@ -29,6 +29,7 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.FederatedComputeEncryptionColumns;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.data.OdpSQLiteOpenHelper;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -39,13 +40,13 @@ import java.util.List;
 public class FederatedComputeEncryptionKeyDao {
     private static final String TAG = FederatedComputeEncryptionKeyDao.class.getSimpleName();
 
-    private final FederatedComputeDbHelper mDbHelper;
+    private final OdpSQLiteOpenHelper mDbHelper;
 
     private final Clock mClock;
 
     private static volatile FederatedComputeEncryptionKeyDao sSingletonInstance;
 
-    private FederatedComputeEncryptionKeyDao(FederatedComputeDbHelper dbHelper, Clock clock) {
+    private FederatedComputeEncryptionKeyDao(OdpSQLiteOpenHelper dbHelper, Clock clock) {
         mDbHelper = dbHelper;
         mClock = clock;
     }

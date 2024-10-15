@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.android.odp.module.common;
+package com.android.odp.module.common.http;
 
-import static com.android.odp.module.common.HttpClientUtils.CONTENT_ENCODING_HDR;
-import static com.android.odp.module.common.HttpClientUtils.GZIP_ENCODING_HDR;
+import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_ENCODING_HDR;
+import static com.android.odp.module.common.http.HttpClientUtils.GZIP_ENCODING_HDR;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;

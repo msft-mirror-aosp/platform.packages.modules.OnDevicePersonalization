@@ -49,8 +49,8 @@ import com.android.federatedcompute.services.common.PhFlagsTestUtil;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDao;
-import com.android.odp.module.common.HttpClient;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.http.HttpClient;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -109,7 +109,8 @@ public class BackgroundKeyFetchJobServiceTest {
                         new FederatedComputeEncryptionKeyManager(
                                 MonotonicClock.getInstance(),
                                 mEncryptionDao,
-                                FlagsFactory.getFlags(),
+                                new FederatedComputeEncryptionKeyManager.FlagKeyManagerConfig(
+                                        FlagsFactory.getFlags()),
                                 mHttpClient,
                                 MoreExecutors.newDirectExecutorService()));
         mStaticMockSession =

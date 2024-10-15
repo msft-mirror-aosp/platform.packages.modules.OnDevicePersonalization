@@ -16,8 +16,8 @@
 
 package com.android.ondevicepersonalization.services.data.errors;
 
-import static com.android.odp.module.common.HttpClientUtils.CONTENT_TYPE_HDR;
-import static com.android.odp.module.common.HttpClientUtils.OCTET_STREAM;
+import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_TYPE_HDR;
+import static com.android.odp.module.common.http.HttpClientUtils.OCTET_STREAM;
 import static com.android.ondevicepersonalization.services.data.errors.AggregatedErrorCodesLoggerTest.getExpectedErrorData;
 import static com.android.ondevicepersonalization.services.data.errors.AggregatedErrorReportingProtocol.convertToProto;
 import static com.android.ondevicepersonalization.services.data.errors.AggregatedErrorReportingProtocol.createAggregatedErrorReportingProtocol;
@@ -39,8 +39,8 @@ import android.util.Base64;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.odp.module.common.HttpClient;
-import com.android.odp.module.common.OdpHttpResponse;
+import com.android.odp.module.common.http.HttpClient;
+import com.android.odp.module.common.http.OdpHttpResponse;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.PhFlags;
 
