@@ -38,9 +38,9 @@ import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDao;
 import com.android.odp.module.common.Clock;
-import com.android.odp.module.common.HttpClient;
 import com.android.odp.module.common.MonotonicClock;
-import com.android.odp.module.common.OdpHttpResponse;
+import com.android.odp.module.common.http.HttpClient;
+import com.android.odp.module.common.http.OdpHttpResponse;
 
 import com.google.common.util.concurrent.Futures;
 
@@ -96,7 +96,7 @@ public class FederatedComputeKeyFetchManagerTest {
                 new FederatedComputeEncryptionKeyManager(
                         mClock,
                         mEncryptionKeyDao,
-                        mMockFlags,
+                        new FederatedComputeEncryptionKeyManager.FlagKeyManagerConfig(mMockFlags),
                         mMockHttpClient,
                         FederatedComputeExecutors.getBackgroundExecutor());
         String overrideUrl = "https://real-coordinator/v1alpha/publicKeys";
