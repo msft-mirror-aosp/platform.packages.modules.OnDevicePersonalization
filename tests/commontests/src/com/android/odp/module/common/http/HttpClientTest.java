@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.odp.module.common;
+package com.android.odp.module.common.http;
 
 import static com.google.common.truth.Truth.assertThat;
 
