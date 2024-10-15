@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.android.odp.module.common;
+package com.android.odp.module.common.http;
 
-import static com.android.odp.module.common.HttpClientUtils.CONTENT_LENGTH_HDR;
+import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_LENGTH_HDR;
 
-import com.android.odp.module.common.HttpClientUtils.HttpMethod;
+import com.android.odp.module.common.http.HttpClientUtils.HttpMethod;
 
 import java.util.Map;
 

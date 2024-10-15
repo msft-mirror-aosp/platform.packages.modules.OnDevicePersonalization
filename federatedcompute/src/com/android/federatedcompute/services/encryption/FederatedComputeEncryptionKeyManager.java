@@ -26,11 +26,11 @@ import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDao;
 import com.android.federatedcompute.services.http.HttpClientUtil;
 import com.android.odp.module.common.Clock;
-import com.android.odp.module.common.HttpClient;
-import com.android.odp.module.common.HttpClientUtils;
 import com.android.odp.module.common.MonotonicClock;
-import com.android.odp.module.common.OdpHttpRequest;
-import com.android.odp.module.common.OdpHttpResponse;
+import com.android.odp.module.common.http.HttpClient;
+import com.android.odp.module.common.http.HttpClientUtils;
+import com.android.odp.module.common.http.OdpHttpRequest;
+import com.android.odp.module.common.http.OdpHttpResponse;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -54,6 +54,43 @@ import java.util.concurrent.TimeoutException;
 public class FederatedComputeEncryptionKeyManager {
     private static final String TAG = "FederatedComputeEncryptionKeyManager";
 
+    // Helper class to allow injection of flags from either ODP or FCP code.
+    public interface KeyManagerConfig {
+
+        /** Url from which to get encryption keys. */
+        String getEncryptionKeyFetchUrl();
+
+        /** Retry limit for encryption key http requests. */
+        int getHttpRequestRetryLimit();
+
+        /** Max age in seconds for federated compute encryption keys. */
+        long getEncryptionKeyMaxAgeSeconds();
+    }
+
+    public static class FlagKeyManagerConfig implements KeyManagerConfig {
+
+        private final Flags mFlags;
+
+        FlagKeyManagerConfig(Flags flags) {
+            mFlags = flags;
+        }
+
+        @Override
+        public String getEncryptionKeyFetchUrl() {
+            return mFlags.getEncryptionKeyFetchUrl();
+        }
+
+        @Override
+        public int getHttpRequestRetryLimit() {
+            return mFlags.getHttpRequestRetryLimit();
+        }
+
+        @Override
+        public long getEncryptionKeyMaxAgeSeconds() {
+            return mFlags.getFederatedComputeEncryptionKeyMaxAgeSeconds();
+        }
+    }
+
     private interface EncryptionKeyResponseContract {
         String RESPONSE_HEADER_CACHE_CONTROL_LABEL = "cache-control";
         String RESPONSE_HEADER_AGE_LABEL = "age";
@@ -73,7 +110,7 @@ public class FederatedComputeEncryptionKeyManager {
 
     private final Clock mClock;
 
-    private final Flags mFlags;
+    private final KeyManagerConfig mKeyManagerConfig;
 
     private final HttpClient mHttpClient;
 
@@ -82,12 +119,12 @@ public class FederatedComputeEncryptionKeyManager {
     public FederatedComputeEncryptionKeyManager(
             Clock clock,
             FederatedComputeEncryptionKeyDao encryptionKeyDao,
-            Flags flags,
+            KeyManagerConfig keyManagerConfig,
             HttpClient httpClient,
             ExecutorService backgroundExecutor) {
         mClock = clock;
         mEncryptionKeyDao = encryptionKeyDao;
-        mFlags = flags;
+        mKeyManagerConfig = keyManagerConfig;
         mHttpClient = httpClient;
         mBackgroundExecutor = backgroundExecutor;
     }
@@ -103,7 +140,7 @@ public class FederatedComputeEncryptionKeyManager {
                             new FederatedComputeEncryptionKeyManager(
                                     MonotonicClock.getInstance(),
                                     encryptionKeyDao,
-                                    FlagsFactory.getFlags(),
+                                    new FlagKeyManagerConfig(FlagsFactory.getFlags()),
                                     new HttpClient(
                                             FlagsFactory.getFlags().getHttpRequestRetryLimit(),
                                             FederatedComputeExecutors.getBlockingExecutor()),
@@ -127,7 +164,11 @@ public class FederatedComputeEncryptionKeyManager {
                 if (sBackgroundKeyManager == null) {
                     sBackgroundKeyManager =
                             new FederatedComputeEncryptionKeyManager(
-                                    clock, encryptionKeyDao, flags, client, executor);
+                                    clock,
+                                    encryptionKeyDao,
+                                    new FlagKeyManagerConfig(flags),
+                                    client,
+                                    executor);
                 }
             }
         }
@@ -140,7 +181,7 @@ public class FederatedComputeEncryptionKeyManager {
      */
     FluentFuture<List<FederatedComputeEncryptionKey>> fetchAndPersistActiveKeys(
             @FederatedComputeEncryptionKey.KeyType int keyType, boolean isScheduledJob) {
-        String fetchUri = mFlags.getEncryptionKeyFetchUrl();
+        String fetchUri = mKeyManagerConfig.getEncryptionKeyFetchUrl();
         if (fetchUri == null) {
             return FluentFuture.from(Futures.immediateFailedFuture(
                     new IllegalArgumentException("Url to fetch active encryption keys is null")));
@@ -185,7 +226,7 @@ public class FederatedComputeEncryptionKeyManager {
         Map<String, List<String>> headers = keyFetchResponse.getHeaders();
         long ttlInSeconds = getTTL(headers);
         if (ttlInSeconds <= 0) {
-            ttlInSeconds = mFlags.getFederatedComputeEncryptionKeyMaxAgeSeconds();
+            ttlInSeconds = mKeyManagerConfig.getEncryptionKeyMaxAgeSeconds();
         }
 
         try {
