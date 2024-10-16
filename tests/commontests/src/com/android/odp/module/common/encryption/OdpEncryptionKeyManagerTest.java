@@ -26,6 +26,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 import android.content.Context;
 
@@ -33,6 +34,7 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.EventLogger;
 import com.android.odp.module.common.MonotonicClock;
 import com.android.odp.module.common.data.OdpEncryptionKeyDao;
 import com.android.odp.module.common.data.OdpEncryptionKeyDaoTest;
@@ -55,6 +57,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -79,6 +82,8 @@ public class OdpEncryptionKeyManagerTest {
     private OdpEncryptionKeyManager mOdpEncryptionKeyManager;
 
     @Mock private HttpClient mMockHttpClient;
+
+    @Mock private EventLogger mMockTrainingEventLogger;
 
     private static final Context sContext = ApplicationProvider.getApplicationContext();
 
@@ -185,11 +190,11 @@ public class OdpEncryptionKeyManagerTest {
                 .when(mMockHttpClient)
                 .performRequestAsyncWithRetry(any());
 
-        List<OdpEncryptionKey> keys =
-                mOdpEncryptionKeyManager
-                        .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
-                        .get();
+        List<OdpEncryptionKey> keys = mOdpEncryptionKeyManager.fetchAndPersistActiveKeys(
+                KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true,
+                Optional.of(mMockTrainingEventLogger)).get();
 
+        verifyZeroInteractions(mMockTrainingEventLogger);
         assertThat(keys.size()).isGreaterThan(0);
     }
 
@@ -205,11 +210,11 @@ public class OdpEncryptionKeyManagerTest {
                 .when(mMockHttpClient)
                 .performRequestAsyncWithRetry(any());
 
-        List<OdpEncryptionKey> keys =
-                mOdpEncryptionKeyManager
-                        .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false)
-                        .get();
+        List<OdpEncryptionKey> keys = mOdpEncryptionKeyManager.fetchAndPersistActiveKeys(
+                KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false,
+                Optional.of(mMockTrainingEventLogger)).get();
 
+        verifyZeroInteractions(mMockTrainingEventLogger);
         assertThat(keys.size()).isGreaterThan(0);
     }
 
@@ -221,8 +226,11 @@ public class OdpEncryptionKeyManagerTest {
                 () ->
                         mOdpEncryptionKeyManager
                                 .fetchAndPersistActiveKeys(
-                                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
+                                        KEY_TYPE_ENCRYPTION,
+                                        /* isScheduledJob= */ true,
+                                        Optional.of(mMockTrainingEventLogger))
                                 .get());
+        verify(mMockTrainingEventLogger, times(1)).logEncryptionKeyFetchRequestFailEventKind();
     }
 
     @Test
@@ -233,8 +241,11 @@ public class OdpEncryptionKeyManagerTest {
                 () ->
                         mOdpEncryptionKeyManager
                                 .fetchAndPersistActiveKeys(
-                                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
+                                        KEY_TYPE_ENCRYPTION,
+                                        /* isScheduledJob= */ true,
+                                        Optional.of(mMockTrainingEventLogger))
                                 .get());
+        verify(mMockTrainingEventLogger, times(1)).logEncryptionKeyFetchEmptyUriEventKind();
     }
 
     @Test
@@ -245,8 +256,11 @@ public class OdpEncryptionKeyManagerTest {
                 () ->
                         mOdpEncryptionKeyManager
                                 .fetchAndPersistActiveKeys(
-                                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
+                                        KEY_TYPE_ENCRYPTION,
+                                        /* isScheduledJob= */ true,
+                                        Optional.of(mMockTrainingEventLogger))
                                 .get());
+        verify(mMockTrainingEventLogger, times(1)).logEncryptionKeyFetchRequestFailEventKind();
     }
 
     @Test
@@ -264,8 +278,11 @@ public class OdpEncryptionKeyManagerTest {
                 () ->
                         mOdpEncryptionKeyManager
                                 .fetchAndPersistActiveKeys(
-                                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
+                                        KEY_TYPE_ENCRYPTION,
+                                        /* isScheduledJob= */ true,
+                                        Optional.of(mMockTrainingEventLogger))
                                 .get());
+        verifyZeroInteractions(mMockTrainingEventLogger);
     }
 
     @Test
@@ -283,8 +300,11 @@ public class OdpEncryptionKeyManagerTest {
                 () ->
                         mOdpEncryptionKeyManager
                                 .fetchAndPersistActiveKeys(
-                                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false)
+                                        KEY_TYPE_ENCRYPTION,
+                                        /* isScheduledJob= */ false,
+                                        Optional.of(mMockTrainingEventLogger))
                                 .get());
+        verifyZeroInteractions(mMockTrainingEventLogger);
     }
 
     @Test
@@ -300,8 +320,9 @@ public class OdpEncryptionKeyManagerTest {
                 .performRequestAsyncWithRetry(any());
 
         mOdpEncryptionKeyManager
-                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
-                .get();
+                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true,
+                        Optional.of(mMockTrainingEventLogger)).get();
+        verifyZeroInteractions(mMockTrainingEventLogger);
         List<OdpEncryptionKey> keys =
                 sEncryptionKeyDao.readEncryptionKeysFromDatabase(
                         ""
@@ -334,8 +355,10 @@ public class OdpEncryptionKeyManagerTest {
                 .performRequestAsyncWithRetry(any());
 
         mOdpEncryptionKeyManager
-                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false)
-                .get();
+                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false,
+                        Optional.of(mMockTrainingEventLogger)).get();
+        verifyZeroInteractions(mMockTrainingEventLogger);
+
         List<OdpEncryptionKey> keys =
                 sEncryptionKeyDao.readEncryptionKeysFromDatabase(
                         ""
@@ -377,8 +400,9 @@ public class OdpEncryptionKeyManagerTest {
                         .build());
 
         mOdpEncryptionKeyManager
-                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
-                .get();
+                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true,
+                        Optional.of(mMockTrainingEventLogger)).get();
+        verifyZeroInteractions(mMockTrainingEventLogger);
 
         List<OdpEncryptionKey> keys =
                 sEncryptionKeyDao.readEncryptionKeysFromDatabase(
@@ -415,9 +439,10 @@ public class OdpEncryptionKeyManagerTest {
                         .setExpiryTime(currentTime)
                         .build());
 
-        mOdpEncryptionKeyManager
-                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false)
-                .get();
+        mOdpEncryptionKeyManager.fetchAndPersistActiveKeys(
+                KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false,
+                Optional.of(mMockTrainingEventLogger)).get();
+        verifyZeroInteractions(mMockTrainingEventLogger);
 
         List<OdpEncryptionKey> keys =
                 sEncryptionKeyDao.readEncryptionKeysFromDatabase(
@@ -450,8 +475,10 @@ public class OdpEncryptionKeyManagerTest {
 
         List<OdpEncryptionKey> keys =
                 mOdpEncryptionKeyManager.getOrFetchActiveKeys(
-                        KEY_TYPE_ENCRYPTION, /* keyCount= */ 2);
+                        KEY_TYPE_ENCRYPTION, /* keyCount= */ 2,
+                        Optional.of(mMockTrainingEventLogger));
 
+        verify(mMockTrainingEventLogger, times(1)).logEncryptionKeyFetchStartEventKind();
         verify(mMockHttpClient, times(1)).performRequestAsyncWithRetry(any());
         assertThat(keys.size()).isEqualTo(1);
     }
@@ -479,8 +506,10 @@ public class OdpEncryptionKeyManagerTest {
 
         List<OdpEncryptionKey> keys =
                 mOdpEncryptionKeyManager.getOrFetchActiveKeys(
-                        KEY_TYPE_ENCRYPTION, /* keyCount= */ 2);
+                        KEY_TYPE_ENCRYPTION, /* keyCount= */ 2,
+                        Optional.of(mMockTrainingEventLogger));
 
+        verifyZeroInteractions(mMockTrainingEventLogger);
         verify(mMockHttpClient, never()).performRequestAsyncWithRetry(any());
         assertThat(keys.size()).isEqualTo(1);
     }
@@ -493,8 +522,11 @@ public class OdpEncryptionKeyManagerTest {
 
         List<OdpEncryptionKey> keys =
                 mOdpEncryptionKeyManager.getOrFetchActiveKeys(
-                        KEY_TYPE_ENCRYPTION, /* keyCount= */ 2);
+                        KEY_TYPE_ENCRYPTION, /* keyCount= */ 2,
+                        Optional.of(mMockTrainingEventLogger));
 
+        verify(mMockTrainingEventLogger, times(1)).logEncryptionKeyFetchStartEventKind();
+        verify(mMockTrainingEventLogger, times(1)).logEncryptionKeyFetchFailEventKind();
         verify(mMockHttpClient, times(1)).performRequestAsyncWithRetry(any());
         assertThat(keys.size()).isEqualTo(0);
     }
