@@ -309,8 +309,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                                                     .getProcessRunner()
                                                     .unloadIsolatedService(loadFuture.get()),
                                     OnDevicePersonalizationExecutors.getBackgroundExecutor());
-        } catch (Exception e) {
-            sLogger.w(e, "%s : Start query failed.", TAG);
+        } catch (Throwable e) {
+            sLogger.e(e, "%s : Start query failed.", TAG);
             StatsUtils.writeServiceRequestMetrics(
                     Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
                     Constants.STATUS_INTERNAL_ERROR);
