@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.odp.module.common;
+package com.android.odp.module.common.http;
 
 import static com.android.odp.module.common.FileUtils.createTempFile;
 import static com.android.odp.module.common.FileUtils.writeToFile;
@@ -66,7 +66,6 @@ public class HttpClientUtils {
     public static final String PROTOBUF_CONTENT_TYPE = "application/x-protobuf";
     public static final String OCTET_STREAM = "application/octet-stream";
     public static final ImmutableSet<Integer> HTTP_OK_STATUS = ImmutableSet.of(200, 201);
-
 
     public static final int DEFAULT_BUFFER_SIZE = 1024;
     public static final byte[] EMPTY_BODY = new byte[0];
