@@ -299,6 +299,7 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
         sLogger.d(TAG + ": writeToLog() started.");
         var unused = FluentFuture.from(
                         LogUtils.writeLogRecords(
+                                Constants.TASK_TYPE_WEB_TRIGGER,
                                 mContext,
                                 mServiceParcel.getAppPackageName(),
                                 wtparams.getIsolatedService(),
