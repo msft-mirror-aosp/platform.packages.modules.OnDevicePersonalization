@@ -30,7 +30,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.database.sqlite.SQLiteOpenHelper;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.FederatedComputeEncryptionColumns;
@@ -38,9 +37,10 @@ import com.android.federatedcompute.services.data.FederatedTraningTaskContract.F
 import com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODPAuthorizationTokenColumns;
 import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.data.OdpSQLiteOpenHelper;
 
 /** Helper to manage FederatedTrainingTask database. */
-public class FederatedComputeDbHelper extends SQLiteOpenHelper {
+public class FederatedComputeDbHelper extends OdpSQLiteOpenHelper {
 
     private static final String TAG = FederatedComputeDbHelper.class.getSimpleName();
 
@@ -269,6 +269,7 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
     }
 
     /** Wraps getReadableDatabase to catch SQLiteException and log error. */
+    @Override
     @Nullable
     public SQLiteDatabase safeGetReadableDatabase() {
         try {
@@ -285,6 +286,7 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
     }
 
     /** Wraps getWritableDatabase to catch SQLiteException and log error. */
+    @Override
     @Nullable
     public SQLiteDatabase safeGetWritableDatabase() {
         try {

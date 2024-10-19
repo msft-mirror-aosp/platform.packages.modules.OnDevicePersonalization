@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.odp.module.common;
+package com.android.odp.module.common.http;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -27,8 +27,8 @@ import static org.mockito.Mockito.when;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.android.odp.module.common.HttpClientUtils.HttpMethod;
-import com.android.odp.module.common.HttpClientUtils.HttpURLConnectionSupplier;
+import com.android.odp.module.common.http.HttpClientUtils.HttpMethod;
+import com.android.odp.module.common.http.HttpClientUtils.HttpURLConnectionSupplier;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;

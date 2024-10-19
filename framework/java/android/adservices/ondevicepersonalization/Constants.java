@@ -177,5 +177,33 @@ public class Constants {
     // Measurement event types for measurement events received from the OS.
     public static final int MEASUREMENT_EVENT_TYPE_WEB_TRIGGER = 1;
 
+    // Task type for trace event logging. Must match the values in
+    // frameworks/proto_logging/stats/atoms/ondevicepersonalization/ondevicepersonalization_extension_atoms.proto
+    public static final int TASK_TYPE_EXECUTE = 1;
+    public static final int TASK_TYPE_RENDER = 2;
+    public static final int TASK_TYPE_DOWNLOAD = 3;
+    public static final int TASK_TYPE_WEBVIEW = 4;
+    public static final int TASK_TYPE_TRAINING = 5;
+    public static final int TASK_TYPE_MAINTENANCE = 6;
+    public static final int TASK_TYPE_WEB_TRIGGER = 7;
+
+    // Event type for trace event logging. Must match the values in
+    // frameworks/proto_logging/stats/atoms/ondevicepersonalization/ondevicepersonalization_extension_atoms.proto
+    public static final int EVENT_TYPE_UNKNOWN = 1;
+    public static final int EVENT_TYPE_WRITE_REQUEST_LOG = 2;
+    public static final int EVENT_TYPE_WRITE_EVENT_LOG = 3;
+
+    // Status for trace event logging. Must match the values in
+    // frameworks/proto_logging/stats/atoms/ondevicepersonalization/ondevicepersonalization_extension_atoms.proto
+    public static final int STATUS_REQUEST_LOG_DB_SUCCESS = 1;
+    public static final int STATUS_EVENT_LOG_DB_SUCCESS = 2;
+    public static final int STATUS_LOG_DB_FAILURE = 3;
+    public static final int STATUS_LOG_EXCEPTION = 4;
+    public static final int STATUS_REQUEST_LOG_IS_NULL = 5;
+    public static final int STATUS_REQUEST_LOG_IS_EMPTY = 6;
+    public static final int STATUS_EVENT_LOG_IS_NULL = 7;
+    public static final int STATUS_EVENT_LOG_NOT_EXIST = 8;
+    public static final int STATUS_EVENT_LOG_QUERY_NOT_EXIST = 9;
+
     private Constants() {}
 }

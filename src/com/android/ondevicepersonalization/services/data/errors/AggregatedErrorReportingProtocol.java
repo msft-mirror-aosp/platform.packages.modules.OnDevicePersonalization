@@ -16,18 +16,18 @@
 
 package com.android.ondevicepersonalization.services.data.errors;
 
-import static com.android.odp.module.common.HttpClientUtils.CONTENT_TYPE_HDR;
-import static com.android.odp.module.common.HttpClientUtils.PROTOBUF_CONTENT_TYPE;
+import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_TYPE_HDR;
+import static com.android.odp.module.common.http.HttpClientUtils.PROTOBUF_CONTENT_TYPE;
 
 import android.content.Context;
 import android.util.Base64;
 
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.odp.module.common.HttpClient;
-import com.android.odp.module.common.HttpClientUtils;
-import com.android.odp.module.common.OdpHttpRequest;
-import com.android.odp.module.common.OdpHttpResponse;
 import com.android.odp.module.common.PackageUtils;
+import com.android.odp.module.common.http.HttpClient;
+import com.android.odp.module.common.http.HttpClientUtils;
+import com.android.odp.module.common.http.OdpHttpRequest;
+import com.android.odp.module.common.http.OdpHttpResponse;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;

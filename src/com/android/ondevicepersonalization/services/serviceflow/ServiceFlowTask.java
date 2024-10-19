@@ -45,7 +45,7 @@ public class ServiceFlowTask {
     private final ServiceFlow mServiceFlow;
     private final ProcessRunner mProcessRunner;
     private volatile boolean mIsCompleted;
-    private volatile Exception mExecutionException;
+    private volatile Throwable mExecutionThrowable;
 
     private final ListeningExecutorService mExecutor =
             OnDevicePersonalizationExecutors.getBackgroundExecutor();
@@ -72,8 +72,8 @@ public class ServiceFlowTask {
         return mIsCompleted;
     }
 
-    public Exception getExecutionException() {
-        return mExecutionException;
+    public Throwable getExeuctionThrowable() {
+        return mExecutionThrowable;
     }
 
     /** Executes the given service flow. */
@@ -117,9 +117,9 @@ public class ServiceFlowTask {
                                         mIsCompleted = true;
                                         return unloadServiceFuture;
                                     }, mExecutor);
-        } catch (Exception e) {
-            sLogger.w(TAG + ": ServiceFlowTask " + mServiceFlowType + "failed. " + e);
-            mExecutionException = e;
+        } catch (Throwable e) {
+            sLogger.e(e, TAG + ": ServiceFlowTask " + mServiceFlowType + " failed.");
+            mExecutionThrowable = e;
         }
     }
 }

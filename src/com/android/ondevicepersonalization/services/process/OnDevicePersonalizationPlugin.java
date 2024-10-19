@@ -108,8 +108,8 @@ public class OnDevicePersonalizationPlugin implements Plugin {
                     }
             );
 
-        } catch (Exception e) {
-            sLogger.e(TAG + ": Plugin failed. ", e);
+        } catch (Throwable e) {
+            sLogger.e(e, TAG + ": Plugin failed.");
             sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
         }
     }

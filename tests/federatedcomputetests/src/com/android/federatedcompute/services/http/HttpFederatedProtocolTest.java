@@ -26,9 +26,9 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_AUTH
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_AUTHORIZATION_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
 import static com.android.odp.module.common.FileUtils.createTempFile;
-import static com.android.odp.module.common.HttpClientUtils.CONTENT_TYPE_HDR;
-import static com.android.odp.module.common.HttpClientUtils.PROTOBUF_CONTENT_TYPE;
-import static com.android.odp.module.common.HttpClientUtils.compressWithGzip;
+import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_TYPE_HDR;
+import static com.android.odp.module.common.http.HttpClientUtils.PROTOBUF_CONTENT_TYPE;
+import static com.android.odp.module.common.http.HttpClientUtils.compressWithGzip;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
@@ -67,11 +67,11 @@ import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.util.ComputationResult;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.odp.module.common.Clock;
-import com.android.odp.module.common.HttpClient;
-import com.android.odp.module.common.HttpClientUtils;
 import com.android.odp.module.common.MonotonicClock;
-import com.android.odp.module.common.OdpHttpRequest;
-import com.android.odp.module.common.OdpHttpResponse;
+import com.android.odp.module.common.http.HttpClient;
+import com.android.odp.module.common.http.HttpClientUtils;
+import com.android.odp.module.common.http.OdpHttpRequest;
+import com.android.odp.module.common.http.OdpHttpResponse;
 
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
