@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.data;
+package com.android.odp.module.common.encryption;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -25,14 +25,13 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-
 @RunWith(AndroidJUnit4.class)
-public class FederatedComputeEncryptionKeyTest {
+public class OdpEncryptionKeyTest {
 
     private static final String KEY_ID = "0962201a-5abd-4e25-a486-2c7bd1ee1887";
     private static final String PUBLIC_KEY = "GOcMAnY4WkDYp6R3WSw8IpYK6eVe2RGZ9Z0OBb3EbjQ\\u003d";
 
-    private static final int KEY_TYPE = FederatedComputeEncryptionKey.KEY_TYPE_ENCRYPTION;
+    private static final int KEY_TYPE = OdpEncryptionKey.KEY_TYPE_ENCRYPTION;
 
     private static final long NOW = 1698193647L;
 
@@ -40,13 +39,11 @@ public class FederatedComputeEncryptionKeyTest {
 
     @Test
     public void testBuilderAndEquals() {
-        FederatedComputeEncryptionKey key1 =
-                new FederatedComputeEncryptionKey.Builder(
-                                KEY_ID, PUBLIC_KEY, KEY_TYPE, NOW, NOW + TTL)
-                        .build();
+        OdpEncryptionKey key1 =
+                new OdpEncryptionKey.Builder(KEY_ID, PUBLIC_KEY, KEY_TYPE, NOW, NOW + TTL).build();
 
-        FederatedComputeEncryptionKey key2 =
-                new FederatedComputeEncryptionKey.Builder()
+        OdpEncryptionKey key2 =
+                new OdpEncryptionKey.Builder()
                         .setKeyIdentifier(KEY_ID)
                         .setPublicKey(PUBLIC_KEY)
                         .setKeyType(KEY_TYPE)
@@ -56,11 +53,11 @@ public class FederatedComputeEncryptionKeyTest {
 
         assertEquals(key1, key2);
 
-        FederatedComputeEncryptionKey key3 =
-                new FederatedComputeEncryptionKey.Builder()
+        OdpEncryptionKey key3 =
+                new OdpEncryptionKey.Builder()
                         .setKeyIdentifier(KEY_ID)
                         .setPublicKey(PUBLIC_KEY)
-                        .setKeyType(FederatedComputeEncryptionKey.KEY_TYPE_UNDEFINED)
+                        .setKeyType(OdpEncryptionKey.KEY_TYPE_UNDEFINED)
                         .setCreationTime(NOW)
                         .setExpiryTime(NOW + TTL)
                         .build();
@@ -71,9 +68,8 @@ public class FederatedComputeEncryptionKeyTest {
 
     @Test
     public void testBuildTwiceThrows() {
-        FederatedComputeEncryptionKey.Builder builder =
-                new FederatedComputeEncryptionKey.Builder(
-                        KEY_ID, PUBLIC_KEY, KEY_TYPE, NOW, NOW + TTL);
+        OdpEncryptionKey.Builder builder =
+                new OdpEncryptionKey.Builder(KEY_ID, PUBLIC_KEY, KEY_TYPE, NOW, NOW + TTL);
         builder.build();
 
         assertThrows(IllegalStateException.class, () -> builder.build());
