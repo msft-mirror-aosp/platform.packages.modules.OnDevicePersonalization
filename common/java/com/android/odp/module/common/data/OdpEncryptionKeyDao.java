@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.data;
+package com.android.odp.module.common.data;
 
-import static com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.ENCRYPTION_KEY_TABLE;
+import static com.android.odp.module.common.encryption.OdpEncryptionKeyContract.ENCRYPTION_KEY_TABLE;
 
 import android.annotation.NonNull;
 import android.content.ContentValues;
@@ -26,61 +26,39 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.FederatedComputeEncryptionColumns;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
-import com.android.odp.module.common.data.OdpSQLiteOpenHelper;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
+import com.android.odp.module.common.encryption.OdpEncryptionKeyContract.OdpEncryptionColumns;
 
 import com.google.common.annotations.VisibleForTesting;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/** DAO for accessing encryption key table that stores {@link FederatedComputeEncryptionKey}s. */
-public class FederatedComputeEncryptionKeyDao {
-    private static final String TAG = FederatedComputeEncryptionKeyDao.class.getSimpleName();
+/** DAO for accessing encryption key table that stores {@link OdpEncryptionKey}s. */
+public class OdpEncryptionKeyDao {
+    private static final String TAG = OdpEncryptionKeyDao.class.getSimpleName();
 
     private final OdpSQLiteOpenHelper mDbHelper;
 
     private final Clock mClock;
 
-    private static volatile FederatedComputeEncryptionKeyDao sSingletonInstance;
+    private static volatile OdpEncryptionKeyDao sSingletonInstance;
 
-    private FederatedComputeEncryptionKeyDao(OdpSQLiteOpenHelper dbHelper, Clock clock) {
+    private OdpEncryptionKeyDao(OdpSQLiteOpenHelper dbHelper, Clock clock) {
         mDbHelper = dbHelper;
         mClock = clock;
     }
 
-    /** Returns an instance of {@link FederatedComputeEncryptionKeyDao} given a context. */
+    /** Returns an instance of {@link OdpEncryptionKeyDao} given a context. */
     @NonNull
-    public static FederatedComputeEncryptionKeyDao getInstance(Context context) {
+    public static OdpEncryptionKeyDao getInstance(Context context, OdpSQLiteOpenHelper dbHelper) {
         if (sSingletonInstance == null) {
-            synchronized (FederatedComputeEncryptionKeyDao.class) {
+            synchronized (OdpEncryptionKeyDao.class) {
                 if (sSingletonInstance == null) {
                     sSingletonInstance =
-                            new FederatedComputeEncryptionKeyDao(
-                                    FederatedComputeDbHelper.getInstance(context),
-                                    MonotonicClock.getInstance());
-                }
-            }
-        }
-        return sSingletonInstance;
-    }
-
-    /**
-     * Helper method to get instance of {@link FederatedComputeEncryptionKeyDao} for use in tests.
-     *
-     * <p>Public for use in unit tests.
-     */
-    @VisibleForTesting
-    public static FederatedComputeEncryptionKeyDao getInstanceForTest(Context context) {
-        if (sSingletonInstance == null) {
-            synchronized (FederatedComputeEncryptionKeyDao.class) {
-                if (sSingletonInstance == null) {
-                    FederatedComputeDbHelper dbHelper =
-                            FederatedComputeDbHelper.getInstanceForTest(context);
-                    Clock clk = MonotonicClock.getInstance();
-                    sSingletonInstance = new FederatedComputeEncryptionKeyDao(dbHelper, clk);
+                            new OdpEncryptionKeyDao(dbHelper, MonotonicClock.getInstance());
                 }
             }
         }
@@ -90,21 +68,21 @@ public class FederatedComputeEncryptionKeyDao {
     /**
      * Insert a key to the encryption_key table.
      *
-     * @param key the {@link FederatedComputeEncryptionKey} to insert into DB.
+     * @param key the {@link OdpEncryptionKey} to insert into DB.
      * @return Whether the key was inserted successfully.
      */
-    public boolean insertEncryptionKey(FederatedComputeEncryptionKey key) {
+    public boolean insertEncryptionKey(OdpEncryptionKey key) {
         SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
         if (db == null) {
             throw new SQLiteException(TAG + ": Failed to open database.");
         }
 
         ContentValues values = new ContentValues();
-        values.put(FederatedComputeEncryptionColumns.KEY_IDENTIFIER, key.getKeyIdentifier());
-        values.put(FederatedComputeEncryptionColumns.PUBLIC_KEY, key.getPublicKey());
-        values.put(FederatedComputeEncryptionColumns.KEY_TYPE, key.getKeyType());
-        values.put(FederatedComputeEncryptionColumns.CREATION_TIME, key.getCreationTime());
-        values.put(FederatedComputeEncryptionColumns.EXPIRY_TIME, key.getExpiryTime());
+        values.put(OdpEncryptionColumns.KEY_IDENTIFIER, key.getKeyIdentifier());
+        values.put(OdpEncryptionColumns.PUBLIC_KEY, key.getPublicKey());
+        values.put(OdpEncryptionColumns.KEY_TYPE, key.getKeyType());
+        values.put(OdpEncryptionColumns.CREATION_TIME, key.getCreationTime());
+        values.put(OdpEncryptionColumns.EXPIRY_TIME, key.getExpiryTime());
 
         long insertedRowId =
                 db.insertWithOnConflict(
@@ -115,23 +93,23 @@ public class FederatedComputeEncryptionKeyDao {
     /**
      * Read from encryption key table given selection, order and limit conditions.
      *
-     * @return a list of matching {@link FederatedComputeEncryptionKey}s.
+     * @return a list of matching {@link OdpEncryptionKey}s.
      */
     @VisibleForTesting
-    public List<FederatedComputeEncryptionKey> readFederatedComputeEncryptionKeysFromDatabase(
+    public List<OdpEncryptionKey> readEncryptionKeysFromDatabase(
             String selection, String[] selectionArgs, String orderBy, int count) {
-        List<FederatedComputeEncryptionKey> keyList = new ArrayList<>();
+        List<OdpEncryptionKey> keyList = new ArrayList<>();
         SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
         if (db == null) {
             throw new SQLiteException(TAG + ": Failed to open database.");
         }
 
         String[] selectColumns = {
-            FederatedComputeEncryptionColumns.KEY_IDENTIFIER,
-            FederatedComputeEncryptionColumns.PUBLIC_KEY,
-            FederatedComputeEncryptionColumns.KEY_TYPE,
-            FederatedComputeEncryptionColumns.CREATION_TIME,
-            FederatedComputeEncryptionColumns.EXPIRY_TIME
+            OdpEncryptionColumns.KEY_IDENTIFIER,
+            OdpEncryptionColumns.PUBLIC_KEY,
+            OdpEncryptionColumns.KEY_TYPE,
+            OdpEncryptionColumns.CREATION_TIME,
+            OdpEncryptionColumns.EXPIRY_TIME
         };
 
         Cursor cursor = null;
@@ -147,33 +125,28 @@ public class FederatedComputeEncryptionKeyDao {
                             /* orderBy= */ orderBy,
                             /* limit= */ String.valueOf(count));
             while (cursor.moveToNext()) {
-                FederatedComputeEncryptionKey.Builder encryptionKeyBuilder =
-                        new FederatedComputeEncryptionKey.Builder()
+                OdpEncryptionKey.Builder encryptionKeyBuilder =
+                        new OdpEncryptionKey.Builder()
                                 .setKeyIdentifier(
                                         cursor.getString(
                                                 cursor.getColumnIndexOrThrow(
-                                                        FederatedComputeEncryptionColumns
-                                                                .KEY_IDENTIFIER)))
+                                                        OdpEncryptionColumns.KEY_IDENTIFIER)))
                                 .setPublicKey(
                                         cursor.getString(
                                                 cursor.getColumnIndexOrThrow(
-                                                        FederatedComputeEncryptionColumns
-                                                                .PUBLIC_KEY)))
+                                                        OdpEncryptionColumns.PUBLIC_KEY)))
                                 .setKeyType(
                                         cursor.getInt(
                                                 cursor.getColumnIndexOrThrow(
-                                                        FederatedComputeEncryptionColumns
-                                                                .KEY_TYPE)))
+                                                        OdpEncryptionColumns.KEY_TYPE)))
                                 .setCreationTime(
                                         cursor.getLong(
                                                 cursor.getColumnIndexOrThrow(
-                                                        FederatedComputeEncryptionColumns
-                                                                .CREATION_TIME)))
+                                                        OdpEncryptionColumns.CREATION_TIME)))
                                 .setExpiryTime(
                                         cursor.getLong(
                                                 cursor.getColumnIndexOrThrow(
-                                                        FederatedComputeEncryptionColumns
-                                                                .EXPIRY_TIME)));
+                                                        OdpEncryptionColumns.EXPIRY_TIME)));
                 keyList.add(encryptionKeyBuilder.build());
             }
         } finally {
@@ -187,13 +160,12 @@ public class FederatedComputeEncryptionKeyDao {
     /**
      * @return latest expired keys (order by expiry time).
      */
-    public List<FederatedComputeEncryptionKey> getLatestExpiryNKeys(int count) {
-        String selection = FederatedComputeEncryptionColumns.EXPIRY_TIME + " > ?";
+    public List<OdpEncryptionKey> getLatestExpiryNKeys(int count) {
+        String selection = OdpEncryptionColumns.EXPIRY_TIME + " > ?";
         String[] selectionArgs = {String.valueOf(mClock.currentTimeMillis())};
         // reverse order of expiry time
-        String orderBy = FederatedComputeEncryptionColumns.EXPIRY_TIME + " DESC";
-        return readFederatedComputeEncryptionKeysFromDatabase(
-                selection, selectionArgs, orderBy, count);
+        String orderBy = OdpEncryptionColumns.EXPIRY_TIME + " DESC";
+        return readEncryptionKeysFromDatabase(selection, selectionArgs, orderBy, count);
     }
 
     /**
@@ -206,10 +178,23 @@ public class FederatedComputeEncryptionKeyDao {
         if (db == null) {
             throw new SQLiteException(TAG + ": Failed to open database.");
         }
-        String whereClause = FederatedComputeEncryptionColumns.EXPIRY_TIME + " < ?";
+        String whereClause = OdpEncryptionColumns.EXPIRY_TIME + " < ?";
         String[] whereArgs = {String.valueOf(mClock.currentTimeMillis())};
         int deletedRows = db.delete(ENCRYPTION_KEY_TABLE, whereClause, whereArgs);
         LogUtil.d(TAG, "Deleted %s expired keys from database", deletedRows);
+        return deletedRows;
+    }
+
+    /** Test only method to clear the database of all keys, independent of expiry time etc. */
+    @VisibleForTesting
+    public int deleteAllKeys() {
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            throw new SQLiteException(TAG + ": Failed to open database.");
+        }
+        int deletedRows =
+                db.delete(ENCRYPTION_KEY_TABLE, /* whereClause= */ null, /* whereArgs= */ null);
+        LogUtil.d(TAG, "Force deleted %s keys from database", deletedRows);
         return deletedRows;
     }
 }
