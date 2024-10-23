@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.encryption.jni;
+package com.android.odp.module.common.encryption.jni;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -24,8 +24,8 @@ import java.util.Base64;
 public class HpkeJniTest {
     private static final byte[] sAssociatedData = "associated_data".getBytes();
     private static final byte[] sPlaintext = "plaintext".getBytes();
-    private static final byte[] sCiphertext = decode(
-            "0Ie+jDZ/Hznx1IrIkS06V+kAHuD5RsybXWwrKRIbGEL5TJT4/HYny2SHfWbeXxMydwvS0FEZqvzs");
+    private static final byte[] sCiphertext =
+            decode("0Ie+jDZ/Hznx1IrIkS06V+kAHuD5RsybXWwrKRIbGEL5TJT4/HYny2SHfWbeXxMydwvS0FEZqvzs");
 
     private static final String PUBLIC_KEY_BASE64 = "rSJBSUYG0ebvfW1AXCWO0CMGMJhDzpfQm3eLyw1uxX8=";
     private static final String PRIVATE_KEY_BASE64 = "f86EzLmGaVmc+PwjJk5ADPE4ijQvliWf0CQyY/Zyy7I=";
@@ -82,7 +82,7 @@ public class HpkeJniTest {
 
     @Test
     public void testHpkeEncrypt_plainTextNull_fail() {
-        final byte[] result = HpkeJni.encrypt(sPublicKey, /* plainText = */ null, sAssociatedData);
+        final byte[] result = HpkeJni.encrypt(sPublicKey, /* plainText= */ null, sAssociatedData);
         Assert.assertNull(result);
     }
 
@@ -96,7 +96,7 @@ public class HpkeJniTest {
 
     @Test
     public void testHpkeEncrypt_associatedDataNull_fail() {
-        final byte[] result = HpkeJni.encrypt(sPublicKey, sPlaintext, /* associatedData = */ null);
+        final byte[] result = HpkeJni.encrypt(sPublicKey, sPlaintext, /* associatedData= */ null);
         Assert.assertNull(result);
     }
 
@@ -137,8 +137,7 @@ public class HpkeJniTest {
 
     @Test
     public void testHpkeDecrypt_ciphertextNull_fail() {
-        final byte[] result =
-                HpkeJni.encrypt(sPrivateKey, /* ciphertext = */ null, sAssociatedData);
+        final byte[] result = HpkeJni.encrypt(sPrivateKey, /* ciphertext= */ null, sAssociatedData);
         Assert.assertNull(result);
     }
 
@@ -151,8 +150,7 @@ public class HpkeJniTest {
 
     @Test
     public void testHpkeDecrypt_associatedDataNull_fail() {
-        final byte[] result =
-                HpkeJni.decrypt(sPrivateKey, sCiphertext, /* associatedData = */ null);
+        final byte[] result = HpkeJni.decrypt(sPrivateKey, sCiphertext, /* associatedData= */ null);
         Assert.assertNull(result);
     }
 
