@@ -21,7 +21,6 @@ import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ER
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__CLIENT_PLAN_SPEC_ERROR;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
-import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED;
@@ -33,6 +32,7 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_COMPUTATION_FAILED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_STARTED;
 import static com.android.federatedcompute.services.testutils.TrainingTestUtil.COLLECTION_URI;
+import static com.android.odp.module.common.FileUtils.createTempFile;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.util.concurrent.Futures.immediateFailedFuture;
@@ -71,7 +71,6 @@ import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.ExampleStats;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
@@ -80,8 +79,6 @@ import com.android.federatedcompute.services.data.fbs.SchedulingMode;
 import com.android.federatedcompute.services.data.fbs.SchedulingReason;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
-import com.android.federatedcompute.services.encryption.FederatedComputeEncryptionKeyManager;
-import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
 import com.android.federatedcompute.services.examplestore.ExampleStoreServiceProvider;
 import com.android.federatedcompute.services.http.CheckinResult;
@@ -101,6 +98,9 @@ import com.android.federatedcompute.services.training.util.TrainingConditionsChe
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.encryption.HpkeJniEncrypter;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
+import com.android.odp.module.common.encryption.OdpEncryptionKeyManager;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -325,7 +325,7 @@ public final class FederatedComputeWorkerTest {
     private ExampleStoreServiceProvider mSpyExampleStoreProvider;
     private FederatedTrainingTaskDao mTrainingTaskDao;
 
-    @Mock private FederatedComputeEncryptionKeyManager mMockKeyManager;
+    @Mock private OdpEncryptionKeyManager mMockKeyManager;
 
     @Mock private KeyAttestation mMockKeyAttestation;
 
@@ -333,11 +333,11 @@ public final class FederatedComputeWorkerTest {
 
     @Mock private FederatedJobService.OnJobFinishedCallback mMockJobServiceOnFinishCallback;
 
-    private static final FederatedComputeEncryptionKey ENCRYPTION_KEY =
-            new FederatedComputeEncryptionKey.Builder()
+    private static final OdpEncryptionKey ENCRYPTION_KEY =
+            new OdpEncryptionKey.Builder()
                     .setPublicKey("rSJBSUYG0ebvfW1AXCWO0CMGMJhDzpfQm3eLyw1uxX8=")
                     .setKeyIdentifier("0962201a-5abd-4e25-a486-2c7bd1ee1887")
-                    .setKeyType(FederatedComputeEncryptionKey.KEY_TYPE_ENCRYPTION)
+                    .setKeyType(OdpEncryptionKey.KEY_TYPE_ENCRYPTION)
                     .setCreationTime(1L)
                     .setExpiryTime(1L)
                     .build();
@@ -365,7 +365,7 @@ public final class FederatedComputeWorkerTest {
     }
 
     @Before
-    public void doBeforeEachTest() {
+    public void setUp() {
         mContext = ApplicationProvider.getApplicationContext();
         when(ClientErrorLogger.getInstance()).thenReturn(mMockClientErrorLogger);
         mSpyHttpFederatedProtocol =
@@ -1084,7 +1084,7 @@ public final class FederatedComputeWorkerTest {
     @Test
     public void testRunFLComputation_noKey_throws() throws Exception {
         setUpHttpFederatedProtocol(FL_CHECKIN_RESULT);
-        doReturn(new ArrayList<FederatedComputeEncryptionKey>() {})
+        doReturn(new ArrayList<OdpEncryptionKey>() {})
                 .when(mMockKeyManager)
                 .getOrFetchActiveKeys(anyInt(), anyInt());
         setUpReportFailureToServerCallback();

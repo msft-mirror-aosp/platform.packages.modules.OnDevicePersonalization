@@ -46,6 +46,7 @@ import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.StableFlags;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -84,6 +85,7 @@ public class SharedIsolatedProcessRunnerTest {
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
             .spyStatic(FlagsFactory.class)
+            .spyStatic(StableFlags.class)
             .setStrictness(Strictness.LENIENT)
             .build();
 
@@ -110,7 +112,8 @@ public class SharedIsolatedProcessRunnerTest {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
 
         ExtendedMockito.doReturn(mFlags).when(FlagsFactory::getFlags);
-        doReturn(TRUSTED_APP_NAME).when(mFlags).getStableFlag(KEY_TRUSTED_PARTNER_APPS_LIST);
+        ExtendedMockito.doReturn(TRUSTED_APP_NAME).when(
+                () -> StableFlags.get(KEY_TRUSTED_PARTNER_APPS_LIST));
 
         mInstanceUnderTest =
                 new SharedIsolatedProcessRunner(
@@ -119,24 +122,24 @@ public class SharedIsolatedProcessRunnerTest {
 
     @Test
     public void testGetSipInstanceName_artImageLoadingOptimizationEnabled() {
-        doReturn(true).when(mFlags)
-                .getStableFlag(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED);
+        ExtendedMockito.doReturn(true).when(
+                () -> StableFlags.get(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED));
         assertThat(sSipRunner.getSipInstanceName(TRUSTED_APP_NAME))
                 .isEqualTo(TRUSTED_PARTNER_APPS_SIP + "_disable_art_image_");
     }
 
     @Test
     public void testGetSipInstanceName_trustedApp() {
-        doReturn(false).when(mFlags)
-                .getStableFlag(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED);
+        ExtendedMockito.doReturn(false).when(
+                () -> StableFlags.get(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED));
         assertThat(sSipRunner.getSipInstanceName(TRUSTED_APP_NAME))
                 .isEqualTo(TRUSTED_PARTNER_APPS_SIP);
     }
 
     @Test
     public void testGetSipInstanceName_unknownApp() {
-        doReturn(false).when(mFlags)
-                .getStableFlag(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED);
+        ExtendedMockito.doReturn(false).when(
+                () -> StableFlags.get(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED));
         assertThat(sSipRunner.getSipInstanceName("unknown_app_name"))
                 .isEqualTo(UNKNOWN_APPS_SIP);
     }

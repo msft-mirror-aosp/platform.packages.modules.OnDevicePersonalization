@@ -21,8 +21,8 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_IS
 import android.os.Bundle;
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.PluginProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
@@ -45,7 +45,7 @@ public class ServiceFlowTask {
     private final ServiceFlow mServiceFlow;
     private final ProcessRunner mProcessRunner;
     private volatile boolean mIsCompleted;
-    private volatile Exception mExecutionException;
+    private volatile Throwable mExecutionThrowable;
 
     private final ListeningExecutorService mExecutor =
             OnDevicePersonalizationExecutors.getBackgroundExecutor();
@@ -55,8 +55,7 @@ public class ServiceFlowTask {
         mServiceFlowType = serviceFlowType;
         mServiceFlow = serviceFlow;
         mProcessRunner =
-                (boolean) FlagsFactory.getFlags()
-                        .getStableFlag(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED)
+                (boolean) StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED)
                         ? SharedIsolatedProcessRunner.getInstance()
                         : PluginProcessRunner.getInstance();
     }
@@ -73,15 +72,17 @@ public class ServiceFlowTask {
         return mIsCompleted;
     }
 
-    public Exception getExecutionException() {
-        return mExecutionException;
+    public Throwable getExeuctionThrowable() {
+        return mExecutionThrowable;
     }
 
     /** Executes the given service flow. */
     public void run() {
         try {
-            if (mIsCompleted || !mServiceFlow.isServiceFlowReady()) {
-                sLogger.d(TAG + ": Unexpected service flow state for " + mServiceFlowType);
+            boolean isServiceFlowReady = mServiceFlow.isServiceFlowReady();
+            if (mIsCompleted || !isServiceFlowReady) {
+                sLogger.d(TAG + " skipped running %s, isCompleted: %s, isServiceFlowReady: %s",
+                        mServiceFlowType, mIsCompleted, isServiceFlowReady);
                 return;
             }
 
@@ -116,9 +117,9 @@ public class ServiceFlowTask {
                                         mIsCompleted = true;
                                         return unloadServiceFuture;
                                     }, mExecutor);
-        } catch (Exception e) {
-            sLogger.w(TAG + ": ServiceFlowTask " + mServiceFlowType + "failed. " + e);
-            mExecutionException = e;
+        } catch (Throwable e) {
+            sLogger.e(e, TAG + ": ServiceFlowTask " + mServiceFlowType + " failed.");
+            mExecutionThrowable = e;
         }
     }
 }

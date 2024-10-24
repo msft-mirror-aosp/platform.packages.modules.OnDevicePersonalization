@@ -105,40 +105,53 @@ public class UserDataCollectionJobService extends JobService {
                     params,
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON);
         }
-        if (!UserPrivacyStatus.getInstance().isProtectedAudienceEnabled()
-                && !UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
-            sLogger.d(
-                    TAG
-                            + ": user control is revoked, "
-                            + "deleting existing user data and finishing job.");
-            mUserDataCollector = UserDataCollector.getInstance(this);
-            mUserData = RawUserData.getInstance();
-            mUserDataCollector.clearUserData(mUserData);
-            mUserDataCollector.clearMetadata();
-            OdpJobServiceLogger.getInstance(this)
-                    .recordJobSkipped(
-                            USER_DATA_COLLECTION_ID,
-                            AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_PERSONALIZATION_NOT_ENABLED);
-            jobFinished(params, /* wantsReschedule= */ false);
-            return true;
-        }
+        runPrivacyStatusChecksInBackground(params);
+        return true;
+    }
+
+    private void runPrivacyStatusChecksInBackground(final JobParameters params) {
+        OnDevicePersonalizationExecutors.getHighPriorityBackgroundExecutor().execute(() -> {
+            boolean isProtectedAudienceAndMeasurementBothDisabled =
+                    UserPrivacyStatus.getInstance()
+                            .isProtectedAudienceAndMeasurementBothDisabled();
+            sLogger.d(TAG + ": is ProtectedAudience and Measurement both disabled: %s",
+                    isProtectedAudienceAndMeasurementBothDisabled);
+            if (isProtectedAudienceAndMeasurementBothDisabled) {
+                handlePrivacyControlsRevoked(params);
+            } else {
+                startUserDataCollectionJob(params);
+            }
+        });
+    }
+
+    private void handlePrivacyControlsRevoked(JobParameters params) {
+        sLogger.d(TAG
+                + ": user control is revoked, deleting existing user data and finishing job.");
         mUserDataCollector = UserDataCollector.getInstance(this);
         mUserData = RawUserData.getInstance();
-        mFuture =
-                Futures.submit(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                sLogger.d(TAG + ": Running user data collection job");
-                                try {
-                                    // TODO(b/262749958): add multi-threading support if necessary.
-                                    mUserDataCollector.updateUserData(mUserData);
-                                } catch (Exception e) {
-                                    sLogger.e(TAG + ": Failed to collect user data", e);
-                                }
-                            }
-                        },
-                        mInjector.getExecutor());
+        mUserDataCollector.clearUserData(mUserData);
+        mUserDataCollector.clearMetadata();
+        OdpJobServiceLogger.getInstance(this)
+                .recordJobSkipped(
+                        USER_DATA_COLLECTION_ID,
+                        AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_PERSONALIZATION_NOT_ENABLED);
+        jobFinished(params, /* wantsReschedule= */ false);
+    }
+
+    private void startUserDataCollectionJob(final JobParameters params) {
+        mUserDataCollector = UserDataCollector.getInstance(this);
+        mUserData = RawUserData.getInstance();
+        mFuture = Futures.submit(new Runnable() {
+            @Override
+            public void run() {
+                sLogger.d(TAG + ": Running user data collection job");
+                try {
+                    mUserDataCollector.updateUserData(mUserData);
+                } catch (Exception e) {
+                    sLogger.e(TAG + ": Failed to collect user data", e);
+                }
+            }
+        }, mInjector.getExecutor());
 
         Futures.addCallback(
                 mFuture,
@@ -146,32 +159,27 @@ public class UserDataCollectionJobService extends JobService {
                     @Override
                     public void onSuccess(Void result) {
                         sLogger.d(TAG + ": User data collection job completed.");
-                        boolean wantsReschedule = false;
-                        OdpJobServiceLogger.getInstance(UserDataCollectionJobService.this)
-                                .recordJobFinished(
-                                        USER_DATA_COLLECTION_ID,
-                                        /* isSuccessful= */ true,
-                                        wantsReschedule);
-                        jobFinished(params, wantsReschedule);
+                        handleJobCompletion(params, /* isSuccessful= */ true);
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
-                        sLogger.e(TAG + ": Failed to handle JobService: " + params.getJobId(), t);
-                        boolean wantsReschedule = false;
-                        OdpJobServiceLogger.getInstance(UserDataCollectionJobService.this)
-                                .recordJobFinished(
-                                        USER_DATA_COLLECTION_ID,
-                                        /* isSuccessful= */ false,
-                                        wantsReschedule);
-                        //  When failure, also tell the JobScheduler that the job has completed and
-                        // does not need to be rescheduled.
-                        jobFinished(params, wantsReschedule);
+                        sLogger.e(t, TAG + ": Failed to handle JobService: " + params.getJobId());
+                        handleJobCompletion(params, /* isSuccessful= */ false);
                     }
                 },
-                mInjector.getExecutor());
+                mInjector.getExecutor()
+        );
+    }
 
-        return true;
+    private void handleJobCompletion(JobParameters params, boolean isSuccessful) {
+        boolean wantsReschedule = false;
+        OdpJobServiceLogger.getInstance(UserDataCollectionJobService.this)
+                .recordJobFinished(
+                        USER_DATA_COLLECTION_ID,
+                        isSuccessful,
+                        wantsReschedule);
+        jobFinished(params, wantsReschedule);
     }
 
     @Override

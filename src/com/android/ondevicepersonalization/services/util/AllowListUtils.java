@@ -31,10 +31,12 @@ public class AllowListUtils {
     public static boolean isAllowListed(final String entityName,
                                         final String packageCertificate,
                                         @NonNull final String allowList) {
+        if (allowList == null) {
+            return false;
+        }
         if (ALLOW_ALL.equals(allowList)) {
             return true;
         }
-
         if (entityName == null || entityName.trim().isEmpty()) {
             return false;
         }
@@ -82,6 +84,8 @@ public class AllowListUtils {
         String[] entityAndCert = entityInAllowList.split(CERT_SPLITTER);
         if (entityAndCert == null) {
             return false;
+        } else if (ALLOW_ALL.equals(entityInAllowList)) {
+            return true;
         } else if (entityAndCert.length == 1 && entityAndCert[0] != null
                 && !entityAndCert[0].isBlank()) {
             return entityAndCert[0].equals(entityName);

@@ -63,6 +63,15 @@ public class ComputationResult {
         if (mFlRunnerResult.getErrorStatus() == FLRunnerResult.ErrorStatus.NOT_ELIGIBLE) {
             return Result.NOT_ELIGIBLE;
         }
+        if (mFlRunnerResult.getErrorStatus() == FLRunnerResult.ErrorStatus.TENSORFLOW_ERROR) {
+            return Result.FAILED_MODEL_COMPUTATION;
+        }
+        if (mFlRunnerResult.getErrorStatus() == FLRunnerResult.ErrorStatus.INVALID_ARGUMENT) {
+            return Result.FAILED_MODEL_COMPUTATION;
+        }
+        if (mFlRunnerResult.getErrorStatus() == FLRunnerResult.ErrorStatus.EXAMPLE_ITERATOR_ERROR) {
+            return Result.FAILED_EXAMPLE_GENERATION;
+        }
         return Result.FAILED;
     }
 }

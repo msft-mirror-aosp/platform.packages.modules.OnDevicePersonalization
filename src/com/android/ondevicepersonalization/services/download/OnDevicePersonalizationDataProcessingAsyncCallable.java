@@ -30,10 +30,8 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
-/**
- * AsyncCallable to handle the processing of the downloaded vendor data
- */
-public class OnDevicePersonalizationDataProcessingAsyncCallable implements AsyncCallable {
+/** AsyncCallable to handle the processing of the downloaded vendor data */
+class OnDevicePersonalizationDataProcessingAsyncCallable implements AsyncCallable {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
 
     private static final ServiceFlowOrchestrator sSfo = ServiceFlowOrchestrator.getInstance();
@@ -43,7 +41,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     private final Injector mInjector;
 
     @VisibleForTesting
-    public static class Injector {
+    static class Injector {
         FutureCallback<DownloadCompletedOutputParcel> getFutureCallback(
                 SettableFuture<Boolean> downloadFlowFuture) {
             return new FutureCallback<>() {
@@ -60,23 +58,23 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         }
     }
 
-    public OnDevicePersonalizationDataProcessingAsyncCallable(String packageName,
-            Context context) {
+    OnDevicePersonalizationDataProcessingAsyncCallable(String packageName, Context context) {
         this(packageName, context, new Injector());
     }
 
     @VisibleForTesting
-    public OnDevicePersonalizationDataProcessingAsyncCallable(String packageName,
-            Context context, Injector injector) {
+    OnDevicePersonalizationDataProcessingAsyncCallable(
+            String packageName, Context context, Injector injector) {
         mPackageName = packageName;
         mContext = context;
         mInjector = injector;
     }
 
     /**
-     * Processes the downloaded files for the given package and stores the data into sqlite
-     * vendor tables.
+     * Processes the downloaded files for the given package and stores the data into sqlite vendor
+     * tables.
      */
+    @Override
     public ListenableFuture<Boolean> call() {
         SettableFuture<Boolean> downloadFlowFuture = SettableFuture.create();
         FutureCallback<DownloadCompletedOutputParcel> callback =

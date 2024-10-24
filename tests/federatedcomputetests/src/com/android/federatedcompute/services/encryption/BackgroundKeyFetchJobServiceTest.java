@@ -16,7 +16,7 @@
 
 package com.android.federatedcompute.services.encryption;
 
-import static com.android.federatedcompute.services.data.FederatedComputeEncryptionKey.KEY_TYPE_ENCRYPTION;
+import static com.android.odp.module.common.encryption.OdpEncryptionKey.KEY_TYPE_ENCRYPTION;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -47,10 +47,12 @@ import com.android.federatedcompute.services.common.FederatedComputeJobInfo;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.PhFlagsTestUtil;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDao;
-import com.android.federatedcompute.services.http.HttpClient;
+import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDaoUtils;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.data.OdpEncryptionKeyDao;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
+import com.android.odp.module.common.encryption.OdpEncryptionKeyManager;
+import com.android.odp.module.common.http.HttpClient;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -83,9 +85,9 @@ public class BackgroundKeyFetchJobServiceTest {
 
     private HttpClient mHttpClient;
 
-    public FederatedComputeEncryptionKeyDao mEncryptionDao;
+    public OdpEncryptionKeyDao mEncryptionDao;
 
-    public FederatedComputeEncryptionKeyManager mSpyKeyManager;
+    public OdpEncryptionKeyManager mSpyKeyManager;
 
     private TestInjector mInjector;
 
@@ -97,8 +99,8 @@ public class BackgroundKeyFetchJobServiceTest {
         MockitoAnnotations.initMocks(this);
         mContext = ApplicationProvider.getApplicationContext();
         mInjector = new TestInjector();
-        mEncryptionDao = FederatedComputeEncryptionKeyDao.getInstanceForTest(mContext);
-        mHttpClient = new HttpClient();
+        mEncryptionDao = FederatedComputeEncryptionKeyDaoUtils.getInstance(mContext);
+        mHttpClient = new HttpClient(/* retryLimit= */ 3, MoreExecutors.newDirectExecutorService());
         mSpyService = spy(new BackgroundKeyFetchJobService(new TestInjector()));
         doReturn(mSpyService).when(mSpyService).getApplicationContext();
         doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
@@ -106,12 +108,13 @@ public class BackgroundKeyFetchJobServiceTest {
         mJobScheduler.cancel(FederatedComputeJobInfo.ENCRYPTION_KEY_FETCH_JOB_ID);
         mSpyKeyManager =
                 spy(
-                        new FederatedComputeEncryptionKeyManager(
+                        FederatedComputeEncryptionKeyManagerUtils.getInstanceForTest(
                                 MonotonicClock.getInstance(),
                                 mEncryptionDao,
                                 FlagsFactory.getFlags(),
                                 mHttpClient,
-                                MoreExecutors.newDirectExecutorService()));
+                                MoreExecutors.newDirectExecutorService(),
+                                mContext));
         mStaticMockSession =
                 ExtendedMockito.mockitoSession()
                         .initMocks(this)
@@ -139,9 +142,8 @@ public class BackgroundKeyFetchJobServiceTest {
 
     @Test
     public void testOnStartJob() {
-        FederatedComputeEncryptionKeyManager keyManager =
-                mInjector.getEncryptionKeyManager(mContext);
-        List<FederatedComputeEncryptionKey> emptyKeyList = List.of();
+        OdpEncryptionKeyManager keyManager = mInjector.getEncryptionKeyManager(mContext);
+        List<OdpEncryptionKey> emptyKeyList = List.of();
         doReturn(FluentFuture.from(Futures.immediateFuture(emptyKeyList)))
                 .when(keyManager)
                 .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true);
@@ -154,8 +156,7 @@ public class BackgroundKeyFetchJobServiceTest {
 
     @Test
     public void testOnStartJob_onFailure() {
-        FederatedComputeEncryptionKeyManager keyManager =
-                mInjector.getEncryptionKeyManager(mContext);
+        OdpEncryptionKeyManager keyManager = mInjector.getEncryptionKeyManager(mContext);
         doReturn(
                         FluentFuture.from(
                                 Futures.immediateFailedFuture(
@@ -218,9 +219,8 @@ public class BackgroundKeyFetchJobServiceTest {
     @Test
     public void testOnStartJob_enableKillSwitch() {
         PhFlagsTestUtil.enableGlobalKillSwitch();
-        FederatedComputeEncryptionKeyManager keyManager =
-                mInjector.getEncryptionKeyManager(mContext);
-        List<FederatedComputeEncryptionKey> emptyKeyList = List.of();
+        OdpEncryptionKeyManager keyManager = mInjector.getEncryptionKeyManager(mContext);
+        List<OdpEncryptionKey> emptyKeyList = List.of();
         doReturn(FluentFuture.from(Futures.immediateFuture(emptyKeyList)))
                 .when(keyManager)
                 .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true);
@@ -247,7 +247,7 @@ public class BackgroundKeyFetchJobServiceTest {
         assertThat(injector.getExecutor())
                 .isEqualTo(FederatedComputeExecutors.getBackgroundExecutor());
         assertThat(injector.getEncryptionKeyManager(mContext))
-                .isEqualTo(FederatedComputeEncryptionKeyManager.getInstance(mContext));
+                .isEqualTo(FederatedComputeEncryptionKeyManagerUtils.getInstance(mContext));
         assertThat(injector.getLightWeightExecutor())
                 .isEqualTo(FederatedComputeExecutors.getLightweightExecutor());
     }
@@ -264,7 +264,7 @@ public class BackgroundKeyFetchJobServiceTest {
         }
 
         @Override
-        FederatedComputeEncryptionKeyManager getEncryptionKeyManager(Context context) {
+        OdpEncryptionKeyManager getEncryptionKeyManager(Context context) {
             return mSpyKeyManager;
         }
     }

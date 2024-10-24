@@ -24,6 +24,8 @@ import android.net.Uri;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.odp.module.common.http.HttpClientUtils;
+
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -45,10 +47,10 @@ public class HttpClientUtilTest {
         }
         byte[] dataBeforeCompress = outputStream.toByteArray();
 
-        byte[] dataAfterCompress = HttpClientUtil.compressWithGzip(dataBeforeCompress);
+        byte[] dataAfterCompress = HttpClientUtils.compressWithGzip(dataBeforeCompress);
         assertThat(dataAfterCompress.length).isLessThan(dataBeforeCompress.length);
 
-        byte[] unzipData = HttpClientUtil.uncompressWithGzip(dataAfterCompress);
+        byte[] unzipData = HttpClientUtils.uncompressWithGzip(dataAfterCompress);
         assertThat(unzipData).isEqualTo(dataBeforeCompress);
     }
 }
