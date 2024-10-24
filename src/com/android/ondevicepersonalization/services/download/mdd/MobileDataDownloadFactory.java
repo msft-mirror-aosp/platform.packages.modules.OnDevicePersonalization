@@ -24,6 +24,7 @@ import androidx.annotation.NonNull;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 
 import com.google.android.libraries.mobiledatadownload.Flags;
+import com.google.android.libraries.mobiledatadownload.Logger;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownloadBuilder;
 import com.google.android.libraries.mobiledatadownload.TimeSource;
@@ -66,11 +67,6 @@ public class MobileDataDownloadFactory {
             if (sSingleton == null) {
                 SynchronousFileStorage fileStorage = getFileStorage(context);
 
-                // TODO(b/241009783): This only adds the core MDD code. We still need other
-                //  components:
-                // 1) Add Logger
-                // 2) Set Flags
-                // 3) Add Configurator.
                 sSingleton =
                         MobileDataDownloadBuilder.newBuilder()
                                 .setContext(context)
@@ -82,6 +78,7 @@ public class MobileDataDownloadFactory {
                                         () -> getFileDownloader(context, downloadExecutor))
                                 .addFileGroupPopulator(
                                         new OnDevicePersonalizationFileGroupPopulator(context))
+                                .setLoggerOptional(Optional.of(getMddLogger()))
                                 .setFlagsOptional(Optional.of(getFlags()))
                                 .build();
             }
@@ -142,5 +139,10 @@ public class MobileDataDownloadFactory {
     @NonNull
     private static Flags getFlags() {
         return new OnDevicePersonalizationMddFlags();
+    }
+
+    @NonNull
+    private static Logger getMddLogger() {
+        return new MddLogger();
     }
 }

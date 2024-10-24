@@ -44,11 +44,11 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.NetworkStats;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
-import com.android.federatedcompute.services.encryption.Encrypter;
 import com.android.federatedcompute.services.http.HttpClientUtil.FederatedComputePayloadDataContract;
 import com.android.federatedcompute.services.security.AuthorizationContext;
 import com.android.federatedcompute.services.training.util.ComputationResult;
+import com.android.odp.module.common.encryption.Encrypter;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
 import com.android.odp.module.common.http.HttpClient;
 import com.android.odp.module.common.http.HttpClientUtils;
 import com.android.odp.module.common.http.OdpHttpRequest;
@@ -171,7 +171,7 @@ public final class HttpFederatedProtocol {
     /** Helper functions to report and upload result. */
     public FluentFuture<RejectionInfo> reportResult(
             ComputationResult computationResult,
-            FederatedComputeEncryptionKey encryptionKey,
+            OdpEncryptionKey encryptionKey,
             AuthorizationContext authContext) {
         Trace.beginAsyncSection(TRACE_HTTP_REPORT_RESULT, 0);
         NetworkStats reportResultStats = new NetworkStats();
@@ -446,7 +446,7 @@ public final class HttpFederatedProtocol {
     private ListenableFuture<OdpHttpResponse> processReportResultResponseAndUploadResult(
             ReportResultResponse reportResultResponse,
             ComputationResult computationResult,
-            FederatedComputeEncryptionKey encryptionKey,
+            OdpEncryptionKey encryptionKey,
             NetworkStats networkStats) {
         try {
             Preconditions.checkArgument(
@@ -487,8 +487,8 @@ public final class HttpFederatedProtocol {
         }
     }
 
-    private byte[] createEncryptedRequestBody(
-            String filePath, FederatedComputeEncryptionKey encryptionKey) throws Exception {
+    private byte[] createEncryptedRequestBody(String filePath, OdpEncryptionKey encryptionKey)
+            throws Exception {
         byte[] fileOutputBytes = readFileAsByteArray(filePath);
         if (!FlagsFactory.getFlags().isEncryptionEnabled()) {
             // encryption not enabled, upload the file contents directly
