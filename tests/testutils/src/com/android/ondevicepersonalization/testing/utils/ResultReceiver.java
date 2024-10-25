@@ -37,7 +37,7 @@ public class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
 
     /** Creates a ResultReceiver. */
     public ResultReceiver() {
-        this(Duration.ofSeconds(30));
+        this(Duration.ofSeconds(60));
     }
 
     /** Creates a ResultReceiver with a deadline. */
