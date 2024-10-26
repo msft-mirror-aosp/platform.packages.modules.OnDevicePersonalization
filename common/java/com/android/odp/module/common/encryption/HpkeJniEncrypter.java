@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,11 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.encryption;
+package com.android.odp.module.common.encryption;
 
-import com.android.federatedcompute.services.encryption.jni.HpkeJni;
+import com.android.odp.module.common.encryption.jni.HpkeJni;
 
-
-/**
- * The implementation of HPKE (Hybrid Public Key Encryption) using BoringSSL JNI.
- */
+/** The implementation of HPKE (Hybrid Public Key Encryption) using BoringSSL JNI. */
 public class HpkeJniEncrypter implements Encrypter {
 
     @Override

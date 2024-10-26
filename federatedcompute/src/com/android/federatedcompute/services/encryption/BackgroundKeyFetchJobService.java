@@ -31,9 +31,10 @@ import com.android.federatedcompute.services.common.FederatedComputeJobInfo;
 import com.android.federatedcompute.services.common.FederatedComputeJobUtil;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.statsd.joblogging.FederatedComputeJobServiceLogger;
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
+import com.android.odp.module.common.encryption.OdpEncryptionKeyManager;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -59,8 +60,8 @@ public class BackgroundKeyFetchJobService extends JobService {
             return FederatedComputeExecutors.getLightweightExecutor();
         }
 
-        FederatedComputeEncryptionKeyManager getEncryptionKeyManager(Context context) {
-            return FederatedComputeEncryptionKeyManager.getInstance(context);
+        OdpEncryptionKeyManager getEncryptionKeyManager(Context context) {
+            return FederatedComputeEncryptionKeyManagerUtils.getInstance(context);
         }
     }
 
@@ -94,22 +95,20 @@ public class BackgroundKeyFetchJobService extends JobService {
         }
         mInjector
                 .getEncryptionKeyManager(this)
-                .fetchAndPersistActiveKeys(FederatedComputeEncryptionKey.KEY_TYPE_ENCRYPTION,
-                        /* isScheduledJob= */ true)
+                .fetchAndPersistActiveKeys(
+                        OdpEncryptionKey.KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
                 .addCallback(
-                        new FutureCallback<List<FederatedComputeEncryptionKey>>() {
+                        new FutureCallback<List<OdpEncryptionKey>>() {
                             @Override
-                            public void onSuccess(
-                                    List<FederatedComputeEncryptionKey>
-                                            federatedComputeEncryptionKeys) {
+                            public void onSuccess(List<OdpEncryptionKey> odpEncryptionKeys) {
                                 LogUtil.d(
                                         TAG,
                                         "BackgroundKeyFetchJobService %d is done, fetched %d keys",
                                         params.getJobId(),
-                                        federatedComputeEncryptionKeys.size());
+                                        odpEncryptionKeys.size());
                                 boolean wantsReschedule = false;
                                 FederatedComputeJobServiceLogger.getInstance(
-                                        BackgroundKeyFetchJobService.this)
+                                                BackgroundKeyFetchJobService.this)
                                         .recordJobFinished(
                                                 ENCRYPTION_KEY_FETCH_JOB_ID,
                                                 /* isSuccessful= */ true,
@@ -135,12 +134,12 @@ public class BackgroundKeyFetchJobService extends JobService {
                                     LogUtil.e(
                                             TAG,
                                             "Background key fetch failed due to interruption "
-                                            + "error");
+                                                    + "error");
                                 } else if (throwable instanceof IllegalArgumentException) {
                                     LogUtil.e(
                                             TAG,
                                             "Background key fetch failed due to illegal argument "
-                                            + "error");
+                                                    + "error");
                                 } else {
                                     LogUtil.e(
                                             TAG,
@@ -148,7 +147,7 @@ public class BackgroundKeyFetchJobService extends JobService {
                                 }
                                 boolean wantsReschedule = false;
                                 FederatedComputeJobServiceLogger.getInstance(
-                                        BackgroundKeyFetchJobService.this)
+                                                BackgroundKeyFetchJobService.this)
                                         .recordJobFinished(
                                                 ENCRYPTION_KEY_FETCH_JOB_ID,
                                                 /* isSuccessful= */ false,

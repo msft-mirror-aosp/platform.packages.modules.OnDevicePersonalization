@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.encryption;
+package com.android.odp.module.common.encryption;
 
-import static com.android.federatedcompute.services.data.FederatedComputeEncryptionKey.KEY_TYPE_ENCRYPTION;
+import static com.android.odp.module.common.encryption.OdpEncryptionKey.KEY_TYPE_ENCRYPTION;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -32,24 +32,23 @@ import android.content.Context;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.android.federatedcompute.services.common.FederatedComputeExecutors;
-import com.android.federatedcompute.services.common.Flags;
-import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDao;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.data.OdpEncryptionKeyDao;
+import com.android.odp.module.common.data.OdpEncryptionKeyDaoTest;
+import com.android.odp.module.common.data.OdpSQLiteOpenHelper;
 import com.android.odp.module.common.http.HttpClient;
 import com.android.odp.module.common.http.OdpHttpResponse;
 
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Collections;
@@ -57,10 +56,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RunWith(AndroidJUnit4.class)
-public class FederatedComputeKeyFetchManagerTest {
+public class OdpEncryptionKeyManagerTest {
+
+    private static final String DEFAULT_OVERRIDE_URL =
+            "https://real-coordinator/v1alpha/publicKeys";
 
     private static final Map<String, List<String>> SAMPLE_RESPONSE_HEADER =
             Map.of(
@@ -73,42 +76,50 @@ public class FederatedComputeKeyFetchManagerTest {
 { "keys": [{ "id": "0cc9b4c9-08bd", "key": "BQo+c1Tw6TaQ+VH/b+9PegZOjHuKAFkl8QdmS0IjRj8" """
                     + "} ] }";
 
-    private FederatedComputeEncryptionKeyManager mFederatedComputeEncryptionKeyManager;
+    private OdpEncryptionKeyManager mOdpEncryptionKeyManager;
 
     @Mock private HttpClient mMockHttpClient;
 
-    private FederatedComputeEncryptionKeyDao mEncryptionKeyDao;
+    private static final Context sContext = ApplicationProvider.getApplicationContext();
 
-    private Context mContext;
+    private static final Clock sClock = MonotonicClock.getInstance();
 
-    private Clock mClock;
+    private static final TestKeyManagerConfig sKeyManagerConfig =
+            new TestKeyManagerConfig(DEFAULT_OVERRIDE_URL);
+    ;
+    private static final OdpEncryptionKeyDaoTest.TestDbHelper sTestDbHelper =
+            new OdpEncryptionKeyDaoTest.TestDbHelper(sContext);
+    ;
 
-    private Flags mMockFlags;
+    private static final OdpEncryptionKeyDao sEncryptionKeyDao =
+            OdpEncryptionKeyDao.getInstance(sContext, sTestDbHelper);
+
+    private static final ListeningExecutorService sTestExecutor =
+            MoreExecutors.newDirectExecutorService();
 
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        mContext = ApplicationProvider.getApplicationContext();
-        mClock = MonotonicClock.getInstance();
-        mEncryptionKeyDao = FederatedComputeEncryptionKeyDao.getInstanceForTest(mContext);
-        mMockFlags = Mockito.mock(Flags.class);
-        mFederatedComputeEncryptionKeyManager =
-                new FederatedComputeEncryptionKeyManager(
-                        mClock,
-                        mEncryptionKeyDao,
-                        new FederatedComputeEncryptionKeyManager.FlagKeyManagerConfig(mMockFlags),
+
+        sKeyManagerConfig.mEncryptionFetchUrl = DEFAULT_OVERRIDE_URL;
+        mOdpEncryptionKeyManager =
+                OdpEncryptionKeyManager.getInstanceForTesting(
+                        sClock,
+                        sEncryptionKeyDao,
+                        sKeyManagerConfig,
                         mMockHttpClient,
-                        FederatedComputeExecutors.getBackgroundExecutor());
-        String overrideUrl = "https://real-coordinator/v1alpha/publicKeys";
-        doReturn(overrideUrl).when(mMockFlags).getEncryptionKeyFetchUrl();
+                        sTestExecutor);
     }
 
     @After
-    public void teadDown() {
-        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
+    public void tearDown() {
+        // Delete all existing keys in the DAO along with resetting the singleton instance
+        // to allow each test to start from a clean slate.
+        sEncryptionKeyDao.deleteAllKeys();
+        OdpEncryptionKeyManager.resetForTesting();
+        sTestDbHelper.getWritableDatabase().close();
+        sTestDbHelper.getReadableDatabase().close();
+        sTestDbHelper.close();
     }
 
     @Test
@@ -117,7 +128,7 @@ public class FederatedComputeKeyFetchManagerTest {
         headers.put("Cache-Control", List.of("public,max-age=3600"));
         headers.put("Age", List.of("8"));
 
-        long ttl = FederatedComputeEncryptionKeyManager.getTTL(headers);
+        long ttl = OdpEncryptionKeyManager.getTTL(headers);
 
         assertThat(ttl).isEqualTo(3600 - 8);
     }
@@ -127,7 +138,7 @@ public class FederatedComputeKeyFetchManagerTest {
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Age", List.of("8"));
 
-        long ttl = FederatedComputeEncryptionKeyManager.getTTL(headers);
+        long ttl = OdpEncryptionKeyManager.getTTL(headers);
 
         assertThat(ttl).isEqualTo(0);
     }
@@ -137,7 +148,7 @@ public class FederatedComputeKeyFetchManagerTest {
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Cache-Control", List.of("public,max-age=3600"));
 
-        long ttl = FederatedComputeEncryptionKeyManager.getTTL(headers);
+        long ttl = OdpEncryptionKeyManager.getTTL(headers);
 
         assertThat(ttl).isEqualTo(3600);
     }
@@ -146,7 +157,7 @@ public class FederatedComputeKeyFetchManagerTest {
     public void testGetTTL_empty() {
         Map<String, List<String>> headers = Collections.EMPTY_MAP;
 
-        long ttl = FederatedComputeEncryptionKeyManager.getTTL(headers);
+        long ttl = OdpEncryptionKeyManager.getTTL(headers);
 
         assertThat(ttl).isEqualTo(0);
     }
@@ -157,7 +168,7 @@ public class FederatedComputeKeyFetchManagerTest {
         headers.put("Cache-Control", List.of("public,max-age==3600"));
         headers.put("Age", List.of("8"));
 
-        long ttl = FederatedComputeEncryptionKeyManager.getTTL(headers);
+        long ttl = OdpEncryptionKeyManager.getTTL(headers);
 
         assertThat(ttl).isEqualTo(0);
     }
@@ -174,8 +185,8 @@ public class FederatedComputeKeyFetchManagerTest {
                 .when(mMockHttpClient)
                 .performRequestAsyncWithRetry(any());
 
-        List<FederatedComputeEncryptionKey> keys =
-                mFederatedComputeEncryptionKeyManager
+        List<OdpEncryptionKey> keys =
+                mOdpEncryptionKeyManager
                         .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
                         .get();
 
@@ -194,8 +205,8 @@ public class FederatedComputeKeyFetchManagerTest {
                 .when(mMockHttpClient)
                 .performRequestAsyncWithRetry(any());
 
-        List<FederatedComputeEncryptionKey> keys =
-                mFederatedComputeEncryptionKeyManager
+        List<OdpEncryptionKey> keys =
+                mOdpEncryptionKeyManager
                         .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false)
                         .get();
 
@@ -204,11 +215,11 @@ public class FederatedComputeKeyFetchManagerTest {
 
     @Test
     public void testFetchAndPersistActiveKeys_EmptyUrl_throws() {
-        doReturn("").when(mMockFlags).getEncryptionKeyFetchUrl();
+        sKeyManagerConfig.mEncryptionFetchUrl = "";
         assertThrows(
                 ExecutionException.class,
                 () ->
-                        mFederatedComputeEncryptionKeyManager
+                        mOdpEncryptionKeyManager
                                 .fetchAndPersistActiveKeys(
                                         KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
                                 .get());
@@ -216,11 +227,11 @@ public class FederatedComputeKeyFetchManagerTest {
 
     @Test
     public void testFetchAndPersistActiveKeys_NullUrl_throws() {
-        doReturn(null).when(mMockFlags).getEncryptionKeyFetchUrl();
+        sKeyManagerConfig.mEncryptionFetchUrl = null;
         assertThrows(
                 ExecutionException.class,
                 () ->
-                        mFederatedComputeEncryptionKeyManager
+                        mOdpEncryptionKeyManager
                                 .fetchAndPersistActiveKeys(
                                         KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
                                 .get());
@@ -228,11 +239,11 @@ public class FederatedComputeKeyFetchManagerTest {
 
     @Test
     public void testFetchAndPersistActiveKeys_InvalidUrl_throws() {
-        doReturn("1").when(mMockFlags).getEncryptionKeyFetchUrl();
+        sKeyManagerConfig.mEncryptionFetchUrl = "1";
         assertThrows(
                 ExecutionException.class,
                 () ->
-                        mFederatedComputeEncryptionKeyManager
+                        mOdpEncryptionKeyManager
                                 .fetchAndPersistActiveKeys(
                                         KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
                                 .get());
@@ -251,7 +262,7 @@ public class FederatedComputeKeyFetchManagerTest {
         assertThrows(
                 ExecutionException.class,
                 () ->
-                        mFederatedComputeEncryptionKeyManager
+                        mOdpEncryptionKeyManager
                                 .fetchAndPersistActiveKeys(
                                         KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
                                 .get());
@@ -270,7 +281,7 @@ public class FederatedComputeKeyFetchManagerTest {
         assertThrows(
                 ExecutionException.class,
                 () ->
-                        mFederatedComputeEncryptionKeyManager
+                        mOdpEncryptionKeyManager
                                 .fetchAndPersistActiveKeys(
                                         KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false)
                                 .get());
@@ -288,11 +299,11 @@ public class FederatedComputeKeyFetchManagerTest {
                 .when(mMockHttpClient)
                 .performRequestAsyncWithRetry(any());
 
-        mFederatedComputeEncryptionKeyManager
+        mOdpEncryptionKeyManager
                 .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
                 .get();
-        List<FederatedComputeEncryptionKey> keys =
-                mEncryptionKeyDao.readFederatedComputeEncryptionKeysFromDatabase(
+        List<OdpEncryptionKey> keys =
+                sEncryptionKeyDao.readEncryptionKeysFromDatabase(
                         ""
                         /* selection= */ ,
                         new String[0]
@@ -300,12 +311,12 @@ public class FederatedComputeKeyFetchManagerTest {
                         ""
                         /* orderBy= */ ,
                         -1
-                        /* count= */);
+                        /* count= */ );
 
         assertThat(keys.size()).isEqualTo(1);
         assertThat(
                         keys.stream()
-                                .map(FederatedComputeEncryptionKey::getKeyIdentifier)
+                                .map(OdpEncryptionKey::getKeyIdentifier)
                                 .collect(Collectors.toList()))
                 .containsAtLeastElementsIn(List.of("0cc9b4c9-08bd"));
     }
@@ -322,11 +333,11 @@ public class FederatedComputeKeyFetchManagerTest {
                 .when(mMockHttpClient)
                 .performRequestAsyncWithRetry(any());
 
-        mFederatedComputeEncryptionKeyManager
+        mOdpEncryptionKeyManager
                 .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false)
                 .get();
-        List<FederatedComputeEncryptionKey> keys =
-                mEncryptionKeyDao.readFederatedComputeEncryptionKeysFromDatabase(
+        List<OdpEncryptionKey> keys =
+                sEncryptionKeyDao.readEncryptionKeysFromDatabase(
                         ""
                         /* selection= */ ,
                         new String[0]
@@ -334,12 +345,12 @@ public class FederatedComputeKeyFetchManagerTest {
                         ""
                         /* orderBy= */ ,
                         -1
-                        /* count= */);
+                        /* count= */ );
 
         assertThat(keys.size()).isEqualTo(1);
         assertThat(
                         keys.stream()
-                                .map(FederatedComputeEncryptionKey::getKeyIdentifier)
+                                .map(OdpEncryptionKey::getKeyIdentifier)
                                 .collect(Collectors.toList()))
                 .containsAtLeastElementsIn(List.of("0cc9b4c9-08bd"));
     }
@@ -355,9 +366,9 @@ public class FederatedComputeKeyFetchManagerTest {
                                         .build()))
                 .when(mMockHttpClient)
                 .performRequestAsyncWithRetry(any());
-        long currentTime = mClock.currentTimeMillis();
-        mEncryptionKeyDao.insertEncryptionKey(
-                new FederatedComputeEncryptionKey.Builder()
+        long currentTime = sClock.currentTimeMillis();
+        sEncryptionKeyDao.insertEncryptionKey(
+                new OdpEncryptionKey.Builder()
                         .setKeyIdentifier("5161e286-63e5")
                         .setPublicKey("YuOorP14obQLqASrvqbkNxyijjcAUIDx/xeMGZOyykc")
                         .setKeyType(KEY_TYPE_ENCRYPTION)
@@ -365,12 +376,12 @@ public class FederatedComputeKeyFetchManagerTest {
                         .setExpiryTime(currentTime)
                         .build());
 
-        mFederatedComputeEncryptionKeyManager
+        mOdpEncryptionKeyManager
                 .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
                 .get();
 
-        List<FederatedComputeEncryptionKey> keys =
-                mEncryptionKeyDao.readFederatedComputeEncryptionKeysFromDatabase(
+        List<OdpEncryptionKey> keys =
+                sEncryptionKeyDao.readEncryptionKeysFromDatabase(
                         ""
                         /* selection= */ ,
                         new String[0]
@@ -378,7 +389,7 @@ public class FederatedComputeKeyFetchManagerTest {
                         ""
                         /* orderBy= */ ,
                         -1
-                        /* count= */);
+                        /* count= */ );
 
         assertThat(keys.size()).isEqualTo(1);
     }
@@ -394,9 +405,9 @@ public class FederatedComputeKeyFetchManagerTest {
                                         .build()))
                 .when(mMockHttpClient)
                 .performRequestAsyncWithRetry(any());
-        long currentTime = mClock.currentTimeMillis();
-        mEncryptionKeyDao.insertEncryptionKey(
-                new FederatedComputeEncryptionKey.Builder()
+        long currentTime = sClock.currentTimeMillis();
+        sEncryptionKeyDao.insertEncryptionKey(
+                new OdpEncryptionKey.Builder()
                         .setKeyIdentifier("5161e286-63e5")
                         .setPublicKey("YuOorP14obQLqASrvqbkNxyijjcAUIDx/xeMGZOyykc")
                         .setKeyType(KEY_TYPE_ENCRYPTION)
@@ -404,12 +415,12 @@ public class FederatedComputeKeyFetchManagerTest {
                         .setExpiryTime(currentTime)
                         .build());
 
-        mFederatedComputeEncryptionKeyManager
+        mOdpEncryptionKeyManager
                 .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false)
                 .get();
 
-        List<FederatedComputeEncryptionKey> keys =
-                mEncryptionKeyDao.readFederatedComputeEncryptionKeysFromDatabase(
+        List<OdpEncryptionKey> keys =
+                sEncryptionKeyDao.readEncryptionKeysFromDatabase(
                         ""
                         /* selection= */ ,
                         new String[0]
@@ -417,11 +428,11 @@ public class FederatedComputeKeyFetchManagerTest {
                         ""
                         /* orderBy= */ ,
                         -1
-                        /* count= */);
+                        /* count= */ );
 
         assertThat(keys.size()).isEqualTo(2);
 
-        List<FederatedComputeEncryptionKey> activeKeys = mEncryptionKeyDao.getLatestExpiryNKeys(2);
+        List<OdpEncryptionKey> activeKeys = sEncryptionKeyDao.getLatestExpiryNKeys(2);
         assertThat(activeKeys.size()).isEqualTo(1);
     }
 
@@ -437,8 +448,8 @@ public class FederatedComputeKeyFetchManagerTest {
                 .when(mMockHttpClient)
                 .performRequestAsyncWithRetry(any());
 
-        List<FederatedComputeEncryptionKey> keys =
-                mFederatedComputeEncryptionKeyManager.getOrFetchActiveKeys(
+        List<OdpEncryptionKey> keys =
+                mOdpEncryptionKeyManager.getOrFetchActiveKeys(
                         KEY_TYPE_ENCRYPTION, /* keyCount= */ 2);
 
         verify(mMockHttpClient, times(1)).performRequestAsyncWithRetry(any());
@@ -447,9 +458,9 @@ public class FederatedComputeKeyFetchManagerTest {
 
     @Test
     public void testGetOrFetchActiveKeys_noFetch() {
-        long currentTime = mClock.currentTimeMillis();
-        mEncryptionKeyDao.insertEncryptionKey(
-                new FederatedComputeEncryptionKey.Builder()
+        long currentTime = sClock.currentTimeMillis();
+        sEncryptionKeyDao.insertEncryptionKey(
+                new OdpEncryptionKey.Builder()
                         .setKeyIdentifier("5161e286-63e5")
                         .setPublicKey("YuOorP14obQLqASrvqbkNxyijjcAUIDx/xeMGZOyykc")
                         .setKeyType(KEY_TYPE_ENCRYPTION)
@@ -466,8 +477,8 @@ public class FederatedComputeKeyFetchManagerTest {
                 .when(mMockHttpClient)
                 .performRequestAsyncWithRetry(any());
 
-        List<FederatedComputeEncryptionKey> keys =
-                mFederatedComputeEncryptionKeyManager.getOrFetchActiveKeys(
+        List<OdpEncryptionKey> keys =
+                mOdpEncryptionKeyManager.getOrFetchActiveKeys(
                         KEY_TYPE_ENCRYPTION, /* keyCount= */ 2);
 
         verify(mMockHttpClient, never()).performRequestAsyncWithRetry(any());
@@ -480,11 +491,51 @@ public class FederatedComputeKeyFetchManagerTest {
                 .when(mMockHttpClient)
                 .performRequestAsyncWithRetry(any());
 
-        List<FederatedComputeEncryptionKey> keys =
-                mFederatedComputeEncryptionKeyManager.getOrFetchActiveKeys(
+        List<OdpEncryptionKey> keys =
+                mOdpEncryptionKeyManager.getOrFetchActiveKeys(
                         KEY_TYPE_ENCRYPTION, /* keyCount= */ 2);
 
-        assertThat(keys.size()).isEqualTo(0);
         verify(mMockHttpClient, times(1)).performRequestAsyncWithRetry(any());
+        assertThat(keys.size()).isEqualTo(0);
+    }
+
+    private static final class TestKeyManagerConfig
+            implements OdpEncryptionKeyManager.KeyManagerConfig {
+
+        // Url to be configured by the tests
+        private volatile String mEncryptionFetchUrl;
+
+        private TestKeyManagerConfig(String encryptionFetchUrl) {
+            this.mEncryptionFetchUrl = encryptionFetchUrl;
+        }
+
+        @Override
+        public String getEncryptionKeyFetchUrl() {
+            return mEncryptionFetchUrl;
+        }
+
+        @Override
+        public int getHttpRequestRetryLimit() {
+            // Just some default value, not used by tests as the mock http client is used instead.
+            return 3;
+        }
+
+        /** Max age in seconds for federated compute encryption keys. */
+        public long getEncryptionKeyMaxAgeSeconds() {
+            // FC default value
+            return TimeUnit.DAYS.toSeconds(14/* duration= */ );
+        }
+
+        /** The {@link OdpSQLiteOpenHelper} instance for use by the encryption DAO. */
+        public OdpSQLiteOpenHelper getSQLiteOpenHelper() {
+            // Should not be used in tests as the TestDbHelper is used instead and injected directly
+            // into the EncryptionKeyDao.
+            return null;
+        }
+
+        /** Background executor for use in key fetch and DB updates etc. */
+        public ListeningExecutorService getBackgroundExecutor() {
+            return sTestExecutor;
+        }
     }
 }

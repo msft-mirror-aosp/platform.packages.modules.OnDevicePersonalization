@@ -57,10 +57,8 @@ import com.android.federatedcompute.services.common.NetworkStats;
 import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.ODPAuthorizationToken;
 import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
-import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
 import com.android.federatedcompute.services.security.AuthorizationContext;
 import com.android.federatedcompute.services.security.KeyAttestation;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
@@ -68,6 +66,8 @@ import com.android.federatedcompute.services.training.util.ComputationResult;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.encryption.HpkeJniEncrypter;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
 import com.android.odp.module.common.http.HttpClient;
 import com.android.odp.module.common.http.HttpClientUtils;
 import com.android.odp.module.common.http.OdpHttpRequest;
@@ -161,11 +161,11 @@ public final class HttpFederatedProtocolTest {
                             KeyAttestationAuthMetadata.newBuilder()
                                     .setChallenge(ByteString.copyFrom(CHALLENGE)))
                     .build();
-    private static final FederatedComputeEncryptionKey ENCRYPTION_KEY =
-            new FederatedComputeEncryptionKey.Builder()
+    private static final OdpEncryptionKey ENCRYPTION_KEY =
+            new OdpEncryptionKey.Builder()
                     .setPublicKey("rSJBSUYG0ebvfW1AXCWO0CMGMJhDzpfQm3eLyw1uxX8=")
                     .setKeyIdentifier("0962201a-5abd-4e25-a486-2c7bd1ee1887")
-                    .setKeyType(FederatedComputeEncryptionKey.KEY_TYPE_ENCRYPTION)
+                    .setKeyType(OdpEncryptionKey.KEY_TYPE_ENCRYPTION)
                     .setCreationTime(1L)
                     .setExpiryTime(1L)
                     .build();

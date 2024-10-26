@@ -66,14 +66,12 @@ import com.android.federatedcompute.services.common.ExampleStats;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.data.fbs.TrainingFlags;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
-import com.android.federatedcompute.services.encryption.FederatedComputeEncryptionKeyManager;
-import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
+import com.android.federatedcompute.services.encryption.FederatedComputeEncryptionKeyManagerUtils;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
 import com.android.federatedcompute.services.examplestore.ExampleStoreServiceProvider;
 import com.android.federatedcompute.services.http.CheckinResult;
@@ -92,6 +90,9 @@ import com.android.internal.annotations.GuardedBy;
 import com.android.internal.util.Preconditions;
 import com.android.odp.module.common.FileUtils;
 import com.android.odp.module.common.PackageUtils;
+import com.android.odp.module.common.encryption.HpkeJniEncrypter;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
+import com.android.odp.module.common.encryption.OdpEncryptionKeyManager;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.FluentFuture;
@@ -144,7 +145,7 @@ public class FederatedComputeWorker {
     private HttpFederatedProtocol mHttpFederatedProtocol;
     private final ExampleStoreServiceProvider mExampleStoreServiceProvider;
     private AbstractServiceBinder<IIsolatedTrainingService> mIsolatedTrainingServiceBinder;
-    private final FederatedComputeEncryptionKeyManager mEncryptionKeyManager;
+    private final OdpEncryptionKeyManager mEncryptionKeyManager;
 
     @VisibleForTesting
     FederatedComputeWorker(
@@ -153,7 +154,7 @@ public class FederatedComputeWorker {
             TrainingConditionsChecker trainingConditionsChecker,
             ComputationRunner computationRunner,
             ResultCallbackHelper resultCallbackHelper,
-            FederatedComputeEncryptionKeyManager keyManager,
+            OdpEncryptionKeyManager keyManager,
             ExampleStoreServiceProvider exampleStoreServiceProvider,
             Injector injector) {
         this.mContext = context.getApplicationContext();
@@ -179,7 +180,7 @@ public class FederatedComputeWorker {
                                     TrainingConditionsChecker.getInstance(context),
                                     new ComputationRunner(context),
                                     new ResultCallbackHelper(context),
-                                    FederatedComputeEncryptionKeyManager.getInstance(context),
+                                    FederatedComputeEncryptionKeyManagerUtils.getInstance(context),
                                     new ExampleStoreServiceProvider(),
                                     new Injector());
                 }
@@ -513,12 +514,11 @@ public class FederatedComputeWorker {
     private ListenableFuture<FLRunnerResult> doFederatedComputation(
             TrainingRun run, CheckinResult checkinResult, EligibilityResult eligibilityResult) {
         // 3. Fetch Active keys to encrypt the computation result.
-        List<FederatedComputeEncryptionKey> activeKeys =
+        List<OdpEncryptionKey> activeKeys =
                 mEncryptionKeyManager.getOrFetchActiveKeys(
-                        FederatedComputeEncryptionKey.KEY_TYPE_ENCRYPTION,
-                        NUM_ACTIVE_KEYS_TO_CHOOSE_FROM);
+                        OdpEncryptionKey.KEY_TYPE_ENCRYPTION, NUM_ACTIVE_KEYS_TO_CHOOSE_FROM);
         // select a random key
-        FederatedComputeEncryptionKey encryptionKey =
+        OdpEncryptionKey encryptionKey =
                 activeKeys.isEmpty()
                         ? null
                         : activeKeys.get(new Random().nextInt(activeKeys.size()));
@@ -1162,7 +1162,7 @@ public class FederatedComputeWorker {
 
     private FluentFuture<RejectionInfo> reportResultWithAuthentication(
             ComputationResult computationResult,
-            FederatedComputeEncryptionKey encryptionKey,
+            OdpEncryptionKey encryptionKey,
             AuthorizationContext authContext,
             TrainingEventLogger trainingEventLogger) {
         // At most this function will make two calls to mHttpFederatedProtocol.reportResult

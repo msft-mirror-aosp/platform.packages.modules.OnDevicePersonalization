@@ -19,7 +19,6 @@ package com.android.federatedcompute.services.data;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_READ_EXCEPTION;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_WRITE_EXCEPTION;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
-import static com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.ENCRYPTION_KEY_TABLE;
 import static com.android.federatedcompute.services.data.FederatedTraningTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
 import static com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE;
 import static com.android.federatedcompute.services.data.TaskHistoryContract.TaskHistoryEntry.CREATE_TASK_HISTORY_TABLE_STATEMENT;
@@ -32,12 +31,12 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.FederatedComputeEncryptionColumns;
 import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
 import com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODPAuthorizationTokenColumns;
 import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.data.OdpSQLiteOpenHelper;
+import com.android.odp.module.common.encryption.OdpEncryptionKeyContract;
 
 /** Helper to manage FederatedTrainingTask database. */
 public class FederatedComputeDbHelper extends OdpSQLiteOpenHelper {
@@ -91,21 +90,6 @@ public class FederatedComputeDbHelper extends OdpSQLiteOpenHelper {
                     + "UNIQUE("
                     + FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID
                     + "))";
-
-    private static final String CREATE_ENCRYPTION_KEY_TABLE =
-            "CREATE TABLE "
-                    + ENCRYPTION_KEY_TABLE
-                    + " ( "
-                    + FederatedComputeEncryptionColumns.KEY_IDENTIFIER
-                    + " TEXT PRIMARY KEY, "
-                    + FederatedComputeEncryptionColumns.PUBLIC_KEY
-                    + " TEXT NOT NULL, "
-                    + FederatedComputeEncryptionColumns.KEY_TYPE
-                    + " INTEGER, "
-                    + FederatedComputeEncryptionColumns.CREATION_TIME
-                    + " INTEGER NOT NULL, "
-                    + FederatedComputeEncryptionColumns.EXPIRY_TIME
-                    + " INTEGER NOT NULL)";
 
     private static final String CREATE_ODP_AUTHORIZATION_TOKEN_TABLE =
             "CREATE TABLE "
@@ -170,7 +154,7 @@ public class FederatedComputeDbHelper extends OdpSQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(CREATE_TRAINING_TASK_TABLE);
         db.execSQL(CREATE_TRAINING_TASK_OWNER_PACKAGE_INDEX);
-        db.execSQL(CREATE_ENCRYPTION_KEY_TABLE);
+        db.execSQL(OdpEncryptionKeyContract.CREATE_ENCRYPTION_KEY_TABLE);
         db.execSQL(CREATE_ODP_AUTHORIZATION_TOKEN_TABLE);
         db.execSQL(CREATE_TASK_HISTORY_TABLE_STATEMENT);
     }
