@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,29 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.data;
+package com.android.odp.module.common.encryption;
 
-final class FederatedComputeEncryptionKeyContract {
-    static final String ENCRYPTION_KEY_TABLE = "encryption_keys";
+public final class OdpEncryptionKeyContract {
+    public static final String ENCRYPTION_KEY_TABLE = "encryption_keys";
+    public static final String CREATE_ENCRYPTION_KEY_TABLE =
+            "CREATE TABLE "
+                    + ENCRYPTION_KEY_TABLE
+                    + " ( "
+                    + OdpEncryptionColumns.KEY_IDENTIFIER
+                    + " TEXT PRIMARY KEY, "
+                    + OdpEncryptionColumns.PUBLIC_KEY
+                    + " TEXT NOT NULL, "
+                    + OdpEncryptionColumns.KEY_TYPE
+                    + " INTEGER, "
+                    + OdpEncryptionColumns.CREATION_TIME
+                    + " INTEGER NOT NULL, "
+                    + OdpEncryptionColumns.EXPIRY_TIME
+                    + " INTEGER NOT NULL)";
 
-    private FederatedComputeEncryptionKeyContract() {}
+    private OdpEncryptionKeyContract() {}
 
-    static final class FederatedComputeEncryptionColumns {
-        private FederatedComputeEncryptionColumns() {}
+    public static final class OdpEncryptionColumns {
+        private OdpEncryptionColumns() {}
 
         /**
          * A unique identifier of the key, in the form of a UUID. FCP server uses key_identifier to
@@ -34,8 +48,8 @@ final class FederatedComputeEncryptionKeyContract {
         public static final String PUBLIC_KEY = "public_key";
 
         /**
-         * The type of the key in {@link FederatedComputeEncryptionKey.KeyType}. Currently only
-         * encryption key is allowed.
+         * The type of the key in {@link OdpEncryptionKey.KeyType}. Currently only encryption key is
+         * allowed.
          */
         public static final String KEY_TYPE = "key_type";
 
