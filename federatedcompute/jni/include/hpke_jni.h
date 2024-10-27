@@ -28,7 +28,7 @@ extern "C" {
  * Method:    encrypt
  * Signature: ([B[B[B)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_com_android_federatedcompute_services_encryption_jni_HpkeJni_encrypt
+JNIEXPORT jbyteArray JNICALL Java_com_android_odp_module_common_encryption_jni_HpkeJni_encrypt
         (JNIEnv *, jobject, jbyteArray, jbyteArray, jbyteArray);
 
 /*
@@ -36,7 +36,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_android_federatedcompute_services_encrypti
  * Method:    decrypt
  * Signature: ([B[B[B)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_com_android_federatedcompute_services_encryption_jni_HpkeJni_decrypt
+JNIEXPORT jbyteArray JNICALL Java_com_android_odp_module_common_encryption_jni_HpkeJni_decrypt
         (JNIEnv *, jobject, jbyteArray, jbyteArray, jbyteArray);
 
 #ifdef __cplusplus

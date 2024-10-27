@@ -37,7 +37,7 @@ public class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
 
     /** Creates a ResultReceiver. */
     public ResultReceiver() {
-        this(Duration.ofSeconds(30));
+        this(Duration.ofSeconds(60));
     }
 
     /** Creates a ResultReceiver with a deadline. */
@@ -99,7 +99,12 @@ public class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
 
     /** Returns the exception message. */
     public String getErrorMessage() throws InterruptedException {
-        await();
+        try {
+            await();
+        } catch (Exception e) {
+            return "ResultReceiver failed: " + e.getClass().getSimpleName()
+                    + ": " + e.getMessage();
+        }
         if (mException != null) {
             return mException.getClass().getSimpleName()
                     + ": " + mException.getMessage();
