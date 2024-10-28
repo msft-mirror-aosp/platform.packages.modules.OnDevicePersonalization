@@ -71,6 +71,8 @@ public class Constants {
     public static final int STATUS_PERMISSION_DENIED = 117;
     // Internal code that tracks local data read only result returned from data storage.
     public static final int STATUS_LOCAL_DATA_READ_ONLY = 118;
+    // Internal code that tracks thread interrupted exception errors.
+    public static final int STATUS_EXECUTION_INTERRUPTED = 119;
     // Internal code that tracks request timestamps invalid.
     public static final int STATUS_REQUEST_TIMESTAMPS_INVALID = 120;
     // Internal code that tracks request model table id invalid.
