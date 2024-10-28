@@ -19,8 +19,8 @@ package com.android.ondevicepersonalization.services.process;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_TRUSTED_PARTNER_APPS_LIST;
-import static com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner.TRUSTED_PARTNER_APPS_SIP;
-import static com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner.UNKNOWN_APPS_SIP;
+import static com.android.ondevicepersonalization.services.process.IsolatedServiceBindingRunner.TRUSTED_PARTNER_APPS_SIP;
+import static com.android.ondevicepersonalization.services.process.IsolatedServiceBindingRunner.UNKNOWN_APPS_SIP;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -74,10 +74,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @RunWith(JUnit4.class)
-public class SharedIsolatedProcessRunnerTest {
+public class IsolatedServiceBindingRunnerTest {
 
-    private static final SharedIsolatedProcessRunner sSipRunner =
-            SharedIsolatedProcessRunner.getInstance();
+    private static final IsolatedServiceBindingRunner sSipRunner =
+            IsolatedServiceBindingRunner.getInstance();
 
     private static final String TRUSTED_APP_NAME = "trusted_app_name";
     private static final int CALLBACK_TIMEOUT_SECONDS = 60;
@@ -96,10 +96,10 @@ public class SharedIsolatedProcessRunnerTest {
             .setStrictness(Strictness.LENIENT)
             .build();
 
-    private final SharedIsolatedProcessRunner.Injector mTestInjector =
-            new SharedIsolatedProcessRunner.Injector();
+    private final IsolatedServiceBindingRunner.Injector mTestInjector =
+            new IsolatedServiceBindingRunner.Injector();
 
-    private SharedIsolatedProcessRunner mInstanceUnderTest;
+    private IsolatedServiceBindingRunner mInstanceUnderTest;
     private final CountDownLatch mCountDownLatch = new CountDownLatch(1);
     private final FutureCallback<Object> mTestCallback =
             new FutureCallback<Object>() {
@@ -125,7 +125,7 @@ public class SharedIsolatedProcessRunnerTest {
         ExtendedMockito.doReturn(true).when(
                 () -> StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED));
         mInstanceUnderTest =
-                new SharedIsolatedProcessRunner(
+                new IsolatedServiceBindingRunner(
                         ApplicationProvider.getApplicationContext(), mTestInjector);
     }
 

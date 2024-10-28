@@ -57,14 +57,16 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 
-/** Utilities for running remote isolated services in a shared isolated process (SIP). Note that
- *  this runner is only selected when the shared_isolated_process_feature_enabled flag is enabled.
+/**
+ * A process runner that runs an isolated service by binding to it. It runs the service in a shared
+ * isolated process if the shared_isolated_process_feature_enabled flag is enabled and the selected
+ * isolated service opts in to running in a shared isolated process.
  */
-public class SharedIsolatedProcessRunner implements ProcessRunner  {
+public class IsolatedServiceBindingRunner implements ProcessRunner  {
 
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
 
-    private static final String TAG = SharedIsolatedProcessRunner.class.getSimpleName();
+    private static final String TAG = IsolatedServiceBindingRunner.class.getSimpleName();
 
     // SIP that hosts services from all trusted partners, as well as internal isolated services.
     public static final String TRUSTED_PARTNER_APPS_SIP = "trusted_partner_apps_sip";
@@ -87,22 +89,22 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
     }
 
     @VisibleForTesting
-    SharedIsolatedProcessRunner(@NonNull Context applicationContext, @NonNull Injector injector) {
+    IsolatedServiceBindingRunner(@NonNull Context applicationContext, @NonNull Injector injector) {
         mApplicationContext = Objects.requireNonNull(applicationContext);
         mInjector = Objects.requireNonNull(injector);
     }
 
     private static class LazyInstanceHolder {
-        static final SharedIsolatedProcessRunner LAZY_INSTANCE =
-                new SharedIsolatedProcessRunner(
+        static final IsolatedServiceBindingRunner LAZY_INSTANCE =
+                new IsolatedServiceBindingRunner(
                         OnDevicePersonalizationApplication.getAppContext(),
                         new Injector());
     }
 
     /** Returns the global ProcessRunner. */
     @NonNull
-    public static SharedIsolatedProcessRunner getInstance() {
-        return SharedIsolatedProcessRunner.LazyInstanceHolder.LAZY_INSTANCE;
+    public static IsolatedServiceBindingRunner getInstance() {
+        return IsolatedServiceBindingRunner.LazyInstanceHolder.LAZY_INSTANCE;
     }
 
     /** Binds to a service and put it in one of ODP's shared isolated process. */
@@ -189,12 +191,12 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                                                 final long token = Binder.clearCallingIdentity();
                                                 try {
                                                     ListenableFuture<?> unused =
-                                                        AggregatedErrorCodesLogger
-                                                            .logIsolatedServiceErrorCode(
-                                                                isolatedServiceErrorCode,
-                                                                isolatedProcessInfo
-                                                                    .getComponentName(),
-                                                                mApplicationContext);
+                                                            AggregatedErrorCodesLogger
+                                                                .logIsolatedServiceErrorCode(
+                                                                    isolatedServiceErrorCode,
+                                                                    isolatedProcessInfo
+                                                                        .getComponentName(),
+                                                                    mApplicationContext);
                                                 } finally {
                                                     Binder.restoreCallingIdentity(token);
                                                 }
