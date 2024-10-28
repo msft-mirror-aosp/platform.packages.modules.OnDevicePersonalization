@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.process;
 
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_TRUSTED_PARTNER_APPS_LIST;
 
 import android.adservices.ondevicepersonalization.Constants;
@@ -240,7 +241,11 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
 
     private AbstractServiceBinder<IIsolatedService> getIsolatedServiceBinder(
             @NonNull ComponentName service) throws Exception {
-        boolean isSipRequested = isSharedIsolatedProcessRequested(service);
+        PackageManager pm = mApplicationContext.getPackageManager();
+        sLogger.d(TAG + ": Package manager = " + pm);
+        ServiceInfo si = pm.getServiceInfo(service, PackageManager.GET_META_DATA);
+        checkIsolatedService(service, si);
+        boolean isSipRequested = isSharedIsolatedProcessRequested(si);
 
         // null instance name results in regular isolated service being created.
         String instanceName = isSipRequested ? getSipInstanceName(service.getPackageName()) : null;
@@ -271,21 +276,25 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                     ? sipInstanceName + "_disable_art_image_" : sipInstanceName;
     }
 
-    private boolean isSharedIsolatedProcessRequested(ComponentName service) throws Exception {
-        if (!SdkLevel.isAtLeastU()) {
-            return false;
-        }
-
-        PackageManager pm = mApplicationContext.getPackageManager();
-        ServiceInfo si = pm.getServiceInfo(service, PackageManager.GET_META_DATA);
-
-        sLogger.d(TAG + "Package manager = " + pm);
+    @VisibleForTesting
+    static void checkIsolatedService(ComponentName service, ServiceInfo si)
+            throws OdpServiceException {
         if ((si.flags & si.FLAG_ISOLATED_PROCESS) == 0) {
             sLogger.e(
                     TAG, "ODP client service not configured to run in isolated process " + service);
             throw new OdpServiceException(
                     Constants.STATUS_MANIFEST_PARSING_FAILED,
                     "ODP client services should run in isolated processes.");
+        }
+    }
+
+    @VisibleForTesting
+    static boolean isSharedIsolatedProcessRequested(ServiceInfo si) {
+        if (!SdkLevel.isAtLeastU()) {
+            return false;
+        }
+        if (!(boolean) StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED)) {
+            return false;
         }
 
         return (si.flags & si.FLAG_ALLOW_SHARED_ISOLATED_PROCESS) != 0;
