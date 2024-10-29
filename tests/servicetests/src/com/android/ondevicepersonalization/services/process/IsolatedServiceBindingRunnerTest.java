@@ -76,8 +76,8 @@ import java.util.concurrent.TimeoutException;
 @RunWith(JUnit4.class)
 public class IsolatedServiceBindingRunnerTest {
 
-    private static final IsolatedServiceBindingRunner sSipRunner =
-            IsolatedServiceBindingRunner.getInstance();
+    private final IsolatedServiceBindingRunner mRunner =
+            new IsolatedServiceBindingRunner();
 
     private static final String TRUSTED_APP_NAME = "trusted_app_name";
     private static final int CALLBACK_TIMEOUT_SECONDS = 60;
@@ -133,7 +133,7 @@ public class IsolatedServiceBindingRunnerTest {
     public void testGetSipInstanceName_artImageLoadingOptimizationEnabled() {
         ExtendedMockito.doReturn(true).when(
                 () -> StableFlags.get(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED));
-        assertThat(sSipRunner.getSipInstanceName(TRUSTED_APP_NAME))
+        assertThat(mRunner.getSipInstanceName(TRUSTED_APP_NAME))
                 .isEqualTo(TRUSTED_PARTNER_APPS_SIP + "_disable_art_image_");
     }
 
@@ -141,7 +141,7 @@ public class IsolatedServiceBindingRunnerTest {
     public void testGetSipInstanceName_trustedApp() {
         ExtendedMockito.doReturn(false).when(
                 () -> StableFlags.get(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED));
-        assertThat(sSipRunner.getSipInstanceName(TRUSTED_APP_NAME))
+        assertThat(mRunner.getSipInstanceName(TRUSTED_APP_NAME))
                 .isEqualTo(TRUSTED_PARTNER_APPS_SIP);
     }
 
@@ -149,7 +149,7 @@ public class IsolatedServiceBindingRunnerTest {
     public void testGetSipInstanceName_unknownApp() {
         ExtendedMockito.doReturn(false).when(
                 () -> StableFlags.get(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED));
-        assertThat(sSipRunner.getSipInstanceName("unknown_app_name"))
+        assertThat(mRunner.getSipInstanceName("unknown_app_name"))
                 .isEqualTo(UNKNOWN_APPS_SIP);
     }
 
@@ -157,7 +157,7 @@ public class IsolatedServiceBindingRunnerTest {
     public void testCheckIsolatedService() throws Exception {
         ServiceInfo si = new ServiceInfo();
         si.flags = si.FLAG_ISOLATED_PROCESS;
-        sSipRunner.checkIsolatedService(new ComponentName("a", "b"), si);  // does not throw
+        mRunner.checkIsolatedService(new ComponentName("a", "b"), si);  // does not throw
     }
 
     @Test
@@ -167,7 +167,7 @@ public class IsolatedServiceBindingRunnerTest {
         si.flags = 0;
         assertThrows(
                 OdpServiceException.class,
-                () -> sSipRunner.checkIsolatedService(new ComponentName("a", "b"), si));
+                () -> mRunner.checkIsolatedService(new ComponentName("a", "b"), si));
     }
 
     @Test
@@ -175,9 +175,9 @@ public class IsolatedServiceBindingRunnerTest {
         assumeTrue(SdkLevel.isAtLeastU());
         ServiceInfo si = new ServiceInfo();
         si.flags = si.FLAG_ISOLATED_PROCESS;
-        assertFalse(sSipRunner.isSharedIsolatedProcessRequested(si));
+        assertFalse(mRunner.isSharedIsolatedProcessRequested(si));
         si.flags |= si.FLAG_ALLOW_SHARED_ISOLATED_PROCESS;
-        assertTrue(sSipRunner.isSharedIsolatedProcessRequested(si));
+        assertTrue(mRunner.isSharedIsolatedProcessRequested(si));
     }
 
     @Test
@@ -185,9 +185,9 @@ public class IsolatedServiceBindingRunnerTest {
         assumeTrue(SdkLevel.isAtLeastT() && !SdkLevel.isAtLeastU());
         ServiceInfo si = new ServiceInfo();
         si.flags = si.FLAG_ISOLATED_PROCESS;
-        assertFalse(sSipRunner.isSharedIsolatedProcessRequested(si));
+        assertFalse(mRunner.isSharedIsolatedProcessRequested(si));
         si.flags |= si.FLAG_ALLOW_SHARED_ISOLATED_PROCESS;
-        assertFalse(sSipRunner.isSharedIsolatedProcessRequested(si));
+        assertFalse(mRunner.isSharedIsolatedProcessRequested(si));
     }
 
     @Test

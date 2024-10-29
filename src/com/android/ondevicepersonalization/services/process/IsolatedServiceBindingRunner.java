@@ -88,23 +88,15 @@ public class IsolatedServiceBindingRunner implements ProcessRunner  {
         }
     }
 
+    /** Creates a ProcessRunner. */
+    IsolatedServiceBindingRunner() {
+        this(OnDevicePersonalizationApplication.getAppContext(), new Injector());
+    }
+
     @VisibleForTesting
     IsolatedServiceBindingRunner(@NonNull Context applicationContext, @NonNull Injector injector) {
         mApplicationContext = Objects.requireNonNull(applicationContext);
         mInjector = Objects.requireNonNull(injector);
-    }
-
-    private static class LazyInstanceHolder {
-        static final IsolatedServiceBindingRunner LAZY_INSTANCE =
-                new IsolatedServiceBindingRunner(
-                        OnDevicePersonalizationApplication.getAppContext(),
-                        new Injector());
-    }
-
-    /** Returns the global ProcessRunner. */
-    @NonNull
-    public static IsolatedServiceBindingRunner getInstance() {
-        return IsolatedServiceBindingRunner.LazyInstanceHolder.LAZY_INSTANCE;
     }
 
     /** Binds to a service and put it in one of ODP's shared isolated process. */
