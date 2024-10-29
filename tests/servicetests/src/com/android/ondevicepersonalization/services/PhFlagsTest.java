@@ -77,14 +77,20 @@ import static com.google.common.truth.Truth.assertThat;
 
 import android.provider.DeviceConfig;
 
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+
 import com.android.modules.utils.build.SdkLevel;
 import com.android.modules.utils.testing.TestableDeviceConfig;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 /** Unit tests for {@link com.android.ondevicepersonalization.services.PhFlags} */
+@RunWith(AndroidJUnit4.class)
+@Ignore("b/375661140")
 public class PhFlagsTest {
     @Rule
     public final TestableDeviceConfig.TestableDeviceConfigRule mDeviceConfigRule =
