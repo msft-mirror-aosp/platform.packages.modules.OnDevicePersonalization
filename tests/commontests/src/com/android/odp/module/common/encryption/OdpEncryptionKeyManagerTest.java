@@ -537,5 +537,9 @@ public class OdpEncryptionKeyManagerTest {
         public ListeningExecutorService getBackgroundExecutor() {
             return sTestExecutor;
         }
+
+        public ListeningExecutorService getBlockingExecutor() {
+            return sTestExecutor;
+        }
     }
 }
