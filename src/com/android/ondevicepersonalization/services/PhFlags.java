@@ -132,6 +132,9 @@ public final class PhFlags implements Flags {
     public static final String KEY_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST =
             "log_isolated_service_error_code_non_aggregated_allowlist";
 
+    public static final String KEY_PLUGIN_PROCESS_RUNNER_ENABLED =
+            "plugin_process_runner_enabled";
+
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
 
@@ -506,5 +509,13 @@ public final class PhFlags implements Flags {
                 /* name= */ KEY_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST,
                 /* defaultValue= */
                 DEFAULT_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST);
+    }
+
+    @Override
+    public boolean isPluginProcessRunnerEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_PLUGIN_PROCESS_RUNNER_ENABLED,
+                /* defaultValue= */ DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED);
     }
 }
