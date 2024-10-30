@@ -31,6 +31,7 @@ import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CLIENT_
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_MODULE_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_OUTPUT_DATA_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SPE_PILOT_JOB_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_TRUSTED_PARTNER_APPS_LIST;
@@ -67,6 +68,7 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_MODUL
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_SPE_PILOT_JOB_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_OUTPUT_DATA_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_PLUGIN_PROCESS_RUNNER_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_RENDER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_TRUSTED_PARTNER_APPS_LIST;
@@ -747,5 +749,24 @@ public class PhFlagsTest {
                 /* makeDefault */ false);
         assertThat(FlagsFactory.getFlags().getAdservicesIpcCallTimeoutInMillis())
                 .isEqualTo(DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS);
+    }
+
+    @Test
+    public void testIsPluginProcessRunnerEnabled() {
+        // read a stable flag value and verify it's equal to the default value.
+        boolean stableValue = FlagsFactory.getFlags().isPluginProcessRunnerEnabled();
+        assertThat(stableValue).isEqualTo(DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED);
+
+        // override the value in device config.
+        boolean overrideEnabled = !stableValue;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_PLUGIN_PROCESS_RUNNER_ENABLED,
+                Boolean.toString(overrideEnabled),
+                /* makeDefault= */ false);
+
+        // the flag value remains stable
+        assertThat(FlagsFactory.getFlags().isPluginProcessRunnerEnabled()).isEqualTo(
+                overrideEnabled);
     }
 }
