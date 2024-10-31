@@ -73,10 +73,9 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
         this.mContext = context;
     }
 
-    /**
-     * A helper function to create a DataFilegroup.
-     */
-    public static DataFileGroup createDataFileGroup(
+    /** A helper function to create a DataFilegroup. */
+    @VisibleForTesting
+    static DataFileGroup createDataFileGroup(
             String groupName,
             String ownerPackage,
             String[] fileId,
@@ -134,12 +133,12 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
      * Creates the MDD download URL for the given package
      *
      * @param packageName PackageName of the package owning the fileGroup
-     * @param context     Context of the calling service/application
+     * @param context Context of the calling service/application
      * @return The created MDD URL for the package.
      */
     @VisibleForTesting
-    public static String createDownloadUrl(String packageName, Context context) throws
-            PackageManager.NameNotFoundException {
+    static String createDownloadUrl(String packageName, Context context)
+            throws PackageManager.NameNotFoundException {
         String baseURL = AppManifestConfigHelper.getDownloadUrlFromOdpSettings(
                 context, packageName);
 
@@ -204,7 +203,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                             for (ClientConfigProto.ClientFileGroup fileGroup : fileGroupList) {
                                 fileGroupsToRemove.add(fileGroup.getGroupName());
                             }
-                            List<ListenableFuture<Boolean>> mFutures = new ArrayList<>();
+                            List<ListenableFuture<Boolean>> futureList = new ArrayList<>();
                             for (String packageName :
                                     AppManifestConfigHelper.getOdpPackages(
                                             mContext, /* enrolledOnly= */ true)) {
@@ -230,7 +229,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                                                     new ChecksumType[] {checksumType},
                                                     new String[] {downloadUrl},
                                                     deviceNetworkPolicy);
-                                    mFutures.add(
+                                    futureList.add(
                                             mobileDataDownload.addFileGroup(
                                                     AddFileGroupRequest.newBuilder()
                                                             .setDataFileGroup(dataFileGroup)
@@ -246,7 +245,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
 
                             for (String group : fileGroupsToRemove) {
                                 sLogger.d(TAG + ": Removing file group: " + group);
-                                mFutures.add(
+                                futureList.add(
                                         mobileDataDownload.removeFileGroup(
                                                 RemoveFileGroupRequest.newBuilder()
                                                         .setGroupName(group)
@@ -254,7 +253,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                             }
 
                             return PropagatedFutures.transform(
-                                    Futures.successfulAsList(mFutures),
+                                    Futures.successfulAsList(futureList),
                                     result -> {
                                         if (result.contains(null)) {
                                             sLogger.d(

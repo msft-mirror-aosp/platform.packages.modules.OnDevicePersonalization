@@ -19,27 +19,36 @@ package com.android.ondevicepersonalization.services;
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
 
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.when;
 
 import android.app.job.JobScheduler;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.odp.module.common.DeviceUtils;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -48,16 +57,43 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationBroadcastReceiverTests {
+    private static final Intent BOOT_COMPLETED_INTENT = new Intent(Intent.ACTION_BOOT_COMPLETED);
+
+    /** All the jobs that the BroadcastReceiver is responsible for scheduling. */
+    private static final ImmutableList<Integer> JOB_IDS =
+            ImmutableList.of(
+                    // Job Ids for ODP maintenance jobs that are scheduled/cancelled by the
+                    // receiver.
+                    MAINTENANCE_TASK_JOB_ID,
+                    AGGREGATE_ERROR_DATA_REPORTING_JOB_ID,
+                    USER_DATA_COLLECTION_ID,
+                    // Job Ids for various Mdd Jobs
+                    MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID,
+                    MDD_CHARGING_PERIODIC_TASK_JOB_ID,
+                    MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID,
+                    MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID);
+
     private final Context mContext = ApplicationProvider.getApplicationContext();
+
+    // Use direct executor to keep all work sequential for the tests
+    private final ListeningExecutorService mDirectExecutorService =
+            MoreExecutors.newDirectExecutorService();
+
+    private final JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
+
+    private final OnDevicePersonalizationBroadcastReceiver mReceiverUnderTest =
+            new OnDevicePersonalizationBroadcastReceiver(mDirectExecutorService);
+    @Mock private Flags mMockFlags;
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule =
             new ExtendedMockitoRule.Builder(this)
-                    .addStaticMockFixtures(TestableDeviceConfig::new)
+                    .spyStatic(FlagsFactory.class)
                     .spyStatic(DeviceUtils.class)
                     .spyStatic(OnDevicePersonalizationMaintenanceJob.class)
                     .setStrictness(Strictness.LENIENT)
@@ -65,188 +101,79 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
     @Before
     public void setup() throws Exception {
-        PhFlagsTestUtil.setUpDeviceConfigPermissions();
-        PhFlagsTestUtil.disableGlobalKillSwitch();
+        ExtendedMockito.doReturn(mMockFlags).when(FlagsFactory::getFlags);
+        when(mMockFlags.getGlobalKillSwitch()).thenReturn(false);
 
-        // By default, disable SPE.
-        PhFlagsTestUtil.setSpePilotJobEnabled(false);
+        // By default, disable SPE and aggregate error reporting.
+        when(mMockFlags.getSpePilotJobEnabled()).thenReturn(false);
+        when(mMockFlags.getAggregatedErrorReportingEnabled()).thenReturn(false);
 
         ExtendedMockito.doReturn(true).when(() -> DeviceUtils.isOdpSupported(any()));
-        JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
-        jobScheduler.cancel(OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID);
-        jobScheduler.cancel(OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID);
-        jobScheduler.cancel(
-                OnDevicePersonalizationConfig.MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID);
-        jobScheduler.cancel(OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID);
-        jobScheduler.cancel(OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID);
-        jobScheduler.cancel(OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID);
+
+        // Cancel any pending maintenance and MDD jobs
+        for (int jobId : JOB_IDS) {
+            mJobScheduler.cancel(jobId);
+        }
     }
 
     @Test
     public void testOnReceive() {
-        // Use direct executor to keep all work sequential for the tests
-        ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
-        MobileDataDownloadFactory.getMdd(mContext, executorService, executorService);
+        when(mMockFlags.getAggregatedErrorReportingEnabled()).thenReturn(true);
+        MobileDataDownloadFactory.getMdd(mContext, mDirectExecutorService, mDirectExecutorService);
 
-        OnDevicePersonalizationBroadcastReceiver receiver =
-                new OnDevicePersonalizationBroadcastReceiver(executorService);
+        mReceiverUnderTest.onReceive(mContext, BOOT_COMPLETED_INTENT);
 
-        Intent intent = new Intent(Intent.ACTION_BOOT_COMPLETED);
-        receiver.onReceive(mContext, intent);
-
-        JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
-
-        assertTrue(
-                jobScheduler.getPendingJob(OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID)
-                        != null);
         verify(() -> OnDevicePersonalizationMaintenanceJob.schedule(mContext));
-        assertTrue(
-                jobScheduler.getPendingJob(OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID)
-                        != null);
-        // MDD tasks
-        assertTrue(
-                jobScheduler.getPendingJob(
-                                OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID)
-                        != null);
-        assertTrue(
-                jobScheduler.getPendingJob(
-                                OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID)
-                        != null);
-        assertTrue(
-                jobScheduler.getPendingJob(
-                                OnDevicePersonalizationConfig
-                                        .MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID)
-                        != null);
-        assertTrue(
-                jobScheduler.getPendingJob(
-                                OnDevicePersonalizationConfig
-                                        .MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID)
-                        != null);
+        assertAllJobsScheduled();
     }
 
     @Test
     public void testOnReceiveKillSwitchOn() {
-        PhFlagsTestUtil.enableGlobalKillSwitch();
-        // Use direct executor to keep all work sequential for the tests
-        ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
-        OnDevicePersonalizationBroadcastReceiver receiver =
-                new OnDevicePersonalizationBroadcastReceiver(executorService);
+        when(mMockFlags.getGlobalKillSwitch()).thenReturn(true);
 
-        Intent intent = new Intent(Intent.ACTION_BOOT_COMPLETED);
-        receiver.onReceive(mContext, intent);
+        mReceiverUnderTest.onReceive(mContext, BOOT_COMPLETED_INTENT);
 
-        JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
-
-        assertTrue(
-                jobScheduler.getPendingJob(OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID)
-                        == null);
         verify(() -> OnDevicePersonalizationMaintenanceJob.schedule(mContext), never());
-        assertTrue(
-                jobScheduler.getPendingJob(OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID)
-                        == null);
-        // MDD tasks
-        assertTrue(
-                jobScheduler.getPendingJob(
-                        OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID)
-                        == null);
-        assertTrue(
-                jobScheduler.getPendingJob(
-                        OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID)
-                        == null);
-        assertTrue(
-                jobScheduler.getPendingJob(
-                        OnDevicePersonalizationConfig.MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID)
-                        == null);
-        assertTrue(
-                jobScheduler.getPendingJob(
-                        OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID)
-                        == null);
+        assertNoJobsScheduled();
     }
 
     @Test
     public void testOnReceiveDeviceNotSupported() {
         ExtendedMockito.doReturn(false).when(() -> DeviceUtils.isOdpSupported(any()));
-        // Use direct executor to keep all work sequential for the tests
-        ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
-        OnDevicePersonalizationBroadcastReceiver receiver =
-                new OnDevicePersonalizationBroadcastReceiver(executorService);
 
-        Intent intent = new Intent(Intent.ACTION_BOOT_COMPLETED);
-        receiver.onReceive(mContext, intent);
+        mReceiverUnderTest.onReceive(mContext, BOOT_COMPLETED_INTENT);
 
-        JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
-
-        assertTrue(
-                jobScheduler.getPendingJob(OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID)
-                        == null);
         verify(() -> OnDevicePersonalizationMaintenanceJob.schedule(mContext), never());
-        assertTrue(
-                jobScheduler.getPendingJob(OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID)
-                        == null);
-        // MDD tasks
-        assertTrue(
-                jobScheduler.getPendingJob(
-                        OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID)
-                        == null);
-        assertTrue(
-                jobScheduler.getPendingJob(
-                        OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID)
-                        == null);
-        assertTrue(
-                jobScheduler.getPendingJob(
-                        OnDevicePersonalizationConfig.MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID)
-                        == null);
-        assertTrue(
-                jobScheduler.getPendingJob(
-                        OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID)
-                        == null);
+        assertNoJobsScheduled();
     }
 
     @Test
     public void testOnReceiveInvalidIntent() {
-        OnDevicePersonalizationBroadcastReceiver receiver =
-                new OnDevicePersonalizationBroadcastReceiver();
+        mReceiverUnderTest.onReceive(mContext, new Intent(Intent.ACTION_DIAL_EMERGENCY));
 
-        Intent intent = new Intent(Intent.ACTION_DIAL_EMERGENCY);
-        receiver.onReceive(mContext, intent);
-
-        JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
-
-        assertTrue(
-                jobScheduler.getPendingJob(OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID)
-                        == null);
         verify(() -> OnDevicePersonalizationMaintenanceJob.schedule(mContext), never());
-        assertTrue(
-                jobScheduler.getPendingJob(OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID)
-                        == null);
-        // MDD tasks
-        assertTrue(
-                jobScheduler.getPendingJob(
-                                OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID)
-                        == null);
-        assertTrue(
-                jobScheduler.getPendingJob(
-                                OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID)
-                        == null);
-        assertTrue(
-                jobScheduler.getPendingJob(
-                                OnDevicePersonalizationConfig
-                                        .MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID)
-                        == null);
-        assertTrue(
-                jobScheduler.getPendingJob(
-                                OnDevicePersonalizationConfig
-                                        .MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID)
-                        == null);
+        assertNoJobsScheduled();
     }
 
     @Test
     public void testEnableReceiver() {
-        assertTrue(OnDevicePersonalizationBroadcastReceiver.enableReceiver(mContext));
         ComponentName componentName =
                 new ComponentName(mContext, OnDevicePersonalizationBroadcastReceiver.class);
-        final PackageManager pm = mContext.getPackageManager();
-        final int result = pm.getComponentEnabledSetting(componentName);
+
+        assertTrue(OnDevicePersonalizationBroadcastReceiver.enableReceiver(mContext));
+        int result = mContext.getPackageManager().getComponentEnabledSetting(componentName);
         assertEquals(COMPONENT_ENABLED_STATE_ENABLED, result);
+    }
+
+    private void assertAllJobsScheduled() {
+        for (int jobId : JOB_IDS) {
+            assertNotNull(mJobScheduler.getPendingJob(jobId));
+        }
+    }
+
+    private void assertNoJobsScheduled() {
+        for (int jobId : JOB_IDS) {
+            assertNull(mJobScheduler.getPendingJob(jobId));
+        }
     }
 }

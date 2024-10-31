@@ -19,14 +19,11 @@ package android.adservices.ondevicepersonalization;
 import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.MODIFY_ONDEVICEPERSONALIZATION_STATE;
 
 import android.annotation.CallbackExecutor;
-import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.RequiresPermission;
 import android.annotation.SystemApi;
 import android.content.Context;
 import android.os.OutcomeReceiver;
-
-import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 import java.util.concurrent.Executor;
 
@@ -37,7 +34,6 @@ import java.util.concurrent.Executor;
  * @hide
  */
 @SystemApi
-@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class OnDevicePersonalizationConfigManager {
     /** @hide */
     public static final String ON_DEVICE_PERSONALIZATION_CONFIG_SERVICE =

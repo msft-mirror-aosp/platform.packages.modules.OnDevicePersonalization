@@ -26,7 +26,6 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -90,6 +89,7 @@ public class OnDevicePersonalizationManagingServiceTest {
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule =
             new ExtendedMockitoRule.Builder(this)
+                    .spyStatic(FlagsFactory.class)
                     .spyStatic(UserPrivacyStatus.class)
                     .spyStatic(DeviceUtils.class)
                     .spyStatic(OnDevicePersonalizationMaintenanceJobService.class)
@@ -101,10 +101,10 @@ public class OnDevicePersonalizationManagingServiceTest {
 
     @Before
     public void setup() throws Exception {
-        mService = new OnDevicePersonalizationManagingServiceDelegate(mContext, new TestInjector());
+        ExtendedMockito.doReturn(mMockFlags).when(FlagsFactory::getFlags);
+        mService = new OnDevicePersonalizationManagingServiceDelegate(mContext);
         when(mMockFlags.getGlobalKillSwitch()).thenReturn(false);
         when(mMockFlags.getMaxIntValuesLimit()).thenReturn(100);
-        doNothing().when(mMockFlags).setStableFlags();
         ExtendedMockito.doReturn(true).when(() -> DeviceUtils.isOdpSupported(any()));
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
         doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
@@ -722,13 +722,6 @@ public class OnDevicePersonalizationManagingServiceTest {
 
         public void await() throws Exception {
             mLatch.await();
-        }
-    }
-
-    private class TestInjector extends OnDevicePersonalizationManagingServiceDelegate.Injector {
-        @Override
-        Flags getFlags() {
-            return mMockFlags;
         }
     }
 }
