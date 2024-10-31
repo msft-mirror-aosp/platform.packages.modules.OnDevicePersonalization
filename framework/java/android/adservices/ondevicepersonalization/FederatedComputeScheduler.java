@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit;
  * Handles scheduling federated compute jobs. See {@link
  * IsolatedService#getFederatedComputeScheduler}.
  */
-@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class FederatedComputeScheduler {
     private static final String TAG = FederatedComputeScheduler.class.getSimpleName();
 
@@ -176,7 +175,9 @@ public class FederatedComputeScheduler {
                                     Constants.API_NAME_FEDERATED_COMPUTE_SCHEDULE,
                                     System.currentTimeMillis() - startTimeMillis,
                                     Constants.STATUS_SUCCESS);
-                            outcomeReceiver.onResult(new FederatedComputeScheduleResponse());
+                            outcomeReceiver.onResult(
+                                    new FederatedComputeScheduleResponse(
+                                            federatedComputeScheduleRequest));
                         }
 
                         @Override

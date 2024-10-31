@@ -99,6 +99,9 @@ public interface Flags extends ModuleSharedFlags {
     /** Default deadline for data reset. */
     int DEFAULT_RESET_DATA_DEADLINE_SECONDS = 30 * 60 * 60; // 30 hours
 
+    /** Default value for the plugin runner flag. */
+    boolean DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED = false;
+
     String DEFAULT_CALLER_APP_ALLOW_LIST =
             "android.ondevicepersonalization,"
                     + "android.ondevicepersonalization.test.scenario,"
@@ -239,14 +242,6 @@ public interface Flags extends ModuleSharedFlags {
         return DEFAULT_SPE_PILOT_JOB_ENABLED;
     }
 
-    /** Set all stable flags. */
-    default void setStableFlags() {}
-
-    /** Get a stable flag based on the flag name. */
-    default Object getStableFlag(String flagName) {
-        return null;
-    }
-
     default boolean getEnableClientErrorLogging() {
         return DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
     }
@@ -294,7 +289,7 @@ public interface Flags extends ModuleSharedFlags {
     }
 
     String DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH =
-            "debugreporting/v1/exceptions:report-exceptions";
+            "/debugreporting/v1/exceptions:report-exceptions";
 
     /**
      * URL suffix that the reporting job will use to send adopters daily aggregated counts of {@link
@@ -328,6 +323,26 @@ public interface Flags extends ModuleSharedFlags {
         return DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
     }
 
+    boolean DEFAULT_AGGREGATED_ERROR_REPORTING_ENCRYPTION = false;
+
+    default boolean getAggregatedErrorReportingEncryptionEnabled() {
+        return DEFAULT_AGGREGATED_ERROR_REPORTING_ENCRYPTION;
+    }
+
+    int DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_TIMEOUT_SECONDS = 30;
+
+    /** Timeout for http reporting of aggregated error data. */
+    default int getAggregatedErrorReportingHttpTimeoutSeconds() {
+        return DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_TIMEOUT_SECONDS;
+    }
+
+    int DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_RETRY_LIMIT = 3;
+
+    /** Timeout for http reporting of aggregated error data. */
+    default int getAggregatedErrorReportingHttpRetryLimit() {
+        return DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_RETRY_LIMIT;
+    }
+
     /**
      * Default value for maximum int value caller can set in {@link
      * ExecuteInIsolatedServiceRequest.OutputSpec#buildBestValueSpec}.
@@ -336,5 +351,36 @@ public interface Flags extends ModuleSharedFlags {
 
     default int getMaxIntValuesLimit() {
         return DEFAULT_MAX_INT_VALUES;
+    }
+
+    /**
+     * Default max wait time until timeout for AdServices IPC call
+     */
+    long DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS = 5000L;
+
+    default long getAdservicesIpcCallTimeoutInMillis() {
+        return DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS;
+    }
+
+    String DEFAULT_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST = "";
+
+    default String getPlatformDataForTrainingAllowlist() {
+        return DEFAULT_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST;
+    }
+
+    String DEFAULT_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST = "";
+
+    default String getDefaultPlatformDataForExecuteAllowlist() {
+        return DEFAULT_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST;
+    }
+
+    String DEFAULT_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST = "";
+
+    default String getLogIsolatedServiceErrorCodeNonAggregatedAllowlist() {
+        return DEFAULT_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST;
+    }
+
+    default boolean isPluginProcessRunnerEnabled() {
+        return DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED;
     }
 }

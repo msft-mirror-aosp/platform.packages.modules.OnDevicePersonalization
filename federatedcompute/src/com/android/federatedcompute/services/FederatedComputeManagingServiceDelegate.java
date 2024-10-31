@@ -88,7 +88,6 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
         try {
             long origId = Binder.clearCallingIdentity();
             if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
-                trainingOptions.getOwnerComponentName().getPackageName();
                 ApiCallStats.Builder apiCallStatsBuilder = new ApiCallStats.Builder()
                         .setApiName(FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE)
                         .setResponseCode(STATUS_KILL_SWITCH_ENABLED);
@@ -124,7 +123,6 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
                                     sendResult(callback, resultCode);
                                     int serviceLatency =
                                             (int) (mClock.elapsedRealtime() - startServiceTime);
-                                    trainingOptions.getOwnerComponentName().getPackageName();
                                     ApiCallStats.Builder apiCallStatsBuilder =
                                             new ApiCallStats.Builder()
                                                     .setApiName(

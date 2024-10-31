@@ -26,8 +26,6 @@ import static com.android.federatedcompute.services.common.Constants.TRACE_WORKE
 import static com.android.federatedcompute.services.common.Constants.TRACE_WORKER_START_TRAINING_RUN;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBackgroundExecutor;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getLightweightExecutor;
-import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
-import static com.android.federatedcompute.services.common.FileUtils.createTempFileDescriptor;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_NOT_CONFIGURED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_ERROR;
@@ -43,6 +41,8 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_WITH_EXCEPTION;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_WITH_REJECTION;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_STARTED;
+import static com.android.odp.module.common.FileUtils.createTempFile;
+import static com.android.odp.module.common.FileUtils.createTempFileDescriptor;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -63,18 +63,15 @@ import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.ExampleStats;
-import com.android.federatedcompute.services.common.FileUtils;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.data.fbs.TrainingFlags;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
-import com.android.federatedcompute.services.encryption.FederatedComputeEncryptionKeyManager;
-import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
+import com.android.federatedcompute.services.encryption.FederatedComputeEncryptionKeyManagerUtils;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
 import com.android.federatedcompute.services.examplestore.ExampleStoreServiceProvider;
 import com.android.federatedcompute.services.http.CheckinResult;
@@ -91,7 +88,11 @@ import com.android.federatedcompute.services.training.util.TrainingConditionsChe
 import com.android.federatedcompute.services.training.util.TrainingConditionsChecker.Condition;
 import com.android.internal.annotations.GuardedBy;
 import com.android.internal.util.Preconditions;
+import com.android.odp.module.common.FileUtils;
 import com.android.odp.module.common.PackageUtils;
+import com.android.odp.module.common.encryption.HpkeJniEncrypter;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
+import com.android.odp.module.common.encryption.OdpEncryptionKeyManager;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.FluentFuture;
@@ -142,18 +143,18 @@ public class FederatedComputeWorker {
     private TrainingRun mActiveRun = null;
 
     private HttpFederatedProtocol mHttpFederatedProtocol;
-    private ExampleStoreServiceProvider mExampleStoreServiceProvider;
+    private final ExampleStoreServiceProvider mExampleStoreServiceProvider;
     private AbstractServiceBinder<IIsolatedTrainingService> mIsolatedTrainingServiceBinder;
-    private FederatedComputeEncryptionKeyManager mEncryptionKeyManager;
+    private final OdpEncryptionKeyManager mEncryptionKeyManager;
 
     @VisibleForTesting
-    public FederatedComputeWorker(
+    FederatedComputeWorker(
             Context context,
             FederatedComputeJobManager jobManager,
             TrainingConditionsChecker trainingConditionsChecker,
             ComputationRunner computationRunner,
             ResultCallbackHelper resultCallbackHelper,
-            FederatedComputeEncryptionKeyManager keyManager,
+            OdpEncryptionKeyManager keyManager,
             ExampleStoreServiceProvider exampleStoreServiceProvider,
             Injector injector) {
         this.mContext = context.getApplicationContext();
@@ -179,7 +180,7 @@ public class FederatedComputeWorker {
                                     TrainingConditionsChecker.getInstance(context),
                                     new ComputationRunner(context),
                                     new ResultCallbackHelper(context),
-                                    FederatedComputeEncryptionKeyManager.getInstance(context),
+                                    FederatedComputeEncryptionKeyManagerUtils.getInstance(context),
                                     new ExampleStoreServiceProvider(),
                                     new Injector());
                 }
@@ -513,12 +514,11 @@ public class FederatedComputeWorker {
     private ListenableFuture<FLRunnerResult> doFederatedComputation(
             TrainingRun run, CheckinResult checkinResult, EligibilityResult eligibilityResult) {
         // 3. Fetch Active keys to encrypt the computation result.
-        List<FederatedComputeEncryptionKey> activeKeys =
+        List<OdpEncryptionKey> activeKeys =
                 mEncryptionKeyManager.getOrFetchActiveKeys(
-                        FederatedComputeEncryptionKey.KEY_TYPE_ENCRYPTION,
-                        NUM_ACTIVE_KEYS_TO_CHOOSE_FROM);
+                        OdpEncryptionKey.KEY_TYPE_ENCRYPTION, NUM_ACTIVE_KEYS_TO_CHOOSE_FROM);
         // select a random key
-        FederatedComputeEncryptionKey encryptionKey =
+        OdpEncryptionKey encryptionKey =
                 activeKeys.isEmpty()
                         ? null
                         : activeKeys.get(new Random().nextInt(activeKeys.size()));
@@ -526,7 +526,7 @@ public class FederatedComputeWorker {
             // no active keys to encrypt the FL/FA computation results, stop the computation run.
             run.mTrainingEventLogger.logEventKind(
                     FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_ENCRYPTION_KEY_FETCH_FAILED);
-            reportFailureResultToServer(run);
+            reportFailureResultToServer(run, null);
             return Futures.immediateFailedFuture(
                     new IllegalStateException("No active key available on device."));
         }
@@ -545,7 +545,7 @@ public class FederatedComputeWorker {
         if (iterator == null) {
             run.mTrainingEventLogger.logEventKind(
                     FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_COMPUTATION_FAILED);
-            reportFailureResultToServer(run);
+            reportFailureResultToServer(run, FLRunnerResult.ErrorStatus.EXAMPLE_ITERATOR_ERROR);
             return Futures.immediateFailedFuture(
                     new IllegalStateException(
                             String.format(
@@ -668,14 +668,15 @@ public class FederatedComputeWorker {
                         mInjector.getBgExecutor());
     }
 
-    private void reportFailureResultToServer(TrainingRun run) {
+    private void reportFailureResultToServer(
+            TrainingRun run, @Nullable FLRunnerResult.ErrorStatus failureStatus) {
+        FLRunnerResult.Builder runnerResultBuilder =
+                FLRunnerResult.newBuilder().setContributionResult(ContributionResult.FAIL);
+        if (failureStatus != null) {
+            runnerResultBuilder.setErrorStatus(failureStatus);
+        }
         ComputationResult failedComputationResult =
-                new ComputationResult(
-                        null,
-                        FLRunnerResult.newBuilder()
-                                .setContributionResult(ContributionResult.FAIL)
-                                .build(),
-                        null);
+                new ComputationResult(null, runnerResultBuilder.build(), null);
         try {
             reportFailureResultToServer(
                     failedComputationResult,
@@ -1161,7 +1162,7 @@ public class FederatedComputeWorker {
 
     private FluentFuture<RejectionInfo> reportResultWithAuthentication(
             ComputationResult computationResult,
-            FederatedComputeEncryptionKey encryptionKey,
+            OdpEncryptionKey encryptionKey,
             AuthorizationContext authContext,
             TrainingEventLogger trainingEventLogger) {
         // At most this function will make two calls to mHttpFederatedProtocol.reportResult
