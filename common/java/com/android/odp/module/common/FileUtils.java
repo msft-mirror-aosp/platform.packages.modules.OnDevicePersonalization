@@ -21,12 +21,14 @@ import android.os.ParcelFileDescriptor;
 import com.android.federatedcompute.internal.util.LogUtil;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 /** Utils related to {@link File} and {@link ParcelFileDescriptor}. */
 public class FileUtils {
@@ -60,14 +62,14 @@ public class FileUtils {
 
     /** Write the provided data to the file. */
     public static void writeToFile(String fileName, byte[] data) throws IOException {
-        FileOutputStream out = new FileOutputStream(fileName);
+        OutputStream out = new BufferedOutputStream(new FileOutputStream(fileName));
         out.write(data);
         out.close();
     }
 
     /** Write the provided data to the file. */
     public static long writeToFile(String fileName, InputStream inputStream) throws IOException {
-        try (FileOutputStream out = new FileOutputStream(fileName)) {
+        try (OutputStream out = new BufferedOutputStream(new FileOutputStream(fileName))) {
             return inputStream.transferTo(out);
         }
     }
@@ -106,4 +108,6 @@ public class FileUtils {
         }
         return outputStream.toByteArray();
     }
+
+    private FileUtils() {}
 }

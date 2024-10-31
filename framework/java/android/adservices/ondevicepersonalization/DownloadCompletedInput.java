@@ -29,7 +29,6 @@ import java.util.Objects;
  * IsolatedWorker#onDownloadCompleted(DownloadCompletedInput, android.os.OutcomeReceiver)}.
  *
  */
-@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public final class DownloadCompletedInput {
     /**
      * A {@link KeyValueStore} that contains the downloaded content.
