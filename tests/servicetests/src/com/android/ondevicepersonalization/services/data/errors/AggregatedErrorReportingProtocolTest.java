@@ -21,6 +21,9 @@ import static com.android.odp.module.common.http.HttpClientUtils.OCTET_STREAM;
 import static com.android.ondevicepersonalization.services.data.errors.AggregatedErrorCodesLoggerTest.getExpectedErrorData;
 import static com.android.ondevicepersonalization.services.data.errors.AggregatedErrorReportingProtocol.convertToProto;
 import static com.android.ondevicepersonalization.services.data.errors.AggregatedErrorReportingProtocol.createAggregatedErrorReportingProtocol;
+import static com.android.ondevicepersonalization.services.data.errors.AggregatedErrorReportingProtocol.getHttpRequest;
+import static com.android.ondevicepersonalization.services.data.errors.AggregatedErrorReportingProtocol.getReportRequest;
+import static com.android.ondevicepersonalization.services.data.errors.AggregatedErrorReportingProtocol.getRequestUri;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -28,6 +31,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
@@ -40,6 +45,8 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.odp.module.common.http.HttpClient;
+import com.android.odp.module.common.http.HttpClientUtils;
+import com.android.odp.module.common.http.OdpHttpRequest;
 import com.android.odp.module.common.http.OdpHttpResponse;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.PhFlags;
@@ -62,10 +69,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.quality.Strictness;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -180,21 +191,44 @@ public class AggregatedErrorReportingProtocolTest {
 
     @Test
     public void reportExceptionData_httpClientSuccessful() throws Exception {
-        OdpHttpResponse response =
+        // Tests successful upload flow, validates the requests sent via the http client.
+        TestInjector testInjector = new TestInjector();
+        ArgumentCaptor<OdpHttpRequest> clientRequestCaptor =
+                ArgumentCaptor.forClass(OdpHttpRequest.class);
+        OdpHttpResponse serverResponse =
                 createReportExceptionResponse(HTTP_OK_STATUS, UPLOAD_LOCATION_URI);
+        OdpHttpRequest expectedClientReportRequest =
+                getHttpRequest(
+                        getRequestUri(TEST_SERVER_URL, testInjector.getFlags()),
+                        Map.of(),
+                        getReportRequest().toByteArray());
+        OdpHttpRequest expectedClientUploadRequest =
+                createExpectedUploadRequest(UPLOAD_LOCATION_URI, ImmutableList.of(mErrorData));
         when(mMockHttpClient.performRequestAsyncWithRetry(any()))
-                .thenReturn(Futures.immediateFuture(response));
+                .thenReturn(Futures.immediateFuture(serverResponse));
         mInstanceUnderTest =
                 createAggregatedErrorReportingProtocol(
                         ImmutableList.of(mErrorData),
                         TEST_SERVER_URL,
                         TEST_CLIENT_VERSION,
-                        new TestInjector());
+                        testInjector);
 
         ListenableFuture<Boolean> reportingFuture = mInstanceUnderTest.reportExceptionData();
 
         assertTrue(reportingFuture.isDone());
         assertTrue(reportingFuture.get());
+        verify(mMockHttpClient, times(2))
+                .performRequestAsyncWithRetry(clientRequestCaptor.capture());
+        List<OdpHttpRequest> clientRequests = clientRequestCaptor.getAllValues();
+        // Validate the report request
+        assertEquals(HttpClientUtils.HttpMethod.PUT, clientRequests.get(0).getHttpMethod());
+        assertEquals(expectedClientReportRequest.getUri(), clientRequests.get(0).getUri());
+        // Validate the subsequent upload request
+        assertEquals(HttpClientUtils.HttpMethod.PUT, clientRequests.get(1).getHttpMethod());
+        assertEquals(expectedClientUploadRequest.getUri(), clientRequests.get(1).getUri());
+        assertTrue(
+                Arrays.equals(
+                        expectedClientUploadRequest.getBody(), clientRequests.get(1).getBody()));
     }
 
     @Test
@@ -229,21 +263,25 @@ public class AggregatedErrorReportingProtocolTest {
                 convertToProto(ImmutableList.of(mErrorData));
         String expectedErrorData =
                 Base64.encodeToString(errorDataList.toByteArray(), Base64.NO_WRAP);
-        mInstanceUnderTest =
-                createAggregatedErrorReportingProtocol(
-                        ImmutableList.of(mErrorData),
-                        TEST_SERVER_URL,
-                        TEST_CLIENT_VERSION,
-                        new TestInjector());
 
         JSONObject jsonResponse =
-                new JSONObject(new String(mInstanceUnderTest.createEncryptedRequestBody()));
-
+                new JSONObject(
+                        new String(
+                                AggregatedErrorReportingProtocol.createEncryptedRequestBody(
+                                        ImmutableList.of(mErrorData))));
         assertEquals(
                 expectedErrorData,
                 jsonResponse.get(
                         AggregatedErrorReportingProtocol.AggregatedErrorDataPayloadContract
                                 .ENCRYPTED_PAYLOAD));
+    }
+
+    private static OdpHttpRequest createExpectedUploadRequest(
+            String uploadLocation, ImmutableList<ErrorData> errorData) throws JSONException {
+        return getHttpRequest(
+                uploadLocation,
+                /* requestHeadersMap= */ Map.of(CONTENT_TYPE_HDR, OCTET_STREAM),
+                AggregatedErrorReportingProtocol.createEncryptedRequestBody(errorData));
     }
 
     private static OdpHttpResponse createReportExceptionResponse(int statusCode) {
