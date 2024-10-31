@@ -48,6 +48,7 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfi
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -122,6 +123,37 @@ public class AggregateErrorDataReportingServiceTest {
         assertNotNull(
                 mJobScheduler.getPendingJob(
                         OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID));
+    }
+
+    @Test
+    public void onStartJob_errorReportingEnabled_futureResolves_callsWorker() {
+        // Given that the aggregate error reporting is enabled and the job is
+        // scheduled successfully.
+        SettableFuture<Void> returnedFuture = SettableFuture.create();
+        mGetGlobalKillSwitch = false;
+        mAggregateErrorReportingEnabled = true;
+        when(mMockReportingWorker.reportAggregateErrors(any())).thenReturn(returnedFuture);
+        assertEquals(
+                JobScheduler.RESULT_SUCCESS,
+                AggregateErrorDataReportingService.scheduleIfNeeded(mContext, mMockFlags));
+        assertNotNull(
+                mJobScheduler.getPendingJob(
+                        OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID));
+
+        // When the job is started.
+        boolean result = mService.onStartJob(mock(JobParameters.class));
+
+        // Expect that the worker is called once and the pending job is not cancelled.
+        // The job is marked finished only after the settable future resolves.
+        assertTrue(result);
+        verify(mService, times(0)).jobFinished(any(), eq(false));
+        verify(mMockReportingWorker, times(1)).reportAggregateErrors(any());
+        assertNotNull(
+                mJobScheduler.getPendingJob(
+                        OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID));
+        // jobFinished called after the future resolves.
+        returnedFuture.set(null);
+        verify(mService, times(1)).jobFinished(any(), eq(false));
     }
 
     @Test

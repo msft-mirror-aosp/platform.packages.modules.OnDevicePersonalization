@@ -286,6 +286,7 @@ class OnDevicePersonalizationAggregatedErrorDataDao {
         }
 
         int existingExceptionCount = getExceptionCount(isolatedServiceErrorCode, epochDay);
+        sLogger.d(TAG + ": existing exception count " + existingExceptionCount);
         if (!createTableIfNotExists(mTableName)) {
             sLogger.e(TAG + ": failed to create table " + mTableName);
             return false;

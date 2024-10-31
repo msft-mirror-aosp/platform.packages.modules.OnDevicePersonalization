@@ -196,7 +196,7 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
             Preconditions.checkArgument(
                     !uploadInstruction.getUploadLocation().isEmpty(),
                     "UploadInstruction.upload_location must not be empty");
-            byte[] outputBytes = createEncryptedRequestBody();
+            byte[] outputBytes = createEncryptedRequestBody(mErrorData);
             // Apply a top-level compression to the payload.
             if (uploadInstruction.getCompressionFormat()
                     == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP) {
@@ -219,11 +219,12 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
     }
 
     @VisibleForTesting
-    byte[] createEncryptedRequestBody() throws JSONException {
+    static byte[] createEncryptedRequestBody(ImmutableList<ErrorData> errorData)
+            throws JSONException {
         // Creates and encrypts the error data that is uploaded to the server.
         // create payload
         com.google.ondevicepersonalization.federatedcompute.proto.ErrorDataList errorDataList =
-                convertToProto(mErrorData);
+                convertToProto(errorData);
         byte[] output = errorDataList.toByteArray();
         final JSONObject body = new JSONObject();
 
@@ -251,7 +252,8 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
                 requestBaseUri, flags.getAggregatedErrorReportingServerPath());
     }
 
-    private static ReportExceptionRequest getReportRequest() {
+    @VisibleForTesting
+    static ReportExceptionRequest getReportRequest() {
         Timestamp requestTime =
                 Timestamp.newBuilder().setSeconds(DateTimeUtils.epochSecondsUtc()).build();
         return ReportExceptionRequest.newBuilder()
@@ -284,7 +286,8 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
         return builder.build();
     }
 
-    private static OdpHttpRequest getHttpRequest(
+    @VisibleForTesting
+    static OdpHttpRequest getHttpRequest(
             String uri, Map<String, String> requestHeaders, byte[] body) {
         // Helper method for http request that contains serialized proto payload.
         HashMap<String, String> headers = new HashMap<>(requestHeaders);
