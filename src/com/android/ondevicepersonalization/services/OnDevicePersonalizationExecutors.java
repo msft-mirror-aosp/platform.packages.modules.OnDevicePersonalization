@@ -39,7 +39,7 @@ public final class OnDevicePersonalizationExecutors {
     private static final ListeningExecutorService sHighPriorityBackgroundExecutor =
             MoreExecutors.listeningDecorator(
                     Executors.newFixedThreadPool(
-                            /* nThreads */ 2,
+                            /* nThreads */ 4,
                             createThreadFactory(
                                     "HPBG Thread",
                                     Process.THREAD_PRIORITY_BACKGROUND
@@ -49,7 +49,7 @@ public final class OnDevicePersonalizationExecutors {
     private static final ListeningExecutorService sLowPriorityBackgroundExecutor =
             MoreExecutors.listeningDecorator(
                     Executors.newFixedThreadPool(
-                            /* nThreads */ 2,
+                            /* nThreads */ 4,
                             createThreadFactory(
                                     "LPBG Thread",
                                     Process.THREAD_PRIORITY_BACKGROUND

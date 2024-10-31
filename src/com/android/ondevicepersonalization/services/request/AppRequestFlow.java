@@ -23,6 +23,7 @@ import android.adservices.ondevicepersonalization.ExecuteInputParcel;
 import android.adservices.ondevicepersonalization.ExecuteOptionsParcel;
 import android.adservices.ondevicepersonalization.ExecuteOutputParcel;
 import android.adservices.ondevicepersonalization.RenderingConfig;
+import android.adservices.ondevicepersonalization.UserData;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.annotation.NonNull;
@@ -254,8 +255,11 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         serviceParams.putBinder(
                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new FederatedComputeServiceImpl(mService, mContext));
-        serviceParams.putParcelable(
-                Constants.EXTRA_USER_DATA, new UserDataAccessor().getUserData());
+        UserData userData =
+                isPlatformDataProvided()
+                        ? new UserDataAccessor().getUserDataWithAppInstall()
+                        : new UserDataAccessor().getUserData();
+        serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
         mModelServiceProvider.set(new IsolatedModelServiceProvider());
         IIsolatedModelService modelService = mModelServiceProvider.get().getModelService(mContext);
         serviceParams.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, modelService.asBinder());
@@ -398,6 +402,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             return Futures.immediateFuture(-1L);
         }
         return LogUtils.writeLogRecords(
+                Constants.TASK_TYPE_EXECUTE,
                 mContext,
                 mCallingPackageName,
                 mService,
@@ -433,24 +438,30 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, token);
             // bundle.getInt(key) returns 0 if the key is not found. It can be confused with the
             // real best value 0, so set it to -1 explicitly to indicate this field is unset.
-            int bestValue = -1;
-            if (isOutputDataAllowed()
-                    && mOptions.getOutputType()
-                            == ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE) {
-                bestValue =
-                        mInjector
-                                .getNoiseUtil()
-                                .applyNoiseToBestValue(
-                                        result.getBestValue(),
-                                        mOptions.getMaxIntValue(),
-                                        ThreadLocalRandom.current());
-            }
-            bundle.putInt(Constants.EXTRA_OUTPUT_BEST_VALUE, bestValue);
+            bundle.putInt(
+                    Constants.EXTRA_OUTPUT_BEST_VALUE, processBestValue(result.getBestValue()));
 
             return Futures.immediateFuture(bundle);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
+    }
+
+    private int processBestValue(int actualResult) {
+        int bestValue = -1;
+        if (!isOutputDataAllowed()
+                || mOptions.getOutputType()
+                        != ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE) {
+            return bestValue;
+        }
+        // Don't apply noise if partner only uses their own data.
+        if (!isPlatformDataProvided()) {
+            return actualResult;
+        }
+        return mInjector
+                .getNoiseUtil()
+                .applyNoiseToBestValue(
+                        actualResult, mOptions.getMaxIntValue(), ThreadLocalRandom.current());
     }
 
     private boolean isOutputDataAllowed() {
@@ -461,6 +472,18 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                     mService.getPackageName(),
                     PackageUtils.getCertDigest(mContext, mService.getPackageName()),
                     mInjector.getFlags().getOutputDataAllowList());
+        } catch (Exception e) {
+            sLogger.d(TAG + ": allow list error", e);
+            return false;
+        }
+    }
+
+    private boolean isPlatformDataProvided() {
+        try {
+            return AllowListUtils.isAllowListed(
+                    mService.getPackageName(),
+                    PackageUtils.getCertDigest(mContext, mService.getPackageName()),
+                    mInjector.getFlags().getDefaultPlatformDataForExecuteAllowlist());
         } catch (Exception e) {
             sLogger.d(TAG + ": allow list error", e);
             return false;
