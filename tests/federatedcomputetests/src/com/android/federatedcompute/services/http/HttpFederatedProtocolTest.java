@@ -19,16 +19,16 @@ package com.android.federatedcompute.services.http;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
-import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_TYPE_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.FCP_OWNER_ID_DIGEST;
 import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_UNAUTHENTICATED_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_AUTHENTICATION_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_AUTHORIZATION_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
-import static com.android.federatedcompute.services.http.HttpClientUtil.PROTOBUF_CONTENT_TYPE;
 import static com.android.odp.module.common.FileUtils.createTempFile;
-import static com.android.odp.module.common.HttpClientUtils.compressWithGzip;
+import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_TYPE_HDR;
+import static com.android.odp.module.common.http.HttpClientUtils.PROTOBUF_CONTENT_TYPE;
+import static com.android.odp.module.common.http.HttpClientUtils.compressWithGzip;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
@@ -57,20 +57,21 @@ import com.android.federatedcompute.services.common.NetworkStats;
 import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.ODPAuthorizationToken;
 import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
-import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
 import com.android.federatedcompute.services.security.AuthorizationContext;
 import com.android.federatedcompute.services.security.KeyAttestation;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.util.ComputationResult;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.odp.module.common.Clock;
-import com.android.odp.module.common.HttpClientUtils;
 import com.android.odp.module.common.MonotonicClock;
-import com.android.odp.module.common.OdpHttpRequest;
-import com.android.odp.module.common.OdpHttpResponse;
+import com.android.odp.module.common.encryption.HpkeJniEncrypter;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
+import com.android.odp.module.common.http.HttpClient;
+import com.android.odp.module.common.http.HttpClientUtils;
+import com.android.odp.module.common.http.OdpHttpRequest;
+import com.android.odp.module.common.http.OdpHttpResponse;
 
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
@@ -160,11 +161,11 @@ public final class HttpFederatedProtocolTest {
                             KeyAttestationAuthMetadata.newBuilder()
                                     .setChallenge(ByteString.copyFrom(CHALLENGE)))
                     .build();
-    private static final FederatedComputeEncryptionKey ENCRYPTION_KEY =
-            new FederatedComputeEncryptionKey.Builder()
+    private static final OdpEncryptionKey ENCRYPTION_KEY =
+            new OdpEncryptionKey.Builder()
                     .setPublicKey("rSJBSUYG0ebvfW1AXCWO0CMGMJhDzpfQm3eLyw1uxX8=")
                     .setKeyIdentifier("0962201a-5abd-4e25-a486-2c7bd1ee1887")
-                    .setKeyType(FederatedComputeEncryptionKey.KEY_TYPE_ENCRYPTION)
+                    .setKeyType(OdpEncryptionKey.KEY_TYPE_ENCRYPTION)
                     .setCreationTime(1L)
                     .setExpiryTime(1L)
                     .build();
@@ -178,6 +179,21 @@ public final class HttpFederatedProtocolTest {
             FLRunnerResult.newBuilder()
                     .setContributionResult(ContributionResult.FAIL)
                     .setErrorStatus(FLRunnerResult.ErrorStatus.NOT_ELIGIBLE)
+                    .build();
+    private static final FLRunnerResult FL_RUNNER_TENSORFLOW_ERROR_RESULT =
+            FLRunnerResult.newBuilder()
+                    .setContributionResult(ContributionResult.FAIL)
+                    .setErrorStatus(FLRunnerResult.ErrorStatus.TENSORFLOW_ERROR)
+                    .build();
+    private static final FLRunnerResult FL_RUNNER_INVALID_ARGUMENT_RESULT =
+            FLRunnerResult.newBuilder()
+                    .setContributionResult(ContributionResult.FAIL)
+                    .setErrorStatus(FLRunnerResult.ErrorStatus.INVALID_ARGUMENT)
+                    .build();
+    private static final FLRunnerResult FL_RUNNER_EXAMPLE_ITEREATOR_EEROR_RESULT =
+            FLRunnerResult.newBuilder()
+                    .setContributionResult(ContributionResult.FAIL)
+                    .setErrorStatus(FLRunnerResult.ErrorStatus.EXAMPLE_ITERATOR_ERROR)
                     .build();
     private static final CreateTaskAssignmentRequest
             START_TASK_ASSIGNMENT_REQUEST_WITH_COMPRESSION =
@@ -673,6 +689,137 @@ public final class HttpFederatedProtocolTest {
         ReportResultRequest reportResultRequest =
                 ReportResultRequest.newBuilder()
                         .setResult(Result.NOT_ELIGIBLE)
+                        .setResourceCapabilities(
+                                ResourceCapabilities.newBuilder()
+                                        .addSupportedCompressionFormats(
+                                                ResourceCompressionFormat
+                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP))
+                        .build();
+        checkActualReportResultRequest(actualReportResultRequest);
+        assertThat(actualReportResultRequest.getBody())
+                .isEqualTo(reportResultRequest.toByteArray());
+        verify(mTrainingEventLogger).logFailureResultUploadStarted();
+        verify(mTrainingEventLogger)
+                .logFailureResultUploadCompleted(mNetworkStatsArgumentCaptor.capture());
+        NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
+        assertTrue(networkStats.getDataTransferDurationInMillis() > 0);
+        assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(mSupportCompression ? 96 : 68);
+        assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(231);
+    }
+
+    @Test
+    public void testReportTensorflowErrorTrainingResult_returnSuccess() throws Exception {
+        ComputationResult computationResult =
+                new ComputationResult(
+                        createOutputCheckpointFile(), FL_RUNNER_TENSORFLOW_ERROR_RESULT, null);
+
+        setUpHttpFederatedProtocol();
+        // Setup task id, aggregation id for report result.
+        CreateTaskAssignmentResponse taskAssignmentResponse =
+                mHttpFederatedProtocol.createTaskAssignment(createAuthContext()).get();
+        mHttpFederatedProtocol
+                .downloadTaskAssignment(taskAssignmentResponse.getTaskAssignment())
+                .get();
+
+        mHttpFederatedProtocol
+                .reportResult(computationResult, ENCRYPTION_KEY, createAuthContext())
+                .get();
+
+        // Verify ReportResult request.
+        List<OdpHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        assertThat(actualHttpRequests).hasSize(4);
+        OdpHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
+        ReportResultRequest reportResultRequest =
+                ReportResultRequest.newBuilder()
+                        .setResult(Result.FAILED_MODEL_COMPUTATION)
+                        .setResourceCapabilities(
+                                ResourceCapabilities.newBuilder()
+                                        .addSupportedCompressionFormats(
+                                                ResourceCompressionFormat
+                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP))
+                        .build();
+        checkActualReportResultRequest(actualReportResultRequest);
+        assertThat(actualReportResultRequest.getBody())
+                .isEqualTo(reportResultRequest.toByteArray());
+        verify(mTrainingEventLogger).logFailureResultUploadStarted();
+        verify(mTrainingEventLogger)
+                .logFailureResultUploadCompleted(mNetworkStatsArgumentCaptor.capture());
+        NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
+        assertTrue(networkStats.getDataTransferDurationInMillis() > 0);
+        assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(mSupportCompression ? 96 : 68);
+        assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(231);
+    }
+
+    @Test
+    public void testReportInvalidArgTrainingResult_returnSuccess() throws Exception {
+        ComputationResult computationResult =
+                new ComputationResult(
+                        createOutputCheckpointFile(), FL_RUNNER_INVALID_ARGUMENT_RESULT, null);
+
+        setUpHttpFederatedProtocol();
+        // Setup task id, aggregation id for report result.
+        CreateTaskAssignmentResponse taskAssignmentResponse =
+                mHttpFederatedProtocol.createTaskAssignment(createAuthContext()).get();
+        mHttpFederatedProtocol
+                .downloadTaskAssignment(taskAssignmentResponse.getTaskAssignment())
+                .get();
+
+        mHttpFederatedProtocol
+                .reportResult(computationResult, ENCRYPTION_KEY, createAuthContext())
+                .get();
+
+        // Verify ReportResult request.
+        List<OdpHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        assertThat(actualHttpRequests).hasSize(4);
+        OdpHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
+        ReportResultRequest reportResultRequest =
+                ReportResultRequest.newBuilder()
+                        .setResult(Result.FAILED_MODEL_COMPUTATION)
+                        .setResourceCapabilities(
+                                ResourceCapabilities.newBuilder()
+                                        .addSupportedCompressionFormats(
+                                                ResourceCompressionFormat
+                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP))
+                        .build();
+        checkActualReportResultRequest(actualReportResultRequest);
+        assertThat(actualReportResultRequest.getBody())
+                .isEqualTo(reportResultRequest.toByteArray());
+        verify(mTrainingEventLogger).logFailureResultUploadStarted();
+        verify(mTrainingEventLogger)
+                .logFailureResultUploadCompleted(mNetworkStatsArgumentCaptor.capture());
+        NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
+        assertTrue(networkStats.getDataTransferDurationInMillis() > 0);
+        assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(mSupportCompression ? 96 : 68);
+        assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(231);
+    }
+
+    @Test
+    public void testReportExampleIteratorErrorTrainingResult_returnSuccess() throws Exception {
+        ComputationResult computationResult =
+                new ComputationResult(
+                        createOutputCheckpointFile(),
+                        FL_RUNNER_EXAMPLE_ITEREATOR_EEROR_RESULT,
+                        null);
+
+        setUpHttpFederatedProtocol();
+        // Setup task id, aggregation id for report result.
+        CreateTaskAssignmentResponse taskAssignmentResponse =
+                mHttpFederatedProtocol.createTaskAssignment(createAuthContext()).get();
+        mHttpFederatedProtocol
+                .downloadTaskAssignment(taskAssignmentResponse.getTaskAssignment())
+                .get();
+
+        mHttpFederatedProtocol
+                .reportResult(computationResult, ENCRYPTION_KEY, createAuthContext())
+                .get();
+
+        // Verify ReportResult request.
+        List<OdpHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        assertThat(actualHttpRequests).hasSize(4);
+        OdpHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
+        ReportResultRequest reportResultRequest =
+                ReportResultRequest.newBuilder()
+                        .setResult(Result.FAILED_EXAMPLE_GENERATION)
                         .setResourceCapabilities(
                                 ResourceCapabilities.newBuilder()
                                         .addSupportedCompressionFormats(

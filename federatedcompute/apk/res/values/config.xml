@@ -1,0 +1,4 @@
+<resources>
+    <!-- Enable or disable boot receiver of federatedcompute -->
+    <bool name="config_enableBootReceiver">true</bool>
+</resources>

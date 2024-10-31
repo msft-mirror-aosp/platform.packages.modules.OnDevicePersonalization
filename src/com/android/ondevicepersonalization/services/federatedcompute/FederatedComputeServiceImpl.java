@@ -22,24 +22,21 @@ import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.federatedcompute.FederatedComputeManager;
 import android.federatedcompute.common.ClientConstants;
 import android.federatedcompute.common.ScheduleFederatedComputeRequest;
 import android.federatedcompute.common.TrainingOptions;
 import android.os.OutcomeReceiver;
 import android.os.RemoteException;
-import android.os.SystemProperties;
-import android.provider.DeviceConfig;
 
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
+import com.android.ondevicepersonalization.services.util.DebugUtils;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 
@@ -53,11 +50,6 @@ import java.util.Objects;
 public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "FederatedComputeServiceImpl";
-
-    private static final String OVERRIDE_FC_SERVER_URL_PACKAGE =
-            "debug.ondevicepersonalization.override_fc_server_url_package";
-    private static final String OVERRIDE_FC_SERVER_URL =
-            "debug.ondevicepersonalization.override_fc_server_url";
 
     @NonNull private final Context mApplicationContext;
     @NonNull private final ComponentName mCallingService;
@@ -99,37 +91,11 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
             String url =
                     AppManifestConfigHelper.getFcRemoteServerUrlFromOdpSettings(
                             mApplicationContext, mCallingService.getPackageName());
-
-            // Check for override manifest url property, if package is debuggable
-            if (PackageUtils.isPackageDebuggable(
-                    mApplicationContext, mCallingService.getPackageName())) {
-                if (SystemProperties.get(OVERRIDE_FC_SERVER_URL_PACKAGE, "")
-                        .equals(mCallingService.getPackageName())) {
-                    String overrideManifestUrl = SystemProperties.get(OVERRIDE_FC_SERVER_URL, "");
-                    if (!overrideManifestUrl.isEmpty()) {
-                        sLogger.d(
-                                TAG
-                                        + ": Overriding fc server URL for package "
-                                        + mCallingService.getPackageName()
-                                        + " to "
-                                        + overrideManifestUrl);
-                        url = overrideManifestUrl;
-                    }
-                    String deviceConfigOverrideUrl =
-                            DeviceConfig.getString(
-                                    /* namespace= */ "on_device_personalization",
-                                    /* name= */ OVERRIDE_FC_SERVER_URL,
-                                    /* defaultValue= */ "");
-                    if (!deviceConfigOverrideUrl.isEmpty()) {
-                        sLogger.d(
-                                TAG
-                                        + ": Overriding fc server URL for package "
-                                        + mCallingService.getPackageName()
-                                        + " to "
-                                        + deviceConfigOverrideUrl);
-                        url = deviceConfigOverrideUrl;
-                    }
-                }
+            String overrideUrl =
+                    DebugUtils.getFcServerOverrideUrl(
+                            mApplicationContext, mCallingService.getPackageName());
+            if (!overrideUrl.isEmpty()) {
+                url = overrideUrl;
             }
 
             if (url == null) {
@@ -180,7 +146,7 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
                             sendError(callback);
                         }
                     });
-        } catch (IOException | PackageManager.NameNotFoundException | IllegalArgumentException e) {
+        } catch (IOException | IllegalArgumentException e) {
             // The AppManifestConfigHelper methods throw IllegalArgumentExceptions when
             // parsings fails or the fc settings URL is missing.
             sLogger.e(TAG + ": Error while scheduling federatedCompute", e);

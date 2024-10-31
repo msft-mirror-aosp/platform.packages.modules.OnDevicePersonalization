@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -37,6 +38,7 @@ import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.ProviderException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.List;
 
@@ -49,15 +51,15 @@ public final class KeyAttestationTest {
 
     private static final String CALLING_APP = "sampleApp1";
 
-    private static final String ANDROID_KEY_STORE = "AndroidKeyStore";
-
-    private static final String KEY_ALIAS = CALLING_APP + "-ODPKeyAttestation";
+    private static final String KEY_ALIAS = KeyAttestation.getKeyAlias(CALLING_APP);
 
     private KeyAttestation mKeyAttestation;
 
     @Mock private KeyStore mMockKeyStore;
 
     @Mock private KeyPairGenerator mMockKeyPairGenerator;
+
+    @Mock private Certificate mMockCert;
 
     @Before
     public void setUp() throws Exception {
@@ -67,14 +69,13 @@ public final class KeyAttestationTest {
                         ApplicationProvider.getApplicationContext(), new TestInjector());
     }
 
-    // TODO: add tests for success cases.
     @Test
     public void testGenerateAttestationRecord_nullKey() {
         doReturn(null).when(mMockKeyPairGenerator).generateKeyPair();
 
         List<String> record = mKeyAttestation.generateAttestationRecord(CHALLENGE, CALLING_APP);
 
-        assertThat(record.size()).isEqualTo(0);
+        assertThat(record).isEmpty();
     }
 
     @Test
@@ -95,7 +96,7 @@ public final class KeyAttestationTest {
         KeyPair unused = mKeyAttestation.generateHybridKey(CHALLENGE, KEY_ALIAS);
         List<String> record = mKeyAttestation.getAttestationRecordFromKeyAlias(keyAlias2);
 
-        assertThat(record.size()).isEqualTo(0);
+        assertThat(record).isEmpty();
     }
 
     @Test
@@ -104,7 +105,7 @@ public final class KeyAttestationTest {
 
         List<String> record = mKeyAttestation.getAttestationRecordFromKeyAlias(KEY_ALIAS);
 
-        assertThat(record.size()).isEqualTo(0);
+        assertThat(record).isEmpty();
     }
 
     @Test
@@ -115,7 +116,26 @@ public final class KeyAttestationTest {
 
         List<String> record = mKeyAttestation.getAttestationRecordFromKeyAlias(KEY_ALIAS);
 
-        assertThat(record.size()).isEqualTo(0);
+        assertThat(record).isEmpty();
+    }
+
+    @Test
+    public void testGetAttestationRecordFromKeyAlias_nullCertificate() throws Exception {
+        when(mMockKeyStore.getCertificateChain(any())).thenReturn(null);
+
+        List<String> record = mKeyAttestation.getAttestationRecordFromKeyAlias(KEY_ALIAS);
+
+        assertThat(record).isEmpty();
+    }
+
+    @Test
+    public void testGetAttestationRecordFromKeyAlias_Certificate() throws Exception {
+        when(mMockKeyStore.getCertificateChain(any())).thenReturn(new Certificate[] {mMockCert});
+        when(mMockCert.getEncoded()).thenReturn(new byte[] {20});
+
+        List<String> record = mKeyAttestation.getAttestationRecordFromKeyAlias(KEY_ALIAS);
+
+        assertThat(record).hasSize(1);
     }
 
     @Test
@@ -129,7 +149,7 @@ public final class KeyAttestationTest {
         assertThat(keyPair).isNull();
     }
 
-    class TestInjector extends KeyAttestation.Injector {
+    private class TestInjector extends KeyAttestation.Injector {
         @Override
         KeyStore getKeyStore() {
             return mMockKeyStore;
