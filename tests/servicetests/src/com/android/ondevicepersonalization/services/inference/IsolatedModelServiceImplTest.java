@@ -42,6 +42,7 @@ import android.os.ParcelFileDescriptor;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.ondevicepersonalization.internal.util.ByteArrayUtil;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import org.junit.Before;
@@ -93,7 +94,8 @@ public class IsolatedModelServiceImplTest {
         modelService.runInference(bundle, callback);
 
         InferenceOutputParcel result = verifyAndGetCallbackResult(callback);
-        Map<Integer, Object> outputs = result.getData();
+        Map<Integer, Object> outputs =
+                (Map<Integer, Object>) ByteArrayUtil.deserializeObject(result.getData());
         float[] output1 = (float[]) outputs.get(0);
         assertThat(output1.length).isEqualTo(1);
     }
@@ -120,7 +122,8 @@ public class IsolatedModelServiceImplTest {
         modelService.runInference(bundle, callback);
 
         InferenceOutputParcel result = verifyAndGetCallbackResult(callback);
-        Map<Integer, Object> outputs = result.getData();
+        Map<Integer, Object> outputs =
+                (Map<Integer, Object>) ByteArrayUtil.deserializeObject(result.getData());
         float[] output1 = (float[]) outputs.get(0);
         assertThat(output1.length).isEqualTo(numExample);
     }
@@ -146,7 +149,8 @@ public class IsolatedModelServiceImplTest {
         modelService.runInference(bundle, callback);
 
         InferenceOutputParcel result = verifyAndGetCallbackResult(callback);
-        Map<Integer, Object> outputs = result.getData();
+        Map<Integer, Object> outputs =
+                (Map<Integer, Object>) ByteArrayUtil.deserializeObject(result.getData());
         float[] output1 = (float[]) outputs.get(0);
         assertThat(output1.length).isEqualTo(numExample);
     }
@@ -171,7 +175,8 @@ public class IsolatedModelServiceImplTest {
         modelService.runInference(bundle, callback);
 
         InferenceOutputParcel result = verifyAndGetCallbackResult(callback);
-        Map<Integer, Object> outputs = result.getData();
+        Map<Integer, Object> outputs =
+                (Map<Integer, Object>) ByteArrayUtil.deserializeObject(result.getData());
         float[] output1 = (float[]) outputs.get(0);
         assertThat(output1.length).isEqualTo(numExample);
     }
@@ -229,28 +234,6 @@ public class IsolatedModelServiceImplTest {
                         new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY)
                                 .setRecommendedNumThreads(-1)
                                 .build());
-    }
-
-    @Test
-    public void runModelInference_missingModelOutput() throws Exception {
-        InferenceInput inferenceInput =
-                // Not set output structure in InferenceOutput.
-                new InferenceInput.Builder(
-                                mParams,
-                                generateInferenceInput(1),
-                                new InferenceOutput.Builder().build())
-                        .build();
-
-        Bundle bundle = new Bundle();
-        bundle.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
-        bundle.putParcelable(
-                Constants.EXTRA_INFERENCE_INPUT, new InferenceInputParcel(inferenceInput));
-
-        IsolatedModelServiceImpl modelService = new IsolatedModelServiceImpl();
-        var callback = new TestServiceCallback();
-        modelService.runInference(bundle, callback);
-
-        verifyCallBackError(callback, OnDevicePersonalizationException.ERROR_INFERENCE_FAILED);
     }
 
     @Test

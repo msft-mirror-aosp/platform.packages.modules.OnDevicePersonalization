@@ -21,7 +21,9 @@ import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.SuppressLint;
 
+import com.android.internal.util.Preconditions;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
+import com.android.ondevicepersonalization.internal.util.ByteArrayUtil;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 import java.lang.annotation.Retention;
@@ -37,9 +39,11 @@ public final class InferenceInput {
     @NonNull private Params mParams;
 
     /**
-     * An array of input data. The inputs should be in the same order as inputs of the model.
+     * A byte array that holds input data. The inputs should be in the same order as inputs of the
+     * model.
      *
-     * <p>For example, if a model takes multiple inputs:
+     * <p>For LiteRT, this field is mapped to inputs of runForMultipleInputsOutputs:
+     * https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
      *
      * <pre>{@code
      * String[] input0 = {"foo", "bar"}; // string tensor shape is [2].
@@ -47,10 +51,11 @@ public final class InferenceInput {
      * Object[] inputData = {input0, input1, ...};
      * }</pre>
      *
-     * For TFLite, this field is mapped to inputs of runForMultipleInputsOutputs:
-     * https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
+     * <p>For Executorch model, this field is a serialized EValue array.
+     *
+     * @hide
      */
-    @NonNull private Object[] mInputData;
+    @NonNull private byte[] mData;
 
     /**
      * The number of input examples. Adopter can set this field to run batching inference. The batch
@@ -59,7 +64,7 @@ public final class InferenceInput {
     private int mBatchSize = 1;
 
     /**
-     * The empty InferenceOutput representing the expected output structure. For TFLite, the
+     * The empty InferenceOutput representing the expected output structure. For LiteRT, the
      * inference code will verify whether this expected output structure matches model output
      * signature.
      *
@@ -77,14 +82,14 @@ public final class InferenceInput {
     @DataClass(genBuilder = true, genHiddenConstructor = true, genEqualsHashCode = true)
     public static class Params {
         /**
-         * A {@link KeyValueStore} where pre-trained model is stored. Only supports TFLite model
+         * A {@link KeyValueStore} where pre-trained model is stored. Only supports LiteRT model
          * now.
          */
         @NonNull private KeyValueStore mKeyValueStore;
 
         /**
          * The key of the table where the corresponding value stores a pre-trained model. Only
-         * supports TFLite model now.
+         * supports LiteRT model now.
          */
         @NonNull private String mModelKey;
 
@@ -112,6 +117,13 @@ public final class InferenceInput {
         public static final int MODEL_TYPE_TENSORFLOW_LITE = 1;
 
         /**
+         * The model is an executorch model.
+         *
+         * @hide
+         */
+        public static final int MODEL_TYPE_EXECUTORCH = 2;
+
+        /**
          * The type of the model.
          *
          * @hide
@@ -124,7 +136,7 @@ public final class InferenceInput {
 
         /**
          * The type of the pre-trained model. If not set, the default value is {@link
-         * #MODEL_TYPE_TENSORFLOW_LITE} . Only supports {@link #MODEL_TYPE_TENSORFLOW_LITE} for now.
+         * #MODEL_TYPE_TENSORFLOW_LITE} .
          */
         private @ModelType int mModelType = MODEL_TYPE_TENSORFLOW_LITE;
 
@@ -152,14 +164,13 @@ public final class InferenceInput {
          * Creates a new Params.
          *
          * @param keyValueStore A {@link KeyValueStore} where pre-trained model is stored. Only
-         *     supports TFLite model now.
+         *     supports LiteRT model now.
          * @param modelKey The key of the table where the corresponding value stores a pre-trained
-         *     model. Only supports TFLite model now.
+         *     model. Only supports LiteRT model now.
          * @param delegateType The delegate to run model inference. If not set, the default value is
          *     {@link #DELEGATE_CPU}.
          * @param modelType The type of the pre-trained model. If not set, the default value is
-         *     {@link #MODEL_TYPE_TENSORFLOW_LITE} . Only supports {@link
-         *     #MODEL_TYPE_TENSORFLOW_LITE} for now.
+         *     {@link #MODEL_TYPE_TENSORFLOW_LITE} .
          * @param recommendedNumThreads The number of threads used for intraop parallelism on CPU,
          *     must be positive number. Adopters can set this field based on model architecture. The
          *     actual thread number depends on system resources and other constraints.
@@ -179,7 +190,21 @@ public final class InferenceInput {
             this.mDelegateType = delegateType;
             AnnotationValidations.validate(Delegate.class, null, mDelegateType);
             this.mModelType = modelType;
-            AnnotationValidations.validate(ModelType.class, null, mModelType);
+
+            if (!(mModelType == MODEL_TYPE_TENSORFLOW_LITE)
+                    && !(mModelType == MODEL_TYPE_EXECUTORCH)) {
+                throw new java.lang.IllegalArgumentException(
+                        "modelType was "
+                                + mModelType
+                                + " but must be one of: "
+                                + "MODEL_TYPE_TENSORFLOW_LITE("
+                                + MODEL_TYPE_TENSORFLOW_LITE
+                                + "), "
+                                + "MODEL_TYPE_EXECUTORCH("
+                                + MODEL_TYPE_EXECUTORCH
+                                + ")");
+            }
+
             this.mRecommendedNumThreads = recommendedNumThreads;
             AnnotationValidations.validate(IntRange.class, null, mRecommendedNumThreads, "from", 1);
 
@@ -187,7 +212,7 @@ public final class InferenceInput {
         }
 
         /**
-         * A {@link KeyValueStore} where pre-trained model is stored. Only supports TFLite model
+         * A {@link KeyValueStore} where pre-trained model is stored. Only supports LiteRT model
          * now.
          */
         @DataClass.Generated.Member
@@ -197,7 +222,7 @@ public final class InferenceInput {
 
         /**
          * The key of the table where the corresponding value stores a pre-trained model. Only
-         * supports TFLite model now.
+         * supports LiteRT model now.
          */
         @DataClass.Generated.Member
         public @NonNull String getModelKey() {
@@ -215,7 +240,7 @@ public final class InferenceInput {
 
         /**
          * The type of the pre-trained model. If not set, the default value is {@link
-         * #MODEL_TYPE_TENSORFLOW_LITE} . Only supports {@link #MODEL_TYPE_TENSORFLOW_LITE} for now.
+         * #MODEL_TYPE_TENSORFLOW_LITE} .
          */
         @DataClass.Generated.Member
         public @ModelType int getModelType() {
@@ -284,9 +309,9 @@ public final class InferenceInput {
              * Creates a new Builder.
              *
              * @param keyValueStore A {@link KeyValueStore} where pre-trained model is stored. Only
-             *     supports TFLite model now.
+             *     supports LiteRT model now.
              * @param modelKey The key of the table where the corresponding value stores a
-             *     pre-trained model. Only supports TFLite model now.
+             *     pre-trained model. Only supports LiteRT model now.
              */
             public Builder(@NonNull KeyValueStore keyValueStore, @NonNull String modelKey) {
                 mKeyValueStore = keyValueStore;
@@ -296,7 +321,7 @@ public final class InferenceInput {
             }
 
             /**
-             * A {@link KeyValueStore} where pre-trained model is stored. Only supports TFLite model
+             * A {@link KeyValueStore} where pre-trained model is stored. Only supports LiteRT model
              * now.
              */
             @DataClass.Generated.Member
@@ -308,7 +333,7 @@ public final class InferenceInput {
 
             /**
              * The key of the table where the corresponding value stores a pre-trained model. Only
-             * supports TFLite model now.
+             * supports LiteRT model now.
              */
             @DataClass.Generated.Member
             public @NonNull Builder setModelKey(@NonNull String value) {
@@ -330,8 +355,7 @@ public final class InferenceInput {
 
             /**
              * The type of the pre-trained model. If not set, the default value is {@link
-             * #MODEL_TYPE_TENSORFLOW_LITE} . Only supports {@link #MODEL_TYPE_TENSORFLOW_LITE} for
-             * now.
+             * #MODEL_TYPE_TENSORFLOW_LITE} .
              */
             @DataClass.Generated.Member
             public @NonNull Builder setModelType(@ModelType int value) {
@@ -352,7 +376,7 @@ public final class InferenceInput {
                 return this;
             }
 
-            /** Builds the instance. */
+            /** Builds the instance. This builder should not be touched after calling this! */
             public @NonNull Params build() {
                 mBuilderFieldsSet |= 0x20; // Mark builder used
 
@@ -377,12 +401,12 @@ public final class InferenceInput {
         }
 
         @DataClass.Generated(
-                time = 1709250081597L,
+                time = 1730932395853L,
                 codegenVersion = "1.0.23",
                 sourceFile =
                         "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInput.java",
                 inputSignatures =
-                        "private @android.annotation.NonNull android.adservices.ondevicepersonalization.KeyValueStore mKeyValueStore\nprivate @android.annotation.NonNull java.lang.String mModelKey\npublic static final  int DELEGATE_CPU\nprivate @android.adservices.ondevicepersonalization.Params.Delegate int mDelegateType\npublic static final  int MODEL_TYPE_TENSORFLOW_LITE\nprivate @android.adservices.ondevicepersonalization.Params.ModelType int mModelType\nprivate @android.annotation.IntRange int mRecommendedNumThreads\nclass Params extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genHiddenConstructor=true, genEqualsHashCode=true)")
+                        "private @android.annotation.NonNull android.adservices.ondevicepersonalization.KeyValueStore mKeyValueStore\nprivate @android.annotation.NonNull java.lang.String mModelKey\npublic static final  int DELEGATE_CPU\nprivate @android.adservices.ondevicepersonalization.Params.Delegate int mDelegateType\npublic static final  int MODEL_TYPE_TENSORFLOW_LITE\npublic static final  int MODEL_TYPE_EXECUTORCH\nprivate @android.adservices.ondevicepersonalization.Params.ModelType int mModelType\nprivate @android.annotation.IntRange int mRecommendedNumThreads\nclass Params extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genHiddenConstructor=true, genEqualsHashCode=true)")
         @Deprecated
         private void __metadata() {}
 
@@ -407,13 +431,13 @@ public final class InferenceInput {
     @DataClass.Generated.Member
     /* package-private */ InferenceInput(
             @NonNull Params params,
-            @NonNull Object[] inputData,
+            @NonNull byte[] data,
             int batchSize,
             @NonNull InferenceOutput expectedOutputStructure) {
         this.mParams = params;
         AnnotationValidations.validate(NonNull.class, null, mParams);
-        this.mInputData = inputData;
-        AnnotationValidations.validate(NonNull.class, null, mInputData);
+        this.mData = data;
+        AnnotationValidations.validate(NonNull.class, null, mData);
         this.mBatchSize = batchSize;
         this.mExpectedOutputStructure = expectedOutputStructure;
         AnnotationValidations.validate(NonNull.class, null, mExpectedOutputStructure);
@@ -425,6 +449,28 @@ public final class InferenceInput {
     @DataClass.Generated.Member
     public @NonNull Params getParams() {
         return mParams;
+    }
+
+    /**
+     * A byte array that holds input data. The inputs should be in the same order as inputs of the
+     * model.
+     *
+     * <p>For LiteRT, this field is mapped to inputs of runForMultipleInputsOutputs:
+     * https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
+     *
+     * <pre>{@code
+     * String[] input0 = {"foo", "bar"}; // string tensor shape is [2].
+     * int[] input1 = new int[]{3, 2, 1}; // int tensor shape is [3].
+     * Object[] inputData = {input0, input1, ...};
+     * }</pre>
+     *
+     * <p>For Executorch model, this field is a serialized EValue array.
+     *
+     * @hide
+     */
+    @DataClass.Generated.Member
+    public @NonNull byte[] getData() {
+        return mData;
     }
 
     /**
@@ -444,7 +490,7 @@ public final class InferenceInput {
     @SuppressLint("ArrayReturn")
     @DataClass.Generated.Member
     public @NonNull Object[] getInputData() {
-        return mInputData;
+        return (Object[]) ByteArrayUtil.deserializeObject(mData);
     }
 
     /**
@@ -457,7 +503,7 @@ public final class InferenceInput {
     }
 
     /**
-     * The empty InferenceOutput representing the expected output structure. For TFLite, the
+     * The empty InferenceOutput representing the expected output structure. For LiteRT, the
      * inference code will verify whether this expected output structure matches model output
      * signature.
      *
@@ -489,7 +535,7 @@ public final class InferenceInput {
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mParams, that.mParams)
-                && java.util.Arrays.equals(mInputData, that.mInputData)
+                && java.util.Arrays.equals(mData, that.mData)
                 && mBatchSize == that.mBatchSize
                 && java.util.Objects.equals(
                         mExpectedOutputStructure, that.mExpectedOutputStructure);
@@ -503,21 +549,27 @@ public final class InferenceInput {
 
         int _hash = 1;
         _hash = 31 * _hash + java.util.Objects.hashCode(mParams);
-        _hash = 31 * _hash + java.util.Arrays.hashCode(mInputData);
+        _hash = 31 * _hash + java.util.Arrays.hashCode(mData);
         _hash = 31 * _hash + mBatchSize;
         _hash = 31 * _hash + java.util.Objects.hashCode(mExpectedOutputStructure);
         return _hash;
     }
 
+    abstract static class BaseBuilder {
+        /** @hide */
+        public abstract Builder setInputData(@NonNull Object... value);
+    }
+
     /** A builder for {@link InferenceInput} */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
-    public static final class Builder {
+    public static final class Builder extends BaseBuilder {
 
         private @NonNull Params mParams;
-        private @NonNull Object[] mInputData;
+        private @NonNull byte[] mData;
         private int mBatchSize;
-        private @NonNull InferenceOutput mExpectedOutputStructure;
+        private @NonNull InferenceOutput mExpectedOutputStructure =
+                new InferenceOutput.Builder().build();
 
         private long mBuilderFieldsSet = 0L;
 
@@ -554,17 +606,44 @@ public final class InferenceInput {
                 @NonNull InferenceOutput expectedOutputStructure) {
             mParams = params;
             AnnotationValidations.validate(NonNull.class, null, mParams);
-            mInputData = inputData;
-            AnnotationValidations.validate(NonNull.class, null, mInputData);
+            AnnotationValidations.validate(NonNull.class, null, inputData);
+            mData = ByteArrayUtil.serializeObject(inputData);
+            AnnotationValidations.validate(NonNull.class, null, expectedOutputStructure);
             mExpectedOutputStructure = expectedOutputStructure;
-            AnnotationValidations.validate(NonNull.class, null, mExpectedOutputStructure);
         }
+
+        /** @hide */
+        public Builder() {}
 
         /** The configuration that controls runtime interpreter behavior. */
         @DataClass.Generated.Member
         public @NonNull Builder setParams(@NonNull Params value) {
             mBuilderFieldsSet |= 0x1;
             mParams = value;
+            return this;
+        }
+
+        /**
+         * A byte array that holds input data. The inputs should be in the same order as inputs of
+         * the model.
+         *
+         * <p>For LiteRT, this field is mapped to inputs of runForMultipleInputsOutputs:
+         * https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
+         *
+         * <pre>{@code
+         * String[] input0 = {"foo", "bar"}; // string tensor shape is [2].
+         * int[] input1 = new int[]{3, 2, 1}; // int tensor shape is [3].
+         * Object[] inputData = {input0, input1, ...};
+         * }</pre>
+         *
+         * <p>For Executorch model, this field is a serialized EValue array.
+         *
+         * @hide
+         */
+        @DataClass.Generated.Member
+        public @NonNull Builder setData(@NonNull byte... value) {
+            mBuilderFieldsSet |= 0x2;
+            mData = value;
             return this;
         }
 
@@ -579,13 +658,13 @@ public final class InferenceInput {
          * Object[] inputData = {input0, input1, ...};
          * }</pre>
          *
-         * For TFLite, this field is mapped to inputs of runForMultipleInputsOutputs:
+         * For LiteRT, this field is mapped to inputs of runForMultipleInputsOutputs:
          * https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
          */
         @DataClass.Generated.Member
         public @NonNull Builder setInputData(@NonNull Object... value) {
             mBuilderFieldsSet |= 0x2;
-            mInputData = value;
+            mData = ByteArrayUtil.serializeObject(value);
             return this;
         }
 
@@ -601,7 +680,7 @@ public final class InferenceInput {
         }
 
         /**
-         * The empty InferenceOutput representing the expected output structure. For TFLite, the
+         * The empty InferenceOutput representing the expected output structure. For LiteRT, the
          * inference code will verify whether this expected output structure matches model output
          * signature.
          *
@@ -621,26 +700,47 @@ public final class InferenceInput {
             return this;
         }
 
-        /** Builds the instance. */
+        /** @hide */
+        public void validateInputData() {
+            Preconditions.checkArgument(
+                    mData.length > 0, "Input data should not be empty for InferenceInput.");
+        }
+
+        /** @hide */
+        public void validateOutputStructure() {
+            // ExecuTorch model doesn't require set output structure.
+            if (mParams.getModelType() != Params.MODEL_TYPE_TENSORFLOW_LITE) {
+                return;
+            }
+            Preconditions.checkArgument(
+                    !mExpectedOutputStructure.getDataOutputs().isEmpty()
+                            || mExpectedOutputStructure.getData().length > 0,
+                    "ExpectedOutputStructure field is required for TensorflowLite model.");
+        }
+
+        /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull InferenceInput build() {
+
             mBuilderFieldsSet |= 0x10; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x4) == 0) {
                 mBatchSize = 1;
             }
+            validateInputData();
+            validateOutputStructure();
             InferenceInput o =
-                    new InferenceInput(mParams, mInputData, mBatchSize, mExpectedOutputStructure);
+                    new InferenceInput(mParams, mData, mBatchSize, mExpectedOutputStructure);
             return o;
         }
     }
 
     @DataClass.Generated(
-            time = 1709250081618L,
+            time = 1730932395877L,
             codegenVersion = "1.0.23",
             sourceFile =
                     "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInput.java",
             inputSignatures =
-                    "private @android.annotation.NonNull android.adservices.ondevicepersonalization.Params mParams\nprivate @android.annotation.NonNull java.lang.Object[] mInputData\nprivate  int mBatchSize\nprivate @android.annotation.NonNull android.adservices.ondevicepersonalization.InferenceOutput mExpectedOutputStructure\nclass InferenceInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+                    "private @android.annotation.NonNull android.adservices.ondevicepersonalization.Params mParams\nprivate @android.annotation.NonNull byte[] mData\nprivate  int mBatchSize\nprivate @android.annotation.NonNull android.adservices.ondevicepersonalization.InferenceOutput mExpectedOutputStructure\nclass InferenceInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
