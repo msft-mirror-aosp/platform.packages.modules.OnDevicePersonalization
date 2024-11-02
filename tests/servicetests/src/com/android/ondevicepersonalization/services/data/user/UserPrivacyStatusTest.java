@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.data.user;
 
 import static android.adservices.ondevicepersonalization.Constants.STATUS_CALLER_NOT_ALLOWED;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_CLASS_NOT_FOUND;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_EXECUTION_INTERRUPTED;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_INTERNAL_ERROR;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_METHOD_NOT_FOUND;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_NULL_ADSERVICES_COMMON_MANAGER;
@@ -255,6 +256,11 @@ public final class UserPrivacyStatusTest {
                 new ExecutionException("null adservices common manager",
                         new AdServicesCommonStatesWrapper.NullAdServiceCommonManagerException())))
                 .isEqualTo(STATUS_NULL_ADSERVICES_COMMON_MANAGER);
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("thread interrupted", new InterruptedException())))
+                .isEqualTo(STATUS_EXECUTION_INTERRUPTED);
+        assertThat(mUserPrivacyStatus.getExceptionStatus(new InterruptedException()))
+                .isEqualTo(STATUS_EXECUTION_INTERRUPTED);
         assertThat(mUserPrivacyStatus.getExceptionStatus(new Exception()))
                 .isEqualTo(STATUS_REMOTE_EXCEPTION);
     }

@@ -67,24 +67,16 @@ public class PluginProcessRunner implements ProcessRunner {
     private final Injector mInjector;
 
     /** Creates a ProcessRunner. */
+    PluginProcessRunner() {
+        this(OnDevicePersonalizationApplication.getAppContext(), new Injector());
+    }
+
+    /** Creates a ProcessRunner. */
     PluginProcessRunner(
             @NonNull Context applicationContext,
             @NonNull Injector injector) {
         mApplicationContext = Objects.requireNonNull(applicationContext);
         mInjector = Objects.requireNonNull(injector);
-    }
-
-
-    private static class PluginProcessRunnerLazyInstanceHolder {
-        static final PluginProcessRunner LAZY_INSTANCE =
-                new PluginProcessRunner(
-                        OnDevicePersonalizationApplication.getAppContext(),
-                        new Injector());
-    }
-
-    /** Returns the global ProcessRunner */
-    @NonNull public static PluginProcessRunner getInstance() {
-        return PluginProcessRunnerLazyInstanceHolder.LAZY_INSTANCE;
     }
 
     /** Loads a service in an isolated process */

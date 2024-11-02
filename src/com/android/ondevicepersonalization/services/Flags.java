@@ -99,6 +99,9 @@ public interface Flags extends ModuleSharedFlags {
     /** Default deadline for data reset. */
     int DEFAULT_RESET_DATA_DEADLINE_SECONDS = 30 * 60 * 60; // 30 hours
 
+    /** Default value for the plugin runner flag. */
+    boolean DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED = false;
+
     String DEFAULT_CALLER_APP_ALLOW_LIST =
             "android.ondevicepersonalization,"
                     + "android.ondevicepersonalization.test.scenario,"
@@ -375,5 +378,9 @@ public interface Flags extends ModuleSharedFlags {
 
     default String getLogIsolatedServiceErrorCodeNonAggregatedAllowlist() {
         return DEFAULT_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST;
+    }
+
+    default boolean isPluginProcessRunnerEnabled() {
+        return DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED;
     }
 }

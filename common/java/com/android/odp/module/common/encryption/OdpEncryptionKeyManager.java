@@ -67,6 +67,10 @@ public class OdpEncryptionKeyManager {
 
         /** Background executor for use in key fetch and DB updates etc. */
         ListeningExecutorService getBackgroundExecutor();
+
+        /** Blocking executor for use in http connection. */
+        ListeningExecutorService getBlockingExecutor();
+
     }
 
     private interface EncryptionKeyResponseContract {
@@ -156,7 +160,7 @@ public class OdpEncryptionKeyManager {
                                     keyManagerConfig,
                                     new HttpClient(
                                             keyManagerConfig.getHttpRequestRetryLimit(),
-                                            keyManagerConfig.getBackgroundExecutor()),
+                                            keyManagerConfig.getBlockingExecutor()),
                                     keyManagerConfig.getBackgroundExecutor());
                 }
             }
