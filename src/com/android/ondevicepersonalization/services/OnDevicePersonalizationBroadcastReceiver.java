@@ -100,17 +100,13 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
                 new FutureCallback<List<Void>>() {
                     @Override
                     public void onSuccess(List<Void> result) {
-                        if (result.contains(null)) {
-                            sLogger.d(TAG + ": failed to schedule all tasks successfully");
-                        } else {
-                            sLogger.d(TAG + ": Successfully scheduled maintenance and MDD tasks.");
-                        }
+                        sLogger.d(TAG + ": handled job scheduling tasks successfully");
                         pendingResult.finish();
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
-                        sLogger.e(TAG + ": Failed to schedule MDD tasks.", t);
+                        sLogger.e(t, TAG + ": failed to handle all job scheduling tasks.");
                         pendingResult.finish();
                     }
                 },
