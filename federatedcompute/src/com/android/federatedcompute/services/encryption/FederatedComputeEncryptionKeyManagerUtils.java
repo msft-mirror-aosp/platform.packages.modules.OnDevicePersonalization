@@ -71,6 +71,11 @@ public class FederatedComputeEncryptionKeyManagerUtils {
         public ListeningExecutorService getBackgroundExecutor() {
             return FederatedComputeExecutors.getBackgroundExecutor();
         }
+
+        @Override
+        public ListeningExecutorService getBlockingExecutor() {
+            return FederatedComputeExecutors.getBlockingExecutor();
+        }
     }
 
     /** Class is not meant to be instantiated, thin wrapper over {@link OdpEncryptionKeyManager} */
