@@ -48,9 +48,8 @@ import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.PluginProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
-import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
+import com.android.ondevicepersonalization.services.process.ProcessRunnerFactory;
 import com.android.ondevicepersonalization.services.util.AllowListUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
@@ -85,9 +84,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
         }
 
         ProcessRunner getProcessRunner() {
-            return FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()
-                    ? SharedIsolatedProcessRunner.getInstance()
-                    : PluginProcessRunner.getInstance();
+            return ProcessRunnerFactory.getProcessRunner();
         }
     }
 
