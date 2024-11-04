@@ -35,6 +35,7 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.odp.module.common.PackageUtils;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 
@@ -77,6 +78,7 @@ public class AggregatedErrorReportingWorkerTest {
     private static final ListenableFuture<Boolean> SUCCESSFUL_FUTURE =
             Futures.immediateFuture(true);
 
+
     private static final ImmutableList<ComponentName> EMPTY_ODP_SERVICE_LIST = ImmutableList.of();
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
@@ -89,6 +91,8 @@ public class AggregatedErrorReportingWorkerTest {
     private AggregatedErrorReportingWorker mInstanceUnderTest;
 
     @Mock private Flags mMockFlags;
+
+    @Mock private OdpEncryptionKey mMockEncryptionKey;
 
     private final OnDevicePersonalizationAggregatedErrorDataDao mErrorDataDao =
             OnDevicePersonalizationAggregatedErrorDataDao.getInstance(
@@ -124,7 +128,7 @@ public class AggregatedErrorReportingWorkerTest {
                 .when(() -> AppManifestConfigHelper.getOdpServices(mContext, true));
 
         ListenableFuture<Void> returnedFuture =
-                mInstanceUnderTest.reportAggregateErrorsHelper(mContext);
+                mInstanceUnderTest.reportAggregateErrorsHelper(mContext, /* encryptionKey= */ null);
 
         assertTrue(returnedFuture.isDone());
         assertEquals(0, mTestInjector.mCallCount.get());
@@ -138,7 +142,7 @@ public class AggregatedErrorReportingWorkerTest {
                 .when(() -> AppManifestConfigHelper.getOdpServices(mContext, true));
 
         ListenableFuture<Void> returnedFuture =
-                mInstanceUnderTest.reportAggregateErrorsHelper(mContext);
+                mInstanceUnderTest.reportAggregateErrorsHelper(mContext, /* encryptionKey= */ null);
 
         assertTrue(returnedFuture.isDone());
         assertEquals(0, mTestInjector.mCallCount.get());
@@ -153,13 +157,14 @@ public class AggregatedErrorReportingWorkerTest {
         mErrorDataDao.addExceptionCount(TEST_ISOLATED_SERVICE_ERROR_CODE, 1);
 
         ListenableFuture<Void> returnedFuture =
-                mInstanceUnderTest.reportAggregateErrorsHelper(mContext);
+                mInstanceUnderTest.reportAggregateErrorsHelper(mContext, mMockEncryptionKey);
 
         assertTrue(returnedFuture.isDone());
         assertEquals(1, mTestInjector.mCallCount.get());
         assertEquals(TEST_SERVER_URL, mTestInjector.mRequestUri);
         assertEquals(getExpectedErrorData(mDayIndexUtc), mTestInjector.mErrorData.get(0));
         assertEquals(1, mTestReportingProtocol.mCallCount.get());
+        assertThat(mTestReportingProtocol.mOdpEncryptionKey).isSameInstanceAs(mMockEncryptionKey);
     }
 
     @Test
@@ -173,7 +178,7 @@ public class AggregatedErrorReportingWorkerTest {
                 Futures.immediateFailedFuture(new TimeoutException("Http time out!"));
 
         ListenableFuture<Void> returnedFuture =
-                mInstanceUnderTest.reportAggregateErrorsHelper(mContext);
+                mInstanceUnderTest.reportAggregateErrorsHelper(mContext, /* encryptionKey= */ null);
 
         assertTrue(returnedFuture.isDone());
         assertEquals(1, mTestInjector.mCallCount.get());
@@ -191,8 +196,10 @@ public class AggregatedErrorReportingWorkerTest {
         SettableFuture<Boolean> settableFuture = SettableFuture.create();
         mTestReportingProtocol.mReturnFuture = settableFuture;
 
-        ListenableFuture<Void> firstRequest = mInstanceUnderTest.reportAggregateErrors(mContext);
-        ListenableFuture<Void> secondRequest = mInstanceUnderTest.reportAggregateErrors(mContext);
+        ListenableFuture<Void> firstRequest =
+                mInstanceUnderTest.reportAggregateErrors(mContext, /* encryptionKey= */ null);
+        ListenableFuture<Void> secondRequest =
+                mInstanceUnderTest.reportAggregateErrors(mContext, /* encryptionKey= */ null);
 
         assertFalse(firstRequest.isDone());
         assertTrue(secondRequest.isDone());
@@ -208,10 +215,12 @@ public class AggregatedErrorReportingWorkerTest {
         private final AtomicInteger mCallCount = new AtomicInteger(0);
         // Default instance returns the successful future.
         private ListenableFuture<Boolean> mReturnFuture = SUCCESSFUL_FUTURE;
+        private OdpEncryptionKey mOdpEncryptionKey = null;
 
         @Override
-        public ListenableFuture<Boolean> reportExceptionData() {
+        public ListenableFuture<Boolean> reportExceptionData(OdpEncryptionKey encryptionKey) {
             mCallCount.incrementAndGet();
+            mOdpEncryptionKey = encryptionKey;
             return mReturnFuture;
         }
     }

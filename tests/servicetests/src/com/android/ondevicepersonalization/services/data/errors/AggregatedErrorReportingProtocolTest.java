@@ -33,17 +33,19 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 
-import android.content.ComponentName;
 import android.content.Context;
 import android.util.Base64;
 
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.odp.module.common.encryption.Encrypter;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
 import com.android.odp.module.common.http.HttpClient;
 import com.android.odp.module.common.http.HttpClientUtils;
 import com.android.odp.module.common.http.OdpHttpRequest;
@@ -89,15 +91,16 @@ public class AggregatedErrorReportingProtocolTest {
     private static final String TEST_SERVER_URL = "https://google.com";
     private static final long TEST_CLIENT_VERSION = 1;
 
-    private static final ComponentName TEST_COMPONENT_NAME =
-            new ComponentName(TEST_PACKAGE, TEST_CLASS);
-
     private static final String UPLOAD_LOCATION_URI = "https://dataupload.uri";
 
-    private static final ListenableFuture<Boolean> SUCCESSFUL_FUTURE =
-            Futures.immediateFuture(true);
 
     private static final int HTTP_OK_STATUS = 200;
+
+    private static final byte[] TEST_ENCRYPTED_OUTPUT = new byte[] {1, 2, 3};
+
+    private static final String TEST_PUBLIC_KEY = "fooKey";
+
+    private static final byte[] PUBLIC_KEY = Base64.decode(TEST_PUBLIC_KEY, Base64.NO_WRAP);
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
@@ -112,6 +115,10 @@ public class AggregatedErrorReportingProtocolTest {
     @Mock private Flags mMockFlags;
 
     @Mock private HttpClient mMockHttpClient;
+
+    @Mock private OdpEncryptionKey mMockEncryptionKey;
+
+    @Mock private Encrypter mMockEncrypter;
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule =
@@ -140,7 +147,8 @@ public class AggregatedErrorReportingProtocolTest {
                         TEST_CLIENT_VERSION,
                         new TestInjector());
 
-        ListenableFuture<Boolean> reportingFuture = mInstanceUnderTest.reportExceptionData();
+        ListenableFuture<Boolean> reportingFuture =
+                mInstanceUnderTest.reportExceptionData(/* encryptionKey= */ null);
 
         assertTrue(reportingFuture.isDone());
         ExecutionException outException =
@@ -160,7 +168,8 @@ public class AggregatedErrorReportingProtocolTest {
                         TEST_CLIENT_VERSION,
                         new TestInjector());
 
-        ListenableFuture<Boolean> reportingFuture = mInstanceUnderTest.reportExceptionData();
+        ListenableFuture<Boolean> reportingFuture =
+                mInstanceUnderTest.reportExceptionData(/* encryptionKey= */ null);
 
         assertTrue(reportingFuture.isDone());
         ExecutionException outException =
@@ -181,7 +190,8 @@ public class AggregatedErrorReportingProtocolTest {
                         TEST_CLIENT_VERSION,
                         new TestInjector());
 
-        ListenableFuture<Boolean> reportingFuture = mInstanceUnderTest.reportExceptionData();
+        ListenableFuture<Boolean> reportingFuture =
+                mInstanceUnderTest.reportExceptionData(/* encryptionKey= */ null);
 
         assertTrue(reportingFuture.isDone());
         ExecutionException outException =
@@ -213,7 +223,8 @@ public class AggregatedErrorReportingProtocolTest {
                         TEST_CLIENT_VERSION,
                         testInjector);
 
-        ListenableFuture<Boolean> reportingFuture = mInstanceUnderTest.reportExceptionData();
+        ListenableFuture<Boolean> reportingFuture =
+                mInstanceUnderTest.reportExceptionData(/* encryptionKey= */ null);
 
         assertTrue(reportingFuture.isDone());
         assertTrue(reportingFuture.get());
@@ -229,6 +240,8 @@ public class AggregatedErrorReportingProtocolTest {
         assertTrue(
                 Arrays.equals(
                         expectedClientUploadRequest.getBody(), clientRequests.get(1).getBody()));
+        // No interactions with encrypter since the key was null
+        verifyZeroInteractions(mMockEncrypter);
     }
 
     @Test
@@ -244,7 +257,8 @@ public class AggregatedErrorReportingProtocolTest {
                         TEST_CLIENT_VERSION,
                         new TestInjector());
 
-        ListenableFuture<Boolean> reportingFuture = mInstanceUnderTest.reportExceptionData();
+        ListenableFuture<Boolean> reportingFuture =
+                mInstanceUnderTest.reportExceptionData(/* encryptionKey= */ null);
         Futures.addCallback(reportingFuture, new TestCallback(), MoreExecutors.directExecutor());
 
         boolean countedDown = mCountDownLatch.await(10, TimeUnit.SECONDS);
@@ -258,7 +272,36 @@ public class AggregatedErrorReportingProtocolTest {
 
     @Test
     public void createEncryptedRequestBody() throws JSONException {
-        // TODO(b/329921267): add encryption support
+        // Set up the encrypter to reply with some test data when called with expected key and byte
+        // array etc.
+        String expectedEncryptedPayload =
+                Base64.encodeToString(TEST_ENCRYPTED_OUTPUT, Base64.NO_WRAP);
+        com.google.ondevicepersonalization.federatedcompute.proto.ErrorDataList errorDataList =
+                convertToProto(ImmutableList.of(mErrorData));
+        when(mMockEncryptionKey.getPublicKey()).thenReturn(TEST_PUBLIC_KEY);
+        when(mMockEncrypter.encrypt(
+                        PUBLIC_KEY,
+                        errorDataList.toByteArray(),
+                        AggregatedErrorReportingProtocol.AggregatedErrorDataPayloadContract
+                                .ASSOCIATED_DATA))
+                .thenReturn(TEST_ENCRYPTED_OUTPUT);
+
+        JSONObject jsonResponse =
+                new JSONObject(
+                        new String(
+                                AggregatedErrorReportingProtocol.createEncryptedRequestBody(
+                                        ImmutableList.of(mErrorData),
+                                        mMockEncryptionKey,
+                                        mMockEncrypter)));
+        assertEquals(
+                expectedEncryptedPayload,
+                jsonResponse.get(
+                        AggregatedErrorReportingProtocol.AggregatedErrorDataPayloadContract
+                                .ENCRYPTED_PAYLOAD));
+    }
+
+    @Test
+    public void createUnEncryptedRequestBody() throws JSONException {
         com.google.ondevicepersonalization.federatedcompute.proto.ErrorDataList errorDataList =
                 convertToProto(ImmutableList.of(mErrorData));
         String expectedErrorData =
@@ -268,7 +311,9 @@ public class AggregatedErrorReportingProtocolTest {
                 new JSONObject(
                         new String(
                                 AggregatedErrorReportingProtocol.createEncryptedRequestBody(
-                                        ImmutableList.of(mErrorData))));
+                                        ImmutableList.of(mErrorData),
+                                        /* encryptionKey= */ null,
+                                        /* encrypter= */ null)));
         assertEquals(
                 expectedErrorData,
                 jsonResponse.get(
@@ -278,10 +323,11 @@ public class AggregatedErrorReportingProtocolTest {
 
     private static OdpHttpRequest createExpectedUploadRequest(
             String uploadLocation, ImmutableList<ErrorData> errorData) throws JSONException {
+        // Test helper to create expected upload request sent from client -> server.
         return getHttpRequest(
                 uploadLocation,
                 /* requestHeadersMap= */ Map.of(CONTENT_TYPE_HDR, OCTET_STREAM),
-                AggregatedErrorReportingProtocol.createEncryptedRequestBody(errorData));
+                AggregatedErrorReportingProtocol.createEncryptedRequestBody(errorData, null, null));
     }
 
     private static OdpHttpResponse createReportExceptionResponse(int statusCode) {
@@ -330,6 +376,11 @@ public class AggregatedErrorReportingProtocolTest {
         @Override
         HttpClient getClient() {
             return mMockHttpClient;
+        }
+
+        @Override
+        Encrypter getEncrypter() {
+            return mMockEncrypter;
         }
     }
 
