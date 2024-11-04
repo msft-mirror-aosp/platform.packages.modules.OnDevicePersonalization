@@ -25,7 +25,7 @@
 //
 // Based from chromium's boringSSL implementation
 // https://source.chromium.org/chromium/chromium/src/+/main:content/browser/aggregation_service/aggregatable_report.cc;l=211
-JNIEXPORT jbyteArray JNICALL Java_com_android_federatedcompute_services_encryption_jni_HpkeJni_encrypt
+JNIEXPORT jbyteArray JNICALL Java_com_android_odp_module_common_encryption_jni_HpkeJni_encrypt
         (JNIEnv* env, jobject object,
          jbyteArray publicKey, jbyteArray plainText, jbyteArray associatedData) {
 
@@ -101,7 +101,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_android_federatedcompute_services_encrypti
 //
 // Based from chromium's boringSSL implementation
 // https://source.chromium.org/chromium/chromium/src/+/main:content/browser/aggregation_service/aggregation_service_test_utils.cc;l=305
-JNIEXPORT jbyteArray JNICALL Java_com_android_federatedcompute_services_encryption_jni_HpkeJni_decrypt
+JNIEXPORT jbyteArray JNICALL Java_com_android_odp_module_common_encryption_jni_HpkeJni_decrypt
         (JNIEnv* env, jobject object,
          jbyteArray privateKey, jbyteArray ciphertext, jbyteArray associatedData) {
 

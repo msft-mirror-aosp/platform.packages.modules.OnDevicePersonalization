@@ -137,5 +137,40 @@ public class AllowListUtilsTest {
                 "com.test.app2",
                 "EFGH",
                 "com.test.app1:ABCD;com.test.app2:EFGH;com.test.app3:PQRS"));
+        // Match - Wildcard left side.
+        assertTrue(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "*;com.test.app2"));
+        // Match - Wildcard right side.
+        assertTrue(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app1;*"));
+        // Match - Wildcard both sides.
+        assertTrue(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "*;*"));
+        // No match - Wildcard left side, right side mismatch
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "*;com.test.app3"));
+        // No Match - Left side mismatch, Wildcard right side.
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app3;*"));
     }
 }

@@ -28,7 +28,6 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * Information about apps.
  *
  */
-@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 @DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
 public final class AppInfo implements Parcelable {
     /** Whether the app is installed. */

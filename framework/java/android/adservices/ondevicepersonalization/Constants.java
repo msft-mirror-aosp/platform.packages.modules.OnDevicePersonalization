@@ -62,6 +62,31 @@ public class Constants {
 
     /** Internal code that tracks remote exception when run operation. */
     public static final int STATUS_REMOTE_EXCEPTION = 113;
+    /** Internal code that tracks method not found. */
+    public static final int STATUS_METHOD_NOT_FOUND = 114;
+    public static final int STATUS_CALLER_NOT_ALLOWED = 115;
+    public static final int STATUS_NULL_ADSERVICES_COMMON_MANAGER = 116;
+
+    // Internal code that tracks data access not included result returned from data storage.
+    public static final int STATUS_PERMISSION_DENIED = 117;
+    // Internal code that tracks local data read only result returned from data storage.
+    public static final int STATUS_LOCAL_DATA_READ_ONLY = 118;
+    // Internal code that tracks thread interrupted exception errors.
+    public static final int STATUS_EXECUTION_INTERRUPTED = 119;
+    // Internal code that tracks request timestamps invalid.
+    public static final int STATUS_REQUEST_TIMESTAMPS_INVALID = 120;
+    // Internal code that tracks request model table id invalid.
+    public static final int STATUS_MODEL_TABLE_ID_INVALID = 122;
+    // Internal code that tracks request model DB lookup failed.
+    public static final int STATUS_MODEL_DB_LOOKUP_FAILED = 123;
+    // Internal code that tracks request model lookup generic failure.
+    public static final int STATUS_MODEL_LOOKUP_FAILURE = 124;
+    // Internal code that tracks unsupported operation failure.
+    public static final int STATUS_DATA_ACCESS_UNSUPPORTED_OP = 125;
+    // Internal code that tracks generic data access failure.
+    public static final int STATUS_DATA_ACCESS_FAILURE = 126;
+    // Internal code that tracks local data access failure.
+    public static final int STATUS_LOCAL_WRITE_DATA_ACCESS_FAILURE = 127;
 
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
@@ -137,6 +162,7 @@ public class Constants {
     public static final int API_NAME_MODEL_MANAGER_RUN = 20;
     public static final int API_NAME_FEDERATED_COMPUTE_CANCEL = 21;
     public static final int API_NAME_NOTIFY_MEASUREMENT_EVENT = 22;
+    public static final int API_NAME_ADSERVICES_GET_COMMON_STATES = 23;
 
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;
@@ -152,6 +178,34 @@ public class Constants {
 
     // Measurement event types for measurement events received from the OS.
     public static final int MEASUREMENT_EVENT_TYPE_WEB_TRIGGER = 1;
+
+    // Task type for trace event logging. Must match the values in
+    // frameworks/proto_logging/stats/atoms/ondevicepersonalization/ondevicepersonalization_extension_atoms.proto
+    public static final int TASK_TYPE_EXECUTE = 1;
+    public static final int TASK_TYPE_RENDER = 2;
+    public static final int TASK_TYPE_DOWNLOAD = 3;
+    public static final int TASK_TYPE_WEBVIEW = 4;
+    public static final int TASK_TYPE_TRAINING = 5;
+    public static final int TASK_TYPE_MAINTENANCE = 6;
+    public static final int TASK_TYPE_WEB_TRIGGER = 7;
+
+    // Event type for trace event logging. Must match the values in
+    // frameworks/proto_logging/stats/atoms/ondevicepersonalization/ondevicepersonalization_extension_atoms.proto
+    public static final int EVENT_TYPE_UNKNOWN = 1;
+    public static final int EVENT_TYPE_WRITE_REQUEST_LOG = 2;
+    public static final int EVENT_TYPE_WRITE_EVENT_LOG = 3;
+
+    // Status for trace event logging. Must match the values in
+    // frameworks/proto_logging/stats/atoms/ondevicepersonalization/ondevicepersonalization_extension_atoms.proto
+    public static final int STATUS_REQUEST_LOG_DB_SUCCESS = 1;
+    public static final int STATUS_EVENT_LOG_DB_SUCCESS = 2;
+    public static final int STATUS_LOG_DB_FAILURE = 3;
+    public static final int STATUS_LOG_EXCEPTION = 4;
+    public static final int STATUS_REQUEST_LOG_IS_NULL = 5;
+    public static final int STATUS_REQUEST_LOG_IS_EMPTY = 6;
+    public static final int STATUS_EVENT_LOG_IS_NULL = 7;
+    public static final int STATUS_EVENT_LOG_NOT_EXIST = 8;
+    public static final int STATUS_EVENT_LOG_QUERY_NOT_EXIST = 9;
 
     private Constants() {}
 }

@@ -29,7 +29,6 @@ import java.util.Objects;
  * The input data for {@link
  * IsolatedWorker#onEvent(EventInput, android.os.OutcomeReceiver)}.
  */
-@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public final class EventInput {
     /**
      * The {@link RequestLogRecord} that was returned as a result of

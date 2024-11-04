@@ -41,7 +41,11 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
-/** {@link JobService} to perform daily reporting of aggregated error codes. */
+/**
+ * The {@link JobService} to perform daily reporting of aggregated error codes.
+ *
+ * <p>The actual reporting task is offloaded to {@link AggregatedErrorReportingWorker}.
+ */
 public class AggregateErrorDataReportingService extends JobService {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = AggregateErrorDataReportingService.class.getSimpleName();
@@ -66,6 +70,10 @@ public class AggregateErrorDataReportingService extends JobService {
 
         Flags getFlags() {
             return FlagsFactory.getFlags();
+        }
+
+        AggregatedErrorReportingWorker getErrorReportingWorker() {
+            return AggregatedErrorReportingWorker.createWorker();
         }
     }
 
@@ -126,17 +134,8 @@ public class AggregateErrorDataReportingService extends JobService {
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_JOB_NOT_CONFIGURED);
         }
 
-        mFuture =
-                Futures.submit(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                // TODO(b/329921267): Add logic for reporting new data from DAO.
-                                sLogger.d(
-                                        TAG + ": Running the aggregate error data collection job");
-                            }
-                        },
-                        mInjector.getExecutor());
+        AggregatedErrorReportingWorker worker = mInjector.getErrorReportingWorker();
+        mFuture = worker.reportAggregateErrors(/* context= */ this);
 
         Futures.addCallback(
                 mFuture,

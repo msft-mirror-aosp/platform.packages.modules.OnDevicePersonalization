@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.federatedcompute;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.TrainingExampleRecord;
 import android.adservices.ondevicepersonalization.TrainingExamplesInputParcel;
 import android.adservices.ondevicepersonalization.TrainingExamplesOutputParcel;
@@ -32,6 +33,7 @@ import android.os.OutcomeReceiver;
 
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 import com.android.ondevicepersonalization.services.Flags;
@@ -46,9 +48,9 @@ import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.PluginProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
-import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
+import com.android.ondevicepersonalization.services.process.ProcessRunnerFactory;
+import com.android.ondevicepersonalization.services.util.AllowListUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
@@ -82,9 +84,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
         }
 
         ProcessRunner getProcessRunner() {
-            return FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()
-                    ? SharedIsolatedProcessRunner.getInstance()
-                    : PluginProcessRunner.getInstance();
+            return ProcessRunnerFactory.getProcessRunner();
         }
     }
 
@@ -276,7 +276,14 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                             if (t instanceof TimeoutException) {
                                 status = Constants.STATUS_TIMEOUT;
                             } else if (t instanceof OdpServiceException exp) {
-                                status = exp.getErrorCode();
+                                if (exp.getCause() instanceof IsolatedServiceException
+                                        && isLogIsolatedServiceErrorCodeNonAggregatedAllowed(
+                                                packageName)) {
+                                    status = ((IsolatedServiceException) exp.getCause())
+                                            .getErrorCode();
+                                } else {
+                                    status = exp.getErrorCode();
+                                }
                             }
                             sLogger.w(t, "%s : Request failed.", TAG);
                             StatsUtils.writeServiceRequestMetrics(
@@ -299,8 +306,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                                                     .getProcessRunner()
                                                     .unloadIsolatedService(loadFuture.get()),
                                     OnDevicePersonalizationExecutors.getBackgroundExecutor());
-        } catch (Exception e) {
-            sLogger.w(e, "%s : Start query failed.", TAG);
+        } catch (Throwable e) {
+            sLogger.e(e, "%s : Start query failed.", TAG);
             StatsUtils.writeServiceRequestMetrics(
                     Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
                     Constants.STATUS_INTERNAL_ERROR);
@@ -327,7 +334,13 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                         /* eventDataPermission */ DataAccessPermission.READ_ONLY);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
-        UserData userData = userDataAccessor.getUserDataWithAppInstall();
+        UserData userData;
+        // By default, we don't provide platform data for federated learning flow.
+        if (isPlatformDataProvided(packageName)) {
+            userData = userDataAccessor.getUserDataWithAppInstall();
+        } else {
+            userData = userDataAccessor.getUserData();
+        }
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
         return mInjector
                 .getProcessRunner()
@@ -338,5 +351,29 @@ public final class OdpExampleStoreService extends ExampleStoreService {
     // used for tests to provide mock/real implementation of context.
     private Context getContext() {
         return this.getApplicationContext();
+    }
+
+    private boolean isPlatformDataProvided(String packageName) {
+        try {
+            return AllowListUtils.isAllowListed(
+                    packageName,
+                    PackageUtils.getCertDigest(getContext(), packageName),
+                    mInjector.getFlags().getDefaultPlatformDataForExecuteAllowlist());
+        } catch (Exception e) {
+            sLogger.d(TAG + ": allow list error", e);
+            return false;
+        }
+    }
+
+    private boolean isLogIsolatedServiceErrorCodeNonAggregatedAllowed(String packageName) {
+        try {
+            return AllowListUtils.isAllowListed(
+                    packageName,
+                    null,
+                    mInjector.getFlags().getLogIsolatedServiceErrorCodeNonAggregatedAllowlist());
+        } catch (Exception e) {
+            sLogger.d(e, TAG + ": check isLogIsolatedServiceErrorCodeNonAggregatedAllowed error");
+            return false;
+        }
     }
 }

@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services;
 
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_CALLER_APP_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_AGGREGATED_ERROR_REPORTING;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_ALLOW_LIST;
@@ -26,7 +27,7 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_IS
 
 import android.provider.DeviceConfig;
 
-import androidx.test.InstrumentationRegistry;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 public class PhFlagsTestUtil {
     private static final String WRITE_DEVICE_CONFIG_PERMISSION =
@@ -109,7 +110,7 @@ public class PhFlagsTestUtil {
                 /* makeDefault */ false);
     }
 
-    /** Set up output data allow list in device config */
+    /** Set if shared isolated process feature is enabled. */
     public static void setSharedIsolatedProcessFeatureEnabled(boolean enabled) {
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -118,11 +119,20 @@ public class PhFlagsTestUtil {
                 /* makeDefault */ false);
     }
 
-    /** Sets up if SPE is enabled for pilot jobs. */
+    /** Sets if SPE is enabled for pilot jobs. */
     public static void setSpePilotJobEnabled(boolean enabled) {
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 KEY_ODP_SPE_PILOT_JOB_ENABLED,
+                Boolean.toString(enabled),
+                /* makeDefault */ false);
+    }
+
+    /** Sets if aggregate error reporting is enabled or not. */
+    public static void setAggregatedErrorReportingEnabled(boolean enabled) {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ENABLE_AGGREGATED_ERROR_REPORTING,
                 Boolean.toString(enabled),
                 /* makeDefault */ false);
     }

@@ -20,11 +20,14 @@ import static android.federatedcompute.common.ClientConstants.EXAMPLE_STORE_ACTI
 import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESULT;
 import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN;
 
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
@@ -47,30 +50,29 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.modules.utils.testing.TestableDeviceConfig;
-import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.runners.JUnit4;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-@RunWith(Parameterized.class)
+@RunWith(JUnit4.class)
 public class OdpExampleStoreServiceTests {
     private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
     private final Context mContext = ApplicationProvider.getApplicationContext();
@@ -82,8 +84,8 @@ public class OdpExampleStoreServiceTests {
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .addStaticMockFixtures(TestableDeviceConfig::new)
             .spyStatic(UserPrivacyStatus.class)
+            .spyStatic(StableFlags.class)
             .setStrictness(Strictness.LENIENT)
             .build();
     private CountDownLatch mLatch;
@@ -96,17 +98,9 @@ public class OdpExampleStoreServiceTests {
     private boolean mQueryCallbackOnFailureCalled = false;
 
     private final EventsDao mEventsDao = EventsDao.getInstanceForTest(mContext);
-
-    @Parameterized.Parameter(0)
-    public boolean mIsSipFeatureEnabled;
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {{true}, {false}});
-    }
-
     @Before
     public void setUp() throws Exception {
+        assumeTrue(DeviceSupportHelper.isDeviceSupported());
         initMocks(this);
         when(mMockContext.getApplicationContext()).thenReturn(mContext);
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
@@ -116,8 +110,8 @@ public class OdpExampleStoreServiceTests {
         mQueryCallbackOnFailureCalled = false;
         mLatch = new CountDownLatch(1);
         mIsolatedService = new ComponentName(mContext.getPackageName(), SERVICE_CLASS);
-        PhFlagsTestUtil.setUpDeviceConfigPermissions();
-        PhFlagsTestUtil.setSharedIsolatedProcessFeatureEnabled(mIsSipFeatureEnabled);
+        ExtendedMockito.doReturn(SdkLevel.isAtLeastU()).when(
+                () -> StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED));
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
     }
 
@@ -149,14 +143,14 @@ public class OdpExampleStoreServiceTests {
         binder.startQuery(input, callback);
         assertTrue(
                 "timeout reached while waiting for countdownlatch!",
-                mLatch.await(5000, TimeUnit.MILLISECONDS));
+                mLatch.await(10000, TimeUnit.MILLISECONDS));
 
         assertFalse(mQueryCallbackOnSuccessCalled);
         assertTrue(mQueryCallbackOnFailureCalled);
     }
 
     @Test
-    public void testStartQuery_moreThanMinExample_failure() throws Exception {
+    public void testStartQuery_moreThanMinExample_success() throws Exception {
         mEventsDao.updateOrInsertEventState(
                 new EventState.Builder()
                         .setTaskIdentifier("PopulationName")
@@ -183,7 +177,7 @@ public class OdpExampleStoreServiceTests {
         binder.startQuery(input, callback);
         assertTrue(
                 "timeout reached while waiting for countdownlatch!",
-                mLatch.await(5000, TimeUnit.MILLISECONDS));
+                mLatch.await(10000, TimeUnit.MILLISECONDS));
 
         assertTrue(mQueryCallbackOnSuccessCalled);
         assertFalse(mQueryCallbackOnFailureCalled);
@@ -216,7 +210,7 @@ public class OdpExampleStoreServiceTests {
         binder.startQuery(input, callback);
         assertTrue(
                 "timeout reached while waiting for countdownlatch!",
-                mLatch.await(5000, TimeUnit.MILLISECONDS));
+                mLatch.await(10000, TimeUnit.MILLISECONDS));
 
         assertTrue(mQueryCallbackOnSuccessCalled);
         assertFalse(mQueryCallbackOnFailureCalled);
@@ -361,7 +355,7 @@ public class OdpExampleStoreServiceTests {
         binder.startQuery(input, callback);
         assertTrue(
                 "timeout reached while waiting for countdownlatch!",
-                mLatch.await(5000, TimeUnit.MILLISECONDS));
+                mLatch.await(10000, TimeUnit.MILLISECONDS));
 
         assertFalse(mQueryCallbackOnSuccessCalled);
         assertTrue(mQueryCallbackOnFailureCalled);

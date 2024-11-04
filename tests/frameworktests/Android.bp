@@ -47,7 +47,7 @@ android_test {
     libs: [
         "android.test.runner.stubs",
         "android.test.base.stubs",
-        "framework-connectivity",
+        "framework-connectivity.stubs.module_lib",
     ],
     test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],
     test_suites: [
