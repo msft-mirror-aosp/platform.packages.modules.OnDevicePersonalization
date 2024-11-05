@@ -25,11 +25,4 @@ interface IOnDevicePersonalizationSystemService {
             in Bundle params,
             in IOnDevicePersonalizationSystemServiceCallback callback
     );
-
-    void setPersonalizationStatus(
-            in boolean enabled,
-            in IOnDevicePersonalizationSystemServiceCallback callback
-    );
-
-    void readPersonalizationStatus(in IOnDevicePersonalizationSystemServiceCallback callback);
 }
