@@ -19,29 +19,48 @@ package com.android.ondevicepersonalization.services.enrollment;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.modules.utils.testing.TestableDeviceConfig;
-import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.ondevicepersonalization.services.StableFlags;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.quality.Strictness;
 
 @RunWith(JUnit4.class)
 public class PartnerEnrollmentCheckerTest {
     @Rule
-    public final TestableDeviceConfig.TestableDeviceConfigRule mDeviceConfigRule =
-            new TestableDeviceConfig.TestableDeviceConfigRule();
+    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .mockStatic(FlagsFactory.class)
+            .spyStatic(StableFlags.class)
+            .setStrictness(Strictness.LENIENT)
+            .build();
+
+    private String mCallerAppAllowList;
+    private String mIsolatedServiceAllowList;
+
+    private Flags mTestFlags = new Flags() {
+        @Override public String getCallerAppAllowList() {
+            return mCallerAppAllowList;
+        }
+        @Override public String getIsolatedServiceAllowList() {
+            return mIsolatedServiceAllowList;
+        }
+    };
 
     @Before
     public void setup() throws Exception {
-        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        ExtendedMockito.doReturn(mTestFlags).when(FlagsFactory::getFlags);
     }
 
     @Test
     public void testIsCallerAppEnrolled() {
-        PhFlagsTestUtil.setCallerAppAllowList("app1,app2,app3,app5:certapp5");
+        mCallerAppAllowList = "app1,app2,app3,app5:certapp5";
         assertTrue(PartnerEnrollmentChecker.isCallerAppEnrolled("app1"));
         assertFalse(PartnerEnrollmentChecker.isCallerAppEnrolled("app"));
         assertFalse(PartnerEnrollmentChecker.isCallerAppEnrolled("app4"));
@@ -49,12 +68,12 @@ public class PartnerEnrollmentCheckerTest {
         assertFalse(PartnerEnrollmentChecker.isCallerAppEnrolled(""));
         assertFalse(PartnerEnrollmentChecker.isCallerAppEnrolled(null));
 
-        PhFlagsTestUtil.setCallerAppAllowList("*");
+        mCallerAppAllowList = "*";
         assertTrue(PartnerEnrollmentChecker.isCallerAppEnrolled("random"));
         assertTrue(PartnerEnrollmentChecker.isCallerAppEnrolled(""));
         assertTrue(PartnerEnrollmentChecker.isCallerAppEnrolled(null));
 
-        PhFlagsTestUtil.setCallerAppAllowList("");
+        mCallerAppAllowList = "";
         assertFalse(PartnerEnrollmentChecker.isCallerAppEnrolled("random"));
         assertFalse(PartnerEnrollmentChecker.isCallerAppEnrolled(""));
         assertFalse(PartnerEnrollmentChecker.isCallerAppEnrolled(null));
@@ -62,7 +81,7 @@ public class PartnerEnrollmentCheckerTest {
 
     @Test
     public void testIsIsolatedServiceEnrolled() {
-        PhFlagsTestUtil.setIsolatedServiceAllowList("svc1,svc2,svc3,svc5:certsvc5");
+        mIsolatedServiceAllowList = "svc1,svc2,svc3,svc5:certsvc5";
         assertTrue(PartnerEnrollmentChecker.isIsolatedServiceEnrolled("svc1"));
         assertFalse(PartnerEnrollmentChecker.isIsolatedServiceEnrolled("svc"));
         assertFalse(PartnerEnrollmentChecker.isIsolatedServiceEnrolled("svc4"));
@@ -70,12 +89,12 @@ public class PartnerEnrollmentCheckerTest {
         assertFalse(PartnerEnrollmentChecker.isIsolatedServiceEnrolled(""));
         assertFalse(PartnerEnrollmentChecker.isIsolatedServiceEnrolled(null));
 
-        PhFlagsTestUtil.setIsolatedServiceAllowList("*");
+        mIsolatedServiceAllowList = "*";
         assertTrue(PartnerEnrollmentChecker.isIsolatedServiceEnrolled("random"));
         assertTrue(PartnerEnrollmentChecker.isIsolatedServiceEnrolled(""));
         assertTrue(PartnerEnrollmentChecker.isIsolatedServiceEnrolled(null));
 
-        PhFlagsTestUtil.setIsolatedServiceAllowList("");
+        mIsolatedServiceAllowList = "";
         assertFalse(PartnerEnrollmentChecker.isIsolatedServiceEnrolled("random"));
         assertFalse(PartnerEnrollmentChecker.isIsolatedServiceEnrolled(""));
         assertFalse(PartnerEnrollmentChecker.isIsolatedServiceEnrolled(null));

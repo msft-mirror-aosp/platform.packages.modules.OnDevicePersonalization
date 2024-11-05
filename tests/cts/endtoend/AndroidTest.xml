@@ -33,10 +33,22 @@
         <option name="run-command" value="device_config put on_device_personalization federated_compute_kill_switch false" />
         <option name="run-command" value="device_config put on_device_personalization enable_personalization_status_override true"/>
         <option name="run-command" value="device_config put on_device_personalization personalization_status_override_value true"/>
+        <option name="run-command" value="device_config put on_device_personalization isolated_service_debugging_enabled true"/>
+        <option name="run-command" value="setprop log.tag.federatedcompute VERBOSE" />
+        <option name="run-command" value="setprop log.tag.ondevicepersonalization VERBOSE" />
+        <option name="run-command" value="setprop log.tag.OdpParceledListSlice VERBOSE" />
+        <option name="run-command" value="setprop log.tag.PluginControllerImpl VERBOSE" />
+        <option name="run-command" value="setprop log.tag.PluginLoaderImpl VERBOSE" />
+        <option name="run-command" value="setprop log.tag.PluginExecutorService VERBOSE" />
+        <option name="run-command" value="setprop log.tag.PluginExecutor VERBOSE" />
+        <option name="run-command" value="setprop log.tag.PluginArchiveManager VERBOSE" />
+        <option name="run-command" value="setprop log.tag.PluginExecutorServiceProviderImpl VERBOSE" />
+        <option name="run-command" value="setprop log.tag.TestPersonalizationHandler VERBOSE" />
         <option name="teardown-command" value="device_config delete on_device_personalization global_kill_switch" />
         <option name="teardown-command" value="device_config delete on_device_personalization federated_compute_kill_switch" />
         <option name="teardown-command" value="device_config delete on_device_personalization enable_personalization_status_override" />
         <option name="teardown-command" value="device_config delete on_device_personalization personalization_status_override_value" />
+        <option name="teardown-command" value="device_config delete on_device_personalization isolated_service_debugging_enabled" />
         <option name="teardown-command" value="device_config set_sync_disabled_for_tests none" />
     </target_preparer>
 

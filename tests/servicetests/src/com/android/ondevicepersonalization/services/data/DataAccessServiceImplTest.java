@@ -26,7 +26,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
 
@@ -81,6 +80,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
@@ -132,6 +132,26 @@ public class DataAccessServiceImplTest {
                 DataAccessPermission.READ_WRITE, DataAccessPermission.READ_WRITE, mInjector);
 
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
+    }
+
+    @Test
+    public void testStatusCodes() {
+        Set<Integer> allDataAccessCodes = new HashSet<>();
+        //add them all and check size, insuring that there are no duplicates
+        allDataAccessCodes.add(STATUS_SUCCESS);
+        allDataAccessCodes.add(Constants.STATUS_KEY_NOT_FOUND);
+        allDataAccessCodes.add(Constants.STATUS_SUCCESS_EMPTY_RESULT);
+        allDataAccessCodes.add(Constants.STATUS_PERMISSION_DENIED);
+        allDataAccessCodes.add(Constants.STATUS_LOCAL_DATA_READ_ONLY);
+        allDataAccessCodes.add(Constants.STATUS_REQUEST_TIMESTAMPS_INVALID);
+        allDataAccessCodes.add(Constants.STATUS_MODEL_TABLE_ID_INVALID);
+        allDataAccessCodes.add(Constants.STATUS_MODEL_DB_LOOKUP_FAILED);
+        allDataAccessCodes.add(Constants.STATUS_MODEL_LOOKUP_FAILURE);
+        allDataAccessCodes.add(Constants.STATUS_DATA_ACCESS_UNSUPPORTED_OP);
+        allDataAccessCodes.add(Constants.STATUS_DATA_ACCESS_FAILURE);
+        allDataAccessCodes.add(Constants.STATUS_LOCAL_WRITE_DATA_ACCESS_FAILURE);
+
+        assertThat(allDataAccessCodes).hasSize(12);
     }
 
     @Test
@@ -346,7 +366,7 @@ public class DataAccessServiceImplTest {
     }
 
     @Test
-    public void testLocalDataThrowsNotIncluded() {
+    public void testLocalDataNotIncludedErrorCode() throws Exception {
         mServiceImpl = new DataAccessServiceImpl(
                 mService, mApplicationContext, null,
                 /* localDataPermission */ DataAccessPermission.DENIED,
@@ -356,26 +376,42 @@ public class DataAccessServiceImplTest {
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
         params.putByteArray(Constants.EXTRA_VALUE, new byte[100]);
-        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
+
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP,
                 params,
-                new TestCallback()));
-        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
+                new TestCallback());
+        mLatch.await();
+        assertTrue(mOnErrorCalled);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_PERMISSION_DENIED);
+
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET,
                 params,
-                new TestCallback()));
-        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
+                new TestCallback());
+        mLatch.await();
+        assertTrue(mOnErrorCalled);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_PERMISSION_DENIED);
+
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT,
                 params,
-                new TestCallback()));
-        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
+                new TestCallback());
+        mLatch.await();
+        assertTrue(mOnErrorCalled);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_PERMISSION_DENIED);
+
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE,
                 params,
-                new TestCallback()));
+                new TestCallback());
+        mLatch.await();
+        assertTrue(mOnErrorCalled);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_PERMISSION_DENIED);
     }
 
     @Test
-    public void testLocalDataThrowsReadOnly() {
+    public void testLocalDataReadOnlyErrorCode() throws Exception {
         mServiceImpl = new DataAccessServiceImpl(
                 mService, mApplicationContext, null,
                 /* localDataPermission */ DataAccessPermission.READ_ONLY,
@@ -385,14 +421,17 @@ public class DataAccessServiceImplTest {
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
         params.putByteArray(Constants.EXTRA_VALUE, new byte[100]);
-        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT,
-                params,
-                new TestCallback()));
-        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE,
-                params,
-                new TestCallback()));
+        mServiceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT, params, new TestCallback());
+        mLatch.await();
+        assertTrue(mOnErrorCalled);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_LOCAL_DATA_READ_ONLY);
+
+        mServiceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE, params, new TestCallback());
+        mLatch.await();
+        assertTrue(mOnErrorCalled);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_LOCAL_DATA_READ_ONLY);
     }
 
     @Test
@@ -415,14 +454,30 @@ public class DataAccessServiceImplTest {
     }
 
     @Test
-    public void testGetRequestsBadInput() {
+    public void testGetRequestsBadInput() throws Exception {
         addTestData();
         Bundle params = new Bundle();
         params.putLongArray(Constants.EXTRA_LOOKUP_KEYS, new long[]{0L});
-        assertThrows(IllegalArgumentException.class, () -> mServiceProxy.onRequest(
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_REQUESTS,
                 params,
-                new TestCallback()));
+                new TestCallback());
+        mLatch.await();
+        assertTrue(mOnErrorCalled);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_REQUEST_TIMESTAMPS_INVALID);
+    }
+
+    @Test
+    public void testDataAccessBadOp() throws Exception {
+        addTestData();
+        Bundle params = new Bundle();
+        mServiceProxy.onRequest(
+                -1,
+                params,
+                new TestCallback());
+        mLatch.await();
+        assertTrue(mOnErrorCalled);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_DATA_ACCESS_UNSUPPORTED_OP);
     }
 
     @Test
@@ -448,18 +503,21 @@ public class DataAccessServiceImplTest {
     }
 
     @Test
-    public void testGetJoinedEventsBadInput() {
+    public void testGetJoinedEventsBadInput() throws Exception {
         addTestData();
         Bundle params = new Bundle();
         params.putLongArray(Constants.EXTRA_LOOKUP_KEYS, new long[]{0L});
-        assertThrows(IllegalArgumentException.class, () -> mServiceProxy.onRequest(
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_JOINED_EVENTS,
                 params,
-                new TestCallback()));
+                new TestCallback());
+        mLatch.await();
+        assertTrue(mOnErrorCalled);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_REQUEST_TIMESTAMPS_INVALID);
     }
 
     @Test
-    public void testEventDataThrowsNotIncluded() {
+    public void testEventDataNotIncludedErrorCode() throws Exception {
         mServiceImpl = new DataAccessServiceImpl(
                 mService, mApplicationContext, null,
                 /* localDataPermission */ DataAccessPermission.READ_WRITE,
@@ -468,26 +526,28 @@ public class DataAccessServiceImplTest {
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         Bundle params = new Bundle();
         params.putLongArray(Constants.EXTRA_LOOKUP_KEYS, new long[]{1L, 2L});
-        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_GET_REQUESTS,
-                params,
-                new TestCallback()));
-        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_GET_JOINED_EVENTS,
-                params,
-                new TestCallback()));
+
+        mServiceProxy.onRequest(Constants.DATA_ACCESS_OP_GET_REQUESTS, params, new TestCallback());
+        mLatch.await();
+        assertTrue(mOnErrorCalled);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_PERMISSION_DENIED);
+
+        mServiceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_GET_JOINED_EVENTS, params, new TestCallback());
+        mLatch.await();
+        assertTrue(mOnErrorCalled);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_PERMISSION_DENIED);
     }
 
     @Test
-    public void testGetModelFileDescriptor_badInput() {
+    public void testGetModelFileDescriptor_badInput() throws Exception {
         addTestData();
         Bundle params = new Bundle();
 
-        assertThrows(
-                NullPointerException.class,
-                () ->
-                        mServiceProxy.onRequest(
-                                Constants.DATA_ACCESS_OP_GET_MODEL, params, new TestCallback()));
+        mServiceProxy.onRequest(Constants.DATA_ACCESS_OP_GET_MODEL, params, new TestCallback());
+        mLatch.await();
+        assertTrue(mOnErrorCalled);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_KEY_NOT_FOUND);
     }
 
     @Test
@@ -510,6 +570,23 @@ public class DataAccessServiceImplTest {
     }
 
     @Test
+    public void testGetModelFileDescriptor_tableId_fail() throws Exception {
+        addTestData();
+        Bundle params = new Bundle();
+        ModelId modelId =
+                new ModelId.Builder()
+                        .setTableId(-1)
+                        .setKey("bad-key2")
+                        .build();
+        params.putParcelable(Constants.EXTRA_MODEL_ID, modelId);
+
+        mServiceProxy.onRequest(Constants.DATA_ACCESS_OP_GET_MODEL, params, new TestCallback());
+        mLatch.await();
+        assertTrue(mOnErrorCalled);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_MODEL_TABLE_ID_INVALID);
+    }
+
+    @Test
     public void testGetModelFileDescriptor_remoteTable_fail() throws Exception {
         addTestData();
         Bundle params = new Bundle();
@@ -523,7 +600,7 @@ public class DataAccessServiceImplTest {
         mServiceProxy.onRequest(Constants.DATA_ACCESS_OP_GET_MODEL, params, new TestCallback());
         mLatch.await();
         assertTrue(mOnErrorCalled);
-        assertThat(mErrorCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_MODEL_DB_LOOKUP_FAILED);
     }
 
     @Test
@@ -559,7 +636,7 @@ public class DataAccessServiceImplTest {
         mServiceProxy.onRequest(Constants.DATA_ACCESS_OP_GET_MODEL, params, new TestCallback());
         mLatch.await();
         assertTrue(mOnErrorCalled);
-        assertThat(mErrorCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_MODEL_DB_LOOKUP_FAILED);
     }
 
     @Test

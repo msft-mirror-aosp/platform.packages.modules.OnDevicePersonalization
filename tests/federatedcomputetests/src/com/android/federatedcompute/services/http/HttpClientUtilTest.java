@@ -24,7 +24,7 @@ import android.net.Uri;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.odp.module.common.HttpClientUtils;
+import com.android.odp.module.common.http.HttpClientUtils;
 
 import org.junit.Test;
 
