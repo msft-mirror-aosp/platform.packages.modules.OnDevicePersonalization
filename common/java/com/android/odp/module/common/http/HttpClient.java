@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.android.odp.module.common;
+package com.android.odp.module.common.http;
 
-import static com.android.odp.module.common.HttpClientUtils.HTTP_OK_STATUS;
+import static com.android.odp.module.common.http.HttpClientUtils.HTTP_OK_STATUS;
 
 import android.annotation.NonNull;
 

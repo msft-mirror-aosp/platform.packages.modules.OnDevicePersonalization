@@ -16,18 +16,18 @@
 
 package com.android.ondevicepersonalization.services.data.errors;
 
-import static com.android.odp.module.common.HttpClientUtils.CONTENT_TYPE_HDR;
-import static com.android.odp.module.common.HttpClientUtils.PROTOBUF_CONTENT_TYPE;
+import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_TYPE_HDR;
+import static com.android.odp.module.common.http.HttpClientUtils.PROTOBUF_CONTENT_TYPE;
 
 import android.content.Context;
 import android.util.Base64;
 
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.odp.module.common.HttpClient;
-import com.android.odp.module.common.HttpClientUtils;
-import com.android.odp.module.common.OdpHttpRequest;
-import com.android.odp.module.common.OdpHttpResponse;
 import com.android.odp.module.common.PackageUtils;
+import com.android.odp.module.common.http.HttpClient;
+import com.android.odp.module.common.http.HttpClientUtils;
+import com.android.odp.module.common.http.OdpHttpRequest;
+import com.android.odp.module.common.http.OdpHttpResponse;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
@@ -152,33 +152,38 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
     public ListenableFuture<Boolean> reportExceptionData() {
         // TODO(b/329921267): add encryption and authorization support
         // First report ReportExceptionRequest, then upload result
-        Preconditions.checkState(!mErrorData.isEmpty() && !mRequestBaseUri.isEmpty());
-        String requestUri = getRequestUri(mRequestBaseUri, mInjector.getFlags());
+        try {
+            Preconditions.checkState(!mErrorData.isEmpty() && !mRequestBaseUri.isEmpty());
+            String requestUri = getRequestUri(mRequestBaseUri, mInjector.getFlags());
 
-        // Report exception request, to get upload location from server.
-        ListenableFuture<OdpHttpResponse> reportRequest =
-                mHttpClient.performRequestAsyncWithRetry(
-                        getHttpRequest(
-                                requestUri,
-                                new HashMap<>(mHeaderList),
-                                getReportRequest().toByteArray()));
+            // Report exception request, to get upload location from server.
+            ListenableFuture<OdpHttpResponse> reportRequest =
+                    mHttpClient.performRequestAsyncWithRetry(
+                            getHttpRequest(
+                                    requestUri,
+                                    new HashMap<>(mHeaderList),
+                                    getReportRequest().toByteArray()));
 
-        // Perform upload based on server provided response.
-        ListenableFuture<Boolean> reportFuture =
-                FluentFuture.from(reportRequest)
-                        .transformAsync(
-                                this::uploadExceptionData, mInjector.getBackgroundExecutor())
-                        .transform(
-                                response ->
-                                        validateHttpResponseStatus(
-                                                /* stage= */ "reportRequest", response),
-                                mInjector.getBackgroundExecutor());
+            // Perform upload based on server provided response.
+            ListenableFuture<Boolean> reportFuture =
+                    FluentFuture.from(reportRequest)
+                            .transformAsync(
+                                    this::uploadExceptionData, mInjector.getBackgroundExecutor())
+                            .transform(
+                                    response ->
+                                            validateHttpResponseStatus(
+                                                    /* stage= */ "reportRequest", response),
+                                    mInjector.getBackgroundExecutor());
 
-        return FluentFuture.from(reportFuture)
-                .withTimeout(
-                        mInjector.getFlags().getAggregatedErrorReportingHttpTimeoutSeconds(),
-                        TimeUnit.SECONDS,
-                        mInjector.getScheduledExecutor());
+            return FluentFuture.from(reportFuture)
+                    .withTimeout(
+                            mInjector.getFlags().getAggregatedErrorReportingHttpTimeoutSeconds(),
+                            TimeUnit.SECONDS,
+                            mInjector.getScheduledExecutor());
+        } catch (Exception e) {
+            sLogger.e(TAG + " : failed to  report exception data.", e);
+            return Futures.immediateFailedFuture(e);
+        }
     }
 
     @VisibleForTesting
@@ -191,7 +196,7 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
             Preconditions.checkArgument(
                     !uploadInstruction.getUploadLocation().isEmpty(),
                     "UploadInstruction.upload_location must not be empty");
-            byte[] outputBytes = createEncryptedRequestBody();
+            byte[] outputBytes = createEncryptedRequestBody(mErrorData);
             // Apply a top-level compression to the payload.
             if (uploadInstruction.getCompressionFormat()
                     == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP) {
@@ -214,11 +219,12 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
     }
 
     @VisibleForTesting
-    byte[] createEncryptedRequestBody() throws JSONException {
+    static byte[] createEncryptedRequestBody(ImmutableList<ErrorData> errorData)
+            throws JSONException {
         // Creates and encrypts the error data that is uploaded to the server.
         // create payload
         com.google.ondevicepersonalization.federatedcompute.proto.ErrorDataList errorDataList =
-                convertToProto(mErrorData);
+                convertToProto(errorData);
         byte[] output = errorDataList.toByteArray();
         final JSONObject body = new JSONObject();
 
@@ -246,7 +252,8 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
                 requestBaseUri, flags.getAggregatedErrorReportingServerPath());
     }
 
-    private static ReportExceptionRequest getReportRequest() {
+    @VisibleForTesting
+    static ReportExceptionRequest getReportRequest() {
         Timestamp requestTime =
                 Timestamp.newBuilder().setSeconds(DateTimeUtils.epochSecondsUtc()).build();
         return ReportExceptionRequest.newBuilder()
@@ -279,7 +286,8 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
         return builder.build();
     }
 
-    private static OdpHttpRequest getHttpRequest(
+    @VisibleForTesting
+    static OdpHttpRequest getHttpRequest(
             String uri, Map<String, String> requestHeaders, byte[] body) {
         // Helper method for http request that contains serialized proto payload.
         HashMap<String, String> headers = new HashMap<>(requestHeaders);

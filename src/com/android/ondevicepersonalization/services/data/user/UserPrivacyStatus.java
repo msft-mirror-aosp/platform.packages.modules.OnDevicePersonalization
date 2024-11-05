@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services.data.user;
 import static android.adservices.ondevicepersonalization.Constants.API_NAME_ADSERVICES_GET_COMMON_STATES;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_CALLER_NOT_ALLOWED;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_CLASS_NOT_FOUND;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_EXECUTION_INTERRUPTED;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_INTERNAL_ERROR;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_METHOD_NOT_FOUND;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_NULL_ADSERVICES_COMMON_MANAGER;
@@ -248,6 +249,10 @@ public final class UserPrivacyStatus {
 
     @VisibleForTesting
     int getExceptionStatus(Exception e) {
+        if (e instanceof InterruptedException) {
+            return STATUS_EXECUTION_INTERRUPTED;
+        }
+
         Throwable cause = e;
         if (e instanceof ExecutionException) {
             cause = e.getCause(); // Unwrap the cause
@@ -272,6 +277,9 @@ public final class UserPrivacyStatus {
         }
         if (cause instanceof AdServicesCommonStatesWrapper.NullAdServiceCommonManagerException) {
             return STATUS_NULL_ADSERVICES_COMMON_MANAGER;
+        }
+        if (cause instanceof InterruptedException) {
+            return STATUS_EXECUTION_INTERRUPTED;
         }
         return STATUS_REMOTE_EXCEPTION;
     }

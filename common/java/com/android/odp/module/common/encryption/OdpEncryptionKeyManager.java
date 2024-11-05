@@ -14,28 +14,25 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.encryption;
+package com.android.odp.module.common.encryption;
 
 import android.content.Context;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.common.FederatedComputeExecutors;
-import com.android.federatedcompute.services.common.Flags;
-import com.android.federatedcompute.services.common.FlagsFactory;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDao;
-import com.android.federatedcompute.services.http.HttpClientUtil;
 import com.android.odp.module.common.Clock;
-import com.android.odp.module.common.HttpClient;
-import com.android.odp.module.common.HttpClientUtils;
 import com.android.odp.module.common.MonotonicClock;
-import com.android.odp.module.common.OdpHttpRequest;
-import com.android.odp.module.common.OdpHttpResponse;
+import com.android.odp.module.common.data.OdpEncryptionKeyDao;
+import com.android.odp.module.common.data.OdpSQLiteOpenHelper;
+import com.android.odp.module.common.http.HttpClient;
+import com.android.odp.module.common.http.HttpClientUtils;
+import com.android.odp.module.common.http.OdpHttpRequest;
+import com.android.odp.module.common.http.OdpHttpResponse;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListeningExecutorService;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -46,13 +43,35 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /** Class to manage key fetch. */
-public class FederatedComputeEncryptionKeyManager {
-    private static final String TAG = "FederatedComputeEncryptionKeyManager";
+public class OdpEncryptionKeyManager {
+    private static final String TAG = OdpEncryptionKeyManager.class.getSimpleName();
+
+    // Helper class to allow injection of flags from either ODP or FCP code.
+    public interface KeyManagerConfig {
+
+        /** Url from which to get encryption keys. */
+        String getEncryptionKeyFetchUrl();
+
+        /** Retry limit for encryption key http requests. */
+        int getHttpRequestRetryLimit();
+
+        /** Max age in seconds for federated compute encryption keys. */
+        long getEncryptionKeyMaxAgeSeconds();
+
+        /** The {@link OdpSQLiteOpenHelper} instance for use by the encryption DAO. */
+        OdpSQLiteOpenHelper getSQLiteOpenHelper();
+
+        /** Background executor for use in key fetch and DB updates etc. */
+        ListeningExecutorService getBackgroundExecutor();
+
+        /** Blocking executor for use in http connection. */
+        ListeningExecutorService getBlockingExecutor();
+
+    }
 
     private interface EncryptionKeyResponseContract {
         String RESPONSE_HEADER_CACHE_CONTROL_LABEL = "cache-control";
@@ -67,67 +86,82 @@ public class FederatedComputeEncryptionKeyManager {
         String RESPONSE_PUBLIC_KEY = "key";
     }
 
-    @VisibleForTesting private final FederatedComputeEncryptionKeyDao mEncryptionKeyDao;
+    private final OdpEncryptionKeyDao mEncryptionKeyDao;
 
-    private static volatile FederatedComputeEncryptionKeyManager sBackgroundKeyManager;
+    private static volatile OdpEncryptionKeyManager sBackgroundKeyManager;
 
     private final Clock mClock;
 
-    private final Flags mFlags;
+    private final KeyManagerConfig mKeyManagerConfig;
 
     private final HttpClient mHttpClient;
 
-    private final ExecutorService mBackgroundExecutor;
+    private final ListeningExecutorService mBackgroundExecutor;
 
-    public FederatedComputeEncryptionKeyManager(
+    private OdpEncryptionKeyManager(
             Clock clock,
-            FederatedComputeEncryptionKeyDao encryptionKeyDao,
-            Flags flags,
+            OdpEncryptionKeyDao encryptionKeyDao,
+            KeyManagerConfig keyManagerConfig,
             HttpClient httpClient,
-            ExecutorService backgroundExecutor) {
+            ListeningExecutorService backgroundExecutor) {
         mClock = clock;
         mEncryptionKeyDao = encryptionKeyDao;
-        mFlags = flags;
+        mKeyManagerConfig = keyManagerConfig;
         mHttpClient = httpClient;
         mBackgroundExecutor = backgroundExecutor;
     }
 
-    /** Returns a singleton instance for the {@link FederatedComputeEncryptionKeyManager}. */
-    public static FederatedComputeEncryptionKeyManager getInstance(Context context) {
+    @VisibleForTesting
+    static synchronized void resetForTesting() {
+        sBackgroundKeyManager = null;
+    }
+
+    /**
+     * Test only getter that allows injection of test/mock versions of clock, DAO etc.
+     *
+     * <p>Should be used in conjunction with {@link #resetForTesting()}
+     */
+    @VisibleForTesting
+    public static OdpEncryptionKeyManager getInstanceForTesting(
+            Clock clock,
+            OdpEncryptionKeyDao encryptionKeyDao,
+            KeyManagerConfig keyManagerConfig,
+            HttpClient httpClient,
+            ListeningExecutorService backgroundExecutor) {
         if (sBackgroundKeyManager == null) {
-            synchronized (FederatedComputeEncryptionKeyManager.class) {
+            synchronized (OdpEncryptionKeyManager.class) {
                 if (sBackgroundKeyManager == null) {
-                    FederatedComputeEncryptionKeyDao encryptionKeyDao =
-                            FederatedComputeEncryptionKeyDao.getInstance(context);
                     sBackgroundKeyManager =
-                            new FederatedComputeEncryptionKeyManager(
-                                    MonotonicClock.getInstance(),
+                            new OdpEncryptionKeyManager(
+                                    clock,
                                     encryptionKeyDao,
-                                    FlagsFactory.getFlags(),
-                                    new HttpClient(
-                                            FlagsFactory.getFlags().getHttpRequestRetryLimit(),
-                                            FederatedComputeExecutors.getBlockingExecutor()),
-                                    FederatedComputeExecutors.getBackgroundExecutor());
+                                    keyManagerConfig,
+                                    httpClient,
+                                    backgroundExecutor);
                 }
             }
         }
         return sBackgroundKeyManager;
     }
 
-    /** For testing only, returns an instance of key manager for test. */
-    @VisibleForTesting
-    static FederatedComputeEncryptionKeyManager getInstanceForTest(
-            Clock clock,
-            FederatedComputeEncryptionKeyDao encryptionKeyDao,
-            Flags flags,
-            HttpClient client,
-            ExecutorService executor) {
+    /** Returns a singleton instance for the {@link OdpEncryptionKeyManager}. */
+    public static OdpEncryptionKeyManager getInstance(
+            Context context, KeyManagerConfig keyManagerConfig) {
         if (sBackgroundKeyManager == null) {
-            synchronized (FederatedComputeEncryptionKeyManager.class) {
+            synchronized (OdpEncryptionKeyManager.class) {
                 if (sBackgroundKeyManager == null) {
+                    OdpEncryptionKeyDao encryptionKeyDao =
+                            OdpEncryptionKeyDao.getInstance(
+                                    context, keyManagerConfig.getSQLiteOpenHelper());
                     sBackgroundKeyManager =
-                            new FederatedComputeEncryptionKeyManager(
-                                    clock, encryptionKeyDao, flags, client, executor);
+                            new OdpEncryptionKeyManager(
+                                    MonotonicClock.getInstance(),
+                                    encryptionKeyDao,
+                                    keyManagerConfig,
+                                    new HttpClient(
+                                            keyManagerConfig.getHttpRequestRetryLimit(),
+                                            keyManagerConfig.getBlockingExecutor()),
+                                    keyManagerConfig.getBackgroundExecutor());
                 }
             }
         }
@@ -138,12 +172,14 @@ public class FederatedComputeEncryptionKeyManager {
      * Fetch the active key from the server, persists the fetched key to encryption_key table, and
      * deletes expired keys
      */
-    FluentFuture<List<FederatedComputeEncryptionKey>> fetchAndPersistActiveKeys(
-            @FederatedComputeEncryptionKey.KeyType int keyType, boolean isScheduledJob) {
-        String fetchUri = mFlags.getEncryptionKeyFetchUrl();
+    public FluentFuture<List<OdpEncryptionKey>> fetchAndPersistActiveKeys(
+            @OdpEncryptionKey.KeyType int keyType, boolean isScheduledJob) {
+        String fetchUri = mKeyManagerConfig.getEncryptionKeyFetchUrl();
         if (fetchUri == null) {
-            return FluentFuture.from(Futures.immediateFailedFuture(
-                    new IllegalArgumentException("Url to fetch active encryption keys is null")));
+            return FluentFuture.from(
+                    Futures.immediateFailedFuture(
+                            new IllegalArgumentException(
+                                    "Url to fetch active encryption keys is null")));
         }
 
         OdpHttpRequest request;
@@ -153,7 +189,7 @@ public class FederatedComputeEncryptionKeyManager {
                             fetchUri,
                             HttpClientUtils.HttpMethod.GET,
                             new HashMap<>(),
-                            HttpClientUtil.EMPTY_BODY);
+                            HttpClientUtils.EMPTY_BODY);
         } catch (Exception e) {
             return FluentFuture.from(Futures.immediateFailedFuture(e));
         }
@@ -177,28 +213,27 @@ public class FederatedComputeEncryptionKeyManager {
                         mBackgroundExecutor); // TODO: Add timeout controlled by Ph flags
     }
 
-    private ImmutableList<FederatedComputeEncryptionKey> parseFetchEncryptionKeyPayload(
+    private ImmutableList<OdpEncryptionKey> parseFetchEncryptionKeyPayload(
             OdpHttpResponse keyFetchResponse,
-            @FederatedComputeEncryptionKey.KeyType int keyType,
+            @OdpEncryptionKey.KeyType int keyType,
             Long fetchTime) {
         String payload = new String(Objects.requireNonNull(keyFetchResponse.getPayload()));
         Map<String, List<String>> headers = keyFetchResponse.getHeaders();
         long ttlInSeconds = getTTL(headers);
         if (ttlInSeconds <= 0) {
-            ttlInSeconds = mFlags.getFederatedComputeEncryptionKeyMaxAgeSeconds();
+            ttlInSeconds = mKeyManagerConfig.getEncryptionKeyMaxAgeSeconds();
         }
 
         try {
             JSONObject responseObj = new JSONObject(payload);
             JSONArray keysArr =
                     responseObj.getJSONArray(EncryptionKeyResponseContract.RESPONSE_KEYS_LABEL);
-            ImmutableList.Builder<FederatedComputeEncryptionKey> encryptionKeys =
-                    ImmutableList.builder();
+            ImmutableList.Builder<OdpEncryptionKey> encryptionKeys = ImmutableList.builder();
 
             for (int i = 0; i < keysArr.length(); i++) {
                 JSONObject keyObj = keysArr.getJSONObject(i);
-                FederatedComputeEncryptionKey key =
-                        new FederatedComputeEncryptionKey.Builder()
+                OdpEncryptionKey key =
+                        new OdpEncryptionKey.Builder()
                                 .setKeyIdentifier(
                                         keyObj.getString(
                                                 EncryptionKeyResponseContract
@@ -296,26 +331,35 @@ public class FederatedComputeEncryptionKeyManager {
      *
      * @return The list of active keys.
      */
-    public List<FederatedComputeEncryptionKey> getOrFetchActiveKeys(int keyType, int keyCount) {
-        List<FederatedComputeEncryptionKey> activeKeys = mEncryptionKeyDao
-                .getLatestExpiryNKeys(keyCount);
+    public List<OdpEncryptionKey> getOrFetchActiveKeys(int keyType, int keyCount) {
+        List<OdpEncryptionKey> activeKeys = mEncryptionKeyDao.getLatestExpiryNKeys(keyCount);
         if (activeKeys.size() > 0) {
+            LogUtil.d(TAG, "Existing active keys present, number of keys : " + activeKeys.size());
             return activeKeys;
         }
+
+        LogUtil.d(TAG, "No existing active keys present, fetching new encryption keys.");
         try {
-            var fetchedKeysUnused = fetchAndPersistActiveKeys(keyType,
-                    /* isScheduledJob= */ false).get(/* timeout= */ 5, TimeUnit.SECONDS);
+            var fetchedKeysUnused =
+                    fetchAndPersistActiveKeys(keyType, /* isScheduledJob= */ false)
+                            .get(/* timeout= */ 5, TimeUnit.SECONDS);
             activeKeys = mEncryptionKeyDao.getLatestExpiryNKeys(keyCount);
             if (activeKeys.size() > 0) {
                 return activeKeys;
             }
         } catch (TimeoutException e) {
-            LogUtil.e(TAG, "Time out when forcing encryption key fetch: "
-                    + e.getMessage());
+            LogUtil.d(TAG, "Time out when forcing encryption key fetch: " + e.getMessage());
         } catch (Exception e) {
-            LogUtil.e(TAG, "Exception encountered when forcing encryption key fetch: "
-                    + e.getMessage());
+            LogUtil.d(
+                    TAG,
+                    "Exception encountered when forcing encryption key fetch: " + e.getMessage());
         }
         return activeKeys;
+    }
+
+    /** Helper method to allow testing of injected {@link KeyManagerConfig}. */
+    @VisibleForTesting
+    public KeyManagerConfig getKeyManagerConfigForTesting() {
+        return mKeyManagerConfig;
     }
 }

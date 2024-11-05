@@ -31,9 +31,12 @@ import android.content.Context;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.statsd.joblogging.OdpJobServiceLogger;
 
+import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -86,68 +89,65 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
             return true;
         }
 
-        OnDevicePersonalizationExecutors.getHighPriorityBackgroundExecutor()
-                .execute(
-                        () -> {
-                            mFutures = new ArrayList<>();
-                            // Processing installed packages
-                            for (String packageName :
-                                    AppManifestConfigHelper.getOdpPackages(
-                                            /* context= */ this, /* enrolledOnly= */ true)) {
-                                mFutures.add(
-                                        Futures.submitAsync(
-                                                new OnDevicePersonalizationDataProcessingAsyncCallable(
-                                                        packageName, /* context= */ this),
-                                                OnDevicePersonalizationExecutors
-                                                        .getBackgroundExecutor()));
-                            }
+        OnDevicePersonalizationExecutors.getHighPriorityBackgroundExecutor().execute(() -> {
+            mFutures = new ArrayList<>();
+            // Processing installed packages
+            for (String packageName : AppManifestConfigHelper.getOdpPackages(
+                    /* context= */ this, /* enrolledOnly= */ true)) {
+                mFutures.add(Futures.submitAsync(
+                        new OnDevicePersonalizationDataProcessingAsyncCallable(
+                                packageName, /* context= */ this),
+                        OnDevicePersonalizationExecutors.getBackgroundExecutor()));
+            }
 
-                            // Handling task completion asynchronously
-                            var unused =
-                                    Futures.whenAllComplete(mFutures)
-                                            .call(
-                                                    () -> {
-                                                        boolean wantsReschedule = false;
-                                                        boolean allSuccess = true;
-                                                        int successTaskCount = 0;
-                                                        int failureTaskCount = 0;
-                                                        for (ListenableFuture<Void> future :
-                                                                mFutures) {
-                                                            try {
-                                                                future.get();
-                                                                successTaskCount++;
-                                                            } catch (Exception e) {
-                                                                sLogger.e(
-                                                                        e,
-                                                                        TAG
-                                                                                + ": Error"
-                                                                                + " processing"
-                                                                                + " future");
-                                                                failureTaskCount++;
-                                                                allSuccess = false;
-                                                            }
-                                                        }
-                                                        sLogger.d(
-                                                                TAG
-                                                                        + ": all download"
-                                                                        + " processing tasks"
-                                                                        + " finished, %d succeeded,"
-                                                                        + " %d failed",
-                                                                successTaskCount,
-                                                                failureTaskCount);
-                                                        OdpJobServiceLogger.getInstance(
-                                                                        OnDevicePersonalizationDownloadProcessingJobService
-                                                                                .this)
-                                                                .recordJobFinished(
-                                                                        DOWNLOAD_PROCESSING_TASK_JOB_ID,
-                                                                        /* isSuccessful= */ allSuccess,
-                                                                        wantsReschedule);
-                                                        jobFinished(params, wantsReschedule);
-                                                        return null;
-                                                    },
-                                                    OnDevicePersonalizationExecutors
-                                                            .getLightweightExecutor());
-                        });
+            // Handling task completion asynchronously
+            var unused = Futures.whenAllComplete(mFutures).call(() -> {
+                boolean wantsReschedule = false;
+                boolean allSuccess = true;
+                int successTaskCount = 0;
+                int failureTaskCount = 0;
+                for (ListenableFuture<Void> future : mFutures) {
+                    try {
+                        future.get();
+                        successTaskCount++;
+                    } catch (Exception e) {
+                        sLogger.e(e, TAG + ": Error" + " processing" + " future");
+                        failureTaskCount++;
+                        allSuccess = false;
+                    }
+                }
+                sLogger.d(TAG + ": all download" + " processing tasks"
+                        + " finished, %d succeeded,"
+                        + " %d failed", successTaskCount, failureTaskCount);
+                // Manually trigger MDD garbage collection after finishing processing all downloads.
+                MobileDataDownload mdd = MobileDataDownloadFactory.getMdd(this);
+                boolean isSuccessful = allSuccess;
+                Futures.addCallback(mdd.collectGarbage(), new FutureCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void result) {
+                        OdpJobServiceLogger.getInstance(
+                                OnDevicePersonalizationDownloadProcessingJobService.this)
+                                .recordJobFinished(
+                                    DOWNLOAD_PROCESSING_TASK_JOB_ID,
+                                    /* isSuccessful= */ isSuccessful,
+                                    wantsReschedule);
+                        jobFinished(params, wantsReschedule);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        OdpJobServiceLogger.getInstance(
+                                OnDevicePersonalizationDownloadProcessingJobService.this)
+                                    .recordJobFinished(
+                                        DOWNLOAD_PROCESSING_TASK_JOB_ID,
+                                        /* isSuccessful= */ false,
+                                        wantsReschedule);
+                        jobFinished(params, wantsReschedule);
+                    }
+                }, OnDevicePersonalizationExecutors.getLightweightExecutor());
+                return null;
+            }, OnDevicePersonalizationExecutors.getLightweightExecutor());
+        });
 
         return true;
     }

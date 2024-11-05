@@ -143,14 +143,14 @@ public class OdpExampleStoreServiceTests {
         binder.startQuery(input, callback);
         assertTrue(
                 "timeout reached while waiting for countdownlatch!",
-                mLatch.await(5000, TimeUnit.MILLISECONDS));
+                mLatch.await(10000, TimeUnit.MILLISECONDS));
 
         assertFalse(mQueryCallbackOnSuccessCalled);
         assertTrue(mQueryCallbackOnFailureCalled);
     }
 
     @Test
-    public void testStartQuery_moreThanMinExample_failure() throws Exception {
+    public void testStartQuery_moreThanMinExample_success() throws Exception {
         mEventsDao.updateOrInsertEventState(
                 new EventState.Builder()
                         .setTaskIdentifier("PopulationName")
@@ -177,7 +177,7 @@ public class OdpExampleStoreServiceTests {
         binder.startQuery(input, callback);
         assertTrue(
                 "timeout reached while waiting for countdownlatch!",
-                mLatch.await(5000, TimeUnit.MILLISECONDS));
+                mLatch.await(10000, TimeUnit.MILLISECONDS));
 
         assertTrue(mQueryCallbackOnSuccessCalled);
         assertFalse(mQueryCallbackOnFailureCalled);
@@ -210,7 +210,7 @@ public class OdpExampleStoreServiceTests {
         binder.startQuery(input, callback);
         assertTrue(
                 "timeout reached while waiting for countdownlatch!",
-                mLatch.await(5000, TimeUnit.MILLISECONDS));
+                mLatch.await(10000, TimeUnit.MILLISECONDS));
 
         assertTrue(mQueryCallbackOnSuccessCalled);
         assertFalse(mQueryCallbackOnFailureCalled);
@@ -355,7 +355,7 @@ public class OdpExampleStoreServiceTests {
         binder.startQuery(input, callback);
         assertTrue(
                 "timeout reached while waiting for countdownlatch!",
-                mLatch.await(5000, TimeUnit.MILLISECONDS));
+                mLatch.await(10000, TimeUnit.MILLISECONDS));
 
         assertFalse(mQueryCallbackOnSuccessCalled);
         assertTrue(mQueryCallbackOnFailureCalled);

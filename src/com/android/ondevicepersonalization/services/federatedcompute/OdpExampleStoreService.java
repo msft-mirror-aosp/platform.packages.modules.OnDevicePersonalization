@@ -48,9 +48,8 @@ import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.PluginProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
-import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
+import com.android.ondevicepersonalization.services.process.ProcessRunnerFactory;
 import com.android.ondevicepersonalization.services.util.AllowListUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
@@ -85,9 +84,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
         }
 
         ProcessRunner getProcessRunner() {
-            return FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()
-                    ? SharedIsolatedProcessRunner.getInstance()
-                    : PluginProcessRunner.getInstance();
+            return ProcessRunnerFactory.getProcessRunner();
         }
     }
 
@@ -309,8 +306,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                                                     .getProcessRunner()
                                                     .unloadIsolatedService(loadFuture.get()),
                                     OnDevicePersonalizationExecutors.getBackgroundExecutor());
-        } catch (Exception e) {
-            sLogger.w(e, "%s : Start query failed.", TAG);
+        } catch (Throwable e) {
+            sLogger.e(e, "%s : Start query failed.", TAG);
             StatsUtils.writeServiceRequestMetrics(
                     Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
                     Constants.STATUS_INTERNAL_ERROR);

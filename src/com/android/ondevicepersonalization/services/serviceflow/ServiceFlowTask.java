@@ -16,17 +16,13 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
-
 import android.os.Bundle;
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
-import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.PluginProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
-import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
+import com.android.ondevicepersonalization.services.process.ProcessRunnerFactory;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -45,7 +41,7 @@ public class ServiceFlowTask {
     private final ServiceFlow mServiceFlow;
     private final ProcessRunner mProcessRunner;
     private volatile boolean mIsCompleted;
-    private volatile Exception mExecutionException;
+    private volatile Throwable mExecutionThrowable;
 
     private final ListeningExecutorService mExecutor =
             OnDevicePersonalizationExecutors.getBackgroundExecutor();
@@ -54,10 +50,7 @@ public class ServiceFlowTask {
         mIsCompleted = false;
         mServiceFlowType = serviceFlowType;
         mServiceFlow = serviceFlow;
-        mProcessRunner =
-                (boolean) StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED)
-                        ? SharedIsolatedProcessRunner.getInstance()
-                        : PluginProcessRunner.getInstance();
+        mProcessRunner = ProcessRunnerFactory.getProcessRunner();
     }
 
     public ServiceFlowType getServiceFlowType() {
@@ -72,8 +65,8 @@ public class ServiceFlowTask {
         return mIsCompleted;
     }
 
-    public Exception getExecutionException() {
-        return mExecutionException;
+    public Throwable getExeuctionThrowable() {
+        return mExecutionThrowable;
     }
 
     /** Executes the given service flow. */
@@ -117,9 +110,9 @@ public class ServiceFlowTask {
                                         mIsCompleted = true;
                                         return unloadServiceFuture;
                                     }, mExecutor);
-        } catch (Exception e) {
-            sLogger.w(TAG + ": ServiceFlowTask " + mServiceFlowType + "failed. " + e);
-            mExecutionException = e;
+        } catch (Throwable e) {
+            sLogger.e(e, TAG + ": ServiceFlowTask " + mServiceFlowType + " failed.");
+            mExecutionThrowable = e;
         }
     }
 }

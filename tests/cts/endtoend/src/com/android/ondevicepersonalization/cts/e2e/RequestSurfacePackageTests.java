@@ -330,6 +330,8 @@ public class RequestSurfacePackageTests {
                 params,
                 Executors.newSingleThreadExecutor(),
                 receiver);
+        assertNotNull(receiver.getResult());
+        assertNotNull(receiver.getResult().getSurfacePackageToken());
         return receiver.getResult().getSurfacePackageToken();
     }
 }

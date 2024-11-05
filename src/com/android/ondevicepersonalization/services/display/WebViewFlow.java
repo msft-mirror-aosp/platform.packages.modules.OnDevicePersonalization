@@ -43,6 +43,7 @@ import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
+import com.android.ondevicepersonalization.services.util.LogUtils;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
@@ -53,6 +54,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -239,6 +241,14 @@ public class WebViewFlow implements ServiceFlow<EventOutputParcel> {
             if (result == null || result.getEventLogRecord() == null
                     || mLogRecord == null || mLogRecord.getRows() == null) {
                 sLogger.d(TAG + "no EventLogRecord or RequestLogRecord");
+                LogUtils.writeLogRecords(
+                        Constants.TASK_TYPE_WEBVIEW,
+                        mContext,
+                        mService.getPackageName(),
+                        mService,
+                        mLogRecord,
+                        result == null ? null : Collections.singletonList(
+                                result.getEventLogRecord()));
                 return Futures.immediateFuture(null);
             }
             EventLogRecord eventData = result.getEventLogRecord();
@@ -246,6 +256,13 @@ public class WebViewFlow implements ServiceFlow<EventOutputParcel> {
             if (eventData.getType() <= 0 || eventData.getRowIndex() < 0
                     || eventData.getRowIndex() >= rowCount) {
                 sLogger.w(TAG + ": rowOffset out of range");
+                LogUtils.writeLogRecords(
+                        Constants.TASK_TYPE_WEBVIEW,
+                        mContext,
+                        mService.getPackageName(),
+                        mService,
+                        mLogRecord,
+                        Collections.singletonList(eventData));
                 return Futures.immediateFuture(null);
             }
 
@@ -267,12 +284,27 @@ public class WebViewFlow implements ServiceFlow<EventOutputParcel> {
                         mQueryId, eventData.getType(), eventData.getRowIndex(), mService)) {
                     if (-1 == dao.insertEvent(event)) {
                         sLogger.e(TAG + ": Failed to insert event: " + event);
+                        LogUtils.writeLogRecords(
+                                Constants.TASK_TYPE_WEBVIEW,
+                                mContext,
+                                mService.getPackageName(),
+                                mService,
+                                mLogRecord,
+                                Collections.singletonList(eventData));
                     }
                 }
             }
             return Futures.immediateFuture(null);
         } catch (Exception e) {
             sLogger.e(TAG + ": writeEvent() failed", e);
+            LogUtils.writeLogRecords(
+                    Constants.TASK_TYPE_WEBVIEW,
+                    mContext,
+                    mService.getPackageName(),
+                    mService,
+                    mLogRecord,
+                    result == null ? null : Collections.singletonList(
+                            result.getEventLogRecord()));
             return Futures.immediateFailedFuture(e);
         }
     }
