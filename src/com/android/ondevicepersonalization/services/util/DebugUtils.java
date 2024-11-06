@@ -21,13 +21,17 @@ import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.SystemProperties;
 import android.provider.Settings;
 
 import com.android.odp.module.common.PackageUtils;
+import com.android.ondevicepersonalization.internal.util.ExceptionInfo;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 
 import java.util.Objects;
 
@@ -35,6 +39,12 @@ import java.util.Objects;
 public class DebugUtils {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = DebugUtils.class.getSimpleName();
+    private static final int MAX_EXCEPTION_CHAIN_DEPTH = 3;
+
+    private static final String OVERRIDE_FC_SERVER_URL_PACKAGE =
+            "debug.ondevicepersonalization.override_fc_server_url_package";
+    private static final String OVERRIDE_FC_SERVER_URL =
+            "debug.ondevicepersonalization.override_fc_server_url";
 
     /** Returns true if the device is debuggable. */
     public static boolean isDeveloperModeEnabled(@NonNull Context context) {
@@ -65,17 +75,59 @@ public class DebugUtils {
         return 0;
     }
 
-    /** Returns the exception message if debugging is allowed. */
-    public static String getErrorMessage(@NonNull Context context, Throwable t) {
+    /** Serializes an exception chain to a byte[] */
+    public static byte[] serializeExceptionInfo(
+            ComponentName service, Throwable t) {
         try {
-            if (t != null && isDeveloperModeEnabled(context)
-                    && FlagsFactory.getFlags().isIsolatedServiceDebuggingEnabled()) {
-                return t.getClass().getSimpleName() + ": " + t.getMessage();
+            Context context = OnDevicePersonalizationApplication.getAppContext();
+            if (t == null || !isDeveloperModeEnabled(context)
+                    || !FlagsFactory.getFlags().isIsolatedServiceDebuggingEnabled()
+                    || !PackageUtils.isPackageDebuggable(context, service.getPackageName())) {
+                return null;
             }
+
+            return ExceptionInfo.toByteArray(t, MAX_EXCEPTION_CHAIN_DEPTH);
         } catch (Exception e) {
-            sLogger.e(e, TAG + ": failed to get message");
+            sLogger.e(e, TAG + ": failed to serialize exception info");
+            return null;
         }
-        return null;
+    }
+
+    /**
+     * Returns an override URL for federated compute for the provided package if one exists, else
+     * returns empty if a matching override is not found.
+     *
+     * @param applicationContext the application context.
+     * @param packageName the package for which to check for override.
+     * @return override URL or empty string if an override is not found.
+     */
+    public static String getFcServerOverrideUrl(Context applicationContext, String packageName) {
+        String url = "";
+        // Check for override manifest url property, if package is debuggable
+        try {
+            if (!PackageUtils.isPackageDebuggable(applicationContext, packageName)) {
+                return url;
+            }
+        } catch (PackageManager.NameNotFoundException nne) {
+            sLogger.e(TAG + ": failed to get override URL for package." + nne);
+            return url;
+        }
+
+        // Check system properties first
+        if (SystemProperties.get(OVERRIDE_FC_SERVER_URL_PACKAGE, "").equals(packageName)) {
+            String overrideManifestUrl = SystemProperties.get(OVERRIDE_FC_SERVER_URL, "");
+            if (!overrideManifestUrl.isEmpty()) {
+                sLogger.d(
+                        TAG
+                                + ": Overriding FC server URL from system properties for package"
+                                + packageName
+                                + " to "
+                                + overrideManifestUrl);
+                url = overrideManifestUrl;
+            }
+        }
+
+        return url;
     }
 
     private DebugUtils() {}

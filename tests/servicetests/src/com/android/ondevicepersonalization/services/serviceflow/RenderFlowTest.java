@@ -16,11 +16,11 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
@@ -38,10 +38,12 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -58,7 +60,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
@@ -79,7 +80,7 @@ public class RenderFlowTest {
     private boolean mCallbackError;
     private int mCallbackErrorCode;
     private int mIsolatedServiceErrorCode;
-    private String mErrorMessage;
+    private byte[] mSerializedException;
     private Bundle mCallbackResult;
     private ServiceFlowOrchestrator mSfo;
 
@@ -98,12 +99,17 @@ public class RenderFlowTest {
         );
     }
 
-    @Spy
-    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+    private Flags mSpyFlags = new Flags() {
+        int mIsolatedServiceDeadlineSeconds = 30;
+        @Override public int getIsolatedServiceDeadlineSeconds() {
+            return mIsolatedServiceDeadlineSeconds;
+        }
+    };
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
             .mockStatic(FlagsFactory.class)
+            .spyStatic(StableFlags.class)
             .spyStatic(UserPrivacyStatus.class)
             .spyStatic(CryptUtils.class)
             .setStrictness(Strictness.LENIENT)
@@ -114,7 +120,8 @@ public class RenderFlowTest {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
         ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        when(mSpyFlags.isSharedIsolatedProcessFeatureEnabled()).thenReturn(mIsSipFeatureEnabled);
+        ExtendedMockito.doReturn(SdkLevel.isAtLeastU() && mIsSipFeatureEnabled).when(
+                () -> StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED));
 
         setUpTestDate();
 
@@ -198,12 +205,13 @@ public class RenderFlowTest {
             mLatch.countDown();
         }
         @Override public void onError(
-                int errorCode, int isolatedServiceErrorCode, String message,
+                int errorCode, int isolatedServiceErrorCode,
+                byte[] serializedException,
                 CalleeMetadata calleeMetadata) {
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;
-            mErrorMessage = message;
+            mSerializedException = serializedException;
             mLatch.countDown();
         }
     }

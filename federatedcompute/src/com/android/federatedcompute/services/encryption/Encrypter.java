@@ -20,7 +20,7 @@ package com.android.federatedcompute.services.encryption;
 public interface Encrypter {
 
     /**
-     * encrypt {@code plainText} to cipher text {@code byte[]}.
+     * Encrypt the {@code plainText} to cipher text {@code byte[]}.
      *
      * @param publicKey the public key used for encryption
      * @param plainText the plain text string to encrypt
@@ -28,5 +28,4 @@ public interface Encrypter {
      * @return the encrypted ciphertext
      */
     byte[] encrypt(byte[] publicKey, byte[] plainText, byte[] associatedData);
-
 }

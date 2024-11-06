@@ -16,11 +16,11 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
@@ -36,10 +36,12 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -52,15 +54,16 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 
-@RunWith(JUnit4.class)
+@RunWith(Parameterized.class)
 public class WebTriggerFlowTest {
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
@@ -75,12 +78,36 @@ public class WebTriggerFlowTest {
 
     @Mock UserPrivacyStatus mUserPrivacyStatus;
 
-    @Spy
-    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+    @Parameterized.Parameter(0)
+    public boolean mIsSipFeatureEnabled;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(
+                new Object[][] {
+                        {true}, {false}
+                }
+        );
+    }
+
+    static class TestFlags implements Flags {
+        int mIsolatedServiceDeadlineSeconds = 30;
+        boolean mGlobalKillSwitch = false;
+        @Override
+        public boolean getGlobalKillSwitch() {
+            return mGlobalKillSwitch;
+        }
+        @Override public int getIsolatedServiceDeadlineSeconds() {
+            return mIsolatedServiceDeadlineSeconds;
+        }
+    };
+
+    private TestFlags mSpyFlags = new TestFlags();
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
             .mockStatic(FlagsFactory.class)
+            .spyStatic(StableFlags.class)
             .spyStatic(UserPrivacyStatus.class)
             .setStrictness(Strictness.LENIENT)
             .build();
@@ -90,7 +117,8 @@ public class WebTriggerFlowTest {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
         ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(false);
+        ExtendedMockito.doReturn(SdkLevel.isAtLeastU() && mIsSipFeatureEnabled).when(
+                () -> StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED));
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
         doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
@@ -109,7 +137,7 @@ public class WebTriggerFlowTest {
 
     @Test
     public void testWebTriggerFlow_GlobalKillswitchOn() throws Exception {
-        when(mSpyFlags.getGlobalKillSwitch()).thenReturn(true);
+        mSpyFlags.mGlobalKillSwitch = true;
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
                 new TestWebCallback(), 100L, 110L);

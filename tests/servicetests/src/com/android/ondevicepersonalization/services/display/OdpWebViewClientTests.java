@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services.display;
 
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -23,10 +25,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.EventOutputParcel;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
@@ -53,6 +53,7 @@ import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
@@ -71,7 +72,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.mockito.Spy;
 import org.mockito.quality.Strictness;
 
 import java.net.HttpURLConnection;
@@ -120,27 +120,32 @@ public class OdpWebViewClientTests {
         );
     }
 
-    @Spy
-    private Flags mSpyFlags = spy(FlagsFactory.getFlags());
+    private Flags mSpyFlags = new Flags() {
+        int mIsolatedServiceDeadlineSeconds = 30;
+        @Override public int getIsolatedServiceDeadlineSeconds() {
+            return mIsolatedServiceDeadlineSeconds;
+        }
+    };
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
             .mockStatic(FlagsFactory.class)
+            .spyStatic(StableFlags.class)
             .setStrictness(Strictness.LENIENT)
             .build();
 
     @Before
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
+        ExtendedMockito.doReturn(SdkLevel.isAtLeastU() && mIsSipFeatureEnabled).when(
+                () -> StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED));
         mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         mDao = EventsDao.getInstanceForTest(mContext);
         // Insert query for FK constraint
         mDao.insertQuery(mTestQuery);
         mLatch = new CountDownLatch(1);
 
-        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        when(mSpyFlags.isSharedIsolatedProcessFeatureEnabled())
-                .thenReturn(SdkLevel.isAtLeastU() && mIsSipFeatureEnabled);
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
 
         CountDownLatch latch = new CountDownLatch(1);

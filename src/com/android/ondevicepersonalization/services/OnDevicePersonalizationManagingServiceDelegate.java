@@ -20,6 +20,8 @@ import static android.adservices.ondevicepersonalization.OnDevicePersonalization
 
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
+import android.adservices.ondevicepersonalization.ExecuteOptionsParcel;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
@@ -34,6 +36,7 @@ import android.os.IBinder;
 import android.os.SystemClock;
 import android.os.Trace;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.DeviceUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
@@ -51,9 +54,23 @@ public class OnDevicePersonalizationManagingServiceDelegate
     private static final String TAG = "OnDevicePersonalizationManagingServiceDelegate";
     private static final ServiceFlowOrchestrator sSfo = ServiceFlowOrchestrator.getInstance();
     @NonNull private final Context mContext;
+    private final Injector mInjector;
 
     public OnDevicePersonalizationManagingServiceDelegate(@NonNull Context context) {
+        this(context, new Injector());
+    }
+
+    @VisibleForTesting
+    public OnDevicePersonalizationManagingServiceDelegate(
+            @NonNull Context context, Injector injector) {
         mContext = Objects.requireNonNull(context);
+        mInjector = injector;
+    }
+
+    static class Injector {
+        Flags getFlags() {
+            return FlagsFactory.getFlags();
+        }
     }
 
     @Override
@@ -67,6 +84,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
             @NonNull ComponentName handler,
             @NonNull Bundle wrappedParams,
             @NonNull CallerMetadata metadata,
+            @NonNull ExecuteOptionsParcel options,
             @NonNull IExecuteCallback callback) {
         if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
@@ -95,13 +113,22 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new IllegalArgumentException("missing service class name");
         }
 
+        checkExecutionsOptions(options);
+
         final int uid = Binder.getCallingUid();
         enforceCallingPackageBelongsToUid(callingPackageName, uid);
         enforceEnrollment(callingPackageName, handler);
 
-        sSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW,
-                callingPackageName, handler, wrappedParams,
-                callback, mContext, metadata.getStartTimeMillis(), serviceEntryTimeMillis);
+        sSfo.schedule(
+                ServiceFlowType.APP_REQUEST_FLOW,
+                callingPackageName,
+                handler,
+                wrappedParams,
+                callback,
+                mContext,
+                metadata.getStartTimeMillis(),
+                serviceEntryTimeMillis,
+                options);
         Trace.endSection();
     }
 
@@ -217,8 +244,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
 
     private boolean getGlobalKillSwitch() {
         long origId = Binder.clearCallingIdentity();
-        boolean globalKillSwitch = FlagsFactory.getFlags().getGlobalKillSwitch();
-        FlagsFactory.getFlags().setStableFlags();
+        boolean globalKillSwitch = mInjector.getFlags().getGlobalKillSwitch();
         Binder.restoreCallingIdentity(origId);
         return globalKillSwitch;
     }
@@ -252,6 +278,21 @@ public class OnDevicePersonalizationManagingServiceDelegate
                         service.getPackageName());
                 throw new IllegalStateException(
                         "Service skipped as the isolated service is not enrolled to access ODP.");
+            }
+        } finally {
+            Binder.restoreCallingIdentity(origId);
+        }
+    }
+
+    private void checkExecutionsOptions(@NonNull ExecuteOptionsParcel options) {
+        long origId = Binder.clearCallingIdentity();
+        try {
+            if (options.getOutputType()
+                    == ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE
+                    && options.getMaxIntValue() > mInjector.getFlags().getMaxIntValuesLimit()) {
+                throw new IllegalArgumentException(
+                        "The maxIntValue in OutputSpec can not exceed limit "
+                                + mInjector.getFlags().getMaxIntValuesLimit());
             }
         } finally {
             Binder.restoreCallingIdentity(origId);

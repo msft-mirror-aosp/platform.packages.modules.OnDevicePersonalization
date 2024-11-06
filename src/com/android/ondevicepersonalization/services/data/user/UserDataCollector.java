@@ -47,10 +47,12 @@ import java.util.TimeZone;
 
 /**
  * A collector for getting user data signals. This class only exposes two public operations:
- * periodic update, and real-time update. Periodic update operation will be run every 4 hours in the
- * background, given several on-device resource constraints are satisfied. Real-time update
- * operation will be run before any ads serving request and update a few time-sensitive signals in
- * UserData to the latest version.
+ * periodic update, and real-time update.
+ *
+ * <p>Periodic update operation will be run every 4 hours in the background, given several on-device
+ * resource constraints are satisfied. Real-time update operation will be run before any ads serving
+ * request and update a few time-sensitive signals in {@link
+ * android.adservices.ondevicepersonalization.UserData} to the latest version.
  */
 public class UserDataCollector {
     private static final int MILLISECONDS_IN_MINUTE = 60000;
@@ -60,7 +62,7 @@ public class UserDataCollector {
     private static final String TAG = UserDataCollector.class.getSimpleName();
 
     @VisibleForTesting
-    public static final Set<Integer> ALLOWED_NETWORK_TYPE =
+    static final Set<Integer> ALLOWED_NETWORK_TYPE =
             Set.of(
                     TelephonyManager.NETWORK_TYPE_UNKNOWN,
                     TelephonyManager.NETWORK_TYPE_GPRS,
@@ -117,7 +119,7 @@ public class UserDataCollector {
      * testing purpose.
      */
     @VisibleForTesting
-    public static UserDataCollector getInstanceForTest(Context context, UserDataDao userDataDao) {
+    static UserDataCollector getInstanceForTest(Context context, UserDataDao userDataDao) {
         return new UserDataCollector(context, userDataDao);
     }
 
@@ -179,8 +181,7 @@ public class UserDataCollector {
     }
 
     /** Collects current device's time zone in +/- offset of minutes from UTC. */
-    @VisibleForTesting
-    public void getUtcOffset(RawUserData userData) {
+    private static void getUtcOffset(RawUserData userData) {
         try {
             userData.utcOffset =
                     TimeZone.getDefault().getOffset(System.currentTimeMillis())
@@ -191,8 +192,7 @@ public class UserDataCollector {
     }
 
     /** Collects the current device orientation. */
-    @VisibleForTesting
-    public void getOrientation(RawUserData userData) {
+    private void getOrientation(RawUserData userData) {
         try {
             userData.orientation = mContext.getResources().getConfiguration().orientation;
         } catch (Exception e) {
@@ -201,8 +201,7 @@ public class UserDataCollector {
     }
 
     /** Collects available bytes and converts to MB. */
-    @VisibleForTesting
-    public void getAvailableStorageBytes(RawUserData userData) {
+    private static void getAvailableStorageBytes(RawUserData userData) {
         try {
             StatFs statFs = new StatFs(Environment.getDataDirectory().getPath());
             userData.availableStorageBytes = statFs.getAvailableBytes();
@@ -212,8 +211,7 @@ public class UserDataCollector {
     }
 
     /** Collects the battery percentage of the device. */
-    @VisibleForTesting
-    public void getBatteryPercentage(RawUserData userData) {
+    private void getBatteryPercentage(RawUserData userData) {
         try {
             IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
             Intent batteryStatus = mContext.registerReceiver(null, ifilter);
@@ -230,7 +228,7 @@ public class UserDataCollector {
 
     /** Collects carrier info. */
     @VisibleForTesting
-    public void getCarrier(RawUserData userData) {
+    private void getCarrier(RawUserData userData) {
         // TODO (b/307158231): handle i18n later if the carrier's name is in non-English script.
         try {
             switch (mTelephonyManager.getSimOperatorName().toUpperCase(Locale.US)) {
@@ -270,20 +268,24 @@ public class UserDataCollector {
     }
 
     /** Collects network capabilities. */
-    @VisibleForTesting
-    public void getNetworkCapabilities(RawUserData userData) {
+    private void getNetworkCapabilities(RawUserData userData) {
         try {
             NetworkCapabilities networkCapabilities =
                     mConnectivityManager.getNetworkCapabilities(
                             mConnectivityManager.getActiveNetwork());
+            // Returns null if network is unknown.
+            if (networkCapabilities == null) {
+                sLogger.w(TAG + ": networkCapabilities is null");
+                return;
+            }
+            sLogger.d("Successfully collected network capabilities.");
             userData.networkCapabilities = getFilteredNetworkCapabilities(networkCapabilities);
         } catch (Exception e) {
             sLogger.w(TAG + ": Failed to collect networkCapabilities.", e);
         }
     }
 
-    @VisibleForTesting
-    public void getDataNetworkType(RawUserData userData) {
+    private void getDataNetworkType(RawUserData userData) {
         try {
             int dataNetworkType = mTelephonyManager.getDataNetworkType();
             if (!ALLOWED_NETWORK_TYPE.contains(dataNetworkType)) {
@@ -296,8 +298,8 @@ public class UserDataCollector {
         }
     }
 
-    /** Util to reset all fields in [UserData] to default for testing purpose */
-    public void clearUserData(@NonNull RawUserData userData) {
+    /** Util to reset all fields in passed in {@link RawUserData} to default. */
+    public static void clearUserData(@NonNull RawUserData userData) {
         userData.utcOffset = 0;
         userData.orientation = Configuration.ORIENTATION_PORTRAIT;
         userData.availableStorageBytes = 0;
@@ -307,7 +309,7 @@ public class UserDataCollector {
         userData.installedApps.clear();
     }
 
-    /** Util to reset all in-memory metadata for testing purpose. */
+    /** Util to reset all in-memory metadata. */
     public void clearMetadata() {
         mInitialized = false;
     }
@@ -332,7 +334,7 @@ public class UserDataCollector {
         return builder.build();
     }
 
-    /** Initials the installed app list by reading from database. */
+    /** Initialize the installed app list by reading from database. */
     public void initialInstalledApp(RawUserData userData) {
         Map<String, Long> existingInstallApps = mUserDataDao.getAppInstallMap();
         userData.installedApps = existingInstallApps.keySet();
@@ -340,7 +342,7 @@ public class UserDataCollector {
 
     /** Updates app installed list if necessary. */
     @VisibleForTesting
-    public void updateInstalledApps(RawUserData userData) {
+    void updateInstalledApps(RawUserData userData) {
         try {
             Map<String, Long> existingInstallApps = mUserDataDao.getAppInstallMap();
             PackageManager packageManager = mContext.getPackageManager();
@@ -370,7 +372,7 @@ public class UserDataCollector {
             currentAppInstallMap.put(packageName, currentTime);
         }
 
-        // Iterator the new app install list and remove expired apps over 30 days (ttl).
+        // Iterate the new app install list and remove expired apps over 30 days (ttl).
         long ttl = FlagsFactory.getFlags().getAppInstallHistoryTtlInMillis();
         for (Map.Entry<String, Long> entry : existingInstallApps.entrySet()) {
             String packageName = entry.getKey();
