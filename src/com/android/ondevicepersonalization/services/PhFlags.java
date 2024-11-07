@@ -133,7 +133,7 @@ public final class PhFlags implements Flags {
             "log_isolated_service_error_code_non_aggregated_allowlist";
 
     public static final String KEY_PLUGIN_PROCESS_RUNNER_ENABLED =
-            "plugin_process_runner_enabled";
+            "Odp__enable_plugin_process_runner";
 
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
