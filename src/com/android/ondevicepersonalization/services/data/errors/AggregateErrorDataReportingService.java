@@ -30,16 +30,21 @@ import android.content.ComponentName;
 import android.content.Context;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
+import com.android.odp.module.common.encryption.OdpEncryptionKeyManager;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.EncryptionUtils;
 import com.android.ondevicepersonalization.services.statsd.joblogging.OdpJobServiceLogger;
 
+import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
+
+import java.util.List;
 
 /**
  * The {@link JobService} to perform daily reporting of aggregated error codes.
@@ -50,7 +55,7 @@ public class AggregateErrorDataReportingService extends JobService {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = AggregateErrorDataReportingService.class.getSimpleName();
 
-    private ListenableFuture<Void> mFuture;
+    private FluentFuture<Void> mFuture;
 
     private final Injector mInjector;
 
@@ -63,6 +68,7 @@ public class AggregateErrorDataReportingService extends JobService {
         mInjector = injector;
     }
 
+    @VisibleForTesting
     static class Injector {
         ListeningExecutorService getExecutor() {
             return OnDevicePersonalizationExecutors.getBackgroundExecutor();
@@ -74,6 +80,10 @@ public class AggregateErrorDataReportingService extends JobService {
 
         AggregatedErrorReportingWorker getErrorReportingWorker() {
             return AggregatedErrorReportingWorker.createWorker();
+        }
+
+        OdpEncryptionKeyManager getEncryptionKeyManager(Context context) {
+            return EncryptionUtils.getEncryptionKeyManager(context);
         }
     }
 
@@ -134,8 +144,24 @@ public class AggregateErrorDataReportingService extends JobService {
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_JOB_NOT_CONFIGURED);
         }
 
+        OdpEncryptionKeyManager keyManager = mInjector.getEncryptionKeyManager(/* context= */ this);
+        // By default, the aggregated error data payload is encrypted.
+        FluentFuture<List<OdpEncryptionKey>> encryptionKeyFuture =
+                mInjector.getFlags().getAllowUnencryptedAggregatedErrorReportingPayload()
+                        ? FluentFuture.from(Futures.immediateFuture(List.of()))
+                        : keyManager.fetchAndPersistActiveKeys(
+                                OdpEncryptionKey.KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true);
+
         AggregatedErrorReportingWorker worker = mInjector.getErrorReportingWorker();
-        mFuture = worker.reportAggregateErrors(/* context= */ this);
+        mFuture =
+                encryptionKeyFuture.transformAsync(
+                        encryptionKeys ->
+                                FluentFuture.from(
+                                        worker.reportAggregateErrors(
+                                                /* context= */ this,
+                                                OdpEncryptionKeyManager.getRandomKey(
+                                                        encryptionKeys))),
+                        mInjector.getExecutor());
 
         Futures.addCallback(
                 mFuture,

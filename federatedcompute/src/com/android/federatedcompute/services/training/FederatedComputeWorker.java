@@ -118,7 +118,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -518,10 +517,7 @@ public class FederatedComputeWorker {
                 mEncryptionKeyManager.getOrFetchActiveKeys(
                         OdpEncryptionKey.KEY_TYPE_ENCRYPTION, NUM_ACTIVE_KEYS_TO_CHOOSE_FROM);
         // select a random key
-        OdpEncryptionKey encryptionKey =
-                activeKeys.isEmpty()
-                        ? null
-                        : activeKeys.get(new Random().nextInt(activeKeys.size()));
+        OdpEncryptionKey encryptionKey = OdpEncryptionKeyManager.getRandomKey(activeKeys);
         if (encryptionKey == null) {
             // no active keys to encrypt the FL/FA computation results, stop the computation run.
             run.mTrainingEventLogger.logEventKind(

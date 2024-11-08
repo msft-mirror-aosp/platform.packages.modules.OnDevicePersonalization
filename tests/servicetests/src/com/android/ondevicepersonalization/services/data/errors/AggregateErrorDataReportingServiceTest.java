@@ -41,10 +41,13 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
+import com.android.odp.module.common.encryption.OdpEncryptionKeyManager;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 
+import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -54,28 +57,33 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.quality.Strictness;
 
-@RunWith(JUnit4.class)
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+
+@RunWith(Parameterized.class)
 public class AggregateErrorDataReportingServiceTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
     private boolean mGetGlobalKillSwitch = false;
     private boolean mAggregateErrorReportingEnabled = true;
 
+    @Parameterized.Parameter(0)
+    public boolean mAllowUnEncryptedPayload = true;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][] {{false}, {true}});
+    }
+
     private AggregateErrorDataReportingService mService;
 
-    private Flags mMockFlags = new Flags() {
-        @Override public boolean getGlobalKillSwitch() {
-            return mGetGlobalKillSwitch;
-        }
-        @Override public boolean getAggregatedErrorReportingEnabled() {
-            return mAggregateErrorReportingEnabled;
-        }
-    };
+    private final Flags mTestFlags = new TestFlags();
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
@@ -85,13 +93,24 @@ public class AggregateErrorDataReportingServiceTest {
 
     @Mock private AggregatedErrorReportingWorker mMockReportingWorker;
 
+    @Mock private OdpEncryptionKeyManager mMockEncryptionKeyManager;
+
+    @Mock private OdpEncryptionKey mMockEncryptionKey;
+
     @Before
     public void setup() throws Exception {
-        ExtendedMockito.doReturn(mMockFlags).when(FlagsFactory::getFlags);
+        ExtendedMockito.doReturn(mTestFlags).when(FlagsFactory::getFlags);
         MockitoAnnotations.initMocks(this);
 
         mService = spy(new AggregateErrorDataReportingService(new TestInjector()));
         doNothing().when(mService).jobFinished(any(), anyBoolean());
+        FluentFuture<List<OdpEncryptionKey>> fluentFuture =
+                FluentFuture.from(Futures.immediateFuture(List.of(mMockEncryptionKey)));
+        // doReturn(fluentFuture).when(mMockEncryptionKeyManager).fetchAndPersistActiveKeys(any(),
+        // true);
+        when(mMockEncryptionKeyManager.fetchAndPersistActiveKeys(
+                        OdpEncryptionKey.KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true))
+                .thenReturn(fluentFuture);
 
         // Setup tests with the global kill switch is disabled and error reporting enabled.
         if (mJobScheduler != null) {
@@ -104,11 +123,13 @@ public class AggregateErrorDataReportingServiceTest {
     public void onStartJob_errorReportingEnabled_callsWorker() {
         // Given that the aggregate error reporting is enabled and the job is
         // scheduled successfully.
-        when(mMockReportingWorker.reportAggregateErrors(any()))
+        OdpEncryptionKey expectedEncryptionKey =
+                mAllowUnEncryptedPayload ? null : mMockEncryptionKey;
+        when(mMockReportingWorker.reportAggregateErrors(any(), any()))
                 .thenReturn(Futures.immediateVoidFuture());
         assertEquals(
                 JobScheduler.RESULT_SUCCESS,
-                AggregateErrorDataReportingService.scheduleIfNeeded(mContext, mMockFlags));
+                AggregateErrorDataReportingService.scheduleIfNeeded(mContext, mTestFlags));
         assertNotNull(
                 mJobScheduler.getPendingJob(
                         OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID));
@@ -119,7 +140,8 @@ public class AggregateErrorDataReportingServiceTest {
         // Expect that the worker is called once and the pending job is not cancelled.
         assertTrue(result);
         verify(mService, times(1)).jobFinished(any(), eq(false));
-        verify(mMockReportingWorker, times(1)).reportAggregateErrors(any());
+        verify(mMockReportingWorker, times(1))
+                .reportAggregateErrors(mService, expectedEncryptionKey);
         assertNotNull(
                 mJobScheduler.getPendingJob(
                         OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID));
@@ -132,10 +154,10 @@ public class AggregateErrorDataReportingServiceTest {
         SettableFuture<Void> returnedFuture = SettableFuture.create();
         mGetGlobalKillSwitch = false;
         mAggregateErrorReportingEnabled = true;
-        when(mMockReportingWorker.reportAggregateErrors(any())).thenReturn(returnedFuture);
+        when(mMockReportingWorker.reportAggregateErrors(any(), any())).thenReturn(returnedFuture);
         assertEquals(
                 JobScheduler.RESULT_SUCCESS,
-                AggregateErrorDataReportingService.scheduleIfNeeded(mContext, mMockFlags));
+                AggregateErrorDataReportingService.scheduleIfNeeded(mContext, mTestFlags));
         assertNotNull(
                 mJobScheduler.getPendingJob(
                         OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID));
@@ -147,7 +169,7 @@ public class AggregateErrorDataReportingServiceTest {
         // The job is marked finished only after the settable future resolves.
         assertTrue(result);
         verify(mService, times(0)).jobFinished(any(), eq(false));
-        verify(mMockReportingWorker, times(1)).reportAggregateErrors(any());
+        verify(mMockReportingWorker, times(1)).reportAggregateErrors(any(), any());
         assertNotNull(
                 mJobScheduler.getPendingJob(
                         OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID));
@@ -164,7 +186,7 @@ public class AggregateErrorDataReportingServiceTest {
         doReturn(mJobScheduler).when(mService).getSystemService(JobScheduler.class);
         assertEquals(
                 JobScheduler.RESULT_SUCCESS,
-                AggregateErrorDataReportingService.scheduleIfNeeded(mContext, mMockFlags));
+                AggregateErrorDataReportingService.scheduleIfNeeded(mContext, mTestFlags));
         assertNotNull(
                 mJobScheduler.getPendingJob(
                         OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID));
@@ -187,7 +209,7 @@ public class AggregateErrorDataReportingServiceTest {
         doReturn(mJobScheduler).when(mService).getSystemService(JobScheduler.class);
         assertEquals(
                 JobScheduler.RESULT_SUCCESS,
-                AggregateErrorDataReportingService.scheduleIfNeeded(mContext, mMockFlags));
+                AggregateErrorDataReportingService.scheduleIfNeeded(mContext, mTestFlags));
         assertNotNull(
                 mJobScheduler.getPendingJob(
                         OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID));
@@ -215,7 +237,7 @@ public class AggregateErrorDataReportingServiceTest {
 
         assertEquals(
                 JobScheduler.RESULT_FAILURE,
-                AggregateErrorDataReportingService.scheduleIfNeeded(mContext, mMockFlags));
+                AggregateErrorDataReportingService.scheduleIfNeeded(mContext, mTestFlags));
     }
 
     @Test
@@ -224,7 +246,7 @@ public class AggregateErrorDataReportingServiceTest {
 
         assertEquals(
                 JobScheduler.RESULT_SUCCESS,
-                AggregateErrorDataReportingService.scheduleIfNeeded(mContext, mMockFlags));
+                AggregateErrorDataReportingService.scheduleIfNeeded(mContext, mTestFlags));
     }
 
     private class TestInjector extends AggregateErrorDataReportingService.Injector {
@@ -235,12 +257,34 @@ public class AggregateErrorDataReportingServiceTest {
 
         @Override
         Flags getFlags() {
-            return mMockFlags;
+            return mTestFlags;
         }
 
         @Override
         AggregatedErrorReportingWorker getErrorReportingWorker() {
             return mMockReportingWorker;
+        }
+
+        @Override
+        OdpEncryptionKeyManager getEncryptionKeyManager(Context context) {
+            return mMockEncryptionKeyManager;
+        }
+    }
+
+    private class TestFlags implements Flags {
+        @Override
+        public boolean getGlobalKillSwitch() {
+            return mGetGlobalKillSwitch;
+        }
+
+        @Override
+        public boolean getAggregatedErrorReportingEnabled() {
+            return mAggregateErrorReportingEnabled;
+        }
+
+        @Override
+        public boolean getAllowUnencryptedAggregatedErrorReportingPayload() {
+            return mAllowUnEncryptedPayload;
         }
     }
 }
