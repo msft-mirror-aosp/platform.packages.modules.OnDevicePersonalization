@@ -110,9 +110,8 @@ public final class PhFlags implements Flags {
 
     public static final String KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS =
             "aggregated_error_reporting_interval_hours";
-
-    public static final String KEY_AGGREGATED_ERROR_REPORTING_ENCRYPTION_ENABLED =
-            "aggregated_error_reporting_encryption_enabled";
+    public static final String KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING =
+            "aggregated_error_allow_unencrypted_aggregated_error_reporting";
 
     public static final String KEY_AGGREGATED_ERROR_REPORTING_HTTP_TIMEOUT_SECONDS =
             "aggregated_error_reporting_http_timeout_seconds";
@@ -120,6 +119,10 @@ public final class PhFlags implements Flags {
     public static final String KEY_AGGREGATED_ERROR_REPORTING_HTTP_RETRY_LIMIT =
             "aggregated_error_reporting_http_retry_limit";
 
+    public static final String KEY_ENCRYPTION_KEY_URL = "Odp__encryption_key_download_url";
+
+    public static final String KEY_ENCRYPTION_KEY_MAX_AGE_SECONDS =
+            "Odp__encryption_key_max_age_seconds";
     public static final String MAX_INT_VALUES_LIMIT = "max_int_values_limit";
 
     public static final String KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS =
@@ -447,11 +450,11 @@ public final class PhFlags implements Flags {
     }
 
     @Override
-    public boolean getAggregatedErrorReportingEncryptionEnabled() {
+    public boolean getAllowUnencryptedAggregatedErrorReportingPayload() {
         return DeviceConfig.getBoolean(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name= */ KEY_AGGREGATED_ERROR_REPORTING_ENCRYPTION_ENABLED,
-                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORTING_ENCRYPTION);
+                /* name= */ KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING,
+                /* defaultValue= */ DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD);
     }
 
     @Override
@@ -468,6 +471,22 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_AGGREGATED_ERROR_REPORTING_HTTP_RETRY_LIMIT,
                 /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_RETRY_LIMIT);
+    }
+
+    @Override
+    public String getEncryptionKeyFetchUrl() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ENCRYPTION_KEY_URL,
+                /* defaultValue= */ DEFAULT_ENCRYPTION_KEY_URL);
+    }
+
+    @Override
+    public long getEncryptionKeyMaxAgeSeconds() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ENCRYPTION_KEY_MAX_AGE_SECONDS,
+                /* defaultValue= */ DEFAULT_ENCRYPTION_KEY_MAX_AGE_SECONDS);
     }
 
     @Override

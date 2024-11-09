@@ -19,11 +19,15 @@ package com.android.ondevicepersonalization.services.data.errors;
 import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_TYPE_HDR;
 import static com.android.odp.module.common.http.HttpClientUtils.PROTOBUF_CONTENT_TYPE;
 
+import android.annotation.Nullable;
 import android.content.Context;
 import android.util.Base64;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.PackageUtils;
+import com.android.odp.module.common.encryption.Encrypter;
+import com.android.odp.module.common.encryption.HpkeJniEncrypter;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
 import com.android.odp.module.common.http.HttpClient;
 import com.android.odp.module.common.http.HttpClientUtils;
 import com.android.odp.module.common.http.OdpHttpRequest;
@@ -81,6 +85,8 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
 
     private final Injector mInjector;
 
+    private final Encrypter mEncrypter;
+
     @VisibleForTesting
     static class Injector {
         ListeningExecutorService getBlockingExecutor() {
@@ -104,6 +110,10 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
             return new HttpClient(
                     getFlags().getAggregatedErrorReportingHttpRetryLimit(), getBlockingExecutor());
         }
+
+        Encrypter getEncrypter() {
+            return new HpkeJniEncrypter();
+        }
     }
 
     private AggregatedErrorReportingProtocol(
@@ -118,6 +128,7 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
         this.mClientVersion = clientVersion;
         this.mInjector = injector;
         this.mHttpClient = injector.getClient();
+        this.mEncrypter = injector.getEncrypter();
     }
 
     /**
@@ -146,11 +157,13 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
      * Report the exception data for this vendor based on error data and URL provided during
      * construction.
      *
+     * @param encryptionKey key used to encrypt payload. If key is {@code null} then un-encrypted
+     *     data is sent, which is only used in tests etc.
      * @return a {@link ListenableFuture} that resolves with true/false when reporting is
      *     successful/failed.
      */
-    public ListenableFuture<Boolean> reportExceptionData() {
-        // TODO(b/329921267): add encryption and authorization support
+    public ListenableFuture<Boolean> reportExceptionData(@Nullable OdpEncryptionKey encryptionKey) {
+        // TODO(b/329921267): add authorization support
         // First report ReportExceptionRequest, then upload result
         try {
             Preconditions.checkState(!mErrorData.isEmpty() && !mRequestBaseUri.isEmpty());
@@ -168,11 +181,12 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
             ListenableFuture<Boolean> reportFuture =
                     FluentFuture.from(reportRequest)
                             .transformAsync(
-                                    this::uploadExceptionData, mInjector.getBackgroundExecutor())
+                                    response1 -> uploadExceptionData(response1, encryptionKey),
+                                    mInjector.getBackgroundExecutor())
                             .transform(
                                     response ->
                                             validateHttpResponseStatus(
-                                                    /* stage= */ "reportRequest", response),
+                                                    /* stage= */ "uploadRequest", response),
                                     mInjector.getBackgroundExecutor());
 
             return FluentFuture.from(reportFuture)
@@ -187,7 +201,8 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
     }
 
     @VisibleForTesting
-    ListenableFuture<OdpHttpResponse> uploadExceptionData(OdpHttpResponse response) {
+    ListenableFuture<OdpHttpResponse> uploadExceptionData(
+            OdpHttpResponse response, @Nullable OdpEncryptionKey encryptionKey) {
         try {
             validateHttpResponseStatus(/* stage= */ "reportRequest", response);
             ReportExceptionResponse uploadResponse =
@@ -196,7 +211,11 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
             Preconditions.checkArgument(
                     !uploadInstruction.getUploadLocation().isEmpty(),
                     "UploadInstruction.upload_location must not be empty");
-            byte[] outputBytes = createEncryptedRequestBody(mErrorData);
+            byte[] outputBytes =
+                    encryptionKey == null
+                            ? createEncryptedRequestBody(
+                                    mErrorData, /* encryptionKey= */ null, /* encrypter= */ null)
+                            : createEncryptedRequestBody(mErrorData, encryptionKey, mEncrypter);
             // Apply a top-level compression to the payload.
             if (uploadInstruction.getCompressionFormat()
                     == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP) {
@@ -219,19 +238,45 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
     }
 
     @VisibleForTesting
-    static byte[] createEncryptedRequestBody(ImmutableList<ErrorData> errorData)
+    static byte[] createEncryptedRequestBody(
+            ImmutableList<ErrorData> errorData,
+            @Nullable OdpEncryptionKey encryptionKey,
+            @Nullable Encrypter encrypter)
             throws JSONException {
         // Creates and encrypts the error data that is uploaded to the server.
-        // create payload
+        // create payload. If the encryptionKey/encrypter are null then un-encrypted data is
+        // returned.
         com.google.ondevicepersonalization.federatedcompute.proto.ErrorDataList errorDataList =
                 convertToProto(errorData);
         byte[] output = errorDataList.toByteArray();
         final JSONObject body = new JSONObject();
 
-        // TODO(b/329921267): add encryption support
+        if (encryptionKey != null && encrypter != null) {
+            // Send encrypted payload
+            byte[] publicKey = Base64.decode(encryptionKey.getPublicKey(), Base64.NO_WRAP);
+
+            byte[] encryptedOutput =
+                    encrypter.encrypt(
+                            publicKey, output, AggregatedErrorDataPayloadContract.ASSOCIATED_DATA);
+
+            body.put(AggregatedErrorDataPayloadContract.KEY_ID, encryptionKey.getKeyIdentifier());
+            body.put(
+                    AggregatedErrorDataPayloadContract.ENCRYPTED_PAYLOAD,
+                    Base64.encodeToString(encryptedOutput, Base64.NO_WRAP));
+        } else {
+            // If the encryption-key is null then unencrypted data is sent. This is only used
+            // in tests etc. and not in production.
+            body.put(
+                    AggregatedErrorDataPayloadContract.ENCRYPTED_PAYLOAD,
+                    Base64.encodeToString(output, Base64.NO_WRAP));
+        }
+
+        // TODO(b/329921267): investigate removal of associated data from aggregated error data
+        // payload.
         body.put(
-                AggregatedErrorDataPayloadContract.ENCRYPTED_PAYLOAD,
-                Base64.encodeToString(output, Base64.NO_WRAP));
+                AggregatedErrorDataPayloadContract.ASSOCIATED_DATA_KEY,
+                Base64.encodeToString(
+                        AggregatedErrorDataPayloadContract.ASSOCIATED_DATA, Base64.NO_WRAP));
         return body.toString().getBytes();
     }
 
@@ -297,9 +342,13 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
 
     @VisibleForTesting
     static final class AggregatedErrorDataPayloadContract {
-        // TODO(b/329921267): add encryption support and populate/use key-id etc.
         public static final String KEY_ID = "keyId";
 
         public static final String ENCRYPTED_PAYLOAD = "encryptedPayload";
+
+        public static final String ASSOCIATED_DATA_KEY = "associatedData";
+
+        // TODO(b/329921267): can remove associated data for odp purposes.
+        public static final byte[] ASSOCIATED_DATA = new JSONObject().toString().getBytes();
     }
 }
