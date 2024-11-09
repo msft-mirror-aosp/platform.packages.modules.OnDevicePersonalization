@@ -16,6 +16,7 @@
 
 package com.android.odp.module.common.encryption;
 
+import android.annotation.Nullable;
 import android.content.Context;
 
 import com.android.federatedcompute.internal.util.LogUtil;
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -322,6 +324,17 @@ public class OdpEncryptionKeyManager {
             return 0;
         }
         return maxAge - cachedAge;
+    }
+
+    /**
+     * Helper method that returns one key at random from provided list of active {@link
+     * OdpEncryptionKey}s.
+     */
+    @Nullable
+    public static OdpEncryptionKey getRandomKey(List<OdpEncryptionKey> activeKeys) {
+        return activeKeys.isEmpty()
+                ? null
+                : activeKeys.get(new Random().nextInt(activeKeys.size()));
     }
 
     /**
