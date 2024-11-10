@@ -23,6 +23,8 @@ import com.android.adservices.shared.common.flags.ConfigFlag;
 import com.android.adservices.shared.common.flags.FeatureFlag;
 import com.android.adservices.shared.common.flags.ModuleSharedFlags;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * OnDevicePersonalization Feature Flags interface. This Flags interface hold the default values
  * of flags. The default values in this class must match with the default values in PH since we
@@ -323,10 +325,37 @@ public interface Flags extends ModuleSharedFlags {
         return DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
     }
 
-    boolean DEFAULT_AGGREGATED_ERROR_REPORTING_ENCRYPTION = false;
+    boolean DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD = false;
 
-    default boolean getAggregatedErrorReportingEncryptionEnabled() {
-        return DEFAULT_AGGREGATED_ERROR_REPORTING_ENCRYPTION;
+    /**
+     * Whether to disable encryption for aggregated error data reporting.
+     *
+     * <p>Only {@code true} for testing etc.
+     */
+    default boolean getAllowUnencryptedAggregatedErrorReportingPayload() {
+        return DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD;
+    }
+
+    String DEFAULT_ENCRYPTION_KEY_URL = "https://fake-coordinator/v1alpha/publicKeys";
+
+    /**
+     * The URL from which to fetch encryption keys.
+     *
+     * <p>Currently encryption keys are only used for aggregate error reporting encryption.
+     *
+     * @return Url to fetch encryption key for ODP.
+     */
+    default String getEncryptionKeyFetchUrl() {
+        return DEFAULT_ENCRYPTION_KEY_URL;
+    }
+
+    long DEFAULT_ENCRYPTION_KEY_MAX_AGE_SECONDS = TimeUnit.DAYS.toSeconds(/* duration= */ 14);
+
+    /**
+     * @return default max age in seconds for ODP encryption keys.
+     */
+    default long getEncryptionKeyMaxAgeSeconds() {
+        return DEFAULT_ENCRYPTION_KEY_MAX_AGE_SECONDS;
     }
 
     int DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_TIMEOUT_SECONDS = 30;

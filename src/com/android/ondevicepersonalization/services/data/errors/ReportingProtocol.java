@@ -16,6 +16,10 @@
 
 package com.android.ondevicepersonalization.services.data.errors;
 
+import android.annotation.Nullable;
+
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
+
 import com.google.common.util.concurrent.ListenableFuture;
 
 interface ReportingProtocol {
@@ -26,5 +30,5 @@ interface ReportingProtocol {
      * @return a {@link ListenableFuture} that resolves with true/false when reporting is
      *     successful/failed.
      */
-    ListenableFuture<Boolean> reportExceptionData();
+    ListenableFuture<Boolean> reportExceptionData(@Nullable OdpEncryptionKey encryptionKey);
 }
