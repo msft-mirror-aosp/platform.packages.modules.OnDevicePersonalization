@@ -28,6 +28,11 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY_NO_TASK_AVAILABLE;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY_UNAUTHENTICATED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY_UNAUTHORIZED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ENCRYPTION_KEY_FETCH_FAILED_EMPTY_URI;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ENCRYPTION_KEY_FETCH_INVALID_PAYLOAD;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ENCRYPTION_KEY_FETCH_REQUEST_CREATION_FAILED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ENCRYPTION_KEY_FETCH_START;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ENCRYPTION_KEY_FETCH_TIMEOUT_ERROR;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_FAILURE_UPLOADED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_FAILURE_UPLOAD_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_INITIATE_REPORT_RESULT_AUTH_SUCCEEDED;
@@ -37,17 +42,19 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RESULT_UPLOAD_SERVER_ABORTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RESULT_UPLOAD_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_CONDITIONS_FAILED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_ENCRYPTION_KEY_FETCH_FAILED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_TASK_ASSIGNMENT_AUTH_SUCCEEDED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_TASK_ASSIGNMENT_UNAUTHORIZED;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.statsd.FederatedComputeStatsdLogger;
 import com.android.federatedcompute.services.statsd.TrainingEventReported;
+import com.android.odp.module.common.EventLogger;
 
 import com.google.internal.federatedcompute.v1.RejectionInfo;
 
 /** The helper function to log {@link TrainingEventReported} in statsd. */
-public class TrainingEventLogger {
+public class TrainingEventLogger implements EventLogger {
     private static final String TAG = TrainingEventLogger.class.getSimpleName();
     private long mTaskId = 0;
     private long mVersion = 0;
@@ -206,6 +213,55 @@ public class TrainingEventLogger {
     public void logEventKind(int eventKind) {
         TrainingEventReported.Builder event =
                 new TrainingEventReported.Builder().setEventKind(eventKind);
+        logEvent(event);
+    }
+
+    /** Logs training event kind. */
+    @Override
+    public void logEncryptionKeyFetchFailEventKind() {
+        TrainingEventReported.Builder event =
+                new TrainingEventReported.Builder().setEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_ENCRYPTION_KEY_FETCH_FAILED);
+        logEvent(event);
+    }
+
+    @Override
+    public void logEncryptionKeyFetchStartEventKind() {
+        TrainingEventReported.Builder event =
+                new TrainingEventReported.Builder().setEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ENCRYPTION_KEY_FETCH_START);
+        logEvent(event);
+    }
+
+    @Override
+    public void logEncryptionKeyFetchTimeoutEventKind() {
+        TrainingEventReported.Builder event =
+                new TrainingEventReported.Builder().setEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ENCRYPTION_KEY_FETCH_TIMEOUT_ERROR);
+        logEvent(event);
+    }
+
+    @Override
+    public void logEncryptionKeyFetchEmptyUriEventKind() {
+        TrainingEventReported.Builder event =
+                new TrainingEventReported.Builder().setEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ENCRYPTION_KEY_FETCH_FAILED_EMPTY_URI);
+        logEvent(event);
+    }
+
+    @Override
+    public void logEncryptionKeyFetchInvalidPayloadEventKind() {
+        TrainingEventReported.Builder event =
+                new TrainingEventReported.Builder().setEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ENCRYPTION_KEY_FETCH_INVALID_PAYLOAD);
+        logEvent(event);
+    }
+
+    @Override
+    public void logEncryptionKeyFetchRequestFailEventKind() {
+        TrainingEventReported.Builder event =
+                new TrainingEventReported.Builder().setEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ENCRYPTION_KEY_FETCH_REQUEST_CREATION_FAILED);
         logEvent(event);
     }
 
