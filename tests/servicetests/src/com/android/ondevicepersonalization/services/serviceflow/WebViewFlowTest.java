@@ -81,6 +81,7 @@ public class WebViewFlowTest {
             return mIsolatedServiceDeadlineSeconds;
         }
     };
+    private static final int DELAY_MILLIS = 2000;
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
@@ -158,6 +159,8 @@ public class WebViewFlowTest {
         mCallback.mLatch.await();
         assertThat(mCallback.mSuccess).isTrue();
         assertThat(mCallback.mFailure).isFalse();
+
+        Thread.sleep(DELAY_MILLIS);
 
         FlowCallback callback = new FlowCallback();
         sSfo.schedule(ServiceFlowType.WEB_VIEW_FLOW,
