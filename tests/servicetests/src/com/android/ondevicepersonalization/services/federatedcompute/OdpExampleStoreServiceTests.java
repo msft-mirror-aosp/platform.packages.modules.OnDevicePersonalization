@@ -52,6 +52,8 @@ import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventState;
@@ -82,9 +84,16 @@ public class OdpExampleStoreServiceTests {
     @Mock
     UserPrivacyStatus mUserPrivacyStatus;
 
+    private Flags mStubFlags = new Flags() {
+        @Override public boolean getGlobalKillSwitch() {
+            return false;
+        }
+    };
+
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
             .spyStatic(UserPrivacyStatus.class)
+            .mockStatic(FlagsFactory.class)
             .spyStatic(StableFlags.class)
             .setStrictness(Strictness.LENIENT)
             .build();
@@ -110,6 +119,7 @@ public class OdpExampleStoreServiceTests {
         mQueryCallbackOnFailureCalled = false;
         mLatch = new CountDownLatch(1);
         mIsolatedService = new ComponentName(mContext.getPackageName(), SERVICE_CLASS);
+        ExtendedMockito.doReturn(mStubFlags).when(FlagsFactory::getFlags);
         ExtendedMockito.doReturn(SdkLevel.isAtLeastU()).when(
                 () -> StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED));
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
