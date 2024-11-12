@@ -412,4 +412,10 @@ public interface Flags extends ModuleSharedFlags {
     default boolean isPluginProcessRunnerEnabled() {
         return DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED;
     }
+
+    boolean DEFAULT_IS_FEATURE_ENABLED_API_ENABLED = false;
+
+    default boolean isFeatureEnabledApiEnabled() {
+        return DEFAULT_IS_FEATURE_ENABLED_API_ENABLED;
+    }
 }
