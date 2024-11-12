@@ -62,8 +62,10 @@ public class Constants {
 
     /** Internal code that tracks remote exception when run operation. */
     public static final int STATUS_REMOTE_EXCEPTION = 113;
+
     /** Internal code that tracks method not found. */
     public static final int STATUS_METHOD_NOT_FOUND = 114;
+
     public static final int STATUS_CALLER_NOT_ALLOWED = 115;
     public static final int STATUS_NULL_ADSERVICES_COMMON_MANAGER = 116;
 
@@ -87,6 +89,8 @@ public class Constants {
     public static final int STATUS_DATA_ACCESS_FAILURE = 126;
     // Internal code that tracks local data access failure.
     public static final int STATUS_LOCAL_WRITE_DATA_ACCESS_FAILURE = 127;
+    // Internal code that tracks parsing error.
+    public static final int STATUS_PARSE_ERROR = 128;
 
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
