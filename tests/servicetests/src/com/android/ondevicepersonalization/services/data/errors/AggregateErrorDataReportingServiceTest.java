@@ -65,6 +65,7 @@ import org.mockito.quality.Strictness;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @RunWith(Parameterized.class)
 public class AggregateErrorDataReportingServiceTest {
@@ -106,10 +107,8 @@ public class AggregateErrorDataReportingServiceTest {
         doNothing().when(mService).jobFinished(any(), anyBoolean());
         FluentFuture<List<OdpEncryptionKey>> fluentFuture =
                 FluentFuture.from(Futures.immediateFuture(List.of(mMockEncryptionKey)));
-        // doReturn(fluentFuture).when(mMockEncryptionKeyManager).fetchAndPersistActiveKeys(any(),
-        // true);
         when(mMockEncryptionKeyManager.fetchAndPersistActiveKeys(
-                        OdpEncryptionKey.KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true))
+                OdpEncryptionKey.KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true, Optional.empty()))
                 .thenReturn(fluentFuture);
 
         // Setup tests with the global kill switch is disabled and error reporting enabled.
