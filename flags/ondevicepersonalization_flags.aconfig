@@ -42,3 +42,11 @@ flag {
     description: "Enable the federated compute schedule API that accepts an OutcomeReceiver."
     is_fixed_read_only: true
 }
+
+flag {
+    name: "executorch_inference_api_enabled"
+    namespace: "ondevicepersonalization_aconfig"
+    bug: "376942125"
+    description: "Enable executorch inference API."
+    is_fixed_read_only: true
+}

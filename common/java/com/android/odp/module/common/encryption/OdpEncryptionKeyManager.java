@@ -21,6 +21,7 @@ import android.content.Context;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.EventLogger;
 import com.android.odp.module.common.MonotonicClock;
 import com.android.odp.module.common.data.OdpEncryptionKeyDao;
 import com.android.odp.module.common.data.OdpSQLiteOpenHelper;
@@ -44,6 +45,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -175,9 +177,11 @@ public class OdpEncryptionKeyManager {
      * deletes expired keys
      */
     public FluentFuture<List<OdpEncryptionKey>> fetchAndPersistActiveKeys(
-            @OdpEncryptionKey.KeyType int keyType, boolean isScheduledJob) {
+            @OdpEncryptionKey.KeyType int keyType, boolean isScheduledJob,
+            Optional<EventLogger> loggerOptional) {
         String fetchUri = mKeyManagerConfig.getEncryptionKeyFetchUrl();
         if (fetchUri == null) {
+            loggerOptional.ifPresent(EventLogger::logEncryptionKeyFetchEmptyUriEventKind);
             return FluentFuture.from(
                     Futures.immediateFailedFuture(
                             new IllegalArgumentException(
@@ -193,6 +197,7 @@ public class OdpEncryptionKeyManager {
                             new HashMap<>(),
                             HttpClientUtils.EMPTY_BODY);
         } catch (Exception e) {
+            loggerOptional.ifPresent(EventLogger::logEncryptionKeyFetchRequestFailEventKind);
             return FluentFuture.from(Futures.immediateFailedFuture(e));
         }
 
@@ -200,7 +205,10 @@ public class OdpEncryptionKeyManager {
                 .transform(
                         response ->
                                 parseFetchEncryptionKeyPayload(
-                                        response, keyType, mClock.currentTimeMillis()),
+                                        response,
+                                        keyType,
+                                        mClock.currentTimeMillis(),
+                                        loggerOptional),
                         mBackgroundExecutor)
                 .transform(
                         result -> {
@@ -218,7 +226,8 @@ public class OdpEncryptionKeyManager {
     private ImmutableList<OdpEncryptionKey> parseFetchEncryptionKeyPayload(
             OdpHttpResponse keyFetchResponse,
             @OdpEncryptionKey.KeyType int keyType,
-            Long fetchTime) {
+            Long fetchTime,
+            Optional<EventLogger> loggerOptional) {
         String payload = new String(Objects.requireNonNull(keyFetchResponse.getPayload()));
         Map<String, List<String>> headers = keyFetchResponse.getHeaders();
         long ttlInSeconds = getTTL(headers);
@@ -252,6 +261,7 @@ public class OdpEncryptionKeyManager {
             }
             return encryptionKeys.build();
         } catch (JSONException e) {
+            loggerOptional.ifPresent(EventLogger::logEncryptionKeyFetchInvalidPayloadEventKind);
             LogUtil.e(TAG, "Invalid Json response: " + e.getMessage());
             return ImmutableList.of();
         }
@@ -344,17 +354,19 @@ public class OdpEncryptionKeyManager {
      *
      * @return The list of active keys.
      */
-    public List<OdpEncryptionKey> getOrFetchActiveKeys(int keyType, int keyCount) {
+    public List<OdpEncryptionKey> getOrFetchActiveKeys(int keyType, int keyCount,
+            Optional<EventLogger> loggerOptional) {
         List<OdpEncryptionKey> activeKeys = mEncryptionKeyDao.getLatestExpiryNKeys(keyCount);
         if (activeKeys.size() > 0) {
             LogUtil.d(TAG, "Existing active keys present, number of keys : " + activeKeys.size());
             return activeKeys;
         }
 
+        loggerOptional.ifPresent(EventLogger::logEncryptionKeyFetchStartEventKind);
         LogUtil.d(TAG, "No existing active keys present, fetching new encryption keys.");
         try {
             var fetchedKeysUnused =
-                    fetchAndPersistActiveKeys(keyType, /* isScheduledJob= */ false)
+                    fetchAndPersistActiveKeys(keyType, /* isScheduledJob= */ false, loggerOptional)
                             .get(/* timeout= */ 5, TimeUnit.SECONDS);
             activeKeys = mEncryptionKeyDao.getLatestExpiryNKeys(keyCount);
             if (activeKeys.size() > 0) {
@@ -362,10 +374,12 @@ public class OdpEncryptionKeyManager {
             }
         } catch (TimeoutException e) {
             LogUtil.d(TAG, "Time out when forcing encryption key fetch: " + e.getMessage());
+            loggerOptional.ifPresent(EventLogger::logEncryptionKeyFetchTimeoutEventKind);
         } catch (Exception e) {
             LogUtil.d(
                     TAG,
                     "Exception encountered when forcing encryption key fetch: " + e.getMessage());
+            loggerOptional.ifPresent(EventLogger::logEncryptionKeyFetchFailEventKind);
         }
         return activeKeys;
     }
