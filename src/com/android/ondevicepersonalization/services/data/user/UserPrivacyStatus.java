@@ -27,6 +27,8 @@ import static android.adservices.ondevicepersonalization.Constants.STATUS_REMOTE
 import static android.adservices.ondevicepersonalization.Constants.STATUS_SUCCESS;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_TIMEOUT;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_REMOTE_EXCEPTION;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_USER_CONTROL_CACHE_IN_MILLIS;
@@ -38,6 +40,7 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
+import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientErrorLogger;
 import com.android.ondevicepersonalization.services.util.DebugUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
@@ -238,6 +241,11 @@ public final class UserPrivacyStatus {
                     mClock,
                     statusCode,
                     startTime);
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_REMOTE_EXCEPTION,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP);
         }
     }
 

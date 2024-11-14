@@ -50,3 +50,11 @@ flag {
     description: "Enable executorch inference API."
     is_fixed_read_only: true
 }
+
+flag {
+    name: "is_feature_enabled_api_enabled"
+    namespace: "ondevicepersonalization_aconfig"
+    bug: "368695570"
+    description: "Enable the isFeatureEnabled API."
+    is_fixed_read_only: true
+}
