@@ -16,8 +16,10 @@
 
 package android.adservices.ondevicepersonalization;
 
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
@@ -42,7 +44,7 @@ public final class InferenceOutput {
      * <p>For LiteRT, this field is mapped to outputs of runForMultipleInputsOutputs:
      * https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
      *
-     * <p>For ExecuTorch model, this field is a serialized EValue array. TODO: add EValue link.
+     * <p>For ExecuTorch model, this field is a serialized EValue array.
      *
      * @hide
      */
@@ -73,7 +75,9 @@ public final class InferenceOutput {
     }
 
     /**
-     * A map mapping output indices to multidimensional arrays of output.
+     * Note: use {@link InferenceOutput#getData()} instead.
+     *
+     * <p>A map mapping output indices to multidimensional arrays of output.
      *
      * <p>For TFLite, this field is mapped to outputs of runForMultipleInputsOutputs:
      * https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
@@ -87,13 +91,13 @@ public final class InferenceOutput {
      * A byte array that holds input data. The inputs should be in the same order as inputs of the
      * model.
      *
-     * <p>For LiteRT, this field is mapped to outputs of runForMultipleInputsOutputs:
+     * <p>For LiteRT, this field is a serialized Map<Integer, Object> that is mapped to outputs of
+     * runForMultipleInputsOutputs:
      * https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
      *
-     * <p>For ExecuTorch model, this field is a serialized EValue array. TODO: add EValue link.
-     *
-     * @hide
+     * <p>For ExecuTorch model, this field is a serialized EValue array.
      */
+    @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
     @DataClass.Generated.Member
     public @NonNull byte[] getData() {
         return mData;
@@ -141,7 +145,9 @@ public final class InferenceOutput {
         public Builder() {}
 
         /**
-         * A map mapping output indices to multidimensional arrays of output.
+         * Note: use {@link InferenceOutput.Builder#setData(byte[])} instead.
+         *
+         * <p>A map mapping output indices to multidimensional arrays of output.
          *
          * <p>For TFLite, this field is mapped to outputs of runForMultipleInputsOutputs:
          * https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
@@ -171,15 +177,15 @@ public final class InferenceOutput {
          * A byte array that holds input data. The inputs should be in the same order as inputs of
          * the model.
          *
-         * <p>For LiteRT, this field is mapped to outputs of runForMultipleInputsOutputs:
+         * <p>For LiteRT, this field is a serialized Map<Integer, Object> that is mapped to outputs
+         * of runForMultipleInputsOutputs:
          * https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
          *
-         * <p>For ExecuTorch model, this field is a serialized EValue array. TODO: add EValue link.
-         *
-         * @hide
+         * <p>For ExecuTorch model, this field is a serialized EValue array.
          */
+        @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
         @DataClass.Generated.Member
-        public @NonNull Builder setData(@NonNull byte... value) {
+        public @NonNull Builder setData(@NonNull byte[] value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mData = value;
