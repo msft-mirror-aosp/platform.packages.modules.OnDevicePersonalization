@@ -24,6 +24,7 @@ import static com.android.federatedcompute.services.common.Flags.DEFAULT_FCP_BAC
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_FCP_MODULE_JOB_POLICY;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE;
+import static com.android.federatedcompute.services.common.Flags.DEFAULT_IS_FEATURE_ENABLED_API_ENABLED;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_SCHEDULING_PERIOD_SECS;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_SPE_PILOT_JOB_ENABLED;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_THERMAL_STATUS_TO_THROTTLE;
@@ -72,6 +73,7 @@ import static com.android.federatedcompute.services.common.FlagsConstants.TRAINI
 import static com.android.federatedcompute.services.common.FlagsConstants.TRAINING_THERMAL_STATUS_TO_THROTTLE;
 import static com.android.federatedcompute.services.common.FlagsConstants.TRANSIENT_ERROR_RETRY_DELAY_JITTER_PERCENT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.TRANSIENT_ERROR_RETRY_DELAY_SECS_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.KEY_IS_FEATURE_ENABLED_API_ENABLED;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -218,6 +220,11 @@ public class PhFlagsTest {
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 FCP_CHECKPOINT_FILE_SIZE_LIMIT_CONFIG_NAME,
                 Integer.toString(FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_IS_FEATURE_ENABLED_API_ENABLED,
+                Boolean.toString(DEFAULT_IS_FEATURE_ENABLED_API_ENABLED),
                 /* makeDefault= */ false);
     }
 
@@ -812,5 +819,23 @@ public class PhFlagsTest {
                 Boolean.toString(defaultValue),
                 /* makeDefault */ false);
         assertThat(flagSupplier.get()).isEqualTo(defaultValue);
+    }
+
+    @Test
+    public void testIsFeatureEnabledApiEnabled() {
+        // read a stable flag value and verify it's equal to the default value.
+        boolean stableValue = FlagsFactory.getFlags().isFeatureEnabledApiEnabled();
+        assertThat(stableValue).isEqualTo(DEFAULT_IS_FEATURE_ENABLED_API_ENABLED);
+
+        // override the value in device config.
+        boolean overrideEnabled = !stableValue;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_IS_FEATURE_ENABLED_API_ENABLED,
+                Boolean.toString(overrideEnabled),
+                /* makeDefault= */ false);
+
+        // the flag value remains stable
+        assertThat(FlagsFactory.getFlags().isFeatureEnabledApiEnabled()).isEqualTo(overrideEnabled);
     }
 }
