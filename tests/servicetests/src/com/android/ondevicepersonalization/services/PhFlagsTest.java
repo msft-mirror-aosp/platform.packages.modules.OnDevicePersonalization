@@ -34,6 +34,7 @@ import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CLIENT_
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ENCRYPTION_KEY_MAX_AGE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ENCRYPTION_KEY_URL;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_IS_FEATURE_ENABLED_API_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_MODULE_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_OUTPUT_DATA_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED;
@@ -70,6 +71,7 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KI
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_DEBUGGING_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_IS_FEATURE_ENABLED_API_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_JOB_SCHEDULING_LOGGING_ENABLED;
@@ -886,5 +888,20 @@ public class PhFlagsTest {
         // the flag value remains stable
         assertThat(FlagsFactory.getFlags().isPluginProcessRunnerEnabled()).isEqualTo(
                 overrideEnabled);
+    }
+
+    @Test
+    public void testIsFeatureEnabledApiEnabled() {
+        boolean stableValue = FlagsFactory.getFlags().isFeatureEnabledApiEnabled();
+        assertThat(stableValue).isEqualTo(DEFAULT_IS_FEATURE_ENABLED_API_ENABLED);
+
+        boolean overrideEnabled = !stableValue;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_IS_FEATURE_ENABLED_API_ENABLED,
+                Boolean.toString(overrideEnabled),
+                /* makeDefault= */ false);
+
+        assertThat(FlagsFactory.getFlags().isFeatureEnabledApiEnabled()).isEqualTo(overrideEnabled);
     }
 }

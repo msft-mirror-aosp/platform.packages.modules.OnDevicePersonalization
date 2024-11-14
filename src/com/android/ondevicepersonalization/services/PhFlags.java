@@ -138,6 +138,9 @@ public final class PhFlags implements Flags {
     public static final String KEY_PLUGIN_PROCESS_RUNNER_ENABLED =
             "Odp__enable_plugin_process_runner";
 
+    public static final String KEY_IS_FEATURE_ENABLED_API_ENABLED =
+            "Odp__enable_is_feature_enabled";
+
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
 
@@ -536,5 +539,13 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_PLUGIN_PROCESS_RUNNER_ENABLED,
                 /* defaultValue= */ DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED);
+    }
+
+    @Override
+    public boolean isFeatureEnabledApiEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_IS_FEATURE_ENABLED_API_ENABLED,
+                /* defaultValue= */ DEFAULT_IS_FEATURE_ENABLED_API_ENABLED);
     }
 }
