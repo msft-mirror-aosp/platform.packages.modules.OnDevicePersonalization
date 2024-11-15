@@ -20,6 +20,7 @@ import android.content.ComponentName;
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.ExecuteOptionsParcel;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IIsFeatureEnabledCallback;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
@@ -51,6 +52,11 @@ interface IOnDevicePersonalizationManagingService {
         in Bundle params,
         in CallerMetadata metadata,
         in IRegisterMeasurementEventCallback callback);
+
+    void isFeatureEnabled(
+        in String featureName,
+        in CallerMetadata metadata,
+        in IIsFeatureEnabledCallback callback);
 
     void logApiCallStats(
         in String sdkPackageName,

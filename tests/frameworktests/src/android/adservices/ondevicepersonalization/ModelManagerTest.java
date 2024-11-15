@@ -148,12 +148,11 @@ public class ModelManagerTest {
         // TODO(b/376902350): update input with EValue.
         byte[] input = new byte[] {1, 2, 3};
         InferenceInput inferenceContext =
-                new InferenceInput.Builder()
-                        .setData(input)
-                        .setParams(
+                new InferenceInput.Builder(
                                 new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY)
                                         .setModelType(InferenceInput.Params.MODEL_TYPE_EXECUTORCH)
-                                        .build())
+                                        .build(),
+                                input)
                         .build();
 
         var callback = new ResultReceiver<InferenceOutput>();
@@ -171,10 +170,9 @@ public class ModelManagerTest {
         Object[] input = new Object[1];
         input[0] = new float[] {1.2f};
         InferenceInput inferenceContext =
-                new InferenceInput.Builder()
-                        .setData(ByteArrayUtil.serializeObject(input))
-                        .setParams(
-                                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY).build())
+                new InferenceInput.Builder(
+                                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY).build(),
+                                ByteArrayUtil.serializeObject(input))
                         .setExpectedOutputStructure(
                                 new InferenceOutput.Builder()
                                         .setData(ByteArrayUtil.serializeObject(outputData))
