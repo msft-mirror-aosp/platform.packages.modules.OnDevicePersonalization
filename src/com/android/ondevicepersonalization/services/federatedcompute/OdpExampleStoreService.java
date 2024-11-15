@@ -249,10 +249,16 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                                                 trainingExamplesOutputParcel
                                                         .getTrainingExampleRecords();
                                 if (trainingExampleRecordList == null
-                                        || trainingExampleRecordList.getList().isEmpty()
-                                        || trainingExampleRecordList.getList().size()
-                                                < eligibilityMinExample) {
+                                        || trainingExampleRecordList.getList().isEmpty()) {
                                     status = Constants.STATUS_SUCCESS_EMPTY_RESULT;
+                                    callback.onStartQueryFailure(
+                                            ClientConstants.STATUS_NOT_ENOUGH_DATA);
+                                } else if (trainingExampleRecordList.getList().size()
+                                        < eligibilityMinExample) {
+                                    sLogger.d(TAG + ": not enough examples, requires %d got %d",
+                                            eligibilityMinExample,
+                                            trainingExampleRecordList.getList().size());
+                                    status = Constants.STATUS_SUCCESS_NOT_ENOUGH_DATA;
                                     callback.onStartQueryFailure(
                                             ClientConstants.STATUS_NOT_ENOUGH_DATA);
                                 } else {

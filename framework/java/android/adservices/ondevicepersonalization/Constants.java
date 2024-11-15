@@ -54,7 +54,7 @@ public class Constants {
     /** Internal error code that tracks error when the FCP manifest is invalid or missing. */
     public static final int STATUS_FCP_MANIFEST_INVALID = 110;
 
-    /** Internal code that tracks empty result returned from data storage. */
+    /** Internal code that tracks empty result returned from data storage or example store. */
     public static final int STATUS_SUCCESS_EMPTY_RESULT = 111;
 
     /** Internal code that tracks timeout exception when run operation. */
@@ -91,6 +91,8 @@ public class Constants {
     public static final int STATUS_LOCAL_WRITE_DATA_ACCESS_FAILURE = 127;
     // Internal code that tracks parsing error.
     public static final int STATUS_PARSE_ERROR = 128;
+    // Internal code that tracks non-empty but not enough data from data storage or example store.
+    public static final int STATUS_SUCCESS_NOT_ENOUGH_DATA = 129;
 
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
