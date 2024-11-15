@@ -334,14 +334,14 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
 
         @Override
         public void onBindingDied(ComponentName name) {
-            LogUtil.e(TAG, "onBindingDied " + mServiceIntentActionOrName);
+            LogUtil.w(TAG, "onBindingDied " + mServiceIntentActionOrName);
             unbindFromService();
             mConnectionCountDownLatch.countDown();
         }
 
         @Override
         public void onNullBinding(ComponentName name) {
-            LogUtil.e(TAG, "onNullBinding shouldn't happen. " + mServiceIntentActionOrName);
+            LogUtil.w(TAG, "onNullBinding shouldn't happen. " + mServiceIntentActionOrName);
             unbindFromService();
             mConnectionCountDownLatch.countDown();
         }
