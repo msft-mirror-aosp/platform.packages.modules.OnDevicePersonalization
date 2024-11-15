@@ -97,27 +97,27 @@ public final class PhFlags implements Flags {
     public static final String EXECUTE_BEST_VALUE_NOISE = "noise_for_execute_best_value";
 
     public static final String KEY_ENABLE_AGGREGATED_ERROR_REPORTING =
-            "enable_aggregated_error_reporting";
+            "Odp__enable_aggregated_error_reporting";
 
     public static final String KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS =
-            "aggregated_error_report_ttl_days";
+            "Odp__aggregated_error_report_ttl_days";
 
     public static final String KEY_AGGREGATED_ERROR_REPORTING_PATH =
-            "aggregated_error_reporting_path";
+            "Odp__aggregated_error_reporting_path";
 
     public static final String KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD =
-            "aggregated_error_reporting_threshold";
+            "Odp__aggregated_error_reporting_threshold";
 
     public static final String KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS =
-            "aggregated_error_reporting_interval_hours";
+            "Odp__aggregated_error_reporting_interval_hours";
     public static final String KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING =
-            "aggregated_error_allow_unencrypted_aggregated_error_reporting";
+            "Odp__aggregated_error_allow_unencrypted_aggregated_error_reporting";
 
     public static final String KEY_AGGREGATED_ERROR_REPORTING_HTTP_TIMEOUT_SECONDS =
-            "aggregated_error_reporting_http_timeout_seconds";
+            "Odp__aggregated_error_reporting_http_timeout_seconds";
 
     public static final String KEY_AGGREGATED_ERROR_REPORTING_HTTP_RETRY_LIMIT =
-            "aggregated_error_reporting_http_retry_limit";
+            "Odp__aggregated_error_reporting_http_retry_limit";
 
     public static final String KEY_ENCRYPTION_KEY_URL = "Odp__encryption_key_download_url";
 
@@ -137,6 +137,9 @@ public final class PhFlags implements Flags {
 
     public static final String KEY_PLUGIN_PROCESS_RUNNER_ENABLED =
             "Odp__enable_plugin_process_runner";
+
+    public static final String KEY_IS_FEATURE_ENABLED_API_ENABLED =
+            "Odp__enable_is_feature_enabled";
 
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
@@ -536,5 +539,13 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_PLUGIN_PROCESS_RUNNER_ENABLED,
                 /* defaultValue= */ DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED);
+    }
+
+    @Override
+    public boolean isFeatureEnabledApiEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_IS_FEATURE_ENABLED_API_ENABLED,
+                /* defaultValue= */ DEFAULT_IS_FEATURE_ENABLED_API_ENABLED);
     }
 }

@@ -161,9 +161,7 @@ public class InferenceInputTest {
                 new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY).build();
 
         InferenceInput result =
-                new InferenceInput.Builder()
-                        .setParams(params)
-                        .setData(ByteArrayUtil.serializeObject(input))
+                new InferenceInput.Builder(params, ByteArrayUtil.serializeObject(input))
                         .setExpectedOutputStructure(
                                 new InferenceOutput.Builder().setDataOutputs(outputData).build())
                         .build();
@@ -181,8 +179,7 @@ public class InferenceInputTest {
                         .setModelType(InferenceInput.Params.MODEL_TYPE_EXECUTORCH)
                         .build();
 
-        InferenceInput result =
-                new InferenceInput.Builder().setParams(params).setData(input).build();
+        InferenceInput result = new InferenceInput.Builder(params, input).build();
 
         assertThat(result.getData()).isEqualTo(input);
     }
@@ -196,11 +193,7 @@ public class InferenceInputTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () ->
-                        new InferenceInput.Builder()
-                                .setParams(params)
-                                .setData(new byte[] {})
-                                .build());
+                () -> new InferenceInput.Builder(params, new byte[] {}).build());
     }
 
     @Test
@@ -213,9 +206,7 @@ public class InferenceInputTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () ->
-                        new InferenceInput.Builder()
-                                .setParams(params)
-                                .setData(new byte[] {})
+                        new InferenceInput.Builder(params, new byte[] {})
                                 .setExpectedOutputStructure(
                                         new InferenceOutput.Builder()
                                                 .setDataOutputs(outputData)
@@ -231,9 +222,7 @@ public class InferenceInputTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () ->
-                        new InferenceInput.Builder()
-                                .setParams(params)
-                                .setData(new byte[] {})
+                        new InferenceInput.Builder(params, new byte[] {})
                                 .setExpectedOutputStructure(
                                         new InferenceOutput.Builder()
                                                 .setDataOutputs(new HashMap<>())
@@ -251,9 +240,12 @@ public class InferenceInputTest {
                 assertThrows(
                         IllegalArgumentException.class,
                         () ->
-                                new InferenceInput.Builder()
-                                        .setParams(params)
-                                        .setInputData(obj)
+                                new InferenceInput.Builder(
+                                                params,
+                                                new Object[] {obj},
+                                                new InferenceOutput.Builder()
+                                                        .setDataOutputs(new HashMap<>())
+                                                        .build())
                                         .build());
 
         assertThat(exp.getCause()).isInstanceOf(NotSerializableException.class);
