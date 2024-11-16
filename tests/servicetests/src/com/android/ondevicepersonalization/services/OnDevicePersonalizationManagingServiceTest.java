@@ -38,6 +38,7 @@ import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
 import android.adservices.ondevicepersonalization.ExecuteOptionsParcel;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IIsFeatureEnabledCallback;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
@@ -48,6 +49,7 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
+import android.os.RemoteException;
 import android.view.SurfaceControlViewHost;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -614,6 +616,54 @@ public class OnDevicePersonalizationManagingServiceTest {
         verify(mMockMdd).schedulePeriodicBackgroundTasks();
     }
 
+    @Test
+    public void testEnabledGlobalKillOnIsFeatureEnabled() {
+        when(mMockFlags.getGlobalKillSwitch()).thenReturn(true);
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        mService.isFeatureEnabled(
+                                "featureName",
+                                new CallerMetadata.Builder().build(),
+                                new IsFeatureEnabledCallback()));
+    }
+
+    @Test
+    public void testUnsupportedDeviceOnIsFeatureEnabled() {
+        ExtendedMockito.doReturn(false).when(() -> DeviceUtils.isOdpSupported(any()));
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        mService.isFeatureEnabled(
+                                "featureName",
+                                new CallerMetadata.Builder().build(),
+                                new IsFeatureEnabledCallback()));
+    }
+
+    @Test
+    public void testDisabledFlagOnIsFeatureEnabled() {
+        when(mMockFlags.isFeatureEnabledApiEnabled()).thenReturn(false);
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        mService.isFeatureEnabled(
+                                "featureName",
+                                new CallerMetadata.Builder().build(),
+                                new IsFeatureEnabledCallback()));
+    }
+
+    @Test
+    public void testIsFeatureEnabled() throws Exception {
+        when(mMockFlags.isFeatureEnabledApiEnabled()).thenReturn(true);
+        var callback = new IsFeatureEnabledCallback();
+        mService.isFeatureEnabled(
+                "featureName",
+                new CallerMetadata.Builder().build(),
+                callback);
+        callback.await();
+        assertTrue(callback.mWasInvoked);
+    }
+
     private Bundle createWrappedAppParams() throws Exception {
         Bundle wrappedParams = new Bundle();
         ByteArrayParceledSlice buffer =
@@ -717,6 +767,21 @@ public class OnDevicePersonalizationManagingServiceTest {
             mWasInvoked = true;
             mError = true;
             mErrorCode = errorCode;
+            mLatch.countDown();
+        }
+
+        public void await() throws Exception {
+            mLatch.await();
+        }
+    }
+
+    static class IsFeatureEnabledCallback extends IIsFeatureEnabledCallback.Stub {
+        public boolean mWasInvoked = false;
+        private final CountDownLatch mLatch = new CountDownLatch(1);
+
+        @Override
+        public void onResult(int result, CalleeMetadata calleeMetadata) throws RemoteException {
+            mWasInvoked = true;
             mLatch.countDown();
         }
 
