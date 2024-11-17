@@ -45,6 +45,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The {@link JobService} to perform daily reporting of aggregated error codes.
@@ -150,7 +151,8 @@ public class AggregateErrorDataReportingService extends JobService {
                 mInjector.getFlags().getAllowUnencryptedAggregatedErrorReportingPayload()
                         ? FluentFuture.from(Futures.immediateFuture(List.of()))
                         : keyManager.fetchAndPersistActiveKeys(
-                                OdpEncryptionKey.KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true);
+                                OdpEncryptionKey.KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true,
+                                Optional.empty());
 
         AggregatedErrorReportingWorker worker = mInjector.getErrorReportingWorker();
         mFuture =

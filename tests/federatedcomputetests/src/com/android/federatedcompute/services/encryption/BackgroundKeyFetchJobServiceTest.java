@@ -69,6 +69,7 @@ import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 // TODO: add tests with Ph flags
@@ -146,7 +147,8 @@ public class BackgroundKeyFetchJobServiceTest {
         List<OdpEncryptionKey> emptyKeyList = List.of();
         doReturn(FluentFuture.from(Futures.immediateFuture(emptyKeyList)))
                 .when(keyManager)
-                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true);
+                .fetchAndPersistActiveKeys(
+                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true, Optional.empty());
 
         mSpyService.run(mock(JobParameters.class));
 
@@ -164,7 +166,8 @@ public class BackgroundKeyFetchJobServiceTest {
                                                 " Failed to fetch keys",
                                                 new IllegalStateException("http 404")))))
                 .when(keyManager)
-                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true);
+                .fetchAndPersistActiveKeys(
+                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true, Optional.empty());
 
         mSpyService.run(mock(JobParameters.class));
 
@@ -223,7 +226,8 @@ public class BackgroundKeyFetchJobServiceTest {
         List<OdpEncryptionKey> emptyKeyList = List.of();
         doReturn(FluentFuture.from(Futures.immediateFuture(emptyKeyList)))
                 .when(keyManager)
-                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true);
+                .fetchAndPersistActiveKeys(
+                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true, Optional.empty());
         doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
         mSpyService.scheduleJobIfNeeded(mContext, FlagsFactory.getFlags());
         assertTrue(mJobScheduler.getPendingJob(
@@ -234,7 +238,7 @@ public class BackgroundKeyFetchJobServiceTest {
         assertTrue(result);
         verify(mSpyService, times(1)).jobFinished(any(), eq(false));
         verify(keyManager, never()).fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION,
-                /* isScheduledJob= */ true);
+                /* isScheduledJob= */ true, Optional.empty());
         assertTrue(mJobScheduler.getPendingJob(
                 FederatedComputeJobInfo.ENCRYPTION_KEY_FETCH_JOB_ID)
                 == null);
