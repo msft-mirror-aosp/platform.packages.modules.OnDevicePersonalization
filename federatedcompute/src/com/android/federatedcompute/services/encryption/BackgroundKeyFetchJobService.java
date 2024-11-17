@@ -41,6 +41,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -96,7 +97,8 @@ public class BackgroundKeyFetchJobService extends JobService {
         mInjector
                 .getEncryptionKeyManager(this)
                 .fetchAndPersistActiveKeys(
-                        OdpEncryptionKey.KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
+                        OdpEncryptionKey.KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true,
+                        Optional.empty())
                 .addCallback(
                         new FutureCallback<List<OdpEncryptionKey>>() {
                             @Override

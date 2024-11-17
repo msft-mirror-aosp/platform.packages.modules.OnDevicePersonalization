@@ -17,11 +17,14 @@
 package android.adservices.ondevicepersonalization;
 
 
+import static java.lang.annotation.RetentionPolicy.SOURCE;
+
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
+import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.ComponentName;
@@ -44,6 +47,7 @@ import com.android.ondevicepersonalization.internal.util.ExceptionInfo;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 
+import java.lang.annotation.Retention;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executor;
@@ -90,6 +94,18 @@ public class OnDevicePersonalizationManager {
 
     private static final String TAG = OnDevicePersonalizationManager.class.getSimpleName();
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+
+    /** @hide */
+    @Retention(SOURCE)
+    @IntDef({FEATURE_ENABLED, FEATURE_DISABLED, FEATURE_UNSUPPORTED})
+    public @interface FeatureStatus {}
+    /** @hide */
+    public static final int FEATURE_ENABLED = 0;
+    /** @hide */
+    public static final int FEATURE_DISABLED = 1;
+    /** @hide */
+    public static final int FEATURE_UNSUPPORTED = 2;
+
     private final AbstractServiceBinder<IOnDevicePersonalizationManagingService> mServiceBinder;
     private final Context mContext;
 
@@ -613,6 +629,17 @@ public class OnDevicePersonalizationManager {
         } catch (Exception e) {
             receiver.onError(e);
         }
+    }
+
+    /** @hide */
+    @FlaggedApi(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
+    public void isFeatureEnabled(
+            @NonNull String featureName,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull OutcomeReceiver<Integer, Exception> receiver) {
+
+        //TODO(b/368695570): implement
+        throw new UnsupportedOperationException();
     }
 
     private static void validateRequest(ExecuteInIsolatedServiceRequest request) {

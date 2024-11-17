@@ -16,14 +16,14 @@
 
 package com.android.ondevicepersonalization.cts.e2e;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.InferenceOutput;
 
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,6 +47,6 @@ public class InferenceOutputTest {
         Map<Integer, Object> data = output.getDataOutputs();
         float[] value = (float[]) data.get(0);
 
-        assertTrue(Arrays.equals(value, expected));
+        assertThat(value).isEqualTo(expected);
     }
 }

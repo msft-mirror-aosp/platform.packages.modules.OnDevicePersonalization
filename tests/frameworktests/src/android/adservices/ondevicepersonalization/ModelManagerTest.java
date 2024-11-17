@@ -33,6 +33,7 @@ import android.os.RemoteException;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
+import com.android.ondevicepersonalization.internal.util.ByteArrayUtil;
 import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
 import com.google.common.util.concurrent.MoreExecutors;
@@ -42,6 +43,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.HashMap;
+import java.util.Map;
 
 @SmallTest
 @RunWith(AndroidJUnit4.class)
@@ -55,6 +57,7 @@ public class ModelManagerTest {
     private static final String MODEL_KEY = "model_key";
     private static final String MISSING_OUTPUT_KEY = "missing-output-key";
     private boolean mRunInferenceCalled = false;
+    private static final int EXECUTORCH_RESULT = 10;
     private RemoteDataImpl mRemoteData;
 
     @Before
@@ -140,6 +143,53 @@ public class ModelManagerTest {
                 .isEqualTo(OnDevicePersonalizationException.ERROR_INFERENCE_FAILED);
     }
 
+    @Test
+    public void runExecutorchInference_success() throws Exception {
+        // TODO(b/376902350): update input with EValue.
+        byte[] input = new byte[] {1, 2, 3};
+        InferenceInput inferenceContext =
+                new InferenceInput.Builder(
+                                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY)
+                                        .setModelType(InferenceInput.Params.MODEL_TYPE_EXECUTORCH)
+                                        .build(),
+                                input)
+                        .build();
+
+        var callback = new ResultReceiver<InferenceOutput>();
+        mModelManager.run(inferenceContext, MoreExecutors.directExecutor(), callback);
+
+        assertTrue(callback.isSuccess());
+        int value = (int) ByteArrayUtil.deserializeObject(callback.getResult().getData());
+        assertThat(value).isEqualTo(EXECUTORCH_RESULT);
+    }
+
+    @Test
+    public void runLiteRTInferenceUsingByteArray_success() throws Exception {
+        HashMap<Integer, Object> outputData = new HashMap<>();
+        outputData.put(0, new float[1]);
+        Object[] input = new Object[1];
+        input[0] = new float[] {1.2f};
+        InferenceInput inferenceContext =
+                new InferenceInput.Builder(
+                                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY).build(),
+                                ByteArrayUtil.serializeObject(input))
+                        .setExpectedOutputStructure(
+                                new InferenceOutput.Builder()
+                                        .setData(ByteArrayUtil.serializeObject(outputData))
+                                        .build())
+                        .build();
+
+        var callback = new ResultReceiver<InferenceOutput>();
+        mModelManager.run(inferenceContext, MoreExecutors.directExecutor(), callback);
+
+        assertTrue(callback.isSuccess());
+        Map<Integer, Object> result =
+                (Map<Integer, Object>)
+                        ByteArrayUtil.deserializeObject(callback.getResult().getData());
+        float[] value = (float[]) result.get(0);
+        assertEquals(value[0], 5.0f, 0.01f);
+    }
+
     class TestIsolatedModelService extends IIsolatedModelService.Stub {
         @Override
         public void runInference(Bundle params, IIsolatedModelServiceCallback callback)
@@ -156,13 +206,24 @@ public class ModelManagerTest {
                 callback.onError(OnDevicePersonalizationException.ERROR_INFERENCE_FAILED);
                 return;
             }
-            HashMap<Integer, Object> result = new HashMap<>();
-            result.put(0, new float[] {5.0f});
+
             Bundle bundle = new Bundle();
-            bundle.putParcelable(
-                    Constants.EXTRA_RESULT,
-                    new InferenceOutputParcel(
-                            new InferenceOutput.Builder().setDataOutputs(result).build()));
+            if (inputParcel.getModelType() == InferenceInput.Params.MODEL_TYPE_EXECUTORCH) {
+                bundle.putParcelable(
+                        Constants.EXTRA_RESULT,
+                        new InferenceOutputParcel(
+                                new InferenceOutput.Builder()
+                                        .setData(ByteArrayUtil.serializeObject(EXECUTORCH_RESULT))
+                                        .build()));
+            } else {
+                HashMap<Integer, Object> result = new HashMap<>();
+                result.put(0, new float[] {5.0f});
+                bundle.putParcelable(
+                        Constants.EXTRA_RESULT,
+                        new InferenceOutputParcel(
+                                new InferenceOutput.Builder().setDataOutputs(result).build()));
+            }
+
             callback.onSuccess(bundle);
         }
     }
