@@ -632,7 +632,12 @@ public class SampleHandler implements IsolatedWorker {
     }
 
     private ExecuteOutput handleConversion(ExecuteInput input) {
-        String adId = input.getAppParams().getString("conversion_ad_id");
+        String adId = input.getAppParams().getString("conversion_ad_id").strip();
+        var builder = new ExecuteOutput.Builder();
+        if (adId == null || adId.isEmpty()) {
+            Log.d(TAG, "SourceAdId should not be empty");
+            return builder.build();
+        }
         long now = System.currentTimeMillis();
         List<EventLogRecord> logRecords =
                 mLogReader.getJoinedEvents(
@@ -654,7 +659,6 @@ public class SampleHandler implements IsolatedWorker {
                 }
             }
         }
-        var builder = new ExecuteOutput.Builder();
         if (found != null) {
             ContentValues values = new ContentValues();
             values.put(SOURCE_TYPE_KEY, found.getType());
@@ -666,6 +670,8 @@ public class SampleHandler implements IsolatedWorker {
                             .setRequestLogRecord(found.getRequestLogRecord())
                             .build();
             builder.addEventLogRecord(conv);
+        } else {
+            Log.d(TAG, String.format("SourceAdId %s not find matched record", adId));
         }
         return builder.build();
     }
