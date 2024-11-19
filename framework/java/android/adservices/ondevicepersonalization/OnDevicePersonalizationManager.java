@@ -634,7 +634,7 @@ public class OnDevicePersonalizationManager {
 
     /** @hide */
     @FlaggedApi(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
-    public void isFeatureEnabled(
+    public void queryFeatureAvailability(
             @NonNull String featureName,
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<Integer, Exception> receiver) {
