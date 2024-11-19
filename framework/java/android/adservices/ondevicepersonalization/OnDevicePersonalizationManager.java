@@ -20,6 +20,7 @@ package android.adservices.ondevicepersonalization;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IIsFeatureEnabledCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.annotation.CallbackExecutor;
@@ -638,8 +639,59 @@ public class OnDevicePersonalizationManager {
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<Integer, Exception> receiver) {
 
-        //TODO(b/368695570): implement
-        throw new UnsupportedOperationException();
+        Objects.requireNonNull(featureName);
+        Objects.requireNonNull(executor);
+        Objects.requireNonNull(receiver);
+
+        long startTimeMillis = SystemClock.elapsedRealtime();
+
+        try {
+            final IOnDevicePersonalizationManagingService service =
+                    Objects.requireNonNull(mServiceBinder.getService(executor));
+
+            try {
+                IIsFeatureEnabledCallback callbackWrapper = new IIsFeatureEnabledCallback.Stub() {
+                    @Override
+                    public void onResult(int result, CalleeMetadata calleeMetadata) {
+                        final long token = Binder.clearCallingIdentity();
+                        try {
+                            executor.execute(
+                                    () -> {
+                                        receiver.onResult(result);
+                                    });
+                        } finally {
+                            Binder.restoreCallingIdentity(token);
+                            logApiCallStats(
+                                    service,
+                                    "",
+                                    Constants.API_NAME_IS_FEATURE_ENABLED,
+                                    SystemClock.elapsedRealtime() - startTimeMillis,
+                                    calleeMetadata.getServiceEntryTimeMillis()
+                                            - startTimeMillis,
+                                    SystemClock.elapsedRealtime()
+                                            - calleeMetadata.getCallbackInvokeTimeMillis(),
+                                    Constants.STATUS_SUCCESS);
+                        }
+                    }
+                };
+                service.isFeatureEnabled(
+                        featureName,
+                        new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
+                        callbackWrapper);
+            } catch (Exception e) {
+                logApiCallStats(
+                        service,
+                        "",
+                        Constants.API_NAME_IS_FEATURE_ENABLED,
+                        SystemClock.elapsedRealtime() - startTimeMillis,
+                        0,
+                        0,
+                        Constants.STATUS_INTERNAL_ERROR);
+                receiver.onError(e);
+            }
+        } catch (Exception e) {
+            receiver.onError(e);
+        }
     }
 
     private static void validateRequest(ExecuteInIsolatedServiceRequest request) {
