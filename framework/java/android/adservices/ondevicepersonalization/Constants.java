@@ -169,6 +169,7 @@ public class Constants {
     public static final int API_NAME_FEDERATED_COMPUTE_CANCEL = 21;
     public static final int API_NAME_NOTIFY_MEASUREMENT_EVENT = 22;
     public static final int API_NAME_ADSERVICES_GET_COMMON_STATES = 23;
+    public static final int API_NAME_IS_FEATURE_ENABLED = 24;
 
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;
