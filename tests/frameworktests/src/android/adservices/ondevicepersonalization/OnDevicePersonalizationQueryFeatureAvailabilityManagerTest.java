@@ -49,7 +49,7 @@ import org.mockito.MockitoAnnotations;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-public class OnDevicePersonalizationIsFeatureEnabledManagerTest {
+public class OnDevicePersonalizationQueryFeatureAvailabilityManagerTest {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationIsFeatureEnabledManagerTest";
     private final Context mContext = ApplicationProvider.getApplicationContext();
@@ -71,10 +71,10 @@ public class OnDevicePersonalizationIsFeatureEnabledManagerTest {
     }
 
     @Test
-    public void isFeatureEnabledSuccess() throws Exception {
+    public void queryFeatureAvailabilitySuccess() throws Exception {
         var receiver = new ResultReceiver<Integer>();
 
-        mManager.isFeatureEnabled(
+        mManager.queryFeatureAvailability(
                 "success", Executors.newSingleThreadExecutor(), receiver);
         assertTrue(receiver.isSuccess());
         assertFalse(receiver.isError());
@@ -84,10 +84,10 @@ public class OnDevicePersonalizationIsFeatureEnabledManagerTest {
     }
 
     @Test
-    public void isFeatureEnabledException() throws Exception {
+    public void queryFeatureAvailabilityException() throws Exception {
         var receiver = new ResultReceiver<Integer>();
 
-        mManager.isFeatureEnabled(
+        mManager.queryFeatureAvailability(
                 "error", Executors.newSingleThreadExecutor(), receiver);
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
