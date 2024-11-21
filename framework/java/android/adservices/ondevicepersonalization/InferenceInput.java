@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static com.android.ondevicepersonalization.internal.util.ByteArrayUtil.deserializeObject;
+import static com.android.ondevicepersonalization.internal.util.ByteArrayUtil.serializeObject;
+
 import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.IntRange;
@@ -24,7 +27,6 @@ import android.annotation.SuppressLint;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.internal.util.Preconditions;
-import com.android.ondevicepersonalization.internal.util.ByteArrayUtil;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -49,6 +51,7 @@ public final class InferenceInput {
      * String[] input0 = {"foo", "bar"}; // string tensor shape is [2].
      * int[] input1 = new int[]{3, 2, 1}; // int tensor shape is [3].
      * Object[] inputData = {input0, input1, ...};
+     * byte[] data = serializeObject(inputData);
      * }</pre>
      *
      * <p>For Executorch model, this field is a serialized EValue array.
@@ -80,16 +83,10 @@ public final class InferenceInput {
     @NonNull private InferenceOutput mExpectedOutputStructure;
 
     public static class Params {
-        /**
-         * A {@link KeyValueStore} where pre-trained model is stored. Only supports LiteRT model
-         * now.
-         */
+        /** A {@link KeyValueStore} where pre-trained model is stored. */
         @NonNull private KeyValueStore mKeyValueStore;
 
-        /**
-         * The key of the table where the corresponding value stores a pre-trained model. Only
-         * supports LiteRT model now.
-         */
+        /** The key of the table where the corresponding value stores a pre-trained model. */
         @NonNull private String mModelKey;
 
         /** The model inference will run on CPU. */
@@ -115,11 +112,7 @@ public final class InferenceInput {
         /** The model is a tensorflow lite model. */
         public static final int MODEL_TYPE_TENSORFLOW_LITE = 1;
 
-        /**
-         * The model is an executorch model.
-         *
-         * @hide
-         */
+        /** The model is an executorch model. */
         @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
         public static final int MODEL_TYPE_EXECUTORCH = 2;
 
@@ -130,7 +123,7 @@ public final class InferenceInput {
          */
         @IntDef(
                 prefix = "MODEL_TYPE",
-                value = {MODEL_TYPE_TENSORFLOW_LITE})
+                value = {MODEL_TYPE_TENSORFLOW_LITE, MODEL_TYPE_EXECUTORCH})
         @Retention(RetentionPolicy.SOURCE)
         public @interface ModelType {}
 
@@ -150,10 +143,9 @@ public final class InferenceInput {
         /**
          * Creates a new Params.
          *
-         * @param keyValueStore A {@link KeyValueStore} where pre-trained model is stored. Only
-         *     supports LiteRT model now.
+         * @param keyValueStore A {@link KeyValueStore} where pre-trained model is stored.
          * @param modelKey The key of the table where the corresponding value stores a pre-trained
-         *     model. Only supports LiteRT model now.
+         *     model.
          * @param delegateType The delegate to run model inference. If not set, the default value is
          *     {@link #DELEGATE_CPU}.
          * @param modelType The type of the pre-trained model. If not set, the default value is
@@ -194,18 +186,12 @@ public final class InferenceInput {
                     "recommend thread number should be large or equal to 1");
         }
 
-        /**
-         * A {@link KeyValueStore} where pre-trained model is stored. Only supports LiteRT model
-         * now.
-         */
+        /** A {@link KeyValueStore} where pre-trained model is stored. */
         public @NonNull KeyValueStore getKeyValueStore() {
             return mKeyValueStore;
         }
 
-        /**
-         * The key of the table where the corresponding value stores a pre-trained model. Only
-         * supports LiteRT model now.
-         */
+        /** The key of the table where the corresponding value stores a pre-trained model. */
         public @NonNull String getModelKey() {
             return mModelKey;
         }
@@ -283,30 +269,23 @@ public final class InferenceInput {
             /**
              * Creates a new Builder.
              *
-             * @param keyValueStore A {@link KeyValueStore} where pre-trained model is stored. Only
-             *     supports LiteRT model now.
-             * @param modelKey The key of the table where the corresponding value stores a
-             *     pre-trained model. Only supports LiteRT model now.
+             * @param keyValueStore a {@link KeyValueStore} where pre-trained model is stored.
+             * @param modelKey key of the table where the corresponding value stores a pre-trained
+             *     model.
              */
             public Builder(@NonNull KeyValueStore keyValueStore, @NonNull String modelKey) {
                 mKeyValueStore = Objects.requireNonNull(keyValueStore);
                 mModelKey = Objects.requireNonNull(modelKey);
             }
 
-            /**
-             * A {@link KeyValueStore} where pre-trained model is stored. Only supports LiteRT model
-             * now.
-             */
+            /** A {@link KeyValueStore} where pre-trained model is stored. */
             public @NonNull Builder setKeyValueStore(@NonNull KeyValueStore value) {
                 mBuilderFieldsSet |= 0x1;
                 mKeyValueStore = value;
                 return this;
             }
 
-            /**
-             * The key of the table where the corresponding value stores a pre-trained model. Only
-             * supports LiteRT model now.
-             */
+            /** The key of the table where the corresponding value stores a pre-trained model. */
             public @NonNull Builder setModelKey(@NonNull String value) {
                 mBuilderFieldsSet |= 0x2;
                 mModelKey = value;
@@ -396,11 +375,10 @@ public final class InferenceInput {
      * String[] input0 = {"foo", "bar"}; // string tensor shape is [2].
      * int[] input1 = new int[]{3, 2, 1}; // int tensor shape is [3].
      * Object[] inputData = {input0, input1, ...};
+     * byte[] data = serializeObject(inputData);
      * }</pre>
      *
      * <p>For Executorch model, this field is a serialized EValue array.
-     *
-     * @hide
      */
     @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
     public @NonNull byte[] getData() {
@@ -408,7 +386,9 @@ public final class InferenceInput {
     }
 
     /**
-     * An array of input data. The inputs should be in the same order as inputs of the model.
+     * Note: use {@link InferenceInput#getData()} instead.
+     *
+     * <p>An array of input data. The inputs should be in the same order as inputs of the model.
      *
      * <p>For example, if a model takes multiple inputs:
      *
@@ -418,12 +398,12 @@ public final class InferenceInput {
      * Object[] inputData = {input0, input1, ...};
      * }</pre>
      *
-     * For TFLite, this field is mapped to inputs of runForMultipleInputsOutputs:
+     * For LiteRT, this field is mapped to inputs of runForMultipleInputsOutputs:
      * https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
      */
     @SuppressLint("ArrayReturn")
     public @NonNull Object[] getInputData() {
-        return (Object[]) ByteArrayUtil.deserializeObject(mData);
+        return (Object[]) deserializeObject(mData);
     }
 
     /**
@@ -497,48 +477,68 @@ public final class InferenceInput {
         private long mBuilderFieldsSet = 0L;
 
         /**
-         * Creates a new Builder.
+         * Note: use {@link InferenceInput.Builder#Builder(Params, byte[])} instead.
          *
-         * @param params The configuration that controls runtime interpreter behavior.
-         * @param inputData An array of input data. The inputs should be in the same order as inputs
-         *     of the model.
-         *     <p>For example, if a model takes multiple inputs:
-         *     <pre>{@code
-         * String[] input0 = {"foo", "bar"}; // string tensor shape is [2].
+         * <p>Creates a new Builder for LiteRT model inference input. For LiteRT, inputData field is
+         * mapped to inputs of runForMultipleInputsOutputs:
+         * https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
+         * The inputs should be in the same order as inputs * of the model. *
+         *
+         * <p>For example, if a model takes multiple inputs: *
+         *
+         * <pre>{@code
+         *  String[] input0 = {"foo", "bar"}; // string tensor shape is [2].
          * int[] input1 = new int[]{3, 2, 1}; // int tensor shape is [3].
          * Object[] inputData = {input0, input1, ...};
-         *
          * }</pre>
-         *     For TFLite, this field is mapped to inputs of runForMultipleInputsOutputs:
-         *     https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
-         * @param expectedOutputStructure The empty InferenceOutput representing the expected output
-         *     structure. For TFLite, the inference code will verify whether this expected output
-         *     structure matches model output signature.
-         *     <p>If a model produce string tensors:
-         *     <pre>{@code
+         *
+         * For LiteRT, the inference code will verify whether the expected output structure matches
+         * model output signature.
+         *
+         * <p>If a model produce string tensors:
+         *
+         * <pre>{@code
          * String[] output = new String[3][2];  // Output tensor shape is [3, 2].
          * HashMap<Integer, Object> outputs = new HashMap<>();
          * outputs.put(0, output);
          * expectedOutputStructure = new InferenceOutput.Builder().setDataOutputs(outputs).build();
          *
          * }</pre>
+         *
+         * @param params configuration that controls runtime interpreter behavior.
+         * @param inputData an array of input data.
+         * @param expectedOutputStructure an empty InferenceOutput representing the expected output
+         *     structure.
          */
         public Builder(
                 @NonNull Params params,
                 @SuppressLint("ArrayReturn") @NonNull Object[] inputData,
                 @NonNull InferenceOutput expectedOutputStructure) {
             mParams = Objects.requireNonNull(params);
-            mData = ByteArrayUtil.serializeObject(Objects.requireNonNull(inputData));
+            mData = serializeObject(Objects.requireNonNull(inputData));
             mExpectedOutputStructure = Objects.requireNonNull(expectedOutputStructure);
         }
 
         /**
-         * Creates a new Builder.
+         * Creates a new Builder with provided runtime parameters and input data.
          *
-         * @param params The configuration that controls runtime interpreter behavior.
-         * @param inputData A byte array that holds input data.
-         * @hide
+         * <p>For LiteRT, inputData field is mapped to inputs of runForMultipleInputsOutputs:
+         * https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
+         * For example, if a model takes multiple inputs:
+         *
+         * <pre>{@code
+         * String[] input0 = {"foo", "bar"}; // string tensor shape is [2].
+         * int[] input1 = new int[]{3, 2, 1}; // int tensor shape is [3].
+         * Object[] data = {input0, input1, ...};
+         * byte[] inputData = serializeObject(data);
+         * }</pre>
+         *
+         * <p>For Executorch, inputData field is mapped to a serialized EValue array.
+         *
+         * @param params configuration that controls runtime interpreter behavior.
+         * @param inputData byte array that holds serialized input data.
          */
+        @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
         public Builder(@NonNull Params params, @NonNull byte[] inputData) {
             mParams = Objects.requireNonNull(params);
             mData = Objects.requireNonNull(inputData);
@@ -561,22 +561,23 @@ public final class InferenceInput {
          * <pre>{@code
          * String[] input0 = {"foo", "bar"}; // string tensor shape is [2].
          * int[] input1 = new int[]{3, 2, 1}; // int tensor shape is [3].
-         * Object[] inputData = {input0, input1, ...};
+         * Object[] data = {input0, input1, ...};
+         * byte[] inputData = serializeObject(data);
          * }</pre>
          *
          * <p>For Executorch model, this field is a serialized EValue array.
-         *
-         * @hide
          */
         @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
-        public @NonNull Builder setData(@NonNull byte... value) {
+        public @NonNull Builder setInputData(@NonNull byte[] value) {
             mBuilderFieldsSet |= 0x2;
             mData = value;
             return this;
         }
 
         /**
-         * An array of input data. The inputs should be in the same order as inputs of the model.
+         * Note: use {@link InferenceInput.Builder#setInputData(byte[])} instead.
+         *
+         * <p>An array of input data. The inputs should be in the same order as inputs of the model.
          *
          * <p>For example, if a model takes multiple inputs:
          *
@@ -591,7 +592,7 @@ public final class InferenceInput {
          */
         public @NonNull Builder setInputData(@NonNull Object... value) {
             mBuilderFieldsSet |= 0x2;
-            mData = ByteArrayUtil.serializeObject(value);
+            mData = serializeObject(value);
             return this;
         }
 
@@ -606,9 +607,9 @@ public final class InferenceInput {
         }
 
         /**
-         * The empty InferenceOutput representing the expected output structure. For LiteRT, the
-         * inference code will verify whether this expected output structure matches model output
-         * signature.
+         * The empty InferenceOutput representing the expected output structure. It's only required
+         * by LiteRT model. For LiteRT, the inference code will verify whether this expected output
+         * structure matches model output signature.
          *
          * <p>If a model produce string tensors:
          *

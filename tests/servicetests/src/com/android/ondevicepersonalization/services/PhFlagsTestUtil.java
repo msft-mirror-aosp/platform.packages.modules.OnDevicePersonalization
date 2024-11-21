@@ -33,6 +33,9 @@ public class PhFlagsTestUtil {
     private static final String WRITE_DEVICE_CONFIG_PERMISSION =
             "android.permission.WRITE_DEVICE_CONFIG";
 
+    private static final String WRITE_ALLOWLISTED_DEVICE_CONFIG_PERMISSION =
+            "android.permission.WRITE_ALLOWLISTED_DEVICE_CONFIG";
+
     private static final String READ_DEVICE_CONFIG_PERMISSION =
             "android.permission.READ_DEVICE_CONFIG";
 
@@ -44,8 +47,8 @@ public class PhFlagsTestUtil {
      */
     public static void setUpDeviceConfigPermissions() throws Exception {
         InstrumentationRegistry.getInstrumentation().getUiAutomation().adoptShellPermissionIdentity(
-                WRITE_DEVICE_CONFIG_PERMISSION, READ_DEVICE_CONFIG_PERMISSION,
-                MONITOR_DEVICE_CONFIG_ACCESS);
+                WRITE_DEVICE_CONFIG_PERMISSION, WRITE_ALLOWLISTED_DEVICE_CONFIG_PERMISSION,
+                READ_DEVICE_CONFIG_PERMISSION, MONITOR_DEVICE_CONFIG_ACCESS);
     }
 
     public static void enableGlobalKillSwitch() {
