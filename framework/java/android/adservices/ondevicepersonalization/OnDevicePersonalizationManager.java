@@ -100,11 +100,15 @@ public class OnDevicePersonalizationManager {
     @Retention(SOURCE)
     @IntDef({FEATURE_ENABLED, FEATURE_DISABLED, FEATURE_UNSUPPORTED})
     public @interface FeatureStatus {}
-    /** @hide */
+    /** Indicates that a feature is present and enabled on the device.  */
+    @FlaggedApi(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public static final int FEATURE_ENABLED = 0;
-    /** @hide */
+    /** Indicates that a feature is present but disabled on the device.  */
+    @FlaggedApi(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public static final int FEATURE_DISABLED = 1;
-    /** @hide */
+
+    /** Indicates that a feature is not supported on the device. */
+    @FlaggedApi(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public static final int FEATURE_UNSUPPORTED = 2;
 
     private final AbstractServiceBinder<IOnDevicePersonalizationManagingService> mServiceBinder;
@@ -632,7 +636,15 @@ public class OnDevicePersonalizationManager {
         }
     }
 
-    /** @hide */
+    /**
+     * Get the status of a specific OnDevicePersonalization feature.
+     *
+     * @param featureName the name of the specific feature to check the availability of.
+     * @param executor the {@link Executor} on which to invoke the callback
+     * @param receiver this either returns a value of {@code FeatureStatus}
+     *                 on success or {@link Exception} on failure.  The exception type is
+     *                 {@link IllegalStateException} if the service is not available.
+     */
     @FlaggedApi(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public void queryFeatureAvailability(
             @NonNull String featureName,
