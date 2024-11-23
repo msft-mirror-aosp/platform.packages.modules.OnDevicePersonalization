@@ -214,7 +214,7 @@ public final class UserPrivacyStatusTest {
         var unused = failingUserPrivacyStatus.isMeasurementEnabled();
         assertFalse(failingUserPrivacyStatus.isUserControlCacheValid());
         verify(mMockClientErrorLogger)
-                .logErrorWithExceptionInfo(
+                .logError(
                         any(),
                         eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_REMOTE_EXCEPTION),
                         eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP));
