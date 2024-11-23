@@ -242,7 +242,7 @@ public final class UserPrivacyStatus {
                     statusCode,
                     startTime);
             ClientErrorLogger.getInstance()
-                    .logErrorWithExceptionInfo(
+                    .logError(
                             e,
                             AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_REMOTE_EXCEPTION,
                             AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP);
