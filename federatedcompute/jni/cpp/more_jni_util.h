@@ -18,6 +18,8 @@
 
 #include <jni.h>
 
+#include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "fcp/base/monitoring.h"
 #include "fcp/jni/jni_util.h"
 #include "fcp/protos/federatedcompute/common.pb.h"
