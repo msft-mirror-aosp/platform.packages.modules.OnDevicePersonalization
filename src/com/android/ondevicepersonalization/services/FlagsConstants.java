@@ -73,6 +73,22 @@ public final class FlagsConstants {
 
     public static final String KEY_ODP_SPE_PILOT_JOB_ENABLED = "odp_spe_pilot_job_enabled";
 
+    public static final String
+            KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB =
+            "OdpBackgroundJobs__enable_spe_on_aggregate_error_data_reporting_job";
+
+    public static final String KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB =
+            "OdpBackgroundJobs__enable_spe_on_mdd_job";
+
+    public static final String KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB =
+            "OdpBackgroundJobs__enable_spe_on_odp_download_processing_job";
+
+    public static final String KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB =
+            "OdpBackgroundJobs__enable_spe_on_reset_data_job";
+
+    public static final String KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB =
+            "OdpBackgroundJobs__enable_spe_on_user_data_collection_job";
+
     public static final String KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED =
             "is_art_image_loading_optimization_enabled";
 
