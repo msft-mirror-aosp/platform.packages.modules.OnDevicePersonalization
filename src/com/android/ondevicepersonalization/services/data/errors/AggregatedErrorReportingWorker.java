@@ -32,12 +32,14 @@
 
 package com.android.ondevicepersonalization.services.data.errors;
 
+import android.annotation.Nullable;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.PackageUtils;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
@@ -119,8 +121,11 @@ class AggregatedErrorReportingWorker {
      *
      * @param context the calling context.
      *     <p>Returns a {@link ListenableFuture} that resolves when the reporting succeeds or fails.
+     * @param encryptionKey key to use for encrypting payload. If key is {@code null} then
+     *     un-encrypted aggregated error data is sent, only used in tests etc.
      */
-    public ListenableFuture<Void> reportAggregateErrors(Context context) {
+    public ListenableFuture<Void> reportAggregateErrors(
+            Context context, @Nullable OdpEncryptionKey encryptionKey) {
         if (!sOnGoingReporting.compareAndSet(false, true)) {
             sLogger.e(TAG + ": aggregate reporting is already ongoing.");
             return Futures.immediateFailedFuture(
@@ -129,11 +134,13 @@ class AggregatedErrorReportingWorker {
 
         sLogger.d(TAG + ": beginning aggregate error reporting.");
         return Futures.submitAsync(
-                () -> reportAggregateErrorsHelper(context), mInjector.getBackgroundExecutor());
+                () -> reportAggregateErrorsHelper(context, encryptionKey),
+                mInjector.getBackgroundExecutor());
     }
 
     @VisibleForTesting
-    ListenableFuture<Void> reportAggregateErrorsHelper(Context context) {
+    ListenableFuture<Void> reportAggregateErrorsHelper(
+            Context context, @Nullable OdpEncryptionKey encryptionKey) {
         try {
             List<ComponentName> odpServices =
                     AppManifestConfigHelper.getOdpServices(context, /* enrolledOnly= */ true);
@@ -188,7 +195,7 @@ class AggregatedErrorReportingWorker {
                         mInjector.getAggregatedErrorReportingProtocol(
                                 errorDataList, fcServerUrl, context);
                 ListenableFuture<Boolean> reportingFuture =
-                        errorReportingProtocol.reportExceptionData();
+                        errorReportingProtocol.reportExceptionData(encryptionKey);
                 Futures.addCallback(
                         reportingFuture,
                         new FutureCallback<Boolean>() {

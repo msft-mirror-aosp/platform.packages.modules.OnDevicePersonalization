@@ -54,7 +54,7 @@ public class Constants {
     /** Internal error code that tracks error when the FCP manifest is invalid or missing. */
     public static final int STATUS_FCP_MANIFEST_INVALID = 110;
 
-    /** Internal code that tracks empty result returned from data storage. */
+    /** Internal code that tracks empty result returned from data storage or example store. */
     public static final int STATUS_SUCCESS_EMPTY_RESULT = 111;
 
     /** Internal code that tracks timeout exception when run operation. */
@@ -62,8 +62,10 @@ public class Constants {
 
     /** Internal code that tracks remote exception when run operation. */
     public static final int STATUS_REMOTE_EXCEPTION = 113;
+
     /** Internal code that tracks method not found. */
     public static final int STATUS_METHOD_NOT_FOUND = 114;
+
     public static final int STATUS_CALLER_NOT_ALLOWED = 115;
     public static final int STATUS_NULL_ADSERVICES_COMMON_MANAGER = 116;
 
@@ -87,6 +89,10 @@ public class Constants {
     public static final int STATUS_DATA_ACCESS_FAILURE = 126;
     // Internal code that tracks local data access failure.
     public static final int STATUS_LOCAL_WRITE_DATA_ACCESS_FAILURE = 127;
+    // Internal code that tracks parsing error.
+    public static final int STATUS_PARSE_ERROR = 128;
+    // Internal code that tracks non-empty but not enough data from data storage or example store.
+    public static final int STATUS_SUCCESS_NOT_ENOUGH_DATA = 129;
 
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
@@ -163,6 +169,7 @@ public class Constants {
     public static final int API_NAME_FEDERATED_COMPUTE_CANCEL = 21;
     public static final int API_NAME_NOTIFY_MEASUREMENT_EVENT = 22;
     public static final int API_NAME_ADSERVICES_GET_COMMON_STATES = 23;
+    public static final int API_NAME_IS_FEATURE_ENABLED = 24;
 
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;
