@@ -14,21 +14,12 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.data.errors;
+package android.adservices.ondevicepersonalization.aidl;
 
-import android.annotation.Nullable;
+import android.adservices.ondevicepersonalization.CalleeMetadata;
+import android.os.Bundle;
 
-import com.android.odp.module.common.encryption.OdpEncryptionKey;
-
-import com.google.common.util.concurrent.ListenableFuture;
-
-interface ReportingProtocol {
-    /**
-     * Report the exception data for this vendor based on error data and URL provided during
-     * construction.
-     *
-     * @return a {@link ListenableFuture} that resolves with true/false when reporting is
-     *     successful/failed.
-     */
-    ListenableFuture<Boolean> reportExceptionData(@Nullable OdpEncryptionKey encryptionKey);
+/** @hide */
+oneway interface IIsFeatureEnabledCallback {
+    void onResult(in int result, in CalleeMetadata calleeMetadata);
 }

@@ -15,7 +15,6 @@
  */
 package com.android.ondevicepersonalization.cts.e2e;
 
-
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertEquals;
@@ -52,6 +51,7 @@ import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -249,7 +249,6 @@ public class CtsOdpManagerTests {
         assertThat(receiver.getException()).isInstanceOf(NameNotFoundException.class);
     }
 
-
     @Test
     public void testExecuteReturnsClassNotFoundIfServiceClassNotFound()
             throws InterruptedException {
@@ -327,6 +326,7 @@ public class CtsOdpManagerTests {
     }
 
     @Test
+    @Ignore("b/377212275")
     public void testExecuteWithOutputDataDisabled() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);

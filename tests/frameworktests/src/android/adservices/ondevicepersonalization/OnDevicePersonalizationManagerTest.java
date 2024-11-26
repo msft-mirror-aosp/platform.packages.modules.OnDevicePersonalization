@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IIsFeatureEnabledCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -489,6 +490,14 @@ public final class OnDevicePersonalizationManagerTest {
                 Bundle params,
                 CallerMetadata metadata,
                 IRegisterMeasurementEventCallback callback) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void isFeatureEnabled(
+                String featureName,
+                CallerMetadata metadata,
+                IIsFeatureEnabledCallback callback) {
             throw new UnsupportedOperationException();
         }
 

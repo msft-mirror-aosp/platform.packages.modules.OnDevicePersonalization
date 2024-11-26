@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.inference;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.InferenceInput;
 import android.adservices.ondevicepersonalization.InferenceInputParcel;
 import android.adservices.ondevicepersonalization.InferenceOutput;
 import android.adservices.ondevicepersonalization.InferenceOutputParcel;
@@ -33,6 +34,7 @@ import android.os.RemoteException;
 import android.os.Trace;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.ByteArrayUtil;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.util.IoUtils;
@@ -46,6 +48,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -85,7 +88,16 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
                 Objects.requireNonNull(inputParcel.getExpectedOutputStructure());
         mInjector
                 .getExecutor()
-                .execute(() -> runTfliteInterpreter(inputParcel, outputParcel, binder, callback));
+                .execute(
+                        () -> {
+                            if (inputParcel.getModelType()
+                                    == InferenceInput.Params.MODEL_TYPE_EXECUTORCH) {
+                                throw new IllegalStateException(
+                                        "ExecuTorch model inference is not supported yet.");
+                            } else {
+                                runTfliteInterpreter(inputParcel, outputParcel, binder, callback);
+                            }
+                        });
     }
 
     private void runTfliteInterpreter(
@@ -96,12 +108,21 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
         try {
             Trace.beginSection("IsolatedModelService#RunInference");
             // We already validate requests in ModelManager and double check in case.
-            Object[] inputs = convertToObjArray(inputParcel.getInputData().getList());
+            Object[] inputs =
+                    (Object[]) ByteArrayUtil.deserializeObject(inputParcel.getInputData());
             if (inputs == null || inputs.length == 0) {
                 sLogger.e("Input data can not be empty for inference.");
                 sendError(callback, OnDevicePersonalizationException.ERROR_INFERENCE_FAILED);
             }
-            Map<Integer, Object> outputs = outputParcel.getData();
+            Map<Integer, Object> outputs = new HashMap<>();
+            try {
+                outputs =
+                        (Map<Integer, Object>)
+                                ByteArrayUtil.deserializeObject(outputParcel.getData());
+            } catch (ClassCastException e) {
+                sendError(callback, Constants.STATUS_PARSE_ERROR);
+            }
+
             if (outputs.isEmpty()) {
                 sLogger.e("Output data can not be empty for inference.");
                 sendError(callback, OnDevicePersonalizationException.ERROR_INFERENCE_FAILED);
