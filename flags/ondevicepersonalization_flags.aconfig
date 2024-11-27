@@ -17,7 +17,6 @@ flag {
     bug: "335080565"
     description: "Enable model version support for federated compute"
     is_fixed_read_only: true
-    is_exported: true
 }
 
 flag {
@@ -26,7 +25,6 @@ flag {
     bug: "353356413"
     description: "Add missing ctors and getters to certain data classes"
     is_fixed_read_only: true
-    is_exported: true
 }
 
 flag {
@@ -35,7 +33,6 @@ flag {
     bug: "336801193"
     description: "Enable executeInIsolatedService API"
     is_fixed_read_only: true
-    is_exported: true
 }
 
 flag {
@@ -44,7 +41,6 @@ flag {
     bug: "343848473"
     description: "Enable the federated compute schedule API that accepts an OutcomeReceiver."
     is_fixed_read_only: true
-    is_exported: true
 }
 
 flag {
@@ -53,7 +49,6 @@ flag {
     bug: "376942125"
     description: "Enable executorch inference API."
     is_fixed_read_only: true
-    is_exported: true
 }
 
 flag {
@@ -62,5 +57,4 @@ flag {
     bug: "368695570"
     description: "Enable the isFeatureEnabled API."
     is_fixed_read_only: true
-    is_exported: true
 }
