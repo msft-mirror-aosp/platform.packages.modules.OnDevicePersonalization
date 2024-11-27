@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.sharedlibrary.spe;
 
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -33,6 +34,8 @@ import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
+import com.android.ondevicepersonalization.services.reset.ResetDataJob;
+import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
 import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientErrorLogger;
 
 import com.google.common.truth.Expect;
@@ -50,6 +53,7 @@ import java.util.concurrent.Executors;
 
 /** Unit tests for {@link OdpJobServiceFactory}. */
 @MockStatic(OnDevicePersonalizationMaintenanceJobService.class)
+@MockStatic(ResetDataJobService.class)
 public final class OdpJobServiceFactoryTest {
     @Rule(order = 0)
     public final ExtendedMockitoRule extendedMockitoRule =
@@ -97,10 +101,17 @@ public final class OdpJobServiceFactoryTest {
     }
 
     @Test
-    public void testGetJobInstance() {
+    public void testGetJobInstance_onDevicePersonalizationMaintenanceJob() {
         expect.withMessage("getJobWorkerInstance() for OnDevicePersonalizationMaintenanceJob")
                 .that(mFactory.getJobWorkerInstance(MAINTENANCE_TASK_JOB_ID))
                 .isInstanceOf(OnDevicePersonalizationMaintenanceJob.class);
+    }
+
+    @Test
+    public void testGetJobInstance_resetDataJob() {
+        expect.withMessage("getJobWorkerInstance() for ResetDataJob")
+                .that(mFactory.getJobWorkerInstance(RESET_DATA_JOB_ID))
+                .isInstanceOf(ResetDataJob.class);
     }
 
     @Test
@@ -111,7 +122,7 @@ public final class OdpJobServiceFactoryTest {
     }
 
     @Test
-    public void testRescheduleJobWithLegacyMethod() {
+    public void testRescheduleJobWithLegacyMethod_onDevicePersonalizationMaintenanceJobService() {
         boolean forceSchedule = true;
 
         mFactory.rescheduleJobWithLegacyMethod(sContext, MAINTENANCE_TASK_JOB_ID);
@@ -119,6 +130,12 @@ public final class OdpJobServiceFactoryTest {
                 () ->
                         OnDevicePersonalizationMaintenanceJobService.schedule(
                                 sContext, forceSchedule));
+    }
+
+    @Test
+    public void testRescheduleJobWithLegacyMethod_resetDataJobService() {
+        mFactory.rescheduleJobWithLegacyMethod(sContext, RESET_DATA_JOB_ID);
+        verify(() -> ResetDataJobService.schedule(/* forceSchedule */ true));
     }
 
     @Test

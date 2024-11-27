@@ -21,6 +21,7 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.doAnswer;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doNothing;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -52,6 +53,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.quality.Strictness;
+
+import java.util.function.Supplier;
 
 /** Unit tests for {@link OdpJobService}. */
 @SpyStatic(FlagsFactory.class)
@@ -155,34 +158,87 @@ public final class OdpJobServiceTest {
     }
 
     @Test
-    public void testShouldRescheduleWithLegacyMethod_speDisabled() {
-        when(mMockFlags.getSpePilotJobEnabled()).thenReturn(false);
+    public void testShouldRescheduleWithLegacyMethod_spePilotJobDisabled() {
+        assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
+                MAINTENANCE_TASK_JOB_ID,
+                /* jobName */ "OnDevicePersonalizationMaintenanceJob",
+                () -> mMockFlags.getSpePilotJobEnabled());
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_resetDataJobDisabled() {
+        assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
+                RESET_DATA_JOB_ID,
+                /* jobName */ "ResetDataJob",
+                () -> mMockFlags.getSpeOnResetDataJobEnabled());
+    }
+
+    private void assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
+            int jobId, String jobName, Supplier<Boolean> speJobEnabledFlagSupplier) {
+        when(speJobEnabledFlagSupplier.get()).thenReturn(false);
 
         assertWithMessage(
-                        "shouldRescheduleWithLegacyMethod() for"
-                                + " OnDevicePersonalizationMaintenanceJob")
-                .that(mSpyOdpJobService.shouldRescheduleWithLegacyMethod(MAINTENANCE_TASK_JOB_ID))
+                /* messageToPrepend */ "shouldRescheduleWithLegacyMethod() for " + jobName
+                        + " did not reschedule with legacy even though the spe job is disabled")
+                .that(mSpyOdpJobService.shouldRescheduleWithLegacyMethod(jobId))
                 .isTrue();
     }
 
     @Test
-    public void testShouldRescheduleWithLegacyMethod_speDisabled_notConfiguredJobId() {
-        when(mMockFlags.getSpePilotJobEnabled()).thenReturn(true);
+    public void testShouldRescheduleWithLegacyMethod_spePilotJobEnabled_notConfiguredJobId() {
         int invalidJobId = -1;
 
-        assertWithMessage("shouldRescheduleWithLegacyMethod() for" + " not configured job ID")
-                .that(mSpyOdpJobService.shouldRescheduleWithLegacyMethod(invalidJobId))
+        assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
+                invalidJobId,
+                /* jobName */ "OnDevicePersonalizationMaintenanceJob",
+                () -> mMockFlags.getSpePilotJobEnabled());
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_resetDataJobEnabled_notConfiguredJobId() {
+        int invalidJobId = -1;
+
+        assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
+                invalidJobId,
+                /* jobName */ "ResetDataJob",
+                () -> mMockFlags.getSpeOnResetDataJobEnabled());
+    }
+
+    private void assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
+            int jobId, String jobName, Supplier<Boolean> speJobEnabledFlagSupplier) {
+        when(speJobEnabledFlagSupplier.get()).thenReturn(true);
+
+        assertWithMessage(
+                /* messageToPrepend */ "shouldRescheduleWithLegacyMethod() for " + jobName
+                        + " rescheduled even though job ID was misconfigured")
+                .that(mSpyOdpJobService.shouldRescheduleWithLegacyMethod(jobId))
                 .isFalse();
     }
 
     @Test
-    public void testShouldRescheduleWithLegacyMethod_speEnabled() {
-        when(mMockFlags.getSpePilotJobEnabled()).thenReturn(true);
+    public void testShouldRescheduleWithLegacyMethod_spePilotJobEnabled() {
+        assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(
+                MAINTENANCE_TASK_JOB_ID,
+                /* jobName */ "OnDevicePersonalizationMaintenanceJob",
+                () -> mMockFlags.getSpePilotJobEnabled());
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_resetDataJobEnabled() {
+        assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(
+                RESET_DATA_JOB_ID,
+                /* jobName */ "ResetDataJob",
+                () -> mMockFlags.getSpeOnResetDataJobEnabled());
+    }
+
+    private void assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(
+            int jobId, String jobName, Supplier<Boolean> speJobEnabledFlagSupplier) {
+        when(speJobEnabledFlagSupplier.get()).thenReturn(true);
 
         assertWithMessage(
-                        "shouldRescheduleWithLegacyMethod() for"
-                                + " OnDevicePersonalizationMaintenanceJob")
-                .that(mSpyOdpJobService.shouldRescheduleWithLegacyMethod(MAINTENANCE_TASK_JOB_ID))
+                /* messageToPrepend */ "shouldRescheduleWithLegacyMethod() for " + jobName
+                        + " rescheduled with legacy method even though the spe job is enabled")
+                .that(mSpyOdpJobService.shouldRescheduleWithLegacyMethod(jobId))
                 .isFalse();
     }
 }

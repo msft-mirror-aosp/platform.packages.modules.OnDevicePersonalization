@@ -20,6 +20,8 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.doNothing;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -32,6 +34,8 @@ import android.app.job.JobParameters;
 
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.sharedlibrary.spe.OdpJobScheduler;
 
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -56,6 +60,10 @@ public class ResetDataJobServiceTest {
     @Before
     public void setup() throws Exception {
         mSpyService = spy(new ResetDataJobService());
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+
+        // By default, disable ResetDataJob SPE.
+        PhFlagsTestUtil.setSpeOnResetDataJobEnabled(false);
     }
 
     @Test
@@ -68,7 +76,25 @@ public class ResetDataJobServiceTest {
         boolean result = mSpyService.onStartJob(mock(JobParameters.class));
         assertTrue(result);
         verify(mSpyService, times(1)).jobFinished(any(), eq(false));
-        verify(() -> ResetDataTask.deleteMeasurementData());
+        verify(ResetDataTask::deleteMeasurementData);
+    }
+
+    @Test
+    @ExtendedMockitoRule.MockStatic(OdpJobScheduler.class)
+    public void onStartJobTestSpeEnabled() {
+        // Enable SPE.
+        PhFlagsTestUtil.setSpeOnResetDataJobEnabled(true);
+        // Mock OdpJobScheduler to not actually schedule the job.
+        OdpJobScheduler mockedScheduler = mock(OdpJobScheduler.class);
+        doReturn(mockedScheduler).when(() -> OdpJobScheduler.getInstance(any()));
+
+        assertThat(mSpyService.onStartJob(mock(JobParameters.class))).isFalse();
+
+        // Verify SPE scheduler has rescheduled the job.
+        verify(mockedScheduler).schedule(any(), any());
+
+        // Revert SPE flag.
+        PhFlagsTestUtil.setSpePilotJobEnabled(false);
     }
 
     @Test

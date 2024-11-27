@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.sharedlibrary.spe;
 
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.JOB_ID_TO_NAME_MAP;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
 
 import android.content.Context;
 
@@ -35,6 +36,8 @@ import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
+import com.android.ondevicepersonalization.services.reset.ResetDataJob;
+import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
 import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientErrorLogger;
 import com.android.ondevicepersonalization.services.statsd.joblogging.OdpJobServiceLogger;
 import com.android.ondevicepersonalization.services.statsd.joblogging.OdpStatsdJobServiceLogger;
@@ -133,6 +136,8 @@ public final class OdpJobServiceFactory implements JobServiceFactory {
             switch (jobId) {
                 case MAINTENANCE_TASK_JOB_ID:
                     return new OnDevicePersonalizationMaintenanceJob();
+                case RESET_DATA_JOB_ID:
+                    return new ResetDataJob();
                 default:
                     throw new RuntimeException(
                             "The job is not configured for the instance creation.");
@@ -177,6 +182,9 @@ public final class OdpJobServiceFactory implements JobServiceFactory {
             switch (jobId) {
                 case MAINTENANCE_TASK_JOB_ID:
                     OnDevicePersonalizationMaintenanceJobService.schedule(context, forceSchedule);
+                    return;
+                case RESET_DATA_JOB_ID:
+                    ResetDataJobService.schedule(forceSchedule);
                     return;
                 default:
                     throw new RuntimeException(
