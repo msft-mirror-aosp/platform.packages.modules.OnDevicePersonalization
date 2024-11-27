@@ -61,8 +61,8 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
-import com.google.internal.federatedcompute.v1.UploadInstruction;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportExceptionResponse;
+import com.google.ondevicepersonalization.federatedcompute.proto.UploadInstruction;
 
 import org.json.JSONException;
 import org.json.JSONObject;
