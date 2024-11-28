@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services.data.user;
 import static android.adservices.ondevicepersonalization.Constants.API_NAME_ADSERVICES_GET_COMMON_STATES;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_CALLER_NOT_ALLOWED;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_CLASS_NOT_FOUND;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_EXECUTION_INTERRUPTED;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_INTERNAL_ERROR;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_METHOD_NOT_FOUND;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_NULL_ADSERVICES_COMMON_MANAGER;
@@ -26,6 +27,8 @@ import static android.adservices.ondevicepersonalization.Constants.STATUS_REMOTE
 import static android.adservices.ondevicepersonalization.Constants.STATUS_SUCCESS;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_TIMEOUT;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_REMOTE_EXCEPTION;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_USER_CONTROL_CACHE_IN_MILLIS;
@@ -37,6 +40,7 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
+import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientErrorLogger;
 import com.android.ondevicepersonalization.services.util.DebugUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
@@ -237,6 +241,11 @@ public final class UserPrivacyStatus {
                     mClock,
                     statusCode,
                     startTime);
+            ClientErrorLogger.getInstance()
+                    .logError(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_REMOTE_EXCEPTION,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP);
         }
     }
 
@@ -248,6 +257,10 @@ public final class UserPrivacyStatus {
 
     @VisibleForTesting
     int getExceptionStatus(Exception e) {
+        if (e instanceof InterruptedException) {
+            return STATUS_EXECUTION_INTERRUPTED;
+        }
+
         Throwable cause = e;
         if (e instanceof ExecutionException) {
             cause = e.getCause(); // Unwrap the cause
@@ -272,6 +285,9 @@ public final class UserPrivacyStatus {
         }
         if (cause instanceof AdServicesCommonStatesWrapper.NullAdServiceCommonManagerException) {
             return STATUS_NULL_ADSERVICES_COMMON_MANAGER;
+        }
+        if (cause instanceof InterruptedException) {
+            return STATUS_EXECUTION_INTERRUPTED;
         }
         return STATUS_REMOTE_EXCEPTION;
     }

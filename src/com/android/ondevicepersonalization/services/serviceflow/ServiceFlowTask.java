@@ -16,17 +16,13 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
-
 import android.os.Bundle;
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
-import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.PluginProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
-import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
+import com.android.ondevicepersonalization.services.process.ProcessRunnerFactory;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -54,10 +50,7 @@ public class ServiceFlowTask {
         mIsCompleted = false;
         mServiceFlowType = serviceFlowType;
         mServiceFlow = serviceFlow;
-        mProcessRunner =
-                (boolean) StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED)
-                        ? SharedIsolatedProcessRunner.getInstance()
-                        : PluginProcessRunner.getInstance();
+        mProcessRunner = ProcessRunnerFactory.getProcessRunner();
     }
 
     public ServiceFlowType getServiceFlowType() {

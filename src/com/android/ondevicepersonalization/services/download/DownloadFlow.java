@@ -96,7 +96,7 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
     }
 
     public DownloadFlow(String packageName,
-            Context context, FutureCallback<DownloadCompletedOutputParcel> callback) {
+                        Context context, FutureCallback<DownloadCompletedOutputParcel> callback) {
         mPackageName = packageName;
         mContext = context;
         mCallback = callback;
@@ -129,22 +129,22 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
                     }
                     reader.endObject();
                 }
-            } catch (IOException e) {
-                sLogger.d(TAG + mPackageName + " Failed to process downloaded JSON file");
-                mCallback.onFailure(e);
+            } catch (IOException ie) {
+                sLogger.e(ie, TAG + mPackageName + " Failed to process downloaded JSON file");
+                onSuccess(null);
                 return false;
             }
 
             if (syncToken == -1 || !validateSyncToken(syncToken)) {
                 sLogger.d(TAG + mPackageName
                         + " downloaded JSON file has invalid syncToken provided");
-                mCallback.onFailure(new IllegalArgumentException("Invalid syncToken provided."));
+                onSuccess(null);
                 return false;
             }
 
-            if (vendorDataMap == null || vendorDataMap.size() == 0) {
+            if (vendorDataMap == null || vendorDataMap.isEmpty()) {
                 sLogger.d(TAG + mPackageName + " downloaded JSON file has no content provided");
-                mCallback.onFailure(new IllegalArgumentException("No content provided."));
+                onSuccess(null);
                 return false;
             }
 
@@ -156,7 +156,7 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
             // no new data. Mark success to upstream caller for reporting purpose
             if (existingSyncToken >= syncToken) {
                 sLogger.d(TAG + ": syncToken is not newer than existing token.");
-                mCallback.onSuccess(null);
+                onSuccess(null);
                 return false;
             }
 
@@ -291,39 +291,21 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
                         mInjector.getExecutor());
     }
 
+    private ListenableFuture<Boolean> removeFileGroup() throws Exception {
+        MobileDataDownload mdd = MobileDataDownloadFactory.getMdd(mContext);
+        String fileGroupName =
+                OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
+                        mPackageName, mContext);
+
+        return mdd.removeFileGroup(RemoveFileGroupRequest.newBuilder()
+                .setGroupName(fileGroupName).build());
+    }
+
     @Override
     public void returnResultThroughCallback(
             ListenableFuture<DownloadCompletedOutputParcel> serviceFlowResultFuture) {
         try {
-            MobileDataDownload mdd = MobileDataDownloadFactory.getMdd(mContext);
-            String fileGroupName =
-                    OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
-                            mPackageName, mContext);
-
-            ListenableFuture<Boolean> removeFileGroupFuture =
-                    FluentFuture.from(serviceFlowResultFuture)
-                            .transformAsync(
-                                    result -> mdd.removeFileGroup(
-                                            RemoveFileGroupRequest.newBuilder()
-                                                    .setGroupName(fileGroupName).build()),
-                                    mInjector.getExecutor());
-
-            Futures.addCallback(removeFileGroupFuture,
-                    new FutureCallback<>() {
-                        @Override
-                        public void onSuccess(Boolean result) {
-                            try {
-                                mCallback.onSuccess(serviceFlowResultFuture.get());
-                            } catch (Exception e) {
-                                mCallback.onFailure(e);
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Throwable t) {
-                            mCallback.onFailure(t);
-                        }
-                    }, mInjector.getExecutor());
+            onSuccess(serviceFlowResultFuture.get());
         } catch (Exception e) {
             mCallback.onFailure(e);
         }
@@ -404,7 +386,7 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
             sLogger.d(TAG + ": package : "
                     + mPackageName + " has "
                     + cfg.getFileCount() + " files in the fileGroup");
-            mCallback.onFailure(new IllegalArgumentException("Invalid file count."));
+            onFailure(new IllegalArgumentException("Invalid file count."));
             return null;
         }
 
@@ -415,5 +397,43 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
     private static boolean validateSyncToken(long syncToken) {
         // TODO(b/249813538) Add any additional requirements
         return syncToken % 3600 == 0;
+    }
+
+    private void onFailure(Exception exception) throws Exception {
+        Futures.addCallback(removeFileGroup(),
+                new FutureCallback<>() {
+                    @Override
+                    public void onSuccess(Boolean result) {
+                        try {
+                            mCallback.onFailure(exception);
+                        } catch (Exception e) {
+                            mCallback.onFailure(e);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        mCallback.onFailure(t);
+                    }
+                }, mInjector.getExecutor());
+    }
+
+    private void onSuccess(DownloadCompletedOutputParcel output) throws Exception {
+        Futures.addCallback(removeFileGroup(),
+                new FutureCallback<>() {
+                    @Override
+                    public void onSuccess(Boolean result) {
+                        try {
+                            mCallback.onSuccess(output);
+                        } catch (Exception e) {
+                            mCallback.onFailure(e);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        mCallback.onFailure(t);
+                    }
+                }, mInjector.getExecutor());
     }
 }

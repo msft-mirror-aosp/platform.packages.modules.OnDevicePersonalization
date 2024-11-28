@@ -83,16 +83,18 @@ public class EligibilityDecider {
                 eligibilityTaskInfo.getEligibilityPoliciesList()) {
             switch (policyEvalSpec.getPolicyTypeCase()) {
                 case MIN_SEP_POLICY:
+                    LogUtil.d(TAG, "MIN_SEP_POLICY used in eligibility check");
                     eligible =
-                            computePerTaskMinSeparation(
+                            isTaskEligibleUnderMinSeparationPolicy(
                                     policyEvalSpec.getMinSepPolicy(),
                                     task.populationName(),
                                     taskId,
                                     task.jobId());
                     break;
                 case DATA_AVAILABILITY_POLICY:
+                    LogUtil.d(TAG, "DATA_AVAILABILITY_POLICY used in eligibility check");
                     eligible =
-                            computePerTaskDataAvailability(
+                            isTaskEligibleUnderDataAvailabilityPolicy(
                                     task,
                                     policyEvalSpec.getDataAvailabilityPolicy(),
                                     taskId,
@@ -132,7 +134,7 @@ public class EligibilityDecider {
         return new EligibilityResult.Builder().setEligible(false).build();
     }
 
-    private boolean computePerTaskMinSeparation(
+    private boolean isTaskEligibleUnderMinSeparationPolicy(
             MinimumSeparationPolicy minSepPolicy, String populationName, String taskId, int jobId) {
         TaskHistory taskHistory = mTaskDao.getLatestTaskHistory(jobId, populationName, taskId);
         // Treat null as the task never run before, then device is qualified.
@@ -145,11 +147,16 @@ public class EligibilityDecider {
                     jobId);
             return true;
         }
-        return minSepPolicy.getMinimumSeparation()
+        boolean result = minSepPolicy.getMinimumSeparation()
                 <= minSepPolicy.getCurrentIndex() - taskHistory.getContributionRound();
+        LogUtil.d(TAG, "min sep policy eligible: %s, minSepPolicy.getMinimumSeparation(): %d, "
+                + "minSepPolicy.getCurrentIndex(): %d, taskHistory.getContributionRound(): %d",
+                result, minSepPolicy.getMinimumSeparation(), minSepPolicy.getCurrentIndex(),
+                taskHistory.getContributionRound());
+        return result;
     }
 
-    private boolean computePerTaskDataAvailability(
+    private boolean isTaskEligibleUnderDataAvailabilityPolicy(
             FederatedTrainingTask task,
             DataAvailabilityPolicy dataAvailabilityPolicy,
             String taskId,
