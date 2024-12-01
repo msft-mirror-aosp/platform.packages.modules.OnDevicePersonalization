@@ -48,6 +48,7 @@ import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.PhFlagsTestUtil;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDaoUtils;
+import com.android.odp.module.common.EventLogger;
 import com.android.odp.module.common.MonotonicClock;
 import com.android.odp.module.common.data.OdpEncryptionKeyDao;
 import com.android.odp.module.common.encryption.OdpEncryptionKey;
@@ -64,6 +65,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
@@ -91,6 +93,9 @@ public class BackgroundKeyFetchJobServiceTest {
     public OdpEncryptionKeyManager mSpyKeyManager;
 
     private TestInjector mInjector;
+
+    @Mock
+    private EventLogger mMockEventLogger;
 
     @Before
     public void setUp() throws Exception {
@@ -154,6 +159,7 @@ public class BackgroundKeyFetchJobServiceTest {
 
         verify(mSpyService, times(1)).onStartJob(any());
         verify(mSpyService, times(1)).jobFinished(any(), anyBoolean());
+        verify(mMockEventLogger, times(1)).logEncryptionKeyFetchStartEventKind();
     }
 
     @Test
@@ -173,6 +179,7 @@ public class BackgroundKeyFetchJobServiceTest {
 
         verify(mSpyService, times(1)).onStartJob(any());
         verify(mSpyService, times(1)).jobFinished(any(), anyBoolean());
+        verify(mMockEventLogger, times(1)).logEncryptionKeyFetchStartEventKind();
     }
 
     @Test
@@ -270,6 +277,11 @@ public class BackgroundKeyFetchJobServiceTest {
         @Override
         OdpEncryptionKeyManager getEncryptionKeyManager(Context context) {
             return mSpyKeyManager;
+        }
+
+        @Override
+        EventLogger getEventLogger() {
+            return mMockEventLogger;
         }
     }
 }

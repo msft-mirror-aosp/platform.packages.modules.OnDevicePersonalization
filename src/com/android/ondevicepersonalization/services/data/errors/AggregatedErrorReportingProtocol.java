@@ -46,9 +46,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.internal.federatedcompute.v1.ResourceCompressionFormat;
-import com.google.internal.federatedcompute.v1.UploadInstruction;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportExceptionRequest;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportExceptionResponse;
+import com.google.ondevicepersonalization.federatedcompute.proto.UploadInstruction;
 import com.google.protobuf.Timestamp;
 
 import org.json.JSONException;
