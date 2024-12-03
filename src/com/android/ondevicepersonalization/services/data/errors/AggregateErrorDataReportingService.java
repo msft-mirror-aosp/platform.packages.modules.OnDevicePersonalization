@@ -16,10 +16,13 @@
 
 package com.android.ondevicepersonalization.services.data.errors;
 
-import static android.app.job.JobScheduler.RESULT_FAILURE;
+import static android.app.job.JobScheduler.RESULT_SUCCESS;
 
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_JOB_NOT_CONFIGURED;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_FAILED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SKIPPED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SUCCESSFUL;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID;
 
 import android.app.job.JobInfo;
@@ -29,6 +32,7 @@ import android.app.job.JobService;
 import android.content.ComponentName;
 import android.content.Context;
 
+import com.android.adservices.shared.spe.JobServiceConstants;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.encryption.OdpEncryptionKey;
 import com.android.odp.module.common.encryption.OdpEncryptionKeyManager;
@@ -89,21 +93,29 @@ public class AggregateErrorDataReportingService extends JobService {
     }
 
     /** Schedules a unique instance of the {@link AggregateErrorDataReportingService} to be run. */
-    public static int scheduleIfNeeded(Context context) {
-        return scheduleIfNeeded(context, FlagsFactory.getFlags());
+    @JobServiceConstants.JobSchedulingResultCode
+    public static int scheduleIfNeeded(Context context, boolean forceSchedule) {
+        return scheduleIfNeeded(context, FlagsFactory.getFlags(), forceSchedule);
     }
 
     @VisibleForTesting
-    static int scheduleIfNeeded(Context context, Flags flags) {
+    @JobServiceConstants.JobSchedulingResultCode
+    static int scheduleIfNeeded(Context context, Flags flags, boolean forceSchedule) {
         if (!flags.getAggregatedErrorReportingEnabled()) {
             sLogger.d(TAG + ": Aggregate error reporting is disabled.");
-            return RESULT_FAILURE;
+            return SCHEDULING_RESULT_CODE_FAILED;
         }
 
         JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
-        if (jobScheduler.getPendingJob(AGGREGATE_ERROR_DATA_REPORTING_JOB_ID) != null) {
+        if (jobScheduler == null) {
+            sLogger.e(TAG, "Failed to get job scheduler from system service.");
+            return SCHEDULING_RESULT_CODE_FAILED;
+        }
+
+        if (!forceSchedule
+                && jobScheduler.getPendingJob(AGGREGATE_ERROR_DATA_REPORTING_JOB_ID) != null) {
             sLogger.d(TAG + ": Job is already scheduled. Doing nothing.");
-            return RESULT_FAILURE;
+            return SCHEDULING_RESULT_CODE_SKIPPED;
         }
 
         ComponentName serviceComponent =
@@ -123,7 +135,9 @@ public class AggregateErrorDataReportingService extends JobService {
         // persist this job across boots
         builder.setPersisted(true);
 
-        return jobScheduler.schedule(builder.build());
+        int schedulingResult = jobScheduler.schedule(builder.build());
+        return RESULT_SUCCESS == schedulingResult ? SCHEDULING_RESULT_CODE_SUCCESSFUL
+                : SCHEDULING_RESULT_CODE_FAILED;
     }
 
     @Override
@@ -143,6 +157,16 @@ public class AggregateErrorDataReportingService extends JobService {
             return cancelAndFinishJob(
                     params,
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_JOB_NOT_CONFIGURED);
+        }
+
+        // Reschedule jobs with SPE if it's enabled. Note scheduled jobs by this
+        // AggregateErrorDataReportingService will be cancelled for the same job ID.
+        if (FlagsFactory.getFlags().getSpeOnAggregateErrorDataReportingJobEnabled()) {
+            sLogger.i(
+                    "SPE is enabled. Reschedule AggregateErrorDataReportingService with"
+                            + " AggregateErrorDataReportingJob.");
+            AggregateErrorDataReportingJob.schedule(/* context */ this);
+            return false;
         }
 
         OdpEncryptionKeyManager keyManager = mInjector.getEncryptionKeyManager(/* context= */ this);

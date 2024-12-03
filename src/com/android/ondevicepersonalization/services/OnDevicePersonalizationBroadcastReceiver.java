@@ -28,7 +28,7 @@ import android.content.pm.PackageManager;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.DeviceUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-import com.android.ondevicepersonalization.services.data.errors.AggregateErrorDataReportingService;
+import com.android.ondevicepersonalization.services.data.errors.AggregateErrorDataReportingJob;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
@@ -129,7 +129,7 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
                             UserDataCollectionJobService.schedule(context);
                             // Schedule regular ODP aggregated error reporting task if the flag
                             // is enabled etc.
-                            AggregateErrorDataReportingService.scheduleIfNeeded(context);
+                            AggregateErrorDataReportingJob.schedule(context);
                         },
                         executor);
 
