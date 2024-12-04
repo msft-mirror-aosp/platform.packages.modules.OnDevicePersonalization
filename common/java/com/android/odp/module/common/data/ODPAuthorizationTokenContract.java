@@ -14,10 +14,22 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.data;
+package com.android.odp.module.common.data;
 
 public final class ODPAuthorizationTokenContract {
     public static final String ODP_AUTHORIZATION_TOKEN_TABLE = "odp_authorization_tokens";
+    public static final String CREATE_ODP_AUTHORIZATION_TOKEN_TABLE =
+            "CREATE TABLE "
+                    + ODP_AUTHORIZATION_TOKEN_TABLE
+                    + " ( "
+                    + ODPAuthorizationTokenColumns.OWNER_IDENTIFIER
+                    + " TEXT PRIMARY KEY, "
+                    + ODPAuthorizationTokenColumns.AUTHORIZATION_TOKEN
+                    + " TEXT NOT NULL, "
+                    + ODPAuthorizationTokenColumns.CREATION_TIME
+                    + " INTEGER NOT NULL, "
+                    + ODPAuthorizationTokenColumns.EXPIRY_TIME
+                    + " INTEGER NOT NULL)";
 
     private ODPAuthorizationTokenContract() {}
 
@@ -30,9 +42,7 @@ public final class ODPAuthorizationTokenContract {
          */
         public static final String OWNER_IDENTIFIER = "owner_identifier";
 
-        /**
-         * The authorization token received from the server.
-         */
+        /** The authorization token received from the server. */
         public static final String AUTHORIZATION_TOKEN = "authorization_token";
 
         /** Create time of the authorization token in the database in milliseconds. */
