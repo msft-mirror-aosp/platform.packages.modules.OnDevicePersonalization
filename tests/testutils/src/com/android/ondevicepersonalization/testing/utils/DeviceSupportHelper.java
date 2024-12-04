@@ -17,11 +17,14 @@ package com.android.ondevicepersonalization.testing.utils;
 
 import android.app.Instrumentation;
 import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.ext.SdkExtensions;
 
 import androidx.test.platform.app.InstrumentationRegistry;
 
 /** Helper to check if device is enabled or supports OnDevicePersonalization module */
 public final class DeviceSupportHelper {
+    private static final int MIN_SDK_EXT = 13;  // M2024-08
 
     /**
      * Check whether the device is supported.
@@ -37,5 +40,14 @@ public final class DeviceSupportHelper {
                 && !pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
                 // Android Go
                 && !pm.hasSystemFeature(PackageManager.FEATURE_RAM_LOW);
+    }
+
+    /**
+     * Check whether the ODP module with public APIs is installed on the device.
+     * For CTS only.
+     */
+    public static boolean isOdpModuleAvailable() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM
+                || SdkExtensions.getExtensionVersion(SdkExtensions.AD_SERVICES) >= MIN_SDK_EXT;
     }
 }

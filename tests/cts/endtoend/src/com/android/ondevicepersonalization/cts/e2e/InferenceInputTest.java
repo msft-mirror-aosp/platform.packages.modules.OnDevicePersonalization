@@ -29,6 +29,9 @@ import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
 
+import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
+
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,6 +43,8 @@ public class InferenceInputTest {
 
     @Before
     public void setup() {
+        Assume.assumeTrue(DeviceSupportHelper.isDeviceSupported());
+        Assume.assumeTrue(DeviceSupportHelper.isOdpModuleAvailable());
         mRemoteData =
                 new RemoteDataImpl(
                         IDataAccessService.Stub.asInterface(new TestDataAccessService()));
