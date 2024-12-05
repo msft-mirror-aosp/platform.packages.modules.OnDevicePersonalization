@@ -60,6 +60,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -225,6 +226,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                                     TimeUnit.SECONDS,
                                     mInjector.getScheduledExecutor());
 
+            CountDownLatch latch = new CountDownLatch(1);
             Futures.addCallback(
                     resultFuture,
                     new FutureCallback<Bundle>() {
@@ -247,10 +249,16 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                                                 trainingExamplesOutputParcel
                                                         .getTrainingExampleRecords();
                                 if (trainingExampleRecordList == null
-                                        || trainingExampleRecordList.getList().isEmpty()
-                                        || trainingExampleRecordList.getList().size()
-                                                < eligibilityMinExample) {
+                                        || trainingExampleRecordList.getList().isEmpty()) {
                                     status = Constants.STATUS_SUCCESS_EMPTY_RESULT;
+                                    callback.onStartQueryFailure(
+                                            ClientConstants.STATUS_NOT_ENOUGH_DATA);
+                                } else if (trainingExampleRecordList.getList().size()
+                                        < eligibilityMinExample) {
+                                    sLogger.d(TAG + ": not enough examples, requires %d got %d",
+                                            eligibilityMinExample,
+                                            trainingExampleRecordList.getList().size());
+                                    status = Constants.STATUS_SUCCESS_NOT_ENOUGH_DATA;
                                     callback.onStartQueryFailure(
                                             ClientConstants.STATUS_NOT_ENOUGH_DATA);
                                 } else {
@@ -260,6 +268,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                                                             trainingExampleRecordList.getList()));
                                 }
                             } finally {
+                                latch.countDown();
                                 StatsUtils.writeServiceRequestMetrics(
                                         Constants.API_NAME_SERVICE_ON_TRAINING_EXAMPLE,
                                         packageName,
@@ -272,6 +281,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
 
                         @Override
                         public void onFailure(Throwable t) {
+                            latch.countDown();
                             int status = Constants.STATUS_INTERNAL_ERROR;
                             if (t instanceof TimeoutException) {
                                 status = Constants.STATUS_TIMEOUT;
@@ -301,10 +311,17 @@ public final class OdpExampleStoreService extends ExampleStoreService {
             var unused =
                     Futures.whenAllComplete(loadFuture, resultFuture)
                             .callAsync(
-                                    () ->
-                                            mInjector
-                                                    .getProcessRunner()
-                                                    .unloadIsolatedService(loadFuture.get()),
+                                    () -> {
+                                        try {
+                                            latch.await();
+                                        } catch (InterruptedException e) {
+                                            sLogger.e(e, "%s : Interrupted while "
+                                                    + "waiting for transaction complete", TAG);
+                                        }
+                                        return mInjector
+                                                .getProcessRunner()
+                                                .unloadIsolatedService(loadFuture.get());
+                                    },
                                     OnDevicePersonalizationExecutors.getBackgroundExecutor());
         } catch (Throwable e) {
             sLogger.e(e, "%s : Start query failed.", TAG);

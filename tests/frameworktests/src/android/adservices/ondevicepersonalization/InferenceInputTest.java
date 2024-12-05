@@ -16,6 +16,8 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static com.android.ondevicepersonalization.internal.util.ByteArrayUtil.deserializeObject;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static junit.framework.Assert.assertEquals;
@@ -26,9 +28,12 @@ import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
 
+import com.android.ondevicepersonalization.internal.util.ByteArrayUtil;
+
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.NotSerializableException;
 import java.util.HashMap;
 
 public class InferenceInputTest {
@@ -146,9 +151,119 @@ public class InferenceInputTest {
                 () -> new InferenceInput.Params.Builder(mRemoteData, null).build());
     }
 
+    @Test
+    public void buildLiteRT_success() {
+        HashMap<Integer, Object> outputData = new HashMap<>();
+        outputData.put(0, new float[1]);
+        Object[] input = new Object[1];
+        input[0] = new float[] {1.2f};
+        InferenceInput.Params params =
+                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY).build();
+
+        InferenceInput result =
+                new InferenceInput.Builder(params, ByteArrayUtil.serializeObject(input))
+                        .setExpectedOutputStructure(
+                                new InferenceOutput.Builder().setDataOutputs(outputData).build())
+                        .build();
+
+        Object[] obj = (Object[]) deserializeObject(result.getData());
+        assertThat(obj).isEqualTo(input);
+    }
+
+    @Test
+    public void buildExecuTorch_success() {
+        // TODO(b/376902350): update input with EValue.
+        byte[] input = {1, 2, 3};
+        InferenceInput.Params params =
+                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY)
+                        .setModelType(InferenceInput.Params.MODEL_TYPE_EXECUTORCH)
+                        .build();
+
+        InferenceInput result = new InferenceInput.Builder(params, input).build();
+
+        assertThat(result.getData()).isEqualTo(input);
+    }
+
+    @Test
+    public void buildExecutorchInput_missingInputData() {
+        InferenceInput.Params params =
+                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY)
+                        .setModelType(InferenceInput.Params.MODEL_TYPE_EXECUTORCH)
+                        .build();
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new InferenceInput.Builder(params, new byte[] {}).build());
+    }
+
+    @Test
+    public void buildLiteRTInput_missingInputData() {
+        HashMap<Integer, Object> outputData = new HashMap<>();
+        outputData.put(0, new float[1]);
+        InferenceInput.Params params =
+                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY).build();
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        new InferenceInput.Builder(params, new byte[] {})
+                                .setExpectedOutputStructure(
+                                        new InferenceOutput.Builder()
+                                                .setDataOutputs(outputData)
+                                                .build())
+                                .build());
+    }
+
+    @Test
+    public void buildLiteRTInput_missingOutputStructure() {
+        InferenceInput.Params params =
+                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY).build();
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        new InferenceInput.Builder(params, new byte[] {})
+                                .setExpectedOutputStructure(
+                                        new InferenceOutput.Builder()
+                                                .setDataOutputs(new HashMap<>())
+                                                .build())
+                                .build());
+    }
+
+    @Test
+    public void nonSerializable() {
+        NonSerializableObject obj = new NonSerializableObject(123);
+        InferenceInput.Params params =
+                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY).build();
+
+        IllegalArgumentException exp =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                new InferenceInput.Builder(
+                                                params,
+                                                new Object[] {obj},
+                                                new InferenceOutput.Builder()
+                                                        .setDataOutputs(new HashMap<>())
+                                                        .build())
+                                        .build());
+
+        assertThat(exp.getCause()).isInstanceOf(NotSerializableException.class);
+    }
+
+    /** A class used for serializable exception test. */
+    class NonSerializableObject {
+        private final int mData;
+
+        NonSerializableObject(int data) {
+            this.mData = data;
+        }
+    }
+
     static class TestDataAccessService extends IDataAccessService.Stub {
         @Override
         public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {}
+
         @Override
         public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {}
     }
