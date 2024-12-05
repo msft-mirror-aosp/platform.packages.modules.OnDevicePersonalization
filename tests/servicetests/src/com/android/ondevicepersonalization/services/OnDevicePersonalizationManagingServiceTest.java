@@ -38,6 +38,7 @@ import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
 import android.adservices.ondevicepersonalization.ExecuteOptionsParcel;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IIsFeatureEnabledCallback;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
@@ -48,6 +49,7 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
+import android.os.RemoteException;
 import android.view.SurfaceControlViewHost;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -79,6 +81,11 @@ import java.util.concurrent.TimeoutException;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationManagingServiceTest {
+    private static final ComponentName TEST_HANDLER_COMPONENT =
+            new ComponentName(
+                    ApplicationProvider.getApplicationContext(),
+                    "com.test.TestPersonalizationHandler");
+
     @Rule public final ServiceTestRule serviceRule = new ServiceTestRule();
     private final Context mContext = spy(ApplicationProvider.getApplicationContext());
     private OnDevicePersonalizationManagingServiceDelegate mService;
@@ -105,6 +112,9 @@ public class OnDevicePersonalizationManagingServiceTest {
         mService = new OnDevicePersonalizationManagingServiceDelegate(mContext);
         when(mMockFlags.getGlobalKillSwitch()).thenReturn(false);
         when(mMockFlags.getMaxIntValuesLimit()).thenReturn(100);
+        // Flags accessed within the maintenance job service.
+        when(mMockFlags.getSpePilotJobEnabled()).thenReturn(false);
+        when(mMockFlags.getAggregatedErrorReportingEnabled()).thenReturn(false);
         ExtendedMockito.doReturn(true).when(() -> DeviceUtils.isOdpSupported(any()));
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
         doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
@@ -139,9 +149,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                         mService.execute(
                                 mContext.getPackageName(),
-                                new ComponentName(
-                                        mContext.getPackageName(),
-                                        "com.test.TestPersonalizationHandler"),
+                                TEST_HANDLER_COMPONENT,
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
                                 ExecuteOptionsParcel.DEFAULT,
@@ -156,9 +164,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                         mService.execute(
                                 mContext.getPackageName(),
-                                new ComponentName(
-                                        mContext.getPackageName(),
-                                        "com.test.TestPersonalizationHandler"),
+                                TEST_HANDLER_COMPONENT,
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
                                 ExecuteOptionsParcel.DEFAULT,
@@ -170,11 +176,12 @@ public class OnDevicePersonalizationManagingServiceTest {
         var callback = new ExecuteCallback();
         mService.execute(
                 mContext.getPackageName(),
-                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
+                TEST_HANDLER_COMPONENT,
                 createWrappedAppParams(),
                 new CallerMetadata.Builder().build(),
                 ExecuteOptionsParcel.DEFAULT,
                 callback);
+
         callback.await();
         assertTrue(callback.mWasInvoked);
     }
@@ -185,13 +192,15 @@ public class OnDevicePersonalizationManagingServiceTest {
         ExecuteOptionsParcel options =
                 new ExecuteOptionsParcel(
                         ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE, 50);
+
         mService.execute(
                 mContext.getPackageName(),
-                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
+                TEST_HANDLER_COMPONENT,
                 createWrappedAppParams(),
                 new CallerMetadata.Builder().build(),
                 options,
                 callback);
+
         callback.await();
         assertTrue(callback.mWasInvoked);
     }
@@ -207,9 +216,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                         mService.execute(
                                 mContext.getPackageName(),
-                                new ComponentName(
-                                        mContext.getPackageName(),
-                                        "com.test.TestPersonalizationHandler"),
+                                TEST_HANDLER_COMPONENT,
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
                                 options,
@@ -224,9 +231,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                         mService.execute(
                                 "abc",
-                                new ComponentName(
-                                        mContext.getPackageName(),
-                                        "com.test.TestPersonalizationHandler"),
+                                TEST_HANDLER_COMPONENT,
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
                                 ExecuteOptionsParcel.DEFAULT,
@@ -241,9 +246,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                         mService.execute(
                                 null,
-                                new ComponentName(
-                                        mContext.getPackageName(),
-                                        "com.test.TestPersonalizationHandler"),
+                                TEST_HANDLER_COMPONENT,
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
                                 ExecuteOptionsParcel.DEFAULT,
@@ -258,9 +261,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                         mService.execute(
                                 "",
-                                new ComponentName(
-                                        mContext.getPackageName(),
-                                        "com.test.TestPersonalizationHandler"),
+                                TEST_HANDLER_COMPONENT,
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
                                 ExecuteOptionsParcel.DEFAULT,
@@ -275,7 +276,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                         mService.execute(
                                 mContext.getPackageName(),
-                                null,
+                                /* handler= */ null,
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
                                 ExecuteOptionsParcel.DEFAULT,
@@ -320,9 +321,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                         mService.execute(
                                 mContext.getPackageName(),
-                                new ComponentName(
-                                        mContext.getPackageName(),
-                                        "com.test.TestPersonalizationHandler"),
+                                TEST_HANDLER_COMPONENT,
                                 createWrappedAppParams(),
                                 null,
                                 ExecuteOptionsParcel.DEFAULT,
@@ -336,9 +335,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                         mService.execute(
                                 mContext.getPackageName(),
-                                new ComponentName(
-                                        mContext.getPackageName(),
-                                        "com.test.TestPersonalizationHandler"),
+                                TEST_HANDLER_COMPONENT,
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
                                 ExecuteOptionsParcel.DEFAULT,
@@ -356,9 +353,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                         mService.execute(
                                 mContext.getPackageName(),
-                                new ComponentName(
-                                        mContext.getPackageName(),
-                                        "com.test.TestPersonalizationHandler"),
+                                TEST_HANDLER_COMPONENT,
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
                                 ExecuteOptionsParcel.DEFAULT,
@@ -376,9 +371,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                         mService.execute(
                                 mContext.getPackageName(),
-                                new ComponentName(
-                                        mContext.getPackageName(),
-                                        "com.test.TestPersonalizationHandler"),
+                                TEST_HANDLER_COMPONENT,
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
                                 ExecuteOptionsParcel.DEFAULT,
@@ -430,6 +423,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 50,
                 new CallerMetadata.Builder().build(),
                 callback);
+
         callback.await();
         assertTrue(callback.mWasInvoked);
     }
@@ -587,6 +581,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 Bundle.EMPTY,
                 new CallerMetadata.Builder().build(),
                 callback);
+
         callback.await();
         assertTrue(callback.mWasInvoked);
     }
@@ -614,7 +609,55 @@ public class OnDevicePersonalizationManagingServiceTest {
         verify(mMockMdd).schedulePeriodicBackgroundTasks();
     }
 
-    private Bundle createWrappedAppParams() throws Exception {
+    @Test
+    public void testEnabledGlobalKillOnIsFeatureEnabled() {
+        when(mMockFlags.getGlobalKillSwitch()).thenReturn(true);
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        mService.isFeatureEnabled(
+                                "featureName",
+                                new CallerMetadata.Builder().build(),
+                                new IsFeatureEnabledCallback()));
+    }
+
+    @Test
+    public void testUnsupportedDeviceOnIsFeatureEnabled() {
+        ExtendedMockito.doReturn(false).when(() -> DeviceUtils.isOdpSupported(any()));
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        mService.isFeatureEnabled(
+                                "featureName",
+                                new CallerMetadata.Builder().build(),
+                                new IsFeatureEnabledCallback()));
+    }
+
+    @Test
+    public void testDisabledFlagOnIsFeatureEnabled() {
+        when(mMockFlags.isFeatureEnabledApiEnabled()).thenReturn(false);
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        mService.isFeatureEnabled(
+                                "featureName",
+                                new CallerMetadata.Builder().build(),
+                                new IsFeatureEnabledCallback()));
+    }
+
+    @Test
+    public void testIsFeatureEnabled() throws Exception {
+        when(mMockFlags.isFeatureEnabledApiEnabled()).thenReturn(true);
+        var callback = new IsFeatureEnabledCallback();
+        mService.isFeatureEnabled(
+                "featureName",
+                new CallerMetadata.Builder().build(),
+                callback);
+        callback.await();
+        assertTrue(callback.mWasInvoked);
+    }
+
+    private static Bundle createWrappedAppParams() throws Exception {
         Bundle wrappedParams = new Bundle();
         ByteArrayParceledSlice buffer =
                 new ByteArrayParceledSlice(
@@ -623,7 +666,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         return wrappedParams;
     }
 
-    static class ExecuteCallback extends IExecuteCallback.Stub {
+    private static class ExecuteCallback extends IExecuteCallback.Stub {
         public boolean mWasInvoked = false;
         public boolean mSuccess = false;
         public boolean mError = false;
@@ -662,7 +705,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         }
     }
 
-    static class RequestSurfacePackageCallback extends IRequestSurfacePackageCallback.Stub {
+    private static class RequestSurfacePackageCallback extends IRequestSurfacePackageCallback.Stub {
         public boolean mWasInvoked = false;
         public boolean mSuccess = false;
         public boolean mError = false;
@@ -698,7 +741,8 @@ public class OnDevicePersonalizationManagingServiceTest {
         }
     }
 
-    static class RegisterMeasurementEventCallback extends IRegisterMeasurementEventCallback.Stub {
+    private static class RegisterMeasurementEventCallback
+            extends IRegisterMeasurementEventCallback.Stub {
         public boolean mError = false;
         public boolean mSuccess = false;
         public boolean mWasInvoked = false;
@@ -717,6 +761,21 @@ public class OnDevicePersonalizationManagingServiceTest {
             mWasInvoked = true;
             mError = true;
             mErrorCode = errorCode;
+            mLatch.countDown();
+        }
+
+        public void await() throws Exception {
+            mLatch.await();
+        }
+    }
+
+    private static class IsFeatureEnabledCallback extends IIsFeatureEnabledCallback.Stub {
+        public boolean mWasInvoked = false;
+        private final CountDownLatch mLatch = new CountDownLatch(1);
+
+        @Override
+        public void onResult(int result, CalleeMetadata calleeMetadata) throws RemoteException {
+            mWasInvoked = true;
             mLatch.countDown();
         }
 
