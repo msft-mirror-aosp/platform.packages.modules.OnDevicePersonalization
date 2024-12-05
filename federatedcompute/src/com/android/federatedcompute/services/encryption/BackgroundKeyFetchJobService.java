@@ -33,6 +33,7 @@ import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.statsd.joblogging.FederatedComputeJobServiceLogger;
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.EventLogger;
 import com.android.odp.module.common.encryption.OdpEncryptionKey;
 import com.android.odp.module.common.encryption.OdpEncryptionKeyManager;
 
@@ -41,6 +42,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -62,6 +64,10 @@ public class BackgroundKeyFetchJobService extends JobService {
 
         OdpEncryptionKeyManager getEncryptionKeyManager(Context context) {
             return FederatedComputeEncryptionKeyManagerUtils.getInstance(context);
+        }
+
+        EventLogger getEventLogger() {
+            return new BackgroundKeyFetchJobEventLogger();
         }
     }
 
@@ -93,10 +99,13 @@ public class BackgroundKeyFetchJobService extends JobService {
                     ENCRYPTION_KEY_FETCH_JOB_ID,
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON);
         }
+        EventLogger eventLogger = mInjector.getEventLogger();
+        eventLogger.logEncryptionKeyFetchStartEventKind();
         mInjector
                 .getEncryptionKeyManager(this)
                 .fetchAndPersistActiveKeys(
-                        OdpEncryptionKey.KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
+                        OdpEncryptionKey.KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true,
+                        Optional.of(eventLogger))
                 .addCallback(
                         new FutureCallback<List<OdpEncryptionKey>>() {
                             @Override
