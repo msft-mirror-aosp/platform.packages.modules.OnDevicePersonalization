@@ -38,7 +38,7 @@ java_genrule {
     cmd: "$(location flatc) -o $(genDir) --java $(in) " +
         "&& $(location soong_zip) -o $(out) -C $(genDir) -D $(genDir)",
     visibility: [
-      "//packages/modules/OnDevicePersonalization:__subpackages__"
+        "//packages/modules/OnDevicePersonalization:__subpackages__",
     ],
 }
 
@@ -50,7 +50,7 @@ filegroup {
     ],
     path: "src",
     visibility: [
-      "//packages/modules/OnDevicePersonalization:__subpackages__"
+        "//packages/modules/OnDevicePersonalization:__subpackages__",
     ],
 }
 
@@ -72,7 +72,7 @@ cc_library_shared {
     whole_static_libs: [
         "libfederatedcompute",
     ],
-    static_libs:[
+    static_libs: [
         "federated-compute-cc-proto-lite",
         "libprotobuf-cpp-lite-ndk",
     ],
@@ -103,7 +103,7 @@ cc_library_shared {
         "jni/cpp/hpke_jni.cc",
     ],
     include_dirs: [
-        "packages/modules/OnDevicePersonalization/federatedcompute/jni/include"
+        "packages/modules/OnDevicePersonalization/federatedcompute/jni/include",
     ],
     version_script: "jni/jni.lds",
     header_libs: [

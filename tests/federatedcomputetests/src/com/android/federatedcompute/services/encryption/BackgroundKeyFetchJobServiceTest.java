@@ -48,6 +48,7 @@ import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.PhFlagsTestUtil;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDaoUtils;
+import com.android.odp.module.common.EventLogger;
 import com.android.odp.module.common.MonotonicClock;
 import com.android.odp.module.common.data.OdpEncryptionKeyDao;
 import com.android.odp.module.common.encryption.OdpEncryptionKey;
@@ -64,11 +65,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 // TODO: add tests with Ph flags
@@ -90,6 +93,9 @@ public class BackgroundKeyFetchJobServiceTest {
     public OdpEncryptionKeyManager mSpyKeyManager;
 
     private TestInjector mInjector;
+
+    @Mock
+    private EventLogger mMockEventLogger;
 
     @Before
     public void setUp() throws Exception {
@@ -146,12 +152,14 @@ public class BackgroundKeyFetchJobServiceTest {
         List<OdpEncryptionKey> emptyKeyList = List.of();
         doReturn(FluentFuture.from(Futures.immediateFuture(emptyKeyList)))
                 .when(keyManager)
-                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true);
+                .fetchAndPersistActiveKeys(
+                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true, Optional.empty());
 
         mSpyService.run(mock(JobParameters.class));
 
         verify(mSpyService, times(1)).onStartJob(any());
         verify(mSpyService, times(1)).jobFinished(any(), anyBoolean());
+        verify(mMockEventLogger, times(1)).logEncryptionKeyFetchStartEventKind();
     }
 
     @Test
@@ -164,12 +172,14 @@ public class BackgroundKeyFetchJobServiceTest {
                                                 " Failed to fetch keys",
                                                 new IllegalStateException("http 404")))))
                 .when(keyManager)
-                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true);
+                .fetchAndPersistActiveKeys(
+                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true, Optional.empty());
 
         mSpyService.run(mock(JobParameters.class));
 
         verify(mSpyService, times(1)).onStartJob(any());
         verify(mSpyService, times(1)).jobFinished(any(), anyBoolean());
+        verify(mMockEventLogger, times(1)).logEncryptionKeyFetchStartEventKind();
     }
 
     @Test
@@ -223,7 +233,8 @@ public class BackgroundKeyFetchJobServiceTest {
         List<OdpEncryptionKey> emptyKeyList = List.of();
         doReturn(FluentFuture.from(Futures.immediateFuture(emptyKeyList)))
                 .when(keyManager)
-                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true);
+                .fetchAndPersistActiveKeys(
+                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true, Optional.empty());
         doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
         mSpyService.scheduleJobIfNeeded(mContext, FlagsFactory.getFlags());
         assertTrue(mJobScheduler.getPendingJob(
@@ -234,7 +245,7 @@ public class BackgroundKeyFetchJobServiceTest {
         assertTrue(result);
         verify(mSpyService, times(1)).jobFinished(any(), eq(false));
         verify(keyManager, never()).fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION,
-                /* isScheduledJob= */ true);
+                /* isScheduledJob= */ true, Optional.empty());
         assertTrue(mJobScheduler.getPendingJob(
                 FederatedComputeJobInfo.ENCRYPTION_KEY_FETCH_JOB_ID)
                 == null);
@@ -266,6 +277,11 @@ public class BackgroundKeyFetchJobServiceTest {
         @Override
         OdpEncryptionKeyManager getEncryptionKeyManager(Context context) {
             return mSpyKeyManager;
+        }
+
+        @Override
+        EventLogger getEventLogger() {
+            return mMockEventLogger;
         }
     }
 }
