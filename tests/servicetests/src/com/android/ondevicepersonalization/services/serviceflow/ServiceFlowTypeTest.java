@@ -25,7 +25,6 @@ import static android.adservices.ondevicepersonalization.Constants.OP_WEB_VIEW_E
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 
 import org.junit.Before;
@@ -52,7 +51,7 @@ public class ServiceFlowTypeTest {
         assertThat(ServiceFlowType.RENDER_FLOW.getTaskName()).isEqualTo("Render");
         assertThat(ServiceFlowType.WEB_TRIGGER_FLOW.getTaskName()).isEqualTo("WebTrigger");
         assertThat(ServiceFlowType.WEB_VIEW_FLOW.getTaskName())
-                .isEqualTo("ComputeEventMetrics");
+                .isEqualTo("WebView");
         assertThat(ServiceFlowType.EXAMPLE_STORE_FLOW.getTaskName())
                 .isEqualTo("ExampleStore");
         assertThat(ServiceFlowType.DOWNLOAD_FLOW.getTaskName())
@@ -85,19 +84,5 @@ public class ServiceFlowTypeTest {
                 .isEqualTo(ServiceFlowType.Priority.NORMAL);
         assertThat(ServiceFlowType.DOWNLOAD_FLOW.getPriority())
                 .isEqualTo(ServiceFlowType.Priority.LOW);
-    }
-
-    @Test
-    public void executionTimeoutTest() {
-        assertThat(ServiceFlowType.APP_REQUEST_FLOW.getExecutionTimeout())
-                .isEqualTo(FlagsFactory.getFlags().getAppRequestFlowDeadlineSeconds());
-        assertThat(ServiceFlowType.RENDER_FLOW.getExecutionTimeout())
-                .isEqualTo(FlagsFactory.getFlags().getRenderFlowDeadlineSeconds());
-        assertThat(ServiceFlowType.WEB_TRIGGER_FLOW.getExecutionTimeout())
-                .isEqualTo(FlagsFactory.getFlags().getWebTriggerFlowDeadlineSeconds());
-        assertThat(ServiceFlowType.EXAMPLE_STORE_FLOW.getExecutionTimeout())
-                .isEqualTo(FlagsFactory.getFlags().getExampleStoreFlowDeadlineSeconds());
-        assertThat(ServiceFlowType.DOWNLOAD_FLOW.getExecutionTimeout())
-                .isEqualTo(FlagsFactory.getFlags().getDownloadFlowDeadlineSeconds());
     }
 }

@@ -17,7 +17,15 @@
 package com.android.ondevicepersonalization.services.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.content.ComponentName;
@@ -25,24 +33,45 @@ import android.content.ContentValues;
 import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
+import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 
 import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.quality.Strictness;
 
 import java.util.Collections;
 import java.util.List;
 
-public class LogUtilsTest {
+@RunWith(AndroidJUnit4.class)
+@MockStatic(OdpStatsdLogger.class)
+public final class LogUtilsTest {
     private static final String APP = "com.example.app";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final ComponentName mService =
             ComponentName.createRelative(mContext.getPackageName(), ".ServiceClass");
     private final OnDevicePersonalizationDbHelper mDbHelper =
             OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
+
+    @Rule
+    public final ExtendedMockitoRule mExtendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
+    @Mock private OdpStatsdLogger mMockOdpStatsdLogger;
+
+    @Before
+    public void setup(){
+        when(OdpStatsdLogger.getInstance()).thenReturn(mMockOdpStatsdLogger);
+    }
 
     @After
     public void cleanup() {
@@ -56,11 +85,19 @@ public class LogUtilsTest {
         assertEquals(
                 -1L,
                 LogUtils.writeLogRecords(
+                        Constants.TASK_TYPE_EXECUTE,
                         mContext,
                         APP,
                         mService,
                         null,
                         Collections.emptyList()).get().longValue());
+        verify(mMockOdpStatsdLogger)
+                .logTraceEventStats(
+                        anyInt(),
+                        eq(Constants.EVENT_TYPE_WRITE_REQUEST_LOG),
+                        eq(Constants.STATUS_REQUEST_LOG_IS_NULL),
+                        anyLong(),
+                        anyString());
     }
 
     @Test
@@ -72,15 +109,23 @@ public class LogUtilsTest {
                         .addRow(new ContentValues())
                         .build();
         long queryId = LogUtils.writeLogRecords(
+                Constants.TASK_TYPE_EXECUTE,
                 mContext,
                 APP,
                 mService,
                 requestLogRecord,
-                Collections.emptyList()).get().longValue();
+                Collections.emptyList()).get();
         long queriesSizeAfter = getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME);
         long eventsSizeAfter = getDbTableSize(EventsContract.EventsEntry.TABLE_NAME);
         assertEquals(1, queriesSizeAfter - queriesSizeBefore);
         assertEquals(0, eventsSizeAfter - eventsSizeBefore);
+        verify(mMockOdpStatsdLogger)
+                .logTraceEventStats(
+                        anyInt(),
+                        eq(Constants.EVENT_TYPE_WRITE_REQUEST_LOG),
+                        eq(Constants.STATUS_REQUEST_LOG_DB_SUCCESS),
+                        anyLong(),
+                        anyString());
     }
 
     @Test
@@ -90,15 +135,23 @@ public class LogUtilsTest {
         RequestLogRecord requestLogRecord =
                 new RequestLogRecord.Builder().build();
         long queryId = LogUtils.writeLogRecords(
+                Constants.TASK_TYPE_EXECUTE,
                 mContext,
                 APP,
                 mService,
                 requestLogRecord,
-                Collections.emptyList()).get().longValue();
+                Collections.emptyList()).get();
         long queriesSizeAfter = getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME);
         long eventsSizeAfter = getDbTableSize(EventsContract.EventsEntry.TABLE_NAME);
         assertEquals(1, queriesSizeAfter - queriesSizeBefore);
         assertEquals(0, eventsSizeAfter - eventsSizeBefore);
+        verify(mMockOdpStatsdLogger)
+                .logTraceEventStats(
+                        anyInt(),
+                        eq(Constants.EVENT_TYPE_WRITE_REQUEST_LOG),
+                        eq(Constants.STATUS_REQUEST_LOG_IS_EMPTY),
+                        anyLong(),
+                        anyString());
     }
 
     @Test
@@ -111,11 +164,19 @@ public class LogUtilsTest {
                         .addRow(new ContentValues())
                         .build();
         long queryId = LogUtils.writeLogRecords(
+                Constants.TASK_TYPE_EXECUTE,
                 mContext,
                 APP,
                 mService,
                 requestLogRecord,
-                Collections.emptyList()).get().longValue();
+                Collections.emptyList()).get();
+        verify(mMockOdpStatsdLogger)
+                .logTraceEventStats(
+                        anyInt(),
+                        eq(Constants.EVENT_TYPE_WRITE_REQUEST_LOG),
+                        eq(Constants.STATUS_REQUEST_LOG_DB_SUCCESS),
+                        anyLong(),
+                        anyString());
         RequestLogRecord requestLogRecord2 =
                 new RequestLogRecord.Builder()
                         .setRequestId(queryId)
@@ -143,16 +204,24 @@ public class LogUtilsTest {
                         .setRequestLogRecord(requestLogRecord2)
                         .build();
         queryId = LogUtils.writeLogRecords(
-                mContext,
-                APP,
-                mService,
-                null,
-                List.of(eventLogRecord1, eventLogRecord2, eventLogRecord3))
-                .get().longValue();
+                        Constants.TASK_TYPE_EXECUTE,
+                        mContext,
+                        APP,
+                        mService,
+                        null,
+                        List.of(eventLogRecord1, eventLogRecord2, eventLogRecord3))
+                .get();
         long queriesSizeAfter = getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME);
         long eventsSizeAfter = getDbTableSize(EventsContract.EventsEntry.TABLE_NAME);
         assertEquals(1, queriesSizeAfter - queriesSizeBefore);
         assertEquals(3, eventsSizeAfter - eventsSizeBefore);
+        verify(mMockOdpStatsdLogger)
+                .logTraceEventStats(
+                        anyInt(),
+                        eq(Constants.EVENT_TYPE_WRITE_EVENT_LOG),
+                        eq(Constants.STATUS_EVENT_LOG_DB_SUCCESS),
+                        anyLong(),
+                        anyString());
     }
 
     @Test
@@ -170,15 +239,30 @@ public class LogUtilsTest {
                         .setData(new ContentValues())
                         .build();
         long queryId = LogUtils.writeLogRecords(
+                Constants.TASK_TYPE_EXECUTE,
                 mContext,
                 APP,
                 mService,
                 requestLogRecord,
-                List.of(eventLogRecord)).get().longValue();
+                List.of(eventLogRecord)).get();
         long queriesSizeAfter = getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME);
         long eventsSizeAfter = getDbTableSize(EventsContract.EventsEntry.TABLE_NAME);
         assertEquals(1, queriesSizeAfter - queriesSizeBefore);
         assertEquals(1, eventsSizeAfter - eventsSizeBefore);
+        verify(mMockOdpStatsdLogger)
+                .logTraceEventStats(
+                        anyInt(),
+                        eq(Constants.EVENT_TYPE_WRITE_REQUEST_LOG),
+                        eq(Constants.STATUS_REQUEST_LOG_DB_SUCCESS),
+                        anyLong(),
+                        anyString());
+        verify(mMockOdpStatsdLogger)
+                .logTraceEventStats(
+                        anyInt(),
+                        eq(Constants.EVENT_TYPE_WRITE_EVENT_LOG),
+                        eq(Constants.STATUS_EVENT_LOG_DB_SUCCESS),
+                        anyLong(),
+                        anyString());
     }
 
     private int getDbTableSize(String tableName) {

@@ -36,6 +36,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.errors.AggregatedErrorCodesLogger;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
@@ -109,6 +110,7 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
 
         OnDevicePersonalizationVendorDataDao.deleteVendorTables(context, services);
         deleteEventsAndQueries(context);
+        AggregatedErrorCodesLogger.cleanupErrorData(context);
     }
 
     @Override
@@ -139,15 +141,12 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
 
         mFuture =
                 Futures.submit(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                sLogger.d(TAG + ": Running maintenance job");
-                                try {
-                                    cleanupVendorData(context);
-                                } catch (Exception e) {
-                                    sLogger.e(TAG + ": Failed to cleanup vendorData", e);
-                                }
+                        () -> {
+                            sLogger.d(TAG + ": Running maintenance job");
+                            try {
+                                cleanupVendorData(context);
+                            } catch (Exception e) {
+                                sLogger.e(TAG + ": Failed to cleanup vendorData", e);
                             }
                         },
                         OnDevicePersonalizationExecutors.getBackgroundExecutor());
@@ -159,8 +158,7 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
                     public void onSuccess(Void result) {
                         sLogger.d(TAG + ": Maintenance job completed.");
                         boolean wantsReschedule = false;
-                        OdpJobServiceLogger.getInstance(
-                                        OnDevicePersonalizationMaintenanceJobService.this)
+                        OdpJobServiceLogger.getInstance(context)
                                 .recordJobFinished(
                                         MAINTENANCE_TASK_JOB_ID,
                                         /* isSuccessful= */ true,
@@ -174,8 +172,7 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
                     public void onFailure(Throwable t) {
                         sLogger.e(TAG + ": Failed to handle JobService: " + params.getJobId(), t);
                         boolean wantsReschedule = false;
-                        OdpJobServiceLogger.getInstance(
-                                        OnDevicePersonalizationMaintenanceJobService.this)
+                        OdpJobServiceLogger.getInstance(context)
                                 .recordJobFinished(
                                         MAINTENANCE_TASK_JOB_ID,
                                         /* isSuccessful= */ false,

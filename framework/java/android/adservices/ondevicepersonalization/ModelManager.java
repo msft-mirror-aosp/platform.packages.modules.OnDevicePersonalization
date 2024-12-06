@@ -20,16 +20,17 @@ import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelServiceCallback;
 import android.annotation.CallbackExecutor;
-import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.WorkerThread;
 import android.os.Bundle;
 import android.os.OutcomeReceiver;
 import android.os.RemoteException;
 
-import com.android.adservices.ondevicepersonalization.flags.Flags;
+import com.android.ondevicepersonalization.internal.util.ByteArrayUtil;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 
@@ -37,7 +38,6 @@ import java.util.concurrent.Executor;
  * Handles model inference and only support TFLite model inference now. See {@link
  * IsolatedService#getModelManager}.
  */
-@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class ModelManager {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = ModelManager.class.getSimpleName();
@@ -67,12 +67,6 @@ public class ModelManager {
             @NonNull OutcomeReceiver<InferenceOutput, Exception> receiver) {
         final long startTimeMillis = System.currentTimeMillis();
         Objects.requireNonNull(input);
-        if (input.getInputData().length == 0) {
-            throw new IllegalArgumentException("Input data can not be empty");
-        }
-        if (input.getExpectedOutputStructure().getDataOutputs().isEmpty()) {
-            throw new IllegalArgumentException("Expected output data structure can not be empty");
-        }
         Bundle bundle = new Bundle();
         bundle.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, mDataService.asBinder());
         bundle.putParcelable(Constants.EXTRA_INFERENCE_INPUT, new InferenceInputParcel(input));
@@ -92,8 +86,20 @@ public class ModelManager {
                                                             result.getParcelable(
                                                                     Constants.EXTRA_RESULT,
                                                                     InferenceOutputParcel.class));
+                                            // Set output result to both fields for LiteRT model
+                                            // before Map field is deprecated.
+                                            Map<Integer, Object> outputMap = new HashMap<>();
+                                            try {
+                                                outputMap =
+                                                        (Map<Integer, Object>)
+                                                                ByteArrayUtil.deserializeObject(
+                                                                        outputParcel.getData());
+                                            } catch (ClassCastException e) {
+                                                // TODO: add logging
+                                            }
                                             InferenceOutput output =
-                                                    new InferenceOutput(outputParcel.getData());
+                                                    new InferenceOutput(
+                                                            outputMap, outputParcel.getData());
                                             endTimeMillis = System.currentTimeMillis();
                                             receiver.onResult(output);
                                         } catch (Exception e) {

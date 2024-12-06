@@ -43,6 +43,7 @@ android_test {
         "androidx.test.ext.junit",
         "androidx.test.ext.truth",
         "androidx.test.rules",
+        "federated-compute-java-proto-lite",
         "kotlin-stdlib",
         "kotlin-test",
         "kotlinx-coroutines-android",

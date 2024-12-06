@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static android.content.Intent.ACTION_BOOT_COMPLETED;
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
 
 import android.content.BroadcastReceiver;
@@ -27,6 +28,7 @@ import android.content.pm.PackageManager;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.DeviceUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.data.errors.AggregateErrorDataReportingService;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
@@ -34,21 +36,23 @@ import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonal
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 
+import java.util.List;
 import java.util.concurrent.Executor;
 
 /** BroadcastReceiver used to schedule OnDevicePersonalization jobs/workers. */
 public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationBroadcastReceiver";
-    private final Executor mExecutor;
+    private final ListeningExecutorService mExecutor;
 
     public OnDevicePersonalizationBroadcastReceiver() {
-        this.mExecutor = OnDevicePersonalizationExecutors.getLightweightExecutor();
+        this(OnDevicePersonalizationExecutors.getLightweightExecutor());
     }
 
     @VisibleForTesting
-    public OnDevicePersonalizationBroadcastReceiver(Executor executor) {
+    OnDevicePersonalizationBroadcastReceiver(ListeningExecutorService executor) {
         this.mExecutor = executor;
     }
 
@@ -68,7 +72,10 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
         return true;
     }
 
-    /** Called when the broadcast is received. OnDevicePersonalization jobs will be started here. */
+    /**
+     * Called when the {@link ACTION_BOOT_COMPLETED} broadcast is received. OnDevicePersonalization
+     * jobs will be started here.
+     */
     public void onReceive(Context context, Intent intent) {
         if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
             sLogger.d(TAG + ": GlobalKillSwitch on, skipped broadcast.");
@@ -82,49 +89,53 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
 
         sLogger.d(TAG + ": onReceive() with intent + " + intent.getAction());
 
-        if (!Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
+        if (!ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
             sLogger.d(TAG + ": Received unexpected intent " + intent.getAction());
             return;
         }
         final PendingResult pendingResult = goAsync();
-        // Schedule MDD to download scripts periodically.
+        // Schedule maintenance and MDD tasks to download scripts periodically etc.
         Futures.addCallback(
                 restoreOdpJobs(context, mExecutor),
-                new FutureCallback<Void>() {
+                new FutureCallback<List<Void>>() {
                     @Override
-                    public void onSuccess(Void result) {
-                        sLogger.d(TAG + ": Successfully scheduled MDD tasks.");
+                    public void onSuccess(List<Void> result) {
+                        sLogger.d(TAG + ": handled job scheduling tasks successfully");
                         pendingResult.finish();
                     }
+
                     @Override
                     public void onFailure(Throwable t) {
-                        sLogger.e(TAG + ": Failed to schedule MDD tasks.", t);
+                        sLogger.e(t, TAG + ": failed to handle all job scheduling tasks.");
                         pendingResult.finish();
                     }
                 },
                 mExecutor);
     }
 
-    /**
-     * Restores periodic jobs scheduling.
-     */
-    public static ListenableFuture<Void> restoreOdpJobs(Context context, Executor executor) {
+    /** Restores periodic jobs scheduling. */
+    static ListenableFuture<List<Void>> restoreOdpJobs(Context context, Executor executor) {
         if (FlagsFactory.getFlags().getGlobalKillSwitch() || !DeviceUtils.isOdpSupported(context)) {
             sLogger.d(TAG + ": ODP disabled or unsupported device");
             return null;
         }
 
-        var unused =
+        ListenableFuture<Void> maintenanceFuture =
                 Futures.submit(
                         () -> {
                             // Schedule maintenance task
                             OnDevicePersonalizationMaintenanceJob.schedule(context);
                             // Schedule user data collection task
                             UserDataCollectionJobService.schedule(context);
+                            // Schedule regular ODP aggregated error reporting task if the flag
+                            // is enabled etc.
+                            AggregateErrorDataReportingService.scheduleIfNeeded(context);
                         },
                         executor);
 
         // Schedule MDD to download scripts periodically.
-        return MobileDataDownloadFactory.getMdd(context).schedulePeriodicBackgroundTasks();
+        ListenableFuture<Void> mddFuture =
+                MobileDataDownloadFactory.getMdd(context).schedulePeriodicBackgroundTasks();
+        return Futures.successfulAsList(maintenanceFuture, mddFuture);
     }
 }

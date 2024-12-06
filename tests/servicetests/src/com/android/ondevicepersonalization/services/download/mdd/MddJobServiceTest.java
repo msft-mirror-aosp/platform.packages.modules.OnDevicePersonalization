@@ -115,12 +115,12 @@ public class MddJobServiceTest {
     }
 
     @Test
-    public void onStartJobTest() {
+    public void onStartJobTest() throws Exception {
         ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
                 OnDevicePersonalizationExecutors::getBackgroundExecutor);
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
-        ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
+        ExtendedMockito.doReturn(false).when(mUserPrivacyStatus)
+                .isProtectedAudienceAndMeasurementBothDisabled();
 
         JobParameters jobParameters = mock(JobParameters.class);
         PersistableBundle extras = new PersistableBundle();
@@ -129,6 +129,7 @@ public class MddJobServiceTest {
 
         boolean result = mSpyService.onStartJob(jobParameters);
         assertTrue(result);
+        Thread.sleep(5000);
         verify(mSpyService, times(1)).jobFinished(any(), eq(false));
         verify(mMockJobScheduler, times(1)).schedule(any());
     }
@@ -164,10 +165,10 @@ public class MddJobServiceTest {
     }
 
     @Test
-    public void onStartJobTestUserControlRevoked() {
+    public void onStartJobTestUserControlRevoked() throws Exception {
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(false).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
-        ExtendedMockito.doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
+        ExtendedMockito.doReturn(true).when(mUserPrivacyStatus)
+                .isProtectedAudienceAndMeasurementBothDisabled();
         JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
         PersistableBundle extras = new PersistableBundle();
         extras.putString(MDD_TASK_TAG_KEY, WIFI_CHARGING_PERIODIC_TASK);
@@ -190,6 +191,7 @@ public class MddJobServiceTest {
         doReturn(extras).when(jobParameters).getExtras();
         boolean result = mSpyService.onStartJob(jobParameters);
         assertTrue(result);
+        Thread.sleep(2000);
         verify(mSpyService, times(1)).jobFinished(any(), eq(false));
         verify(mMockJobScheduler, times(0)).schedule(any());
     }
@@ -204,10 +206,10 @@ public class MddJobServiceTest {
     }
 
     @Test
-    public void onStartJobFailHandleTaskTest() {
+    public void onStartJobFailHandleTaskTest() throws Exception {
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
-        ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
+        ExtendedMockito.doReturn(false).when(mUserPrivacyStatus)
+                .isProtectedAudienceAndMeasurementBothDisabled();
 
         JobParameters jobParameters = mock(JobParameters.class);
         PersistableBundle extras = new PersistableBundle();
@@ -216,6 +218,7 @@ public class MddJobServiceTest {
 
         boolean result = mSpyService.onStartJob(jobParameters);
         assertTrue(result);
+        Thread.sleep(2000);
         verify(mSpyService, times(1)).jobFinished(any(), eq(false));
         verify(mMockJobScheduler, times(0)).schedule(any());
     }

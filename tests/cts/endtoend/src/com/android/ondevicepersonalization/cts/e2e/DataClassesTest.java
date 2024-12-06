@@ -31,6 +31,7 @@ import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRespon
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.FederatedComputeInput;
 import android.adservices.ondevicepersonalization.FederatedComputeScheduleRequest;
+import android.adservices.ondevicepersonalization.FederatedComputeScheduleResponse;
 import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
 import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams;
@@ -221,6 +222,28 @@ public class DataClassesTest {
         assertEquals(testInterval, request.getParams().getTrainingInterval().getMinimumInterval());
         assertEquals(
                 testSchedulingMode, request.getParams().getTrainingInterval().getSchedulingMode());
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
+    public void testFederatedComputeSchedulerResponse() {
+        // Test for Data classes associated with FederatedComputeScheduler's schedule API.
+        String testPopulation = "testPopulation";
+        Duration testInterval = Duration.ofSeconds(5);
+        int testSchedulingMode = TrainingInterval.SCHEDULING_MODE_RECURRENT;
+        TrainingInterval testData =
+                new TrainingInterval.Builder()
+                        .setSchedulingMode(testSchedulingMode)
+                        .setMinimumInterval(testInterval)
+                        .build();
+
+        FederatedComputeScheduler.Params params = new FederatedComputeScheduler.Params(testData);
+        FederatedComputeScheduleRequest request =
+                new FederatedComputeScheduleRequest(params, testPopulation);
+
+        FederatedComputeScheduleResponse response = new FederatedComputeScheduleResponse(request);
+
+        assertEquals(response.getFederatedComputeScheduleRequest(), request);
     }
 
     /** Test for RequestLogRecord class. */

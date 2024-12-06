@@ -30,23 +30,33 @@ import android.content.ComponentName;
 import android.content.Context;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
+import com.android.odp.module.common.encryption.OdpEncryptionKeyManager;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.EncryptionUtils;
 import com.android.ondevicepersonalization.services.statsd.joblogging.OdpJobServiceLogger;
 
+import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
-/** {@link JobService} to perform daily reporting of aggregated error codes. */
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * The {@link JobService} to perform daily reporting of aggregated error codes.
+ *
+ * <p>The actual reporting task is offloaded to {@link AggregatedErrorReportingWorker}.
+ */
 public class AggregateErrorDataReportingService extends JobService {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = AggregateErrorDataReportingService.class.getSimpleName();
 
-    private ListenableFuture<Void> mFuture;
+    private FluentFuture<Void> mFuture;
 
     private final Injector mInjector;
 
@@ -59,6 +69,7 @@ public class AggregateErrorDataReportingService extends JobService {
         mInjector = injector;
     }
 
+    @VisibleForTesting
     static class Injector {
         ListeningExecutorService getExecutor() {
             return OnDevicePersonalizationExecutors.getBackgroundExecutor();
@@ -66,6 +77,14 @@ public class AggregateErrorDataReportingService extends JobService {
 
         Flags getFlags() {
             return FlagsFactory.getFlags();
+        }
+
+        AggregatedErrorReportingWorker getErrorReportingWorker() {
+            return AggregatedErrorReportingWorker.createWorker();
+        }
+
+        OdpEncryptionKeyManager getEncryptionKeyManager(Context context) {
+            return EncryptionUtils.getEncryptionKeyManager(context);
         }
     }
 
@@ -126,16 +145,24 @@ public class AggregateErrorDataReportingService extends JobService {
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_JOB_NOT_CONFIGURED);
         }
 
+        OdpEncryptionKeyManager keyManager = mInjector.getEncryptionKeyManager(/* context= */ this);
+        // By default, the aggregated error data payload is encrypted.
+        FluentFuture<List<OdpEncryptionKey>> encryptionKeyFuture =
+                mInjector.getFlags().getAllowUnencryptedAggregatedErrorReportingPayload()
+                        ? FluentFuture.from(Futures.immediateFuture(List.of()))
+                        : keyManager.fetchAndPersistActiveKeys(
+                                OdpEncryptionKey.KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true,
+                                Optional.empty());
+
+        AggregatedErrorReportingWorker worker = mInjector.getErrorReportingWorker();
         mFuture =
-                Futures.submit(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                // TODO(b/329921267): Add logic for reporting new data from DAO.
-                                sLogger.d(
-                                        TAG + ": Running the aggregate error data collection job");
-                            }
-                        },
+                encryptionKeyFuture.transformAsync(
+                        encryptionKeys ->
+                                FluentFuture.from(
+                                        worker.reportAggregateErrors(
+                                                /* context= */ this,
+                                                OdpEncryptionKeyManager.getRandomKey(
+                                                        encryptionKeys))),
                         mInjector.getExecutor());
 
         Futures.addCallback(

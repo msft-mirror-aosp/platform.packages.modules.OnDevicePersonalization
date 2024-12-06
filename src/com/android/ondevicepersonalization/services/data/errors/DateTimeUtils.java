@@ -53,6 +53,27 @@ final class DateTimeUtils {
     }
 
     /**
+     * Gets the seconds since epoch the UTC timezone.
+     *
+     * <p>Returns {@code -1} if unsuccessful.
+     */
+    public static long epochSecondsUtc() {
+        return epochSecondsUtc(MonotonicClock.getInstance());
+    }
+
+    @VisibleForTesting
+    static long epochSecondsUtc(Clock clock) {
+        // Package-private method for easier testing, allows injecting a clock in tests.
+        Instant currentInstant = getCurrentInstant(clock);
+        try {
+            return currentInstant.atZone(ZoneOffset.UTC).toEpochSecond();
+        } catch (DateTimeException e) {
+            sLogger.e(TAG + " : failed to get epoch seconds.", e);
+            return -1;
+        }
+    }
+
+    /**
      * Get the day index in the local device's timezone.
      *
      * <p>Returns {@code -1} if unsuccessful.

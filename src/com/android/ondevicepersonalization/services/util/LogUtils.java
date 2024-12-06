@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.util;
 
+import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.annotation.NonNull;
@@ -23,6 +24,7 @@ import android.annotation.Nullable;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
+import android.os.SystemClock;
 
 import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
@@ -31,6 +33,7 @@ import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
+import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -45,11 +48,13 @@ public class LogUtils {
 
     /** Writes the provided records to the REQUESTS and EVENTS tables. */
     public static ListenableFuture<Long> writeLogRecords(
+            int taskType,
             @NonNull Context context,
             @NonNull String appPackageName,
             @NonNull ComponentName service,
             @Nullable RequestLogRecord requestLogRecord,
-            @NonNull List<EventLogRecord> eventLogRecords) {
+            @Nullable List<EventLogRecord> eventLogRecords) {
+        long logStartedTimeMills = SystemClock.elapsedRealtime();
         sLogger.d(TAG + ": writeLogRecords() started.");
         try {
             String serviceName = DbUtils.toTableValue(service);
@@ -64,6 +69,12 @@ public class LogUtils {
                 List<ContentValues> rows = requestLogRecord.getRows();
                 if (rows.isEmpty()) {
                     rows = List.of(new ContentValues());
+                    logTraceEventStats(
+                            taskType,
+                            Constants.EVENT_TYPE_WRITE_REQUEST_LOG,
+                            Constants.STATUS_REQUEST_LOG_IS_EMPTY,
+                            SystemClock.elapsedRealtime() - logStartedTimeMills,
+                            service.getPackageName());
                 }
                 byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
                         serviceName, certDigest, rows);
@@ -75,12 +86,41 @@ public class LogUtils {
                         queryData).build();
                 queryId = eventsDao.insertQuery(query);
                 if (queryId == -1) {
+                    logTraceEventStats(
+                            taskType,
+                            Constants.EVENT_TYPE_WRITE_REQUEST_LOG,
+                            Constants.STATUS_LOG_DB_FAILURE,
+                            SystemClock.elapsedRealtime() - logStartedTimeMills,
+                            service.getPackageName());
                     return Futures.immediateFailedFuture(
-                            new RuntimeException("Failed to log query."));
+                            new RuntimeException("Failed to insert request log record."));
+                } else {
+                    logTraceEventStats(
+                            taskType,
+                            Constants.EVENT_TYPE_WRITE_REQUEST_LOG,
+                            Constants.STATUS_REQUEST_LOG_DB_SUCCESS,
+                            SystemClock.elapsedRealtime() - logStartedTimeMills,
+                            service.getPackageName());
                 }
+            } else {
+                logTraceEventStats(
+                        taskType,
+                        Constants.EVENT_TYPE_WRITE_REQUEST_LOG,
+                        Constants.STATUS_REQUEST_LOG_IS_NULL,
+                        SystemClock.elapsedRealtime() - logStartedTimeMills,
+                        service.getPackageName());
             }
 
             // Insert events
+            if (eventLogRecords == null || eventLogRecords.size() == 0) {
+                logTraceEventStats(
+                        taskType,
+                        Constants.EVENT_TYPE_WRITE_EVENT_LOG,
+                        Constants.STATUS_EVENT_LOG_IS_NULL,
+                        SystemClock.elapsedRealtime() - logStartedTimeMills,
+                        service.getPackageName());
+                return Futures.immediateFuture(queryId);
+            }
             List<Event> events = new ArrayList<>();
             for (EventLogRecord eventLogRecord : eventLogRecords) {
                 RequestLogRecord parent;
@@ -95,6 +135,12 @@ public class LogUtils {
                 // Verify requestLogRecord exists and has the corresponding rowIndex
                 if (parent == null || parentRequestId <= 0
                         || eventLogRecord.getRowIndex() >= parent.getRows().size()) {
+                    logTraceEventStats(
+                            taskType,
+                            Constants.EVENT_TYPE_WRITE_EVENT_LOG,
+                            Constants.STATUS_EVENT_LOG_NOT_EXIST,
+                            SystemClock.elapsedRealtime() - logStartedTimeMills,
+                            service.getPackageName());
                     continue;
                 }
                 // Make sure query exists for package in QUERY table and
@@ -104,6 +150,12 @@ public class LogUtils {
                         >= OnDevicePersonalizationFlatbufferUtils
                                 .getContentValuesLengthFromQueryData(
                                         queryRow.getQueryData())) {
+                    logTraceEventStats(
+                            taskType,
+                            Constants.EVENT_TYPE_WRITE_EVENT_LOG,
+                            Constants.STATUS_EVENT_LOG_QUERY_NOT_EXIST,
+                            SystemClock.elapsedRealtime() - logStartedTimeMills,
+                            service.getPackageName());
                     continue;
                 }
                 Event event = new Event.Builder()
@@ -118,14 +170,38 @@ public class LogUtils {
                 events.add(event);
             }
             if (!eventsDao.insertEvents(events)) {
+                logTraceEventStats(
+                        taskType,
+                        Constants.EVENT_TYPE_WRITE_EVENT_LOG,
+                        Constants.STATUS_LOG_DB_FAILURE,
+                        SystemClock.elapsedRealtime() - logStartedTimeMills,
+                        service.getPackageName());
                 return Futures.immediateFailedFuture(
-                        new RuntimeException("Failed to log events."));
+                        new RuntimeException("Failed to insert events log record."));
+            } else {
+                logTraceEventStats(
+                        taskType,
+                        Constants.EVENT_TYPE_WRITE_EVENT_LOG,
+                        Constants.STATUS_EVENT_LOG_DB_SUCCESS,
+                        SystemClock.elapsedRealtime() - logStartedTimeMills,
+                        service.getPackageName());
             }
-
             return Futures.immediateFuture(queryId);
         } catch (Exception e) {
+            logTraceEventStats(
+                    taskType,
+                    Constants.EVENT_TYPE_UNKNOWN,
+                    Constants.STATUS_LOG_EXCEPTION,
+                    SystemClock.elapsedRealtime() - logStartedTimeMills,
+                    service.getPackageName());
             return Futures.immediateFailedFuture(e);
         }
+    }
+
+    private static void logTraceEventStats(int taskType, int eventType, int status,
+            long latencyMillis, String servicePackageName) {
+        OdpStatsdLogger.getInstance()
+                .logTraceEventStats(taskType, eventType, status, latencyMillis, servicePackageName);
     }
 
     private LogUtils() {}

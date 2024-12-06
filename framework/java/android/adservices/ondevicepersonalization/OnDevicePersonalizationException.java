@@ -28,7 +28,6 @@ import java.util.Set;
  * Exception thrown by OnDevicePersonalization APIs.
  *
  */
-@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class OnDevicePersonalizationException extends Exception {
     /**
      * The {@link IsolatedService} that was invoked failed to run.

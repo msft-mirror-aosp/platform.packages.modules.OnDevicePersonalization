@@ -42,6 +42,13 @@ public class StatsUtils {
         return callerLatencyMillis - calleeLatencyMillis;
     }
 
+    /** Writes service request usage to statsd. Mainly for failure case. */
+    public static void writeServiceRequestMetrics(int apiName, int responseCode) {
+        ApiCallStats callStats =
+                new ApiCallStats.Builder(apiName).setResponseCode(responseCode).build();
+        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
+    }
+
     /** Writes service request usage to statsd. */
     public static void writeServiceRequestMetrics(
             int apiName,
