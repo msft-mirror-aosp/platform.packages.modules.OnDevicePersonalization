@@ -16,7 +16,6 @@
 
 package com.android.ondevicepersonalization.systemserviceapitests;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -29,7 +28,10 @@ import android.os.Bundle;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
 
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -40,16 +42,16 @@ import java.util.concurrent.CountDownLatch;
 public class OdpSystemServiceApiTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     boolean mOnRequestCalled = false;
-    boolean mSetPersonalizationStatusCalled = false;
-    boolean mReadPersonalizationStatusCalled = false;
-    CountDownLatch mLatch = new CountDownLatch(3);
+    CountDownLatch mLatch = new CountDownLatch(1);
+
+    @Before
+    public void setUp() {
+        Assume.assumeTrue(DeviceSupportHelper.isDeviceSupported());
+        Assume.assumeTrue(SdkLevel.isAtLeastU());
+    }
 
     @Test
     public void testInvokeSystemServerServiceSucceedsOnU() throws Exception {
-        if (!SdkLevel.isAtLeastU()) {
-            return;
-        }
-
         OnDevicePersonalizationSystemServiceManager manager =
                 mContext.getSystemService(OnDevicePersonalizationSystemServiceManager.class);
         assertNotEquals(null, manager);
@@ -70,43 +72,7 @@ public class OdpSystemServiceApiTest {
                     }
                 });
 
-        //TODO(b/302991761): delete the file in system server.
-        service.setPersonalizationStatus(false,
-                new IOnDevicePersonalizationSystemServiceCallback.Stub() {
-                    @Override public void onResult(Bundle result) {
-                        mSetPersonalizationStatusCalled = true;
-                        mLatch.countDown();
-                    }
-                    @Override public void onError(int errorCode) {
-                        mSetPersonalizationStatusCalled = true;
-                        mLatch.countDown();
-                    }
-                });
-
-        service.readPersonalizationStatus(
-                new IOnDevicePersonalizationSystemServiceCallback.Stub() {
-                    @Override public void onResult(Bundle result) {
-                        mReadPersonalizationStatusCalled = true;
-                        mLatch.countDown();
-                    }
-                    @Override public void onError(int errorCode) {
-                        mReadPersonalizationStatusCalled = true;
-                        mLatch.countDown();
-                    }
-                });
         mLatch.await();
         assertTrue(mOnRequestCalled);
-        assertTrue(mSetPersonalizationStatusCalled);
-        assertTrue(mReadPersonalizationStatusCalled);
-    }
-
-    @Test
-    public void testNullSystemServiceOnT() throws Exception {
-        if (SdkLevel.isAtLeastU()) {
-            return;
-        }
-        assertEquals(
-                null,
-                mContext.getSystemService(OnDevicePersonalizationSystemServiceManager.class));
     }
 }

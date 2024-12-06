@@ -97,29 +97,32 @@ public final class PhFlags implements Flags {
     public static final String EXECUTE_BEST_VALUE_NOISE = "noise_for_execute_best_value";
 
     public static final String KEY_ENABLE_AGGREGATED_ERROR_REPORTING =
-            "enable_aggregated_error_reporting";
+            "Odp__enable_aggregated_error_reporting";
 
     public static final String KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS =
-            "aggregated_error_report_ttl_days";
+            "Odp__aggregated_error_report_ttl_days";
 
     public static final String KEY_AGGREGATED_ERROR_REPORTING_PATH =
-            "aggregated_error_reporting_path";
+            "Odp__aggregated_error_reporting_path";
 
     public static final String KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD =
-            "aggregated_error_reporting_threshold";
+            "Odp__aggregated_error_reporting_threshold";
 
     public static final String KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS =
-            "aggregated_error_reporting_interval_hours";
-
-    public static final String KEY_AGGREGATED_ERROR_REPORTING_ENCRYPTION_ENABLED =
-            "aggregated_error_reporting_encryption_enabled";
+            "Odp__aggregated_error_reporting_interval_hours";
+    public static final String KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING =
+            "Odp__aggregated_error_allow_unencrypted_aggregated_error_reporting";
 
     public static final String KEY_AGGREGATED_ERROR_REPORTING_HTTP_TIMEOUT_SECONDS =
-            "aggregated_error_reporting_http_timeout_seconds";
+            "Odp__aggregated_error_reporting_http_timeout_seconds";
 
     public static final String KEY_AGGREGATED_ERROR_REPORTING_HTTP_RETRY_LIMIT =
-            "aggregated_error_reporting_http_retry_limit";
+            "Odp__aggregated_error_reporting_http_retry_limit";
 
+    public static final String KEY_ENCRYPTION_KEY_URL = "Odp__encryption_key_download_url";
+
+    public static final String KEY_ENCRYPTION_KEY_MAX_AGE_SECONDS =
+            "Odp__encryption_key_max_age_seconds";
     public static final String MAX_INT_VALUES_LIMIT = "max_int_values_limit";
 
     public static final String KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS =
@@ -133,7 +136,10 @@ public final class PhFlags implements Flags {
             "log_isolated_service_error_code_non_aggregated_allowlist";
 
     public static final String KEY_PLUGIN_PROCESS_RUNNER_ENABLED =
-            "plugin_process_runner_enabled";
+            "Odp__enable_plugin_process_runner";
+
+    public static final String KEY_IS_FEATURE_ENABLED_API_ENABLED =
+            "Odp__enable_is_feature_enabled";
 
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
@@ -447,11 +453,11 @@ public final class PhFlags implements Flags {
     }
 
     @Override
-    public boolean getAggregatedErrorReportingEncryptionEnabled() {
+    public boolean getAllowUnencryptedAggregatedErrorReportingPayload() {
         return DeviceConfig.getBoolean(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name= */ KEY_AGGREGATED_ERROR_REPORTING_ENCRYPTION_ENABLED,
-                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORTING_ENCRYPTION);
+                /* name= */ KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING,
+                /* defaultValue= */ DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD);
     }
 
     @Override
@@ -468,6 +474,22 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_AGGREGATED_ERROR_REPORTING_HTTP_RETRY_LIMIT,
                 /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_RETRY_LIMIT);
+    }
+
+    @Override
+    public String getEncryptionKeyFetchUrl() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ENCRYPTION_KEY_URL,
+                /* defaultValue= */ DEFAULT_ENCRYPTION_KEY_URL);
+    }
+
+    @Override
+    public long getEncryptionKeyMaxAgeSeconds() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ENCRYPTION_KEY_MAX_AGE_SECONDS,
+                /* defaultValue= */ DEFAULT_ENCRYPTION_KEY_MAX_AGE_SECONDS);
     }
 
     @Override
@@ -517,5 +539,13 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_PLUGIN_PROCESS_RUNNER_ENABLED,
                 /* defaultValue= */ DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED);
+    }
+
+    @Override
+    public boolean isFeatureEnabledApiEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_IS_FEATURE_ENABLED_API_ENABLED,
+                /* defaultValue= */ DEFAULT_IS_FEATURE_ENABLED_API_ENABLED);
     }
 }
