@@ -24,7 +24,6 @@ import static com.android.federatedcompute.services.common.FederatedComputeExecu
 import static com.android.federatedcompute.services.common.TrainingEventLogger.getTaskIdForLogging;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.FCP_OWNER_ID_DIGEST;
-import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_OR_UNAUTHENTICATED_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_UNAUTHORIZED_STATUS;
@@ -32,6 +31,7 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEM
 import static com.android.odp.module.common.FileUtils.createTempFile;
 import static com.android.odp.module.common.FileUtils.readFileAsByteArray;
 import static com.android.odp.module.common.FileUtils.writeToFile;
+import static com.android.odp.module.common.http.HttpClientUtils.GZIP_ENCODING_HDR;
 import static com.android.odp.module.common.http.HttpClientUtils.compressWithGzip;
 import static com.android.odp.module.common.http.HttpClientUtils.getTotalReceivedBytes;
 import static com.android.odp.module.common.http.HttpClientUtils.getTotalSentBytes;
