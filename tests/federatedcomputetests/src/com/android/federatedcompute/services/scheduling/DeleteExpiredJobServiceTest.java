@@ -52,15 +52,15 @@ import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
-import com.android.federatedcompute.services.data.ODPAuthorizationToken;
-import com.android.federatedcompute.services.data.ODPAuthorizationTokenContract;
-import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
 import com.android.federatedcompute.services.data.TaskHistory;
 import com.android.federatedcompute.services.sharedlibrary.spe.FederatedComputeJobScheduler;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.data.ODPAuthorizationToken;
+import com.android.odp.module.common.data.ODPAuthorizationTokenContract;
+import com.android.odp.module.common.data.ODPAuthorizationTokenDao;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -106,7 +106,10 @@ public class DeleteExpiredJobServiceTest {
         when(mClock.currentTimeMillis()).thenReturn(400L);
         when(mMockFlag.getTaskHistoryTtl()).thenReturn(200L);
         LogUtil.i(TAG, "mSpyAuthTokenDao " + mSpyAuthTokenDao);
-        mSpyAuthTokenDao = spy(ODPAuthorizationTokenDao.getInstanceForTest(mContext));
+        mSpyAuthTokenDao =
+                spy(
+                        ODPAuthorizationTokenDao.getInstanceForTest(
+                                FederatedComputeDbHelper.getInstanceForTest(mContext)));
         mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mContext);
         mSpyService = spy(new DeleteExpiredJobService(new TestInjector()));
 
@@ -250,7 +253,9 @@ public class DeleteExpiredJobServiceTest {
         assertThat(injector.getExecutor())
                 .isEqualTo(FederatedComputeExecutors.getBackgroundExecutor());
         assertThat(injector.getODPAuthorizationTokenDao(mContext))
-                .isEqualTo(ODPAuthorizationTokenDao.getInstance(mContext));
+                .isEqualTo(
+                        ODPAuthorizationTokenDao.getInstance(
+                                FederatedComputeDbHelper.getInstance(mContext)));
     }
 
     private ODPAuthorizationToken createExpiredAuthToken(String ownerId) {

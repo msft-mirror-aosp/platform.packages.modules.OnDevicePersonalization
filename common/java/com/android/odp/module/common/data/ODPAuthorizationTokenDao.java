@@ -14,34 +14,33 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.data;
+package com.android.odp.module.common.data;
 
-import static com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE;
+import static com.android.odp.module.common.data.ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE;
 
 import android.annotation.NonNull;
 import android.content.ContentValues;
-import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODPAuthorizationTokenColumns;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.data.ODPAuthorizationTokenContract.ODPAuthorizationTokenColumns;
 
 import com.google.common.annotations.VisibleForTesting;
 
 public class ODPAuthorizationTokenDao {
     private static final String TAG = ODPAuthorizationTokenDao.class.getSimpleName();
 
-    private final FederatedComputeDbHelper mDbHelper;
+    private final OdpSQLiteOpenHelper mDbHelper;
 
     private final Clock mClock;
 
     private static volatile ODPAuthorizationTokenDao sSingletonInstance;
 
-    private ODPAuthorizationTokenDao(FederatedComputeDbHelper dbHelper, Clock clock) {
+    private ODPAuthorizationTokenDao(OdpSQLiteOpenHelper dbHelper, Clock clock) {
         mDbHelper = dbHelper;
         mClock = clock;
     }
@@ -50,14 +49,12 @@ public class ODPAuthorizationTokenDao {
      * @return an instance of ODPAuthorizationTokenDao given a context
      */
     @NonNull
-    public static ODPAuthorizationTokenDao getInstance(Context context) {
+    public static ODPAuthorizationTokenDao getInstance(OdpSQLiteOpenHelper dbHelper) {
         if (sSingletonInstance == null) {
             synchronized (ODPAuthorizationTokenDao.class) {
                 if (sSingletonInstance == null) {
-                    sSingletonInstance = new ODPAuthorizationTokenDao(
-                            FederatedComputeDbHelper.getInstance(context),
-                            MonotonicClock.getInstance()
-                    );
+                    sSingletonInstance =
+                            new ODPAuthorizationTokenDao(dbHelper, MonotonicClock.getInstance());
                 }
             }
         }
@@ -66,14 +63,12 @@ public class ODPAuthorizationTokenDao {
 
     /** Return a test instance with in-memory database. It is for test only. */
     @VisibleForTesting
-    public static ODPAuthorizationTokenDao getInstanceForTest(Context context) {
+    public static ODPAuthorizationTokenDao getInstanceForTest(OdpSQLiteOpenHelper dbHelper) {
         if (sSingletonInstance == null) {
             synchronized (ODPAuthorizationTokenDao.class) {
                 if (sSingletonInstance == null) {
-                    sSingletonInstance = new ODPAuthorizationTokenDao(
-                            FederatedComputeDbHelper.getInstanceForTest(context),
-                            MonotonicClock.getInstance()
-                    );
+                    sSingletonInstance =
+                            new ODPAuthorizationTokenDao(dbHelper, MonotonicClock.getInstance());
                 }
             }
         }
@@ -88,15 +83,15 @@ public class ODPAuthorizationTokenDao {
         }
 
         ContentValues values = new ContentValues();
-        values.put(ODPAuthorizationTokenColumns.OWNER_IDENTIFIER,
+        values.put(
+                ODPAuthorizationTokenColumns.OWNER_IDENTIFIER,
                 authorizationToken.getOwnerIdentifier());
-        values.put(ODPAuthorizationTokenColumns.AUTHORIZATION_TOKEN,
+        values.put(
+                ODPAuthorizationTokenColumns.AUTHORIZATION_TOKEN,
                 authorizationToken.getAuthorizationToken());
-        values.put(ODPAuthorizationTokenColumns.CREATION_TIME,
-                authorizationToken.getCreationTime());
-        values.put(ODPAuthorizationTokenColumns.EXPIRY_TIME,
-                authorizationToken.getExpiryTime());
-
+        values.put(
+                ODPAuthorizationTokenColumns.CREATION_TIME, authorizationToken.getCreationTime());
+        values.put(ODPAuthorizationTokenColumns.EXPIRY_TIME, authorizationToken.getExpiryTime());
 
         long jobId =
                 db.insertWithOnConflict(
@@ -104,18 +99,28 @@ public class ODPAuthorizationTokenDao {
         return jobId != -1;
     }
 
-    /** Get an ODP adopter's unexpired authorization token.
-     * @return an unexpired authorization token. */
+    /**
+     * Get an ODP adopter's unexpired authorization token.
+     *
+     * @return an unexpired authorization token.
+     */
     public ODPAuthorizationToken getUnexpiredAuthorizationToken(String ownerIdentifier) {
-        String selection = ODPAuthorizationTokenColumns.EXPIRY_TIME + " > ? " + "AND "
-                + ODPAuthorizationTokenColumns.OWNER_IDENTIFIER + " = ?";
+        String selection =
+                ODPAuthorizationTokenColumns.EXPIRY_TIME
+                        + " > ? "
+                        + "AND "
+                        + ODPAuthorizationTokenColumns.OWNER_IDENTIFIER
+                        + " = ?";
         String[] selectionArgs = {String.valueOf(mClock.currentTimeMillis()), ownerIdentifier};
         String orderBy = ODPAuthorizationTokenColumns.EXPIRY_TIME + " DESC";
         return readTokenFromDatabase(selection, selectionArgs, orderBy);
     }
 
-    /** Delete an ODP adopter's authorization token.
-     * @return the number of rows deleted. */
+    /**
+     * Delete an ODP adopter's authorization token.
+     *
+     * @return the number of rows deleted.
+     */
     public int deleteAuthorizationToken(String ownerIdentifier) {
         SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
         if (db == null) {
@@ -124,27 +129,30 @@ public class ODPAuthorizationTokenDao {
         String whereClause = ODPAuthorizationTokenColumns.OWNER_IDENTIFIER + " = ?";
         String[] whereArgs = {ownerIdentifier};
         int deletedRows = db.delete(ODP_AUTHORIZATION_TOKEN_TABLE, whereClause, whereArgs);
-        LogUtil.d(TAG, "Deleted %d expired tokens for %s from database", deletedRows,
+        LogUtil.d(
+                TAG,
+                "Deleted %d expired tokens for %s from database",
+                deletedRows,
                 ownerIdentifier);
         return deletedRows;
     }
 
-
-    /** Batch delete all expired authorization tokens.
-     * @return the number of rows deleted. */
+    /**
+     * Batch delete all expired authorization tokens.
+     *
+     * @return the number of rows deleted.
+     */
     public int deleteExpiredAuthorizationTokens() {
         SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
         if (db == null) {
             throw new SQLiteException(TAG + ": Failed to open database.");
         }
         String whereClause = ODPAuthorizationTokenColumns.EXPIRY_TIME + " < ?";
-        String[] whereArgs = { String.valueOf(mClock.currentTimeMillis()) };
+        String[] whereArgs = {String.valueOf(mClock.currentTimeMillis())};
         int deletedRows = db.delete(ODP_AUTHORIZATION_TOKEN_TABLE, whereClause, whereArgs);
         LogUtil.d(TAG, "Deleted %d expired tokens", deletedRows);
         return deletedRows;
     }
-
-
 
     private ODPAuthorizationToken readTokenFromDatabase(
             String selection, String[] selectionArgs, String orderBy) {
@@ -154,10 +162,10 @@ public class ODPAuthorizationTokenDao {
         }
 
         String[] selectColumns = {
-                ODPAuthorizationTokenColumns.OWNER_IDENTIFIER,
-                ODPAuthorizationTokenColumns.AUTHORIZATION_TOKEN,
-                ODPAuthorizationTokenColumns.CREATION_TIME,
-                ODPAuthorizationTokenColumns.EXPIRY_TIME,
+            ODPAuthorizationTokenColumns.OWNER_IDENTIFIER,
+            ODPAuthorizationTokenColumns.AUTHORIZATION_TOKEN,
+            ODPAuthorizationTokenColumns.CREATION_TIME,
+            ODPAuthorizationTokenColumns.EXPIRY_TIME,
         };
 
         Cursor cursor = null;
@@ -187,8 +195,7 @@ public class ODPAuthorizationTokenDao {
                                                 ODPAuthorizationTokenColumns.CREATION_TIME)),
                                 cursor.getLong(
                                         cursor.getColumnIndexOrThrow(
-                                                ODPAuthorizationTokenColumns.EXPIRY_TIME))
-                        );
+                                                ODPAuthorizationTokenColumns.EXPIRY_TIME)));
                 authToken = encryptionKeyBuilder.build();
             }
         } finally {
