@@ -16,7 +16,7 @@
 
 package com.android.federatedcompute.services.http;
 
-import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
+import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_LENGTH_HDR;
 import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_TYPE_HDR;
 import static com.android.odp.module.common.http.HttpClientUtils.PROTOBUF_CONTENT_TYPE;
 

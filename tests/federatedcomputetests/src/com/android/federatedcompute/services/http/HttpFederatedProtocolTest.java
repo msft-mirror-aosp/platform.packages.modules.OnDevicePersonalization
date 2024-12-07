@@ -18,15 +18,15 @@ package com.android.federatedcompute.services.http;
 
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_ENCODING_HDR;
-import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.FCP_OWNER_ID_DIGEST;
-import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_UNAUTHENTICATED_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_AUTHENTICATION_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_AUTHORIZATION_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
 import static com.android.odp.module.common.FileUtils.createTempFile;
+import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_LENGTH_HDR;
 import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_TYPE_HDR;
+import static com.android.odp.module.common.http.HttpClientUtils.GZIP_ENCODING_HDR;
 import static com.android.odp.module.common.http.HttpClientUtils.PROTOBUF_CONTENT_TYPE;
 import static com.android.odp.module.common.http.HttpClientUtils.compressWithGzip;
 
