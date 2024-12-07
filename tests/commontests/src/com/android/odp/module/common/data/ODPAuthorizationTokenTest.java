@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.data;
-
+package com.android.odp.module.common.data;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -40,24 +39,30 @@ public class ODPAuthorizationTokenTest {
 
     @Test
     public void testBuilderAndEquals() {
-        ODPAuthorizationToken token1 = new ODPAuthorizationToken.Builder()
-                .setOwnerIdentifier(OWNER_IDENTIFIER)
-                .setAuthorizationToken(TOKEN)
-                .setCreationTime(NOW)
-                .setExpiryTime(NOW + ONE_HOUR).build();
-        ODPAuthorizationToken token2 = new ODPAuthorizationToken.Builder()
-                .setOwnerIdentifier(OWNER_IDENTIFIER)
-                .setAuthorizationToken(TOKEN)
-                .setCreationTime(NOW)
-                .setExpiryTime(NOW + ONE_HOUR).build();
+        ODPAuthorizationToken token1 =
+                new ODPAuthorizationToken.Builder()
+                        .setOwnerIdentifier(OWNER_IDENTIFIER)
+                        .setAuthorizationToken(TOKEN)
+                        .setCreationTime(NOW)
+                        .setExpiryTime(NOW + ONE_HOUR)
+                        .build();
+        ODPAuthorizationToken token2 =
+                new ODPAuthorizationToken.Builder()
+                        .setOwnerIdentifier(OWNER_IDENTIFIER)
+                        .setAuthorizationToken(TOKEN)
+                        .setCreationTime(NOW)
+                        .setExpiryTime(NOW + ONE_HOUR)
+                        .build();
 
         assertEquals(token1, token2);
 
-        ODPAuthorizationToken token3 = new ODPAuthorizationToken.Builder()
-                .setOwnerIdentifier(OWNER_IDENTIFIER2)
-                .setAuthorizationToken(TOKEN)
-                .setCreationTime(NOW)
-                .setExpiryTime(NOW + ONE_HOUR).build();
+        ODPAuthorizationToken token3 =
+                new ODPAuthorizationToken.Builder()
+                        .setOwnerIdentifier(OWNER_IDENTIFIER2)
+                        .setAuthorizationToken(TOKEN)
+                        .setCreationTime(NOW)
+                        .setExpiryTime(NOW + ONE_HOUR)
+                        .build();
 
         assertNotEquals(token3, token1);
         assertNotEquals(token3, token2);
@@ -65,14 +70,14 @@ public class ODPAuthorizationTokenTest {
 
     @Test
     public void testBuildTwiceThrows() {
-        ODPAuthorizationToken.Builder builder = new ODPAuthorizationToken.Builder()
-                .setOwnerIdentifier(OWNER_IDENTIFIER)
-                .setAuthorizationToken(TOKEN)
-                .setCreationTime(NOW)
-                .setExpiryTime(NOW + ONE_HOUR);
+        ODPAuthorizationToken.Builder builder =
+                new ODPAuthorizationToken.Builder()
+                        .setOwnerIdentifier(OWNER_IDENTIFIER)
+                        .setAuthorizationToken(TOKEN)
+                        .setCreationTime(NOW)
+                        .setExpiryTime(NOW + ONE_HOUR);
         builder.build();
 
         assertThrows(IllegalStateException.class, () -> builder.build());
-
     }
 }
