@@ -87,6 +87,7 @@ public class RequestSurfacePackageTests {
     public void setUp() {
         // Skip the test if it runs on unsupported platforms.
         Assume.assumeTrue(DeviceSupportHelper.isDeviceSupported());
+        Assume.assumeTrue(DeviceSupportHelper.isOdpModuleAvailable());
 
         ShellUtils.runShellCommand(
                 "device_config put on_device_personalization "
