@@ -22,12 +22,22 @@ import static junit.framework.Assert.assertEquals;
 
 import android.adservices.ondevicepersonalization.InferenceOutput;
 
+import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
+
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class InferenceOutputTest {
+    @Before
+    public void setUp() {
+        Assume.assumeTrue(DeviceSupportHelper.isDeviceSupported());
+        Assume.assumeTrue(DeviceSupportHelper.isOdpModuleAvailable());
+    }
+
     @Test
     public void build_success() {
         HashMap<Integer, Object> outputData = new HashMap<>();
