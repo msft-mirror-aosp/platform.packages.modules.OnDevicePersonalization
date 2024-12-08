@@ -44,10 +44,10 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
-import com.android.federatedcompute.services.data.ODPAuthorizationToken;
-import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.data.ODPAuthorizationToken;
+import com.android.odp.module.common.data.ODPAuthorizationTokenDao;
 
 import com.google.internal.federatedcompute.v1.AuthenticationMetadata;
 import com.google.internal.federatedcompute.v1.KeyAttestationAuthMetadata;
@@ -89,7 +89,10 @@ public class AuthorizationContextTest {
         MockitoAnnotations.initMocks(this);
         mContext = ApplicationProvider.getApplicationContext();
         doReturn(KA_RECORD).when(mMocKeyAttestation).generateAttestationRecord(any(), anyString());
-        mAuthTokenDao = spy(ODPAuthorizationTokenDao.getInstanceForTest(mContext));
+        mAuthTokenDao =
+                spy(
+                        ODPAuthorizationTokenDao.getInstanceForTest(
+                                FederatedComputeDbHelper.getInstanceForTest(mContext)));
         mClock = MonotonicClock.getInstance();
         doNothing().when(mMockTrainingEventLogger).logKeyAttestationLatencyEvent(anyLong());
     }
