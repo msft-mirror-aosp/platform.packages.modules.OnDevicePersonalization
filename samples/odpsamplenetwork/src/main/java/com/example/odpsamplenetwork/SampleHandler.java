@@ -362,6 +362,23 @@ public class SampleHandler implements IsolatedWorker {
                 .build();
     }
 
+    private static Feature convertFloatListToFeature(String value) {
+        String[] splitPixels = value.split(",", -1);
+        FloatList.Builder floatListBuilder = FloatList.newBuilder();
+        for (int count = 0; count < 784; count++) {
+            floatListBuilder.addValue(Float.parseFloat(splitPixels[count]));
+        }
+        return Feature.newBuilder().setFloatList(floatListBuilder.build()).build();
+    }
+
+    private static Example convertToMnistExample(String strExample) {
+        String[] splitExample = strExample.split(":", -1);
+        Features.Builder featuresBuilder = Features.newBuilder();
+        featuresBuilder.putFeature("x", convertFloatListToFeature(splitExample[0]));
+        featuresBuilder.putFeature("y", convertLongToFeature(splitExample[1]));
+        return Example.newBuilder().setFeatures(featuresBuilder.build()).build();
+    }
+
     private static Example convertToExample(String serializedExample) {
         String[] splitExample = serializedExample.split(",", -1);
         Features.Builder featuresBuilder = Features.newBuilder();
@@ -446,6 +463,24 @@ public class SampleHandler implements IsolatedWorker {
                                                 String.format("token%d", exampleCount).getBytes())
                                 .build();
                 resultBuilder.addTrainingExampleRecord(record);
+            }
+        } else if (input.getPopulationName().contains("mnist")) {
+            for (int count = 1; count < 300; count++) {
+                try {
+                    Example example =
+                            convertToMnistExample(
+                                    new String(
+                                            mRemoteData.get(String.format("example%d", count)),
+                                            StandardCharsets.UTF_8));
+                    TrainingExampleRecord record =
+                            new TrainingExampleRecord.Builder()
+                                    .setTrainingExample(example.toByteArray())
+                                    .setResumptionToken(String.format("token%d", count).getBytes())
+                                    .build();
+                    resultBuilder.addTrainingExampleRecord(record);
+                } catch (Exception e) {
+                    break;
+                }
             }
         }
 
