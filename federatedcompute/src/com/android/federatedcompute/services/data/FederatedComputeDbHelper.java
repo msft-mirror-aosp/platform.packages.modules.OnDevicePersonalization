@@ -20,7 +20,6 @@ import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICE
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_WRITE_EXCEPTION;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
 import static com.android.federatedcompute.services.data.FederatedTraningTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
-import static com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE;
 import static com.android.federatedcompute.services.data.TaskHistoryContract.TaskHistoryEntry.CREATE_TASK_HISTORY_TABLE_STATEMENT;
 
 import android.annotation.Nullable;
@@ -32,9 +31,9 @@ import android.database.sqlite.SQLiteException;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
-import com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODPAuthorizationTokenColumns;
 import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.data.ODPAuthorizationTokenContract;
 import com.android.odp.module.common.data.OdpSQLiteOpenHelper;
 import com.android.odp.module.common.encryption.OdpEncryptionKeyContract;
 
@@ -91,18 +90,6 @@ public class FederatedComputeDbHelper extends OdpSQLiteOpenHelper {
                     + FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID
                     + "))";
 
-    private static final String CREATE_ODP_AUTHORIZATION_TOKEN_TABLE =
-            "CREATE TABLE "
-                    + ODP_AUTHORIZATION_TOKEN_TABLE
-                    + " ( "
-                    + ODPAuthorizationTokenColumns.OWNER_IDENTIFIER
-                    + " TEXT PRIMARY KEY, "
-                    + ODPAuthorizationTokenColumns.AUTHORIZATION_TOKEN
-                    + " TEXT NOT NULL, "
-                    + ODPAuthorizationTokenColumns.CREATION_TIME
-                    + " INTEGER NOT NULL, "
-                    + ODPAuthorizationTokenColumns.EXPIRY_TIME
-                    + " INTEGER NOT NULL)";
     public static final String CREATE_TRAINING_TASK_OWNER_PACKAGE_INDEX =
             "CREATE INDEX IF NOT EXISTS idx_package_name ON " + FEDERATED_TRAINING_TASKS_TABLE
                     + "(" + FederatedTrainingTaskColumns.OWNER_PACKAGE + ")";
@@ -155,7 +142,7 @@ public class FederatedComputeDbHelper extends OdpSQLiteOpenHelper {
         db.execSQL(CREATE_TRAINING_TASK_TABLE);
         db.execSQL(CREATE_TRAINING_TASK_OWNER_PACKAGE_INDEX);
         db.execSQL(OdpEncryptionKeyContract.CREATE_ENCRYPTION_KEY_TABLE);
-        db.execSQL(CREATE_ODP_AUTHORIZATION_TOKEN_TABLE);
+        db.execSQL(ODPAuthorizationTokenContract.CREATE_ODP_AUTHORIZATION_TOKEN_TABLE);
         db.execSQL(CREATE_TASK_HISTORY_TABLE_STATEMENT);
     }
 

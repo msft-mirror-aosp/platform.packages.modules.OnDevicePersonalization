@@ -25,8 +25,7 @@ public final class HttpClientUtil {
     public static final String CONTENT_ENCODING_HDR = "Content-Encoding";
 
     public static final String ACCEPT_ENCODING_HDR = "Accept-Encoding";
-    public static final String CONTENT_LENGTH_HDR = "Content-Length";
-    public static final String GZIP_ENCODING_HDR = "gzip";
+
     public static final ImmutableSet<Integer> HTTP_OK_STATUS = ImmutableSet.of(200, 201);
 
     public static final Integer HTTP_UNAUTHENTICATED_STATUS = 401;
