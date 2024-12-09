@@ -260,11 +260,6 @@ public class OdpEncryptionKeyDaoTest {
                 .build();
     }
 
-    /**
-     * Helper class that provides a {@link OdpSQLiteOpenHelper} for tests.
-     *
-     * <p>Creates the encryption and authorization tables.
-     */
     public static final class TestDbHelper extends OdpSQLiteOpenHelper {
         private static final int DB_VERSION = 1;
 
@@ -276,7 +271,6 @@ public class OdpEncryptionKeyDaoTest {
         @Override
         public void onCreate(SQLiteDatabase db) {
             db.execSQL(OdpEncryptionKeyContract.CREATE_ENCRYPTION_KEY_TABLE);
-            db.execSQL(ODPAuthorizationTokenContract.CREATE_ODP_AUTHORIZATION_TOKEN_TABLE);
         }
 
         @Override
