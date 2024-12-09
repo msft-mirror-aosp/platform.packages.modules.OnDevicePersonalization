@@ -1165,33 +1165,33 @@ public class FederatedComputeWorker {
             AuthorizationContext authContext,
             TrainingEventLogger trainingEventLogger) {
         // At most this function will make two calls to mHttpFederatedProtocol.reportResult
-        // The first call would allowUnauthenticated, uplon receiving 401 (UNAUTHENTICATED), the
+        // The first call would allowUnauthenticated, upon receiving 401 (UNAUTHENTICATED), the
         // device would solve the challenge and make a second call.
-        return FluentFuture.from(
-                        mHttpFederatedProtocol.reportResult(
-                                computationResult, encryptionKey, authContext))
+        return mHttpFederatedProtocol
+                .reportResult(computationResult, encryptionKey, authContext)
                 .transformAsync(
                         resp -> {
-                            if (resp != null) {
-                                if (authContext.isFirstAuthTry() && resp.hasAuthMetadata()) {
-                                    authContext.updateAuthState(
-                                            resp.getAuthMetadata(), trainingEventLogger);
-                                    return reportResultWithAuthentication(
-                                            computationResult,
-                                            encryptionKey,
-                                            authContext,
-                                            trainingEventLogger);
-                                } else if (resp.hasRetryWindow()) {
-                                    return Futures.immediateFuture(resp);
-                                } else {
-                                    // TODO(b/322880077): cancel job when it fails authentication
-                                    return Futures.immediateFailedFuture(
-                                            new IllegalStateException(
-                                                    "Unknown rejection Info from FCP server when "
-                                                            + "solving authentication challenge"));
-                                }
+                            if (resp == null) {
+                                // No RejectionInfo, report result was successful
+                                return Futures.immediateFuture(null);
                             }
-                            return Futures.immediateFuture(resp);
+                            if (authContext.isFirstAuthTry() && resp.hasAuthMetadata()) {
+                                authContext.updateAuthState(
+                                        resp.getAuthMetadata(), trainingEventLogger);
+                                return reportResultWithAuthentication(
+                                        computationResult,
+                                        encryptionKey,
+                                        authContext,
+                                        trainingEventLogger);
+                            } else if (resp.hasRetryWindow()) {
+                                return Futures.immediateFuture(resp);
+                            } else {
+                                // TODO(b/322880077): cancel job when it fails authentication
+                                return Futures.immediateFailedFuture(
+                                        new IllegalStateException(
+                                                "Unknown rejection Info from FCP server when "
+                                                        + "solving authentication challenge"));
+                            }
                         },
                         getLightweightExecutor());
     }
