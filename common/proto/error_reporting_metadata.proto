@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package com.android.odp.module.common.proto;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "com.android.odp.module.common.proto";
+
+
+
+/**
+ * Encompasses metadata associated with aggregated error data reporting.
+ */
+message ErrorReportingMetadata {
+  /**
+   * Timestamp corresponding to when the entity associated with this metadata
+   * was created.
+   */
+  google.protobuf.Timestamp last_successful_upload = 1;
+}
