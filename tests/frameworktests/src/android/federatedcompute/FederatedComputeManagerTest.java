@@ -119,6 +119,14 @@ public class FederatedComputeManagerTest {
                                 null,
                                 null /* mock will be returned */
                         },
+                        {
+                                "schedule-unavailable-iService",
+                                new ScheduleFederatedComputeRequest.Builder()
+                                        .setTrainingOptions(new TrainingOptions.Builder().build())
+                                        .build(),
+                                null,
+                                null /* throw exception when getting instance */
+                        },
                         {"cancel-allNull", null, null, null},
                         {
                                 "cancel-default-iService",
@@ -143,6 +151,12 @@ public class FederatedComputeManagerTest {
                                 null,
                                 "testPopulation",
                                 null /* mock will be returned */
+                        },
+                        {
+                                "cancel-unavailable-iService",
+                                null,
+                                "testPopulation",
+                                null /* throw exception when getting instance */
                         },
                 });
     }
@@ -220,6 +234,16 @@ public class FederatedComputeManagerTest {
 
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
                 verify(spyCallback, times(1)).onError(any(FederatedComputeException.class));
+                verify(mContext, times(1)).unbindService(any());
+                break;
+            case "schedule-unavailable-iService":
+                when(mMockIBinder.queryLocalInterface(any())).thenThrow(RuntimeException.class);
+                spyCallback = spy(new MyTestCallback());
+
+                manager.schedule(request, Runnable::run, spyCallback);
+
+                verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
+                verify(spyCallback, times(1)).onError(any(RuntimeException.class));
                 verify(mContext, times(1)).unbindService(any());
                 break;
             case "cancel-allNull":
@@ -300,6 +324,20 @@ public class FederatedComputeManagerTest {
 
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
                 verify(spyCallback, times(1)).onError(any(FederatedComputeException.class));
+                verify(mContext, times(1)).unbindService(any());
+                break;
+            case "cancel-unavailable-iService":
+                when(mMockIBinder.queryLocalInterface(any())).thenThrow(RuntimeException.class);
+                spyCallback = spy(new MyTestCallback());
+
+                manager.cancel(
+                        OWNER_COMPONENT,
+                        populationName,
+                        Runnable::run,
+                        spyCallback);
+
+                verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
+                verify(spyCallback, times(1)).onError(any(RuntimeException.class));
                 verify(mContext, times(1)).unbindService(any());
                 break;
             default:
