@@ -53,6 +53,8 @@ android_test {
         "tensorflow_core_proto_java_lite",
         // Used for client error logging and background job logging.
         "adservices-shared-spe",
+        "common-ondevicepersonalization-protos",
+        "adservices-shared-datastore", // For proto data store.
     ],
     manifest: "AndroidManifest.xml",
     plugins: ["auto_value_plugin"],
