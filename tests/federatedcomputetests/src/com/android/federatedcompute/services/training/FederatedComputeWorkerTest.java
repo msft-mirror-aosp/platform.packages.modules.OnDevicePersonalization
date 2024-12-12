@@ -411,7 +411,9 @@ public final class FederatedComputeWorkerTest {
         doReturn(List.of(ENCRYPTION_KEY))
                 .when(mMockKeyManager)
                 .getOrFetchActiveKeys(anyInt(), anyInt(), any());
-        doReturn(KA_RECORD).when(mMockKeyAttestation).generateAttestationRecord(any(), anyString());
+        doReturn(KA_RECORD)
+                .when(mMockKeyAttestation)
+                .generateAttestationRecord(any(), anyString(), any());
     }
 
     @After
@@ -557,7 +559,7 @@ public final class FederatedComputeWorkerTest {
         // Verify first issueCheckin call.
         verify(mSpyHttpFederatedProtocol, times(2)).createTaskAssignment(any());
         // After the first issueCheckin, the FederatedComputeWorker would do the key attestation.
-        verify(mMockKeyAttestation).generateAttestationRecord(eq(CHALLENGE), anyString());
+        verify(mMockKeyAttestation).generateAttestationRecord(eq(CHALLENGE), anyString(), any());
         assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
         verify(mMockJobManager)
                 .onTrainingCompleted(
@@ -673,7 +675,7 @@ public final class FederatedComputeWorkerTest {
         // Verify two reportResult calls.
         verify(mSpyHttpFederatedProtocol, times(2)).reportResult(any(), any(), any());
         // After the first reportResult, the FederatedComputeWorker would do the key attestation.
-        verify(mMockKeyAttestation).generateAttestationRecord(eq(CHALLENGE), anyString());
+        verify(mMockKeyAttestation).generateAttestationRecord(eq(CHALLENGE), anyString(), any());
         assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
         verify(mMockJobManager)
                 .onTrainingCompleted(
@@ -1168,14 +1170,19 @@ public final class FederatedComputeWorkerTest {
         }
 
         @Override
-        AuthorizationContext createAuthContext(Context context, String ownerId, String owerCert) {
+        AuthorizationContext createAuthContext(
+                Context context,
+                String ownerId,
+                String owerCert,
+                TrainingEventLogger trainingEventLogger) {
             return new AuthorizationContext(
                     ownerId,
                     owerCert,
                     OdpAuthorizationTokenDao.getInstanceForTest(
                             FederatedComputeDbHelper.getInstanceForTest(context)),
                     mMockKeyAttestation,
-                    MonotonicClock.getInstance());
+                    MonotonicClock.getInstance(),
+                    mMockTrainingEventLogger);
         }
 
         @Override
