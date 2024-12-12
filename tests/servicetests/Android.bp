@@ -64,6 +64,8 @@ android_test {
         "tensorflowlite_java",
         "adservices-shared-spe",
         "ondevicepersonalization-testing-utils",
+        "common-ondevicepersonalization-protos",
+        "adservices-shared-datastore", // For proto data store.
     ],
     sdk_version: "module_current",
     target_sdk_version: "current",
