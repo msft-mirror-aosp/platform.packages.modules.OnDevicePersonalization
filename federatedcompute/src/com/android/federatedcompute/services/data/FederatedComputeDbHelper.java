@@ -33,7 +33,7 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
 import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.odp.module.common.data.ODPAuthorizationTokenContract;
+import com.android.odp.module.common.data.OdpAuthorizationTokenContract;
 import com.android.odp.module.common.data.OdpSQLiteOpenHelper;
 import com.android.odp.module.common.encryption.OdpEncryptionKeyContract;
 
@@ -142,7 +142,7 @@ public class FederatedComputeDbHelper extends OdpSQLiteOpenHelper {
         db.execSQL(CREATE_TRAINING_TASK_TABLE);
         db.execSQL(CREATE_TRAINING_TASK_OWNER_PACKAGE_INDEX);
         db.execSQL(OdpEncryptionKeyContract.CREATE_ENCRYPTION_KEY_TABLE);
-        db.execSQL(ODPAuthorizationTokenContract.CREATE_ODP_AUTHORIZATION_TOKEN_TABLE);
+        db.execSQL(OdpAuthorizationTokenContract.CREATE_ODP_AUTHORIZATION_TOKEN_TABLE);
         db.execSQL(CREATE_TASK_HISTORY_TABLE_STATEMENT);
     }
 

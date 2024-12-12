@@ -64,8 +64,8 @@ import com.android.federatedcompute.services.training.util.ComputationResult;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
-import com.android.odp.module.common.data.ODPAuthorizationToken;
-import com.android.odp.module.common.data.ODPAuthorizationTokenDao;
+import com.android.odp.module.common.data.OdpAuthorizationToken;
+import com.android.odp.module.common.data.OdpAuthorizationTokenDao;
 import com.android.odp.module.common.encryption.HpkeJniEncrypter;
 import com.android.odp.module.common.encryption.OdpEncryptionKey;
 import com.android.odp.module.common.http.HttpClient;
@@ -233,7 +233,7 @@ public final class HttpFederatedProtocolTest {
     private ArgumentCaptor<NetworkStats> mNetworkStatsArgumentCaptor =
             ArgumentCaptor.forClass(NetworkStats.class);
 
-    private ODPAuthorizationTokenDao mODPAuthorizationTokenDao;
+    private OdpAuthorizationTokenDao mOdpAuthorizationTokenDao;
 
     private final Clock mClock = MonotonicClock.getInstance();
 
@@ -243,8 +243,8 @@ public final class HttpFederatedProtocolTest {
 
     @Before
     public void setUp() throws Exception {
-        mODPAuthorizationTokenDao =
-                ODPAuthorizationTokenDao.getInstanceForTest(
+        mOdpAuthorizationTokenDao =
+                OdpAuthorizationTokenDao.getInstanceForTest(
                         FederatedComputeDbHelper.getInstanceForTest(sTestContent));
         mHttpFederatedProtocol =
                 new HttpFederatedProtocol(
@@ -401,9 +401,9 @@ public final class HttpFederatedProtocolTest {
     public void testIssueCheckin_withAuthToken_success() throws Exception {
 
         // insert authorization token
-        ODPAuthorizationToken authToken = createAuthToken();
-        mODPAuthorizationTokenDao.insertAuthorizationToken(authToken);
-        assertThat(mODPAuthorizationTokenDao.getUnexpiredAuthorizationToken(OWNER_ID))
+        OdpAuthorizationToken authToken = createAuthToken();
+        mOdpAuthorizationTokenDao.insertAuthorizationToken(authToken);
+        assertThat(mOdpAuthorizationTokenDao.getUnexpiredAuthorizationToken(OWNER_ID))
                 .isEqualTo(authToken);
         setUpHttpFederatedProtocol();
 
@@ -428,7 +428,7 @@ public final class HttpFederatedProtocolTest {
                 .isEqualTo(false);
 
         // the old authorization token is not deleted
-        assertThat(mODPAuthorizationTokenDao.getUnexpiredAuthorizationToken(OWNER_ID))
+        assertThat(mOdpAuthorizationTokenDao.getUnexpiredAuthorizationToken(OWNER_ID))
                 .isEqualTo(authToken);
     }
 
@@ -506,12 +506,12 @@ public final class HttpFederatedProtocolTest {
         verify(mTrainingEventLogger, times(1)).logTaskAssignmentAuthSucceeded();
         // A new authorization token is stored in DB
         assertThat(
-                        mODPAuthorizationTokenDao
+                        mOdpAuthorizationTokenDao
                                 .getUnexpiredAuthorizationToken(OWNER_ID)
                                 .getAuthorizationToken())
                 .isNotNull();
         assertThat(
-                        mODPAuthorizationTokenDao
+                        mOdpAuthorizationTokenDao
                                 .getUnexpiredAuthorizationToken(OWNER_ID)
                                 .getOwnerIdentifier())
                 .isEqualTo(OWNER_ID);
@@ -1133,9 +1133,9 @@ public final class HttpFederatedProtocolTest {
 
     private void insertAuthToken() {
         // insert authorization token
-        ODPAuthorizationToken authToken = createAuthToken();
-        mODPAuthorizationTokenDao.insertAuthorizationToken(authToken);
-        assertThat(mODPAuthorizationTokenDao.getUnexpiredAuthorizationToken(OWNER_ID))
+        OdpAuthorizationToken authToken = createAuthToken();
+        mOdpAuthorizationTokenDao.insertAuthorizationToken(authToken);
+        assertThat(mOdpAuthorizationTokenDao.getUnexpiredAuthorizationToken(OWNER_ID))
                 .isEqualTo(authToken);
     }
 
@@ -1143,7 +1143,7 @@ public final class HttpFederatedProtocolTest {
         return new AuthorizationContext(
                 OWNER_ID,
                 OWNER_ID_CERT_DIGEST,
-                mODPAuthorizationTokenDao,
+                mOdpAuthorizationTokenDao,
                 mMockKeyAttestation,
                 mClock);
     }
@@ -1153,7 +1153,7 @@ public final class HttpFederatedProtocolTest {
                 new AuthorizationContext(
                         OWNER_ID,
                         OWNER_ID_CERT_DIGEST,
-                        mODPAuthorizationTokenDao,
+                        mOdpAuthorizationTokenDao,
                         mMockKeyAttestation,
                         mClock);
         // Pretend 1st try failed.
@@ -1328,8 +1328,8 @@ public final class HttpFederatedProtocolTest {
         return CreateTaskAssignmentResponse.newBuilder().setTaskAssignment(taskAssignment).build();
     }
 
-    private ODPAuthorizationToken createAuthToken() {
-        return new ODPAuthorizationToken.Builder(
+    private OdpAuthorizationToken createAuthToken() {
+        return new OdpAuthorizationToken.Builder(
                         OWNER_ID,
                         TOKEN,
                         mClock.currentTimeMillis(),

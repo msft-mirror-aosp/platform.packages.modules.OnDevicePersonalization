@@ -16,7 +16,7 @@
 
 package com.android.odp.module.common.data;
 
-public final class ODPAuthorizationTokenContract {
+public final class OdpAuthorizationTokenContract {
     public static final String ODP_AUTHORIZATION_TOKEN_TABLE = "odp_authorization_tokens";
     public static final String CREATE_ODP_AUTHORIZATION_TOKEN_TABLE =
             "CREATE TABLE "
@@ -31,7 +31,7 @@ public final class ODPAuthorizationTokenContract {
                     + ODPAuthorizationTokenColumns.EXPIRY_TIME
                     + " INTEGER NOT NULL)";
 
-    private ODPAuthorizationTokenContract() {}
+    private OdpAuthorizationTokenContract() {}
 
     public static final class ODPAuthorizationTokenColumns {
         private ODPAuthorizationTokenColumns() {}
