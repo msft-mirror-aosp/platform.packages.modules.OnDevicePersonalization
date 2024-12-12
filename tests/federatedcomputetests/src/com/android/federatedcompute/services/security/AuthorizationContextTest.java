@@ -34,8 +34,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import android.content.Context;
@@ -123,7 +121,6 @@ public class AuthorizationContextTest {
 
         assertFalse(authContext.isFirstAuthTry());
         assertNotNull(authContext.getAttestationRecord());
-        verify(mMockTrainingEventLogger, timeout(1)).logKeyAttestationLatencyEvent(anyLong());
     }
 
     @Test
@@ -180,7 +177,6 @@ public class AuthorizationContextTest {
                 .insertAuthorizationToken(any(OdpAuthorizationToken.class));
         authContext.updateAuthState(AUTH_METADATA, mMockTrainingEventLogger);
         assertNull(mAuthTokenDao.getUnexpiredAuthorizationToken(OWNER_ID));
-        verify(mMockTrainingEventLogger, times(1)).logKeyAttestationLatencyEvent(anyLong());
 
         Map<String, String> headerMap = authContext.generateAuthHeaders();
         latch.await();

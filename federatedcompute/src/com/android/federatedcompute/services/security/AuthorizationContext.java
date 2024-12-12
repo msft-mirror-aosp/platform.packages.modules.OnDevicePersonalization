@@ -125,7 +125,7 @@ public class AuthorizationContext {
     /**
      * Updates authentication state e.g. update retry count, generate attestation record if needed.
      */
-    public synchronized void updateAuthState(
+    public synchronized List<String> updateAuthState(
             AuthenticationMetadata authMetadata, TrainingEventLogger trainingEventLogger) {
         // TODO: introduce auth state if we plan to auth more than twice.
         // After first authentication failed, we will clean up expired token and generate
@@ -133,15 +133,14 @@ public class AuthorizationContext {
         if (mTryCount == 1) {
             mTryCount++;
             mAuthorizationTokenDao.deleteAuthorizationToken(mOwnerId);
-            long kaStartTime = mClock.currentTimeMillis();
             mAttestationRecord =
                     mKeyAttestation.generateAttestationRecord(
                             authMetadata.getKeyAttestationMetadata().getChallenge().toByteArray(),
                             mOwnerId,
                             mTrainingEventLogger);
-            trainingEventLogger.logKeyAttestationLatencyEvent(
-                    mClock.currentTimeMillis() - kaStartTime);
+            return mAttestationRecord;
         }
+        return null;
     }
 
     /**
