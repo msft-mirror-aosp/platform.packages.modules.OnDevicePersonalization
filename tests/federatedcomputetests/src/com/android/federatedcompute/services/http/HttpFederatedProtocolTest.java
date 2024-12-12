@@ -57,8 +57,6 @@ import com.android.federatedcompute.services.common.NetworkStats;
 import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
-import com.android.federatedcompute.services.data.ODPAuthorizationToken;
-import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
 import com.android.federatedcompute.services.security.AuthorizationContext;
 import com.android.federatedcompute.services.security.KeyAttestation;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
@@ -66,6 +64,8 @@ import com.android.federatedcompute.services.training.util.ComputationResult;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.data.ODPAuthorizationToken;
+import com.android.odp.module.common.data.ODPAuthorizationTokenDao;
 import com.android.odp.module.common.encryption.HpkeJniEncrypter;
 import com.android.odp.module.common.encryption.OdpEncryptionKey;
 import com.android.odp.module.common.http.HttpClient;
@@ -213,6 +213,8 @@ public final class HttpFederatedProtocolTest {
             new OdpHttpResponse.Builder().setStatusCode(200).build();
     private static final long ODP_AUTHORIZATION_TOKEN_TTL = 30 * 24 * 60 * 60 * 1000L;
 
+    private static final Context sTestContent = ApplicationProvider.getApplicationContext();
+
     @Captor private ArgumentCaptor<OdpHttpRequest> mHttpRequestCaptor;
 
     @Mock private HttpClient mMockHttpClient;
@@ -233,7 +235,7 @@ public final class HttpFederatedProtocolTest {
 
     private ODPAuthorizationTokenDao mODPAuthorizationTokenDao;
 
-    private Clock mClock = MonotonicClock.getInstance();
+    private final Clock mClock = MonotonicClock.getInstance();
 
     @Mock private KeyAttestation mMockKeyAttestation;
 
@@ -243,7 +245,7 @@ public final class HttpFederatedProtocolTest {
     public void setUp() throws Exception {
         mODPAuthorizationTokenDao =
                 ODPAuthorizationTokenDao.getInstanceForTest(
-                        ApplicationProvider.getApplicationContext());
+                        FederatedComputeDbHelper.getInstanceForTest(sTestContent));
         mHttpFederatedProtocol =
                 new HttpFederatedProtocol(
                         TASK_ASSIGNMENT_TARGET_URI,
@@ -266,8 +268,7 @@ public final class HttpFederatedProtocolTest {
     @After
     public void cleanUp() {
         FederatedComputeDbHelper dbHelper =
-                FederatedComputeDbHelper.getInstanceForTest(
-                        ApplicationProvider.getApplicationContext());
+                FederatedComputeDbHelper.getInstanceForTest(sTestContent);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
@@ -1164,9 +1165,8 @@ public final class HttpFederatedProtocolTest {
         String testUriPrefix =
                 "android.resource://com.android.ondevicepersonalization.federatedcomputetests/raw/";
         File outputCheckpointFile = File.createTempFile("output", ".ckp");
-        Context context = ApplicationProvider.getApplicationContext();
         Uri checkpointUri = Uri.parse(testUriPrefix + "federation_test_checkpoint_client");
-        InputStream in = context.getContentResolver().openInputStream(checkpointUri);
+        InputStream in = sTestContent.getContentResolver().openInputStream(checkpointUri);
         java.nio.file.Files.copy(in, outputCheckpointFile.toPath(), REPLACE_EXISTING);
         in.close();
         outputCheckpointFile.deleteOnExit();

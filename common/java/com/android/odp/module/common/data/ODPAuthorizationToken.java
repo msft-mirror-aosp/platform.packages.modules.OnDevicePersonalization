@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.data;
+package com.android.odp.module.common.data;
 
 import android.annotation.NonNull;
 
@@ -37,12 +37,12 @@ public class ODPAuthorizationToken {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/federatedcompute/src/com/android/federatedcompute/services/data/ODPAuthorizationToken.java
+    // $ codegen
+    // $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/federatedcompute/src/com/android/federatedcompute/services/data/ODPAuthorizationToken.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
-    //@formatter:off
-
+    // @formatter:off
 
     @DataClass.Generated.Member
     /* package-private */ ODPAuthorizationToken(
@@ -51,17 +51,13 @@ public class ODPAuthorizationToken {
             @NonNull long creationTime,
             @NonNull long expiryTime) {
         this.mOwnerIdentifier = ownerIdentifier;
-        AnnotationValidations.validate(
-                NonNull.class, null, mOwnerIdentifier);
+        AnnotationValidations.validate(NonNull.class, null, mOwnerIdentifier);
         this.mAuthorizationToken = authorizationToken;
-        AnnotationValidations.validate(
-                NonNull.class, null, mAuthorizationToken);
+        AnnotationValidations.validate(NonNull.class, null, mAuthorizationToken);
         this.mCreationTime = creationTime;
-        AnnotationValidations.validate(
-                NonNull.class, null, mCreationTime);
+        AnnotationValidations.validate(NonNull.class, null, mCreationTime);
         this.mExpiryTime = expiryTime;
-        AnnotationValidations.validate(
-                NonNull.class, null, mExpiryTime);
+        AnnotationValidations.validate(NonNull.class, null, mExpiryTime);
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -121,6 +117,7 @@ public class ODPAuthorizationToken {
 
     /**
      * A builder for {@link ODPAuthorizationToken}
+     *
      * @hide
      */
     @SuppressWarnings("WeakerAccess")
@@ -142,17 +139,13 @@ public class ODPAuthorizationToken {
                 @NonNull long creationTime,
                 @NonNull long expiryTime) {
             mOwnerIdentifier = ownerIdentifier;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mOwnerIdentifier);
+            AnnotationValidations.validate(NonNull.class, null, mOwnerIdentifier);
             mAuthorizationToken = authorizationToken;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mAuthorizationToken);
+            AnnotationValidations.validate(NonNull.class, null, mAuthorizationToken);
             mCreationTime = creationTime;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mCreationTime);
+            AnnotationValidations.validate(NonNull.class, null, mCreationTime);
             mExpiryTime = expiryTime;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mExpiryTime);
+            AnnotationValidations.validate(NonNull.class, null, mExpiryTime);
         }
 
         @DataClass.Generated.Member
@@ -192,11 +185,9 @@ public class ODPAuthorizationToken {
             checkNotUsed();
             mBuilderFieldsSet |= 0x10; // Mark builder used
 
-            ODPAuthorizationToken o = new ODPAuthorizationToken(
-                    mOwnerIdentifier,
-                    mAuthorizationToken,
-                    mCreationTime,
-                    mExpiryTime);
+            ODPAuthorizationToken o =
+                    new ODPAuthorizationToken(
+                            mOwnerIdentifier, mAuthorizationToken, mCreationTime, mExpiryTime);
             return o;
         }
 
@@ -211,13 +202,21 @@ public class ODPAuthorizationToken {
     @DataClass.Generated(
             time = 1705438009708L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/federatedcompute/src/com/android/federatedcompute/services/data/ODPAuthorizationToken.java",
-            inputSignatures = "private final @android.annotation.NonNull java.lang.String mOwnerIdentifier\nprivate final @android.annotation.NonNull java.lang.String mAuthorizationToken\nprivate final @android.annotation.NonNull long mCreationTime\nprivate final @android.annotation.NonNull long mExpiryTime\nclass ODPAuthorizationToken extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
+            sourceFile =
+                    "packages/modules/OnDevicePersonalization/federatedcompute/src/com/android/federatedcompute/services/data/ODPAuthorizationToken.java",
+            inputSignatures =
+                    "private final @android.annotation.NonNull java.lang.String mOwnerIdentifier\n"
+                        + "private final @android.annotation.NonNull java.lang.String"
+                        + " mAuthorizationToken\n"
+                        + "private final @android.annotation.NonNull long mCreationTime\n"
+                        + "private final @android.annotation.NonNull long mExpiryTime\n"
+                        + "class ODPAuthorizationToken extends java.lang.Object implements []\n"
+                        + "@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true,"
+                        + " genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
-
-    //@formatter:on
+    // @formatter:on
     // End of generated code
 
 }
