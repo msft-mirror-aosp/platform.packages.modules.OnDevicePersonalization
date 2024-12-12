@@ -81,8 +81,8 @@ public final class FederatedComputeManager {
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<Object, Exception> callback) {
         Objects.requireNonNull(request);
-        final IFederatedComputeService service = mServiceBinder.getService(executor);
         try {
+            final IFederatedComputeService service = mServiceBinder.getService(executor);
             IFederatedComputeCallback federatedComputeCallback =
                     new IFederatedComputeCallback.Stub() {
                         @Override
@@ -127,8 +127,8 @@ public final class FederatedComputeManager {
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<Object, Exception> callback) {
         Objects.requireNonNull(populationName);
-        final IFederatedComputeService service = mServiceBinder.getService(executor);
         try {
+            final IFederatedComputeService service = mServiceBinder.getService(executor);
             IFederatedComputeCallback federatedComputeCallback =
                     new IFederatedComputeCallback.Stub() {
                         @Override
