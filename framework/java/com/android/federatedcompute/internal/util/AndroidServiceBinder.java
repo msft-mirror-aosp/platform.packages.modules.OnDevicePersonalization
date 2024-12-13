@@ -39,6 +39,8 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
     private static final String TAG = AndroidServiceBinder.class.getSimpleName();
 
     private static final int BINDER_CONNECTION_TIMEOUT_MS = 5000;
+    private static final int MAX_GET_SERVICE_RETRIES = 2;
+    private static final long GET_SERVICE_RETRY_DELAY_MS = 100L;
     private final String mServiceIntentActionOrName;
     private final List<String> mServicePackages;
     private final Function<IBinder, T> mBinderConverter;
@@ -143,6 +145,36 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
 
     @Override
     public T getService(@NonNull Executor executor) {
+        int retryAttempts = 0;
+        T service;
+        IllegalStateException exceptionInfo = null;
+
+        while (retryAttempts < MAX_GET_SERVICE_RETRIES) {
+            try {
+                service = getServiceWithoutRetry(executor);
+                if (service != null) {
+                    return service;
+                }
+            } catch (IllegalStateException e) {
+                LogUtil.e(TAG, e, "Failed to get service on attempt " + (retryAttempts + 1));
+                exceptionInfo = e;
+            }
+            retryAttempts++;
+            try {
+                Thread.sleep(GET_SERVICE_RETRY_DELAY_MS);
+            } catch (InterruptedException e) {
+                LogUtil.w(TAG, "Thread sleep interrupted");
+            }
+        }
+
+        throw exceptionInfo != null
+            ? exceptionInfo
+            : new IllegalStateException(
+                String.format("Failed to get non-null service %s after %d retries",
+                    mServiceIntentActionOrName, retryAttempts));
+    }
+
+    private T getServiceWithoutRetry(@NonNull Executor executor) {
         synchronized (mLock) {
             if (mService != null) {
                 return mService;
@@ -183,7 +215,8 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
                 LogUtil.i(TAG, "bindService() %s already pending...", mServiceIntentActionOrName);
             }
         }
-        // Release the lock to let the ServiceConnection set the mService
+        // Release the lock to let the ServiceConnection set the mService. If unbind race condition
+        // happen here (e.g. onBindingDied called) client should retry
         try {
             mConnectionCountDownLatch.await(BINDER_CONNECTION_TIMEOUT_MS, MILLISECONDS);
         } catch (InterruptedException e) {
@@ -271,7 +304,11 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
         synchronized (mLock) {
             if (mServiceConnection != null) {
                 LogUtil.d(TAG, "unbinding %s...", mServiceIntentActionOrName);
-                mContext.unbindService(mServiceConnection);
+                try {
+                    mContext.unbindService(mServiceConnection);
+                } catch (IllegalArgumentException e) {
+                    LogUtil.e(TAG, e, "unbinding failed %s", mServiceIntentActionOrName);
+                }
             }
             mServiceConnection = null;
             mService = null;

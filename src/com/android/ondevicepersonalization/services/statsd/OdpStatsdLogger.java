@@ -17,9 +17,11 @@
 package com.android.ondevicepersonalization.services.statsd;
 
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ONDEVICEPERSONALIZATION_API_CALLED;
+import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__ADSERVICES_GET_COMMON_STATES;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__EVENT_URL_CREATE_WITH_REDIRECT;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__EVENT_URL_CREATE_WITH_RESPONSE;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__EXECUTE;
+import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__FEDERATED_COMPUTE_CANCEL;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__FEDERATED_COMPUTE_SCHEDULE;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__LOCAL_DATA_GET;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__LOCAL_DATA_KEYSET;
@@ -28,6 +30,7 @@ import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLo
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__LOG_READER_GET_JOINED_EVENTS;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__LOG_READER_GET_REQUESTS;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__MODEL_MANAGER_RUN;
+import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__NOTIFY_MEASUREMENT_EVENT;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__REMOTE_DATA_GET;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__REMOTE_DATA_KEYSET;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__REQUEST_SURFACE_PACKAGE;
@@ -46,9 +49,11 @@ import java.util.Set;
 public class OdpStatsdLogger {
     private static volatile OdpStatsdLogger sStatsdLogger = null;
     private static final Set<Integer> sApiNames = Set.of(
+            ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__ADSERVICES_GET_COMMON_STATES,
             ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__EVENT_URL_CREATE_WITH_REDIRECT,
             ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__EVENT_URL_CREATE_WITH_RESPONSE,
             ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__EXECUTE,
+            ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__FEDERATED_COMPUTE_CANCEL,
             ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__FEDERATED_COMPUTE_SCHEDULE,
             ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__LOCAL_DATA_GET,
             ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__LOCAL_DATA_KEYSET,
@@ -57,6 +62,7 @@ public class OdpStatsdLogger {
             ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__LOG_READER_GET_JOINED_EVENTS,
             ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__LOG_READER_GET_REQUESTS,
             ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__MODEL_MANAGER_RUN,
+            ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__NOTIFY_MEASUREMENT_EVENT,
             ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__REMOTE_DATA_GET,
             ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__REMOTE_DATA_KEYSET,
             ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__REQUEST_SURFACE_PACKAGE,

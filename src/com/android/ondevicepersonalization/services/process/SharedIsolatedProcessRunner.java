@@ -28,6 +28,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
+import android.os.Binder;
 import android.os.Bundle;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
@@ -37,19 +38,23 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
 import com.android.odp.module.common.PackageUtils;
+import com.android.ondevicepersonalization.internal.util.ExceptionInfo;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.StableFlags;
+import com.android.ondevicepersonalization.services.data.errors.AggregatedErrorCodesLogger;
 import com.android.ondevicepersonalization.services.util.AllowListUtils;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 
 /** Utilities for running remote isolated services in a shared isolated process (SIP). Note that
  *  this runner is only selected when the shared_isolated_process_feature_enabled flag is enabled.
@@ -69,6 +74,7 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
     private final Context mApplicationContext;
     private final Injector mInjector;
 
+    @VisibleForTesting
     static class Injector {
         Clock getClock() {
             return MonotonicClock.getInstance();
@@ -78,9 +84,9 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
             return OnDevicePersonalizationExecutors.getBackgroundExecutor();
         }
     }
-    SharedIsolatedProcessRunner(
-            @NonNull Context applicationContext,
-            @NonNull Injector injector) {
+
+    @VisibleForTesting
+    SharedIsolatedProcessRunner(@NonNull Context applicationContext, @NonNull Injector injector) {
         mApplicationContext = Objects.requireNonNull(applicationContext);
         mInjector = Objects.requireNonNull(injector);
     }
@@ -110,20 +116,34 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
             return FluentFuture.from(isolatedServiceFuture)
                     .transformAsync(
                             (isolatedService) -> {
-                                try {
-                                    return Futures.immediateFuture(new IsolatedServiceInfo(
-                                            mInjector.getClock().elapsedRealtime(), componentName,
-                                            /* pluginController= */ null, isolatedService));
-                                } catch (Exception e) {
-                                    return Futures.immediateFailedFuture(e);
-                                }
-                            }, mInjector.getExecutor())
+                                return Futures.immediateFuture(
+                                        new IsolatedServiceInfo(
+                                                mInjector.getClock().elapsedRealtime(),
+                                                componentName,
+                                                isolatedService));
+                            },
+                            mInjector.getExecutor())
                     .catchingAsync(
                             Exception.class,
-                            Futures::immediateFailedFuture,
+                            e -> {
+                                sLogger.d(
+                                        TAG
+                                                + ": loading of isolated service failed for "
+                                                + componentName,
+                                        e);
+                                // Return OdpServiceException if the exception thrown was not
+                                // already an OdpServiceException.
+                                if (e instanceof OdpServiceException) {
+                                    return Futures.immediateFailedFuture(e);
+                                }
+                                return Futures.immediateFailedFuture(
+                                        new OdpServiceException(
+                                            Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED, e));
+                            },
                             mInjector.getExecutor());
         } catch (Exception e) {
-            return Futures.immediateFailedFuture(e);
+            return Futures.immediateFailedFuture(
+                    new OdpServiceException(Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED, e));
         }
     }
 
@@ -133,36 +153,76 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
     public ListenableFuture<Bundle> runIsolatedService(
             @NonNull IsolatedServiceInfo isolatedProcessInfo, int operationCode,
             @NonNull Bundle serviceParams) {
-        return CallbackToFutureAdapter.getFuture(
-                completer -> {
-                    isolatedProcessInfo.getIsolatedServiceBinder()
-                            .getService(Runnable::run)
-                            .onRequest(
-                                    operationCode, serviceParams,
+        IIsolatedService service;
+        try {
+            service = isolatedProcessInfo.getIsolatedServiceBinder().getService(Runnable::run);
+        } catch (Exception e) {
+            // Failure in loading/connecting to the IsolatedService vs actual issue
+            // in running the IsolatedService code via the onRequest call below.
+            sLogger.d(TAG + ": unable to get the IsolatedService binder.", e);
+            return Futures.immediateFailedFuture(
+                    new OdpServiceException(Constants.STATUS_ISOLATED_SERVICE_LOADING_FAILED));
+        }
+
+        ListenableFuture<Bundle> callbackFuture =
+                CallbackToFutureAdapter.getFuture(
+                        completer -> {
+                            service.onRequest(
+                                    operationCode,
+                                    serviceParams,
                                     new IIsolatedServiceCallback.Stub() {
-                                        @Override public void onSuccess(Bundle result) {
+                                        @Override
+                                        public void onSuccess(Bundle result) {
                                             completer.set(result);
                                         }
 
-                                        // TO-DO (323882182): Granular isolated servce failures.
-                                        @Override public void onError(
-                                                int errorCode, int isolatedServiceErrorCode) {
-                                            if (isolatedServiceErrorCode > 0
-                                                        && isolatedServiceErrorCode < 128) {
-                                                completer.setException(
-                                                        new OdpServiceException(
-                                                                Constants.STATUS_SERVICE_FAILED,
-                                                                new IsolatedServiceException(
-                                                                    isolatedServiceErrorCode)));
-                                            } else {
-                                                completer.setException(
-                                                        new OdpServiceException(
-                                                                Constants.STATUS_SERVICE_FAILED));
+                                        @Override
+                                        public void onError(
+                                                int errorCode,
+                                                int isolatedServiceErrorCode,
+                                                byte[] serializedExceptionInfo) {
+                                            Exception cause =
+                                                    ExceptionInfo.fromByteArray(
+                                                            serializedExceptionInfo);
+                                            if (isolatedServiceErrorCode > 0) {
+                                                final long token = Binder.clearCallingIdentity();
+                                                try {
+                                                    ListenableFuture<?> unused =
+                                                        AggregatedErrorCodesLogger
+                                                            .logIsolatedServiceErrorCode(
+                                                                isolatedServiceErrorCode,
+                                                                isolatedProcessInfo
+                                                                    .getComponentName(),
+                                                                mApplicationContext);
+                                                } finally {
+                                                    Binder.restoreCallingIdentity(token);
+                                                }
+                                                cause =
+                                                        new IsolatedServiceException(
+                                                                isolatedServiceErrorCode, cause);
                                             }
+                                            completer.setException(
+                                                    new OdpServiceException(
+                                                            Constants.STATUS_SERVICE_FAILED,
+                                                            cause));
                                         }
                                     });
-                    return null;
-                });
+                            // used for debugging purpose only.
+                            return "IsolatedService.onRequest";
+                        });
+        return FluentFuture.from(callbackFuture)
+                .catchingAsync(
+                        Throwable.class, // Catch FutureGarbageCollectedException
+                        e -> {
+                            return (e instanceof IsolatedServiceException
+                                            || e instanceof OdpServiceException)
+                                    ? Futures.immediateFailedFuture(e)
+                                    : Futures.immediateFailedFuture(
+                                            new TimeoutException(
+                                                    "Callback to future adapter was garbage"
+                                                            + " collected."));
+                        },
+                        mInjector.getExecutor());
     }
 
     /** Unbinds from the remote isolated service. */
@@ -194,9 +254,10 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                 instanceName, bindFlag, IIsolatedService.Stub::asInterface);
     }
 
+    @VisibleForTesting
     String getSipInstanceName(String packageName) {
         String partnerAppsList =
-                (String) FlagsFactory.getFlags().getStableFlag(KEY_TRUSTED_PARTNER_APPS_LIST);
+                (String) StableFlags.get(KEY_TRUSTED_PARTNER_APPS_LIST);
         String packageCertificate = null;
         try {
             packageCertificate = PackageUtils.getCertDigest(mApplicationContext, packageName);
@@ -206,12 +267,11 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
         boolean isPartnerApp = AllowListUtils.isAllowListed(
                 packageName, packageCertificate, partnerAppsList);
         String sipInstanceName = isPartnerApp ? TRUSTED_PARTNER_APPS_SIP : UNKNOWN_APPS_SIP;
-        return (boolean) FlagsFactory.getFlags()
-                .getStableFlag(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED)
+        return (boolean) StableFlags.get(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED)
                     ? sipInstanceName + "_disable_art_image_" : sipInstanceName;
     }
 
-    boolean isSharedIsolatedProcessRequested(ComponentName service) throws Exception {
+    private boolean isSharedIsolatedProcessRequested(ComponentName service) throws Exception {
         if (!SdkLevel.isAtLeastU()) {
             return false;
         }
@@ -219,8 +279,13 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
         PackageManager pm = mApplicationContext.getPackageManager();
         ServiceInfo si = pm.getServiceInfo(service, PackageManager.GET_META_DATA);
 
+        sLogger.d(TAG + "Package manager = " + pm);
         if ((si.flags & si.FLAG_ISOLATED_PROCESS) == 0) {
-            throw new IllegalArgumentException("ODP client services should run in isolated processes.");
+            sLogger.e(
+                    TAG, "ODP client service not configured to run in isolated process " + service);
+            throw new OdpServiceException(
+                    Constants.STATUS_MANIFEST_PARSING_FAILED,
+                    "ODP client services should run in isolated processes.");
         }
 
         return (si.flags & si.FLAG_ALLOW_SHARED_ISOLATED_PROCESS) != 0;
