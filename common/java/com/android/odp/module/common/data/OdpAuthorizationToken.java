@@ -22,7 +22,7 @@ import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 @DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
-public class ODPAuthorizationToken {
+public class OdpAuthorizationToken {
     @NonNull private final String mOwnerIdentifier;
 
     @NonNull private final String mAuthorizationToken;
@@ -45,7 +45,7 @@ public class ODPAuthorizationToken {
     // @formatter:off
 
     @DataClass.Generated.Member
-    /* package-private */ ODPAuthorizationToken(
+    /* package-private */ OdpAuthorizationToken(
             @NonNull String ownerIdentifier,
             @NonNull String authorizationToken,
             @NonNull long creationTime,
@@ -92,7 +92,7 @@ public class ODPAuthorizationToken {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        ODPAuthorizationToken that = (ODPAuthorizationToken) o;
+        OdpAuthorizationToken that = (OdpAuthorizationToken) o;
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mOwnerIdentifier, that.mOwnerIdentifier)
@@ -116,7 +116,7 @@ public class ODPAuthorizationToken {
     }
 
     /**
-     * A builder for {@link ODPAuthorizationToken}
+     * A builder for {@link OdpAuthorizationToken}
      *
      * @hide
      */
@@ -181,12 +181,12 @@ public class ODPAuthorizationToken {
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull ODPAuthorizationToken build() {
+        public @NonNull OdpAuthorizationToken build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x10; // Mark builder used
 
-            ODPAuthorizationToken o =
-                    new ODPAuthorizationToken(
+            OdpAuthorizationToken o =
+                    new OdpAuthorizationToken(
                             mOwnerIdentifier, mAuthorizationToken, mCreationTime, mExpiryTime);
             return o;
         }

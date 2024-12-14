@@ -16,7 +16,7 @@
 
 package com.android.odp.module.common.data;
 
-import static com.android.odp.module.common.data.ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE;
+import static com.android.odp.module.common.data.OdpAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE;
 
 import android.annotation.NonNull;
 import android.content.ContentValues;
@@ -27,20 +27,20 @@ import android.database.sqlite.SQLiteException;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
-import com.android.odp.module.common.data.ODPAuthorizationTokenContract.ODPAuthorizationTokenColumns;
+import com.android.odp.module.common.data.OdpAuthorizationTokenContract.ODPAuthorizationTokenColumns;
 
 import com.google.common.annotations.VisibleForTesting;
 
-public class ODPAuthorizationTokenDao {
-    private static final String TAG = ODPAuthorizationTokenDao.class.getSimpleName();
+public class OdpAuthorizationTokenDao {
+    private static final String TAG = OdpAuthorizationTokenDao.class.getSimpleName();
 
     private final OdpSQLiteOpenHelper mDbHelper;
 
     private final Clock mClock;
 
-    private static volatile ODPAuthorizationTokenDao sSingletonInstance;
+    private static volatile OdpAuthorizationTokenDao sSingletonInstance;
 
-    private ODPAuthorizationTokenDao(OdpSQLiteOpenHelper dbHelper, Clock clock) {
+    private OdpAuthorizationTokenDao(OdpSQLiteOpenHelper dbHelper, Clock clock) {
         mDbHelper = dbHelper;
         mClock = clock;
     }
@@ -49,12 +49,12 @@ public class ODPAuthorizationTokenDao {
      * @return an instance of ODPAuthorizationTokenDao given a context
      */
     @NonNull
-    public static ODPAuthorizationTokenDao getInstance(OdpSQLiteOpenHelper dbHelper) {
+    public static OdpAuthorizationTokenDao getInstance(OdpSQLiteOpenHelper dbHelper) {
         if (sSingletonInstance == null) {
-            synchronized (ODPAuthorizationTokenDao.class) {
+            synchronized (OdpAuthorizationTokenDao.class) {
                 if (sSingletonInstance == null) {
                     sSingletonInstance =
-                            new ODPAuthorizationTokenDao(dbHelper, MonotonicClock.getInstance());
+                            new OdpAuthorizationTokenDao(dbHelper, MonotonicClock.getInstance());
                 }
             }
         }
@@ -63,12 +63,12 @@ public class ODPAuthorizationTokenDao {
 
     /** Return a test instance with in-memory database. It is for test only. */
     @VisibleForTesting
-    public static ODPAuthorizationTokenDao getInstanceForTest(OdpSQLiteOpenHelper dbHelper) {
+    public static OdpAuthorizationTokenDao getInstanceForTest(OdpSQLiteOpenHelper dbHelper) {
         if (sSingletonInstance == null) {
-            synchronized (ODPAuthorizationTokenDao.class) {
+            synchronized (OdpAuthorizationTokenDao.class) {
                 if (sSingletonInstance == null) {
                     sSingletonInstance =
-                            new ODPAuthorizationTokenDao(dbHelper, MonotonicClock.getInstance());
+                            new OdpAuthorizationTokenDao(dbHelper, MonotonicClock.getInstance());
                 }
             }
         }
@@ -76,7 +76,7 @@ public class ODPAuthorizationTokenDao {
     }
 
     /** Insert a token to the odp authorization token table. */
-    public boolean insertAuthorizationToken(ODPAuthorizationToken authorizationToken) {
+    public boolean insertAuthorizationToken(OdpAuthorizationToken authorizationToken) {
         SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
         if (db == null) {
             throw new SQLiteException(TAG + ": Failed to open database.");
@@ -104,7 +104,7 @@ public class ODPAuthorizationTokenDao {
      *
      * @return an unexpired authorization token.
      */
-    public ODPAuthorizationToken getUnexpiredAuthorizationToken(String ownerIdentifier) {
+    public OdpAuthorizationToken getUnexpiredAuthorizationToken(String ownerIdentifier) {
         String selection =
                 ODPAuthorizationTokenColumns.EXPIRY_TIME
                         + " > ? "
@@ -154,7 +154,7 @@ public class ODPAuthorizationTokenDao {
         return deletedRows;
     }
 
-    private ODPAuthorizationToken readTokenFromDatabase(
+    private OdpAuthorizationToken readTokenFromDatabase(
             String selection, String[] selectionArgs, String orderBy) {
         SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
         if (db == null) {
@@ -169,7 +169,7 @@ public class ODPAuthorizationTokenDao {
         };
 
         Cursor cursor = null;
-        ODPAuthorizationToken authToken = null;
+        OdpAuthorizationToken authToken = null;
         try {
             cursor =
                     db.query(
@@ -182,8 +182,8 @@ public class ODPAuthorizationTokenDao {
                             /* orderBy= */ orderBy,
                             /* limit= */ String.valueOf(1));
             while (cursor.moveToNext()) {
-                ODPAuthorizationToken.Builder encryptionKeyBuilder =
-                        new ODPAuthorizationToken.Builder(
+                OdpAuthorizationToken.Builder encryptionKeyBuilder =
+                        new OdpAuthorizationToken.Builder(
                                 cursor.getString(
                                         cursor.getColumnIndexOrThrow(
                                                 ODPAuthorizationTokenColumns.OWNER_IDENTIFIER)),

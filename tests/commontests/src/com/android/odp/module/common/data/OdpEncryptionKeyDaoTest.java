@@ -276,7 +276,7 @@ public class OdpEncryptionKeyDaoTest {
         @Override
         public void onCreate(SQLiteDatabase db) {
             db.execSQL(OdpEncryptionKeyContract.CREATE_ENCRYPTION_KEY_TABLE);
-            db.execSQL(ODPAuthorizationTokenContract.CREATE_ODP_AUTHORIZATION_TOKEN_TABLE);
+            db.execSQL(OdpAuthorizationTokenContract.CREATE_ODP_AUTHORIZATION_TOKEN_TABLE);
         }
 
         @Override

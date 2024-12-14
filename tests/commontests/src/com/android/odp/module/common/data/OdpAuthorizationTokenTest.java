@@ -26,7 +26,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4.class)
-public class ODPAuthorizationTokenTest {
+public class OdpAuthorizationTokenTest {
     private static final String TOKEN = "b3c4dc4a-768b-415d-8adb-d3aa2206b7bb";
 
     private static final String OWNER_IDENTIFIER = "atp1";
@@ -39,15 +39,15 @@ public class ODPAuthorizationTokenTest {
 
     @Test
     public void testBuilderAndEquals() {
-        ODPAuthorizationToken token1 =
-                new ODPAuthorizationToken.Builder()
+        OdpAuthorizationToken token1 =
+                new OdpAuthorizationToken.Builder()
                         .setOwnerIdentifier(OWNER_IDENTIFIER)
                         .setAuthorizationToken(TOKEN)
                         .setCreationTime(NOW)
                         .setExpiryTime(NOW + ONE_HOUR)
                         .build();
-        ODPAuthorizationToken token2 =
-                new ODPAuthorizationToken.Builder()
+        OdpAuthorizationToken token2 =
+                new OdpAuthorizationToken.Builder()
                         .setOwnerIdentifier(OWNER_IDENTIFIER)
                         .setAuthorizationToken(TOKEN)
                         .setCreationTime(NOW)
@@ -56,8 +56,8 @@ public class ODPAuthorizationTokenTest {
 
         assertEquals(token1, token2);
 
-        ODPAuthorizationToken token3 =
-                new ODPAuthorizationToken.Builder()
+        OdpAuthorizationToken token3 =
+                new OdpAuthorizationToken.Builder()
                         .setOwnerIdentifier(OWNER_IDENTIFIER2)
                         .setAuthorizationToken(TOKEN)
                         .setCreationTime(NOW)
@@ -70,8 +70,8 @@ public class ODPAuthorizationTokenTest {
 
     @Test
     public void testBuildTwiceThrows() {
-        ODPAuthorizationToken.Builder builder =
-                new ODPAuthorizationToken.Builder()
+        OdpAuthorizationToken.Builder builder =
+                new OdpAuthorizationToken.Builder()
                         .setOwnerIdentifier(OWNER_IDENTIFIER)
                         .setAuthorizationToken(TOKEN)
                         .setCreationTime(NOW)

@@ -98,7 +98,7 @@ import com.android.federatedcompute.services.training.util.TrainingConditionsChe
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 import com.android.odp.module.common.MonotonicClock;
-import com.android.odp.module.common.data.ODPAuthorizationTokenDao;
+import com.android.odp.module.common.data.OdpAuthorizationTokenDao;
 import com.android.odp.module.common.encryption.HpkeJniEncrypter;
 import com.android.odp.module.common.encryption.OdpEncryptionKey;
 import com.android.odp.module.common.encryption.OdpEncryptionKeyManager;
@@ -1168,7 +1168,7 @@ public final class FederatedComputeWorkerTest {
             return new AuthorizationContext(
                     ownerId,
                     owerCert,
-                    ODPAuthorizationTokenDao.getInstanceForTest(
+                    OdpAuthorizationTokenDao.getInstanceForTest(
                             FederatedComputeDbHelper.getInstanceForTest(context)),
                     mMockKeyAttestation,
                     MonotonicClock.getInstance());
