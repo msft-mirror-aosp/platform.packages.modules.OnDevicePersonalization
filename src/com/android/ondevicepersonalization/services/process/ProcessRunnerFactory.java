@@ -16,7 +16,7 @@
 
 package com.android.ondevicepersonalization.services.process;
 
-import com.android.ondevicepersonalization.services.PhFlags;
+import com.android.ondevicepersonalization.services.FlagsConstants;
 import com.android.ondevicepersonalization.services.StableFlags;
 
 /** Creates a ProcessRunner */
@@ -26,7 +26,7 @@ public class ProcessRunnerFactory {
         static final ProcessRunner LAZY_INSTANCE = createProcessRunner();
 
         private static ProcessRunner createProcessRunner() {
-            return (boolean) StableFlags.get(PhFlags.KEY_PLUGIN_PROCESS_RUNNER_ENABLED)
+            return (boolean) StableFlags.get(FlagsConstants.KEY_PLUGIN_PROCESS_RUNNER_ENABLED)
                     ? new PluginProcessRunner()
                     : new IsolatedServiceBindingRunner();
         }

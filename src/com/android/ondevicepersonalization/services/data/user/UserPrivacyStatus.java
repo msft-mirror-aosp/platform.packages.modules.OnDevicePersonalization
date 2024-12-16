@@ -29,9 +29,9 @@ import static android.adservices.ondevicepersonalization.Constants.STATUS_TIMEOU
 
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_REMOTE_EXCEPTION;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_USER_CONTROL_CACHE_IN_MILLIS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_USER_CONTROL_CACHE_IN_MILLIS;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.Clock;

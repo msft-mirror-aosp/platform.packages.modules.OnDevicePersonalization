@@ -16,14 +16,14 @@
 
 package com.android.ondevicepersonalization.services;
 
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_CALLER_APP_ALLOW_LIST;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_AGGREGATED_ERROR_REPORTING;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_ALLOW_LIST;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_SPE_PILOT_JOB_ENABLED;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_OUTPUT_DATA_ALLOW_LIST;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_CALLER_APP_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_AGGREGATED_ERROR_REPORTING;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_GLOBAL_KILL_SWITCH;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ISOLATED_SERVICE_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_SPE_PILOT_JOB_ENABLED;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_OUTPUT_DATA_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 
 import android.provider.DeviceConfig;
 
