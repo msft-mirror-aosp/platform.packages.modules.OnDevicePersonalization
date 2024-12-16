@@ -48,13 +48,13 @@ import com.android.adservices.shared.spe.scheduling.JobSpec;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
-import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
 import com.android.federatedcompute.services.scheduling.DeleteExpiredJob.Injector;
 import com.android.federatedcompute.services.sharedlibrary.spe.FederatedComputeJobScheduler;
 import com.android.federatedcompute.services.sharedlibrary.spe.FederatedComputeJobServiceFactory;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.data.OdpAuthorizationTokenDao;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -87,7 +87,7 @@ public class DeleteExpiredJobTest {
     @Mock private FederatedComputeJobScheduler mMockFederatedComputeJobScheduler;
     @Mock private FederatedComputeJobServiceFactory mMockFederatedComputeJobServiceFactory;
 
-    @Mock private ODPAuthorizationTokenDao mMockOdpAuthorizationTokenDao;
+    @Mock private OdpAuthorizationTokenDao mMockOdpAuthorizationTokenDao;
     @Mock private FederatedTrainingTaskDao mMockFederatedTrainingTaskDao;
     @Mock private Clock mMockClock;
 
@@ -202,7 +202,7 @@ public class DeleteExpiredJobTest {
         }
 
         @Override
-        ODPAuthorizationTokenDao getODPAuthorizationTokenDao(Context context) {
+        OdpAuthorizationTokenDao getODPAuthorizationTokenDao(Context context) {
             return mMockOdpAuthorizationTokenDao;
         }
 

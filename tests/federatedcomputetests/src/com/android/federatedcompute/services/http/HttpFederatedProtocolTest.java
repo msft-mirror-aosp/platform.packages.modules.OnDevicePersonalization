@@ -18,15 +18,15 @@ package com.android.federatedcompute.services.http;
 
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_ENCODING_HDR;
-import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.FCP_OWNER_ID_DIGEST;
-import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_UNAUTHENTICATED_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_AUTHENTICATION_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_AUTHORIZATION_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
 import static com.android.odp.module.common.FileUtils.createTempFile;
+import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_LENGTH_HDR;
 import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_TYPE_HDR;
+import static com.android.odp.module.common.http.HttpClientUtils.GZIP_ENCODING_HDR;
 import static com.android.odp.module.common.http.HttpClientUtils.PROTOBUF_CONTENT_TYPE;
 import static com.android.odp.module.common.http.HttpClientUtils.compressWithGzip;
 
@@ -57,8 +57,6 @@ import com.android.federatedcompute.services.common.NetworkStats;
 import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
-import com.android.federatedcompute.services.data.ODPAuthorizationToken;
-import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
 import com.android.federatedcompute.services.security.AuthorizationContext;
 import com.android.federatedcompute.services.security.KeyAttestation;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
@@ -66,6 +64,8 @@ import com.android.federatedcompute.services.training.util.ComputationResult;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.data.OdpAuthorizationToken;
+import com.android.odp.module.common.data.OdpAuthorizationTokenDao;
 import com.android.odp.module.common.encryption.HpkeJniEncrypter;
 import com.android.odp.module.common.encryption.OdpEncryptionKey;
 import com.android.odp.module.common.http.HttpClient;
@@ -87,13 +87,13 @@ import com.google.internal.federatedcompute.v1.RejectionReason;
 import com.google.internal.federatedcompute.v1.Resource;
 import com.google.internal.federatedcompute.v1.ResourceCapabilities;
 import com.google.internal.federatedcompute.v1.ResourceCompressionFormat;
-import com.google.internal.federatedcompute.v1.UploadInstruction;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentRequest;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentResponse;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultRequest;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultRequest.Result;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultResponse;
 import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
+import com.google.ondevicepersonalization.federatedcompute.proto.UploadInstruction;
 import com.google.protobuf.ByteString;
 
 import org.json.JSONArray;
@@ -213,6 +213,8 @@ public final class HttpFederatedProtocolTest {
             new OdpHttpResponse.Builder().setStatusCode(200).build();
     private static final long ODP_AUTHORIZATION_TOKEN_TTL = 30 * 24 * 60 * 60 * 1000L;
 
+    private static final Context sTestContent = ApplicationProvider.getApplicationContext();
+
     @Captor private ArgumentCaptor<OdpHttpRequest> mHttpRequestCaptor;
 
     @Mock private HttpClient mMockHttpClient;
@@ -231,9 +233,9 @@ public final class HttpFederatedProtocolTest {
     private ArgumentCaptor<NetworkStats> mNetworkStatsArgumentCaptor =
             ArgumentCaptor.forClass(NetworkStats.class);
 
-    private ODPAuthorizationTokenDao mODPAuthorizationTokenDao;
+    private OdpAuthorizationTokenDao mOdpAuthorizationTokenDao;
 
-    private Clock mClock = MonotonicClock.getInstance();
+    private final Clock mClock = MonotonicClock.getInstance();
 
     @Mock private KeyAttestation mMockKeyAttestation;
 
@@ -241,9 +243,9 @@ public final class HttpFederatedProtocolTest {
 
     @Before
     public void setUp() throws Exception {
-        mODPAuthorizationTokenDao =
-                ODPAuthorizationTokenDao.getInstanceForTest(
-                        ApplicationProvider.getApplicationContext());
+        mOdpAuthorizationTokenDao =
+                OdpAuthorizationTokenDao.getInstanceForTest(
+                        FederatedComputeDbHelper.getInstanceForTest(sTestContent));
         mHttpFederatedProtocol =
                 new HttpFederatedProtocol(
                         TASK_ASSIGNMENT_TARGET_URI,
@@ -266,8 +268,7 @@ public final class HttpFederatedProtocolTest {
     @After
     public void cleanUp() {
         FederatedComputeDbHelper dbHelper =
-                FederatedComputeDbHelper.getInstanceForTest(
-                        ApplicationProvider.getApplicationContext());
+                FederatedComputeDbHelper.getInstanceForTest(sTestContent);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
@@ -400,9 +401,9 @@ public final class HttpFederatedProtocolTest {
     public void testIssueCheckin_withAuthToken_success() throws Exception {
 
         // insert authorization token
-        ODPAuthorizationToken authToken = createAuthToken();
-        mODPAuthorizationTokenDao.insertAuthorizationToken(authToken);
-        assertThat(mODPAuthorizationTokenDao.getUnexpiredAuthorizationToken(OWNER_ID))
+        OdpAuthorizationToken authToken = createAuthToken();
+        mOdpAuthorizationTokenDao.insertAuthorizationToken(authToken);
+        assertThat(mOdpAuthorizationTokenDao.getUnexpiredAuthorizationToken(OWNER_ID))
                 .isEqualTo(authToken);
         setUpHttpFederatedProtocol();
 
@@ -427,7 +428,7 @@ public final class HttpFederatedProtocolTest {
                 .isEqualTo(false);
 
         // the old authorization token is not deleted
-        assertThat(mODPAuthorizationTokenDao.getUnexpiredAuthorizationToken(OWNER_ID))
+        assertThat(mOdpAuthorizationTokenDao.getUnexpiredAuthorizationToken(OWNER_ID))
                 .isEqualTo(authToken);
     }
 
@@ -505,12 +506,12 @@ public final class HttpFederatedProtocolTest {
         verify(mTrainingEventLogger, times(1)).logTaskAssignmentAuthSucceeded();
         // A new authorization token is stored in DB
         assertThat(
-                        mODPAuthorizationTokenDao
+                        mOdpAuthorizationTokenDao
                                 .getUnexpiredAuthorizationToken(OWNER_ID)
                                 .getAuthorizationToken())
                 .isNotNull();
         assertThat(
-                        mODPAuthorizationTokenDao
+                        mOdpAuthorizationTokenDao
                                 .getUnexpiredAuthorizationToken(OWNER_ID)
                                 .getOwnerIdentifier())
                 .isEqualTo(OWNER_ID);
@@ -1132,9 +1133,9 @@ public final class HttpFederatedProtocolTest {
 
     private void insertAuthToken() {
         // insert authorization token
-        ODPAuthorizationToken authToken = createAuthToken();
-        mODPAuthorizationTokenDao.insertAuthorizationToken(authToken);
-        assertThat(mODPAuthorizationTokenDao.getUnexpiredAuthorizationToken(OWNER_ID))
+        OdpAuthorizationToken authToken = createAuthToken();
+        mOdpAuthorizationTokenDao.insertAuthorizationToken(authToken);
+        assertThat(mOdpAuthorizationTokenDao.getUnexpiredAuthorizationToken(OWNER_ID))
                 .isEqualTo(authToken);
     }
 
@@ -1142,7 +1143,7 @@ public final class HttpFederatedProtocolTest {
         return new AuthorizationContext(
                 OWNER_ID,
                 OWNER_ID_CERT_DIGEST,
-                mODPAuthorizationTokenDao,
+                mOdpAuthorizationTokenDao,
                 mMockKeyAttestation,
                 mClock);
     }
@@ -1152,7 +1153,7 @@ public final class HttpFederatedProtocolTest {
                 new AuthorizationContext(
                         OWNER_ID,
                         OWNER_ID_CERT_DIGEST,
-                        mODPAuthorizationTokenDao,
+                        mOdpAuthorizationTokenDao,
                         mMockKeyAttestation,
                         mClock);
         // Pretend 1st try failed.
@@ -1164,9 +1165,8 @@ public final class HttpFederatedProtocolTest {
         String testUriPrefix =
                 "android.resource://com.android.ondevicepersonalization.federatedcomputetests/raw/";
         File outputCheckpointFile = File.createTempFile("output", ".ckp");
-        Context context = ApplicationProvider.getApplicationContext();
         Uri checkpointUri = Uri.parse(testUriPrefix + "federation_test_checkpoint_client");
-        InputStream in = context.getContentResolver().openInputStream(checkpointUri);
+        InputStream in = sTestContent.getContentResolver().openInputStream(checkpointUri);
         java.nio.file.Files.copy(in, outputCheckpointFile.toPath(), REPLACE_EXISTING);
         in.close();
         outputCheckpointFile.deleteOnExit();
@@ -1328,8 +1328,8 @@ public final class HttpFederatedProtocolTest {
         return CreateTaskAssignmentResponse.newBuilder().setTaskAssignment(taskAssignment).build();
     }
 
-    private ODPAuthorizationToken createAuthToken() {
-        return new ODPAuthorizationToken.Builder(
+    private OdpAuthorizationToken createAuthToken() {
+        return new OdpAuthorizationToken.Builder(
                         OWNER_ID,
                         TOKEN,
                         mClock.currentTimeMillis(),

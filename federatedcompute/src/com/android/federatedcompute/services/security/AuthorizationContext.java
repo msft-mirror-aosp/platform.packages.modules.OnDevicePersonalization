@@ -27,11 +27,13 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
-import com.android.federatedcompute.services.data.ODPAuthorizationToken;
-import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
+import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
+import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.data.OdpAuthorizationToken;
+import com.android.odp.module.common.data.OdpAuthorizationTokenDao;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -47,8 +49,8 @@ import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
+/** Manages the details of authenticating with remote server. */
 public class AuthorizationContext {
 
     private static final String TAG = AuthorizationContext.class.getSimpleName();
@@ -56,11 +58,15 @@ public class AuthorizationContext {
     @NonNull private final String mOwnerId;
     @NonNull private final String mOwnerCert;
 
-    @Nullable private List<String> mAttestationRecord = null;
+    @GuardedBy("this")
+    @Nullable
+    private List<String> mAttestationRecord = null;
 
-    private final AtomicInteger mTryCount = new AtomicInteger(1);
+    @GuardedBy("this")
+    private int mTryCount = 1;
+
     private final KeyAttestation mKeyAttestation;
-    private final ODPAuthorizationTokenDao mAuthorizationTokenDao;
+    private final OdpAuthorizationTokenDao mAuthorizationTokenDao;
     private final Clock mClock;
 
     private static final int BLOCKING_QUEUE_TIMEOUT_IN_SECONDS = 2;
@@ -69,7 +75,7 @@ public class AuthorizationContext {
     public AuthorizationContext(
             @NonNull String ownerId,
             @NonNull String ownerCert,
-            ODPAuthorizationTokenDao authorizationTokenDao,
+            OdpAuthorizationTokenDao authorizationTokenDao,
             KeyAttestation keyAttestation,
             Clock clock) {
         mOwnerId = ownerId;
@@ -85,13 +91,13 @@ public class AuthorizationContext {
         return new AuthorizationContext(
                 ownerId,
                 ownerCert,
-                ODPAuthorizationTokenDao.getInstance(context),
+                OdpAuthorizationTokenDao.getInstance(FederatedComputeDbHelper.getInstance(context)),
                 KeyAttestation.getInstance(context),
                 MonotonicClock.getInstance());
     }
 
-    public boolean isFirstAuthTry() {
-        return mTryCount.get() == 1;
+    public synchronized boolean isFirstAuthTry() {
+        return mTryCount == 1;
     }
 
     @NonNull
@@ -105,20 +111,20 @@ public class AuthorizationContext {
     }
 
     @Nullable
-    public List<String> getAttestationRecord() {
+    public synchronized List<String> getAttestationRecord() {
         return mAttestationRecord;
     }
 
     /**
      * Updates authentication state e.g. update retry count, generate attestation record if needed.
      */
-    public void updateAuthState(
+    public synchronized void updateAuthState(
             AuthenticationMetadata authMetadata, TrainingEventLogger trainingEventLogger) {
         // TODO: introduce auth state if we plan to auth more than twice.
         // After first authentication failed, we will clean up expired token and generate
         // key attestation records using server provided challenge for second try.
-        if (mTryCount.get() == 1) {
-            mTryCount.incrementAndGet();
+        if (mTryCount == 1) {
+            mTryCount++;
             mAuthorizationTokenDao.deleteAuthorizationToken(mOwnerId);
             long kaStartTime = mClock.currentTimeMillis();
             mAttestationRecord =
@@ -130,19 +136,24 @@ public class AuthorizationContext {
         }
     }
 
-    /** Generates authentication header used for http request. */
+    /**
+     * Generates authentication headers used for http request.
+     *
+     * <p>Returns empty headers if the call to get {@link OdpAuthorizationToken} from the {@link
+     * OdpAuthorizationTokenDao} fails or times out.
+     */
     public Map<String, String> generateAuthHeaders() {
         Map<String, String> headers = new HashMap<>();
-        try {
+        synchronized (this) {
             if (mAttestationRecord != null) {
                 // Only when the device is solving challenge, the attestation record is not null.
                 JSONArray attestationArr = new JSONArray(mAttestationRecord);
                 headers.put(ODP_AUTHENTICATION_KEY, attestationArr.toString());
-                // generate a UUID and the UUID would serve as the authorization token.
+                // Generate a UUID that will serve as the authorization token.
                 String authTokenUUID = UUID.randomUUID().toString();
                 headers.put(ODP_AUTHORIZATION_KEY, authTokenUUID);
-                ODPAuthorizationToken authToken =
-                        new ODPAuthorizationToken.Builder()
+                OdpAuthorizationToken authToken =
+                        new OdpAuthorizationToken.Builder()
                                 .setAuthorizationToken(authTokenUUID)
                                 .setOwnerIdentifier(mOwnerId)
                                 .setCreationTime(mClock.currentTimeMillis())
@@ -155,30 +166,34 @@ public class AuthorizationContext {
                         Futures.submit(
                                 () -> mAuthorizationTokenDao.insertAuthorizationToken(authToken),
                                 FederatedComputeExecutors.getBackgroundExecutor());
+                return headers;
+            }
+        }
+
+        // Get existing OdpAuthorizationToken from the Dao.
+        try {
+            BlockingQueue<AuthTokenCallbackResult> authTokenBlockingQueue =
+                    new ArrayBlockingQueue<>(1);
+            ListenableFuture<AuthTokenCallbackResult> authTokenFuture =
+                    Futures.submit(
+                            () ->
+                                    convertODPAuthToken(
+                                            mAuthorizationTokenDao.getUnexpiredAuthorizationToken(
+                                                    mOwnerId)),
+                            FederatedComputeExecutors.getBackgroundExecutor());
+            Futures.addCallback(
+                    authTokenFuture,
+                    createCallbackForBlockingQueue(authTokenBlockingQueue),
+                    FederatedComputeExecutors.getLightweightExecutor());
+            AuthTokenCallbackResult callbackResult =
+                    authTokenBlockingQueue.poll(
+                            BLOCKING_QUEUE_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS);
+            if (callbackResult.isEmpty()) {
+                LogUtil.e(TAG, "Timed out waiting for  blocking queue.");
             } else {
-                BlockingQueue<AuthTokenCallbackResult> authTokenBlockingQueue =
-                        new ArrayBlockingQueue<>(1);
-                ListenableFuture<AuthTokenCallbackResult> authTokenFuture =
-                        Futures.submit(
-                                () ->
-                                        convertODPAuthToken(
-                                                mAuthorizationTokenDao
-                                                        .getUnexpiredAuthorizationToken(mOwnerId)),
-                                FederatedComputeExecutors.getBackgroundExecutor());
-                Futures.addCallback(
-                        authTokenFuture,
-                        createCallbackForBlockingQueue(authTokenBlockingQueue),
-                        FederatedComputeExecutors.getLightweightExecutor());
-                AuthTokenCallbackResult callbackResult =
-                        authTokenBlockingQueue.poll(
-                                BLOCKING_QUEUE_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS);
-                if (callbackResult.isEmpty()) {
-                    LogUtil.e(TAG, "Timed out waiting for  blocking queue.");
-                } else {
-                    headers.put(
-                            ODP_AUTHORIZATION_KEY,
-                            callbackResult.getAuthToken().getAuthorizationToken());
-                }
+                headers.put(
+                        ODP_AUTHORIZATION_KEY,
+                        callbackResult.getAuthToken().getAuthorizationToken());
             }
         } catch (InterruptedException exception) {
             LogUtil.e(
@@ -204,25 +219,25 @@ public class AuthorizationContext {
         };
     }
 
-    private static AuthTokenCallbackResult convertODPAuthToken(ODPAuthorizationToken authToken) {
+    private static AuthTokenCallbackResult convertODPAuthToken(OdpAuthorizationToken authToken) {
         return new AuthTokenCallbackResult(authToken, authToken == null);
     }
 
     private static class AuthTokenCallbackResult {
-        final ODPAuthorizationToken mAuthToken;
+        final OdpAuthorizationToken mAuthToken;
 
         final boolean mIsEmpty;
 
-        AuthTokenCallbackResult(ODPAuthorizationToken authToken, boolean isEmpty) {
+        AuthTokenCallbackResult(OdpAuthorizationToken authToken, boolean isEmpty) {
             mAuthToken = authToken;
             mIsEmpty = isEmpty;
         }
 
-        ODPAuthorizationToken getAuthToken() {
+        OdpAuthorizationToken getAuthToken() {
             return mAuthToken;
         }
 
-        Boolean isEmpty() {
+        boolean isEmpty() {
             return mIsEmpty;
         }
     }

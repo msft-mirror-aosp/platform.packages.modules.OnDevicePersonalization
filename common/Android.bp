@@ -16,6 +16,29 @@ package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
+java_library {
+    name: "common-ondevicepersonalization-protos",
+    proto: {
+        type: "lite",
+        canonical_path_from_root: false,
+        include_dirs: [
+            "external/protobuf/src",
+            "external/protobuf/java",
+        ],
+    },
+    sdk_version: "system_current",
+    min_sdk_version: "Tiramisu",
+    srcs: [
+        "proto/*.proto",
+        ":libprotobuf-internal-protos",
+    ],
+    visibility: ["//packages/modules/OnDevicePersonalization:__subpackages__"],
+    apex_available: [
+        "com.android.ondevicepersonalization",
+    ],
+    static_libs: ["libprotobuf-java-lite", "guava"]
+}
+
 filegroup {
     name: "common-ondevicepersonalization-sources",
     srcs: [

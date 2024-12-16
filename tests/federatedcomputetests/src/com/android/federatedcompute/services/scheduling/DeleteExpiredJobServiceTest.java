@@ -52,15 +52,15 @@ import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
-import com.android.federatedcompute.services.data.ODPAuthorizationToken;
-import com.android.federatedcompute.services.data.ODPAuthorizationTokenContract;
-import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
 import com.android.federatedcompute.services.data.TaskHistory;
 import com.android.federatedcompute.services.sharedlibrary.spe.FederatedComputeJobScheduler;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.data.OdpAuthorizationToken;
+import com.android.odp.module.common.data.OdpAuthorizationTokenContract;
+import com.android.odp.module.common.data.OdpAuthorizationTokenDao;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -86,7 +86,7 @@ public class DeleteExpiredJobServiceTest {
     private static final String TASK_ID = "task_id";
     private DeleteExpiredJobService mSpyService;
 
-    private ODPAuthorizationTokenDao mSpyAuthTokenDao;
+    private OdpAuthorizationTokenDao mSpyAuthTokenDao;
     private FederatedTrainingTaskDao mTrainingTaskDao;
 
     private Context mContext;
@@ -106,7 +106,10 @@ public class DeleteExpiredJobServiceTest {
         when(mClock.currentTimeMillis()).thenReturn(400L);
         when(mMockFlag.getTaskHistoryTtl()).thenReturn(200L);
         LogUtil.i(TAG, "mSpyAuthTokenDao " + mSpyAuthTokenDao);
-        mSpyAuthTokenDao = spy(ODPAuthorizationTokenDao.getInstanceForTest(mContext));
+        mSpyAuthTokenDao =
+                spy(
+                        OdpAuthorizationTokenDao.getInstanceForTest(
+                                FederatedComputeDbHelper.getInstanceForTest(mContext)));
         mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mContext);
         mSpyService = spy(new DeleteExpiredJobService(new TestInjector()));
 
@@ -144,7 +147,7 @@ public class DeleteExpiredJobServiceTest {
                 FederatedComputeDbHelper.getInstanceForTest(mContext).getReadableDatabase();
         assertThat(
                         DatabaseUtils.queryNumEntries(
-                                db, ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
+                                db, OdpAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
                 .isEqualTo(1);
     }
 
@@ -167,7 +170,7 @@ public class DeleteExpiredJobServiceTest {
                 FederatedComputeDbHelper.getInstanceForTest(mContext).getReadableDatabase();
         assertThat(
                         DatabaseUtils.queryNumEntries(
-                                db, ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
+                                db, OdpAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
                 .isEqualTo(3);
     }
 
@@ -250,13 +253,15 @@ public class DeleteExpiredJobServiceTest {
         assertThat(injector.getExecutor())
                 .isEqualTo(FederatedComputeExecutors.getBackgroundExecutor());
         assertThat(injector.getODPAuthorizationTokenDao(mContext))
-                .isEqualTo(ODPAuthorizationTokenDao.getInstance(mContext));
+                .isEqualTo(
+                        OdpAuthorizationTokenDao.getInstance(
+                                FederatedComputeDbHelper.getInstance(mContext)));
     }
 
-    private ODPAuthorizationToken createExpiredAuthToken(String ownerId) {
+    private OdpAuthorizationToken createExpiredAuthToken(String ownerId) {
         long now = MonotonicClock.getInstance().currentTimeMillis();
-        ODPAuthorizationToken token =
-                new ODPAuthorizationToken.Builder()
+        OdpAuthorizationToken token =
+                new OdpAuthorizationToken.Builder()
                         .setAuthorizationToken(UUID.randomUUID().toString())
                         .setOwnerIdentifier(ownerId)
                         .setCreationTime(now)
@@ -265,11 +270,11 @@ public class DeleteExpiredJobServiceTest {
         return token;
     }
 
-    private ODPAuthorizationToken createUnexpiredAuthToken(String ownerId) {
+    private OdpAuthorizationToken createUnexpiredAuthToken(String ownerId) {
         long now = MonotonicClock.getInstance().currentTimeMillis();
         long ttl = 24 * 60 * 60 * 1000L;
-        ODPAuthorizationToken token =
-                new ODPAuthorizationToken.Builder()
+        OdpAuthorizationToken token =
+                new OdpAuthorizationToken.Builder()
                         .setAuthorizationToken(UUID.randomUUID().toString())
                         .setOwnerIdentifier(ownerId)
                         .setCreationTime(now)
@@ -285,7 +290,7 @@ public class DeleteExpiredJobServiceTest {
         }
 
         @Override
-        ODPAuthorizationTokenDao getODPAuthorizationTokenDao(Context context) {
+        OdpAuthorizationTokenDao getODPAuthorizationTokenDao(Context context) {
             return mSpyAuthTokenDao;
         }
 
