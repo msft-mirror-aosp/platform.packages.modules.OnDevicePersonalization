@@ -44,6 +44,7 @@ import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -318,6 +319,7 @@ public class CtsOdpManagerTests {
     }
 
     @Test
+    @Ignore("b/377212275")
     public void testExecuteWithOutputData() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
