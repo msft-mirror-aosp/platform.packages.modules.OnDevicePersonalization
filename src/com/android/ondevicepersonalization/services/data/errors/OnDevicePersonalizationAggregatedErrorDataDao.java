@@ -186,7 +186,12 @@ class OnDevicePersonalizationAggregatedErrorDataDao {
         return packageVersion;
     }
 
-    /** Delete the existing aggregate exception data for this package. */
+    /**
+     * Delete the existing aggregate exception data for this package.
+     *
+     * <p>For use in tests only.
+     */
+    @VisibleForTesting
     public boolean deleteExceptionData() {
         SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
         if (db == null) {

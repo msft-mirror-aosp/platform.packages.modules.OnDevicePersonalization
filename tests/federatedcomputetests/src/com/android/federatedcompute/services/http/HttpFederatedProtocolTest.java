@@ -243,9 +243,12 @@ public final class HttpFederatedProtocolTest {
 
     @Before
     public void setUp() throws Exception {
+        // Clear any existing data in the token dao.
         mOdpAuthorizationTokenDao =
                 OdpAuthorizationTokenDao.getInstanceForTest(
                         FederatedComputeDbHelper.getInstanceForTest(sTestContent));
+        mOdpAuthorizationTokenDao.deleteAuthorizationToken(OWNER_ID);
+
         mHttpFederatedProtocol =
                 new HttpFederatedProtocol(
                         TASK_ASSIGNMENT_TARGET_URI,
@@ -254,6 +257,7 @@ public final class HttpFederatedProtocolTest {
                         mMockHttpClient,
                         new HpkeJniEncrypter(),
                         mTrainingEventLogger);
+
         doReturn(KA_RECORD).when(mMockKeyAttestation).generateAttestationRecord(any(), any());
         doNothing().when(mTrainingEventLogger).logReportResultUnauthorized();
         doNothing().when(mTrainingEventLogger).logReportResultAuthSucceeded();
