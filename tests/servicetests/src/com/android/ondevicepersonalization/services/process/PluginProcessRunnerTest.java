@@ -16,8 +16,9 @@
 
 package com.android.ondevicepersonalization.services.process;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -34,9 +35,10 @@ public class PluginProcessRunnerTest {
     ProcessRunner mProcessRunner = new PluginProcessRunner(
             ApplicationProvider.getApplicationContext(),
             new PluginProcessRunner.Injector());
+
     @Test
-    public void testGetArchiveList_NullApkList() throws Exception {
-        assertTrue(PluginProcessRunner.getArchiveList(null).isEmpty());
+    public void testGetArchiveList_NullApkList() {
+        assertThat(PluginProcessRunner.getArchiveList(null)).isEmpty();
     }
 
     @Test

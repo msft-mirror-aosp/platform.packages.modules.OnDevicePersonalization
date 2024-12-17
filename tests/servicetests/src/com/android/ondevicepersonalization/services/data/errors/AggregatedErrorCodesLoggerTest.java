@@ -18,6 +18,8 @@ package com.android.ondevicepersonalization.services.data.errors;
 
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -92,7 +94,7 @@ public class AggregatedErrorCodesLoggerTest {
                         TEST_ISOLATED_SERVICE_ERROR_CODE, TEST_COMPONENT_NAME, mContext);
 
         assertTrue(loggingFuture.isDone());
-        assertTrue(mErrorDataDao.getExceptionData().isEmpty());
+        assertThat(mErrorDataDao.getExceptionData()).isEmpty();
     }
 
     @Test
@@ -132,10 +134,9 @@ public class AggregatedErrorCodesLoggerTest {
                 AggregatedErrorCodesLogger.cleanupAggregatedErrorData(mContext);
 
         assertTrue(cleanupFuture.isDone());
-        assertTrue(mErrorDataDao.getExceptionData().isEmpty());
-        assertTrue(
-                OnDevicePersonalizationAggregatedErrorDataDao.getErrorDataTableNames(mContext)
-                        .isEmpty());
+        assertThat(mErrorDataDao.getExceptionData()).isEmpty();
+        assertThat(OnDevicePersonalizationAggregatedErrorDataDao.getErrorDataTableNames(mContext))
+                .isEmpty();
     }
 
     @After
