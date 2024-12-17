@@ -1043,6 +1043,10 @@ public final class FederatedComputeWorkerTest {
                         .setContributionRound(9)
                         .setContributionTime(120L)
                         .build());
+        TaskHistory storedHistory =
+                mTrainingTaskDao.getLatestTaskHistory(JOB_ID, POPULATION_NAME, TASK_ID);
+        // verify insert task history success.
+        assertThat(storedHistory.getContributionRound()).isEqualTo(9);
         setUpExampleStoreService();
         setUpIssueCheckin(FL_CHECKIN_RESULT);
         ArgumentCaptor<ComputationResult> captor = ArgumentCaptor.forClass(ComputationResult.class);
@@ -1068,7 +1072,7 @@ public final class FederatedComputeWorkerTest {
                         .setTaskId(TASK_ID)
                         .setPopulationName(POPULATION_NAME)
                         .setContributionRound(1)
-                        .setContributionTime(120L)
+                        .setContributionTime(20L)
                         .build());
         setUpExampleStoreService();
         setUpHttpFederatedProtocol(FL_CHECKIN_RESULT);
