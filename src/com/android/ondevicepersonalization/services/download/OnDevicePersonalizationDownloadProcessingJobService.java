@@ -17,7 +17,6 @@
 package com.android.ondevicepersonalization.services.download;
 
 import static android.app.job.JobScheduler.RESULT_FAILURE;
-import static android.content.pm.PackageManager.GET_META_DATA;
 
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID;
@@ -28,16 +27,16 @@ import android.app.job.JobScheduler;
 import android.app.job.JobService;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
-import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
+import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.statsd.joblogging.OdpJobServiceLogger;
 
+import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -92,27 +91,17 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
 
         OnDevicePersonalizationExecutors.getHighPriorityBackgroundExecutor().execute(() -> {
             mFutures = new ArrayList<>();
-            PackageManager packageManager = this.getPackageManager();
-
             // Processing installed packages
-            for (PackageInfo packageInfo : packageManager.getInstalledPackages(
-                PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
-                String packageName = packageInfo.packageName;
-                if (AppManifestConfigHelper.manifestContainsOdpSettings(this, packageName)) {
-                    if (!PartnerEnrollmentChecker.isIsolatedServiceEnrolled(packageName)) {
-                        sLogger.d(TAG + ": service %s has ODP manifest, but not enrolled",
-                                packageName);
-                        continue;
-                    }
-                    sLogger.d(TAG + ": service %s has ODP manifest and is enrolled", packageName);
-                    mFutures.add(Futures.submitAsync(
-                        new OnDevicePersonalizationDataProcessingAsyncCallable(packageName, this),
+            for (String packageName : AppManifestConfigHelper.getOdpPackages(
+                    /* context= */ this, /* enrolledOnly= */ true)) {
+                mFutures.add(Futures.submitAsync(
+                        new OnDevicePersonalizationDataProcessingAsyncCallable(
+                                packageName, /* context= */ this),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor()));
-                }
             }
 
             // Handling task completion asynchronously
-            Futures.whenAllComplete(mFutures).call(() -> {
+            var unused = Futures.whenAllComplete(mFutures).call(() -> {
                 boolean wantsReschedule = false;
                 boolean allSuccess = true;
                 int successTaskCount = 0;
@@ -122,20 +111,40 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
                         future.get();
                         successTaskCount++;
                     } catch (Exception e) {
-                        sLogger.e(e, TAG + ": Error processing future");
+                        sLogger.e(e, TAG + ": Error" + " processing" + " future");
                         failureTaskCount++;
                         allSuccess = false;
                     }
                 }
-                sLogger.d(TAG + ": all download processing tasks finished, "
-                        + "%d succeeded, %d failed", successTaskCount, failureTaskCount);
-                OdpJobServiceLogger.getInstance(
-                        OnDevicePersonalizationDownloadProcessingJobService.this)
-                        .recordJobFinished(
-                                DOWNLOAD_PROCESSING_TASK_JOB_ID,
-                                /* isSuccessful = */ allSuccess,
-                                wantsReschedule);
-                jobFinished(params, wantsReschedule);
+                sLogger.d(TAG + ": all download" + " processing tasks"
+                        + " finished, %d succeeded,"
+                        + " %d failed", successTaskCount, failureTaskCount);
+                // Manually trigger MDD garbage collection after finishing processing all downloads.
+                MobileDataDownload mdd = MobileDataDownloadFactory.getMdd(this);
+                boolean isSuccessful = allSuccess;
+                Futures.addCallback(mdd.collectGarbage(), new FutureCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void result) {
+                        OdpJobServiceLogger.getInstance(
+                                OnDevicePersonalizationDownloadProcessingJobService.this)
+                                .recordJobFinished(
+                                    DOWNLOAD_PROCESSING_TASK_JOB_ID,
+                                    /* isSuccessful= */ isSuccessful,
+                                    wantsReschedule);
+                        jobFinished(params, wantsReschedule);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        OdpJobServiceLogger.getInstance(
+                                OnDevicePersonalizationDownloadProcessingJobService.this)
+                                    .recordJobFinished(
+                                        DOWNLOAD_PROCESSING_TASK_JOB_ID,
+                                        /* isSuccessful= */ false,
+                                        wantsReschedule);
+                        jobFinished(params, wantsReschedule);
+                    }
+                }, OnDevicePersonalizationExecutors.getLightweightExecutor());
                 return null;
             }, OnDevicePersonalizationExecutors.getLightweightExecutor());
         });

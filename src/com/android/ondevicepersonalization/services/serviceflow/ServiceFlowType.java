@@ -23,52 +23,35 @@ import static android.adservices.ondevicepersonalization.Constants.OP_TRAINING_E
 import static android.adservices.ondevicepersonalization.Constants.OP_WEB_TRIGGER;
 import static android.adservices.ondevicepersonalization.Constants.OP_WEB_VIEW_EVENT;
 
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_RENDER_FLOW_DEADLINE_SECONDS;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS;
-
-import com.android.ondevicepersonalization.services.FlagsFactory;
-
 /** Collection of on-device personalization service flows. */
 public enum ServiceFlowType {
 
     APP_REQUEST_FLOW(
-            "AppRequest", OP_EXECUTE, Priority.HIGH,
-            (int) FlagsFactory.getFlags().getStableFlag(KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS)),
+            "AppRequest", OP_EXECUTE, Priority.HIGH),
 
     RENDER_FLOW(
-            "Render", OP_RENDER, Priority.HIGH,
-            (int) FlagsFactory.getFlags().getStableFlag(KEY_RENDER_FLOW_DEADLINE_SECONDS)),
+            "Render", OP_RENDER, Priority.HIGH),
 
     WEB_TRIGGER_FLOW(
-            "WebTrigger", OP_WEB_TRIGGER, Priority.NORMAL,
-            (int) FlagsFactory.getFlags().getStableFlag(KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS)),
+            "WebTrigger", OP_WEB_TRIGGER, Priority.NORMAL),
 
     WEB_VIEW_FLOW(
-            "ComputeEventMetrics", OP_WEB_VIEW_EVENT, Priority.NORMAL,
-            (int) FlagsFactory.getFlags().getStableFlag(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS)),
+            "WebView", OP_WEB_VIEW_EVENT, Priority.NORMAL),
 
     EXAMPLE_STORE_FLOW(
-            "ExampleStore", OP_TRAINING_EXAMPLE, Priority.NORMAL,
-            (int) FlagsFactory.getFlags().getStableFlag(KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS)),
+            "ExampleStore", OP_TRAINING_EXAMPLE, Priority.NORMAL),
 
     DOWNLOAD_FLOW(
-            "DownloadJob", OP_DOWNLOAD, Priority.LOW,
-            (int) FlagsFactory.getFlags().getStableFlag(KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS));
+            "DownloadJob", OP_DOWNLOAD, Priority.LOW);
 
     final String mTaskName;
     final int mOperationCode;
     final Priority mPriority;
-    final int mExecutionTimeout;
 
-    ServiceFlowType(String taskName, int operationCode, Priority priority, int executionTimeout) {
+    ServiceFlowType(String taskName, int operationCode, Priority priority) {
         mTaskName = taskName;
         mOperationCode = operationCode;
         mPriority = priority;
-        mExecutionTimeout = executionTimeout;
     }
 
     public String getTaskName() {
@@ -81,10 +64,6 @@ public enum ServiceFlowType {
 
     public Priority getPriority() {
         return mPriority;
-    }
-
-    public int getExecutionTimeout() {
-        return mExecutionTimeout;
     }
 
     public enum Priority {

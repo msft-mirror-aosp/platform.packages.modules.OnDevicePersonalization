@@ -43,6 +43,7 @@ android_test {
         "androidx.test.ext.junit",
         "androidx.test.ext.truth",
         "androidx.test.rules",
+        "federated-compute-java-proto-lite",
         "kotlin-stdlib",
         "kotlin-test",
         "kotlinx-coroutines-android",
@@ -56,6 +57,8 @@ android_test {
         "owasp-java-encoder",
         "tensorflowlite_java",
         "adservices-shared-spe",
+         "common-ondevicepersonalization-protos",
+         "adservices-shared-datastore", // For proto data store.
     ],
     sdk_version: "module_current",
     target_sdk_version: "current",

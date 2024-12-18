@@ -44,10 +44,10 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
-import com.android.federatedcompute.services.data.ODPAuthorizationToken;
-import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.data.OdpAuthorizationToken;
+import com.android.odp.module.common.data.OdpAuthorizationTokenDao;
 
 import com.google.internal.federatedcompute.v1.AuthenticationMetadata;
 import com.google.internal.federatedcompute.v1.KeyAttestationAuthMetadata;
@@ -81,7 +81,7 @@ public class AuthorizationContextTest {
     @Mock private KeyAttestation mMocKeyAttestation;
 
     @Mock private TrainingEventLogger mMockTrainingEventLogger;
-    private ODPAuthorizationTokenDao mAuthTokenDao;
+    private OdpAuthorizationTokenDao mAuthTokenDao;
     private Clock mClock;
 
     @Before
@@ -89,7 +89,10 @@ public class AuthorizationContextTest {
         MockitoAnnotations.initMocks(this);
         mContext = ApplicationProvider.getApplicationContext();
         doReturn(KA_RECORD).when(mMocKeyAttestation).generateAttestationRecord(any(), anyString());
-        mAuthTokenDao = spy(ODPAuthorizationTokenDao.getInstanceForTest(mContext));
+        mAuthTokenDao =
+                spy(
+                        OdpAuthorizationTokenDao.getInstanceForTest(
+                                FederatedComputeDbHelper.getInstanceForTest(mContext)));
         mClock = MonotonicClock.getInstance();
         doNothing().when(mMockTrainingEventLogger).logKeyAttestationLatencyEvent(anyLong());
     }
@@ -130,7 +133,7 @@ public class AuthorizationContextTest {
                         MonotonicClock.getInstance());
 
         Map<String, String> headers = authContext.generateAuthHeaders();
-        assertTrue(headers.isEmpty());
+        assertThat(headers).isEmpty();
         assertNull(mAuthTokenDao.getUnexpiredAuthorizationToken(OWNER_ID));
     }
 
@@ -167,7 +170,7 @@ public class AuthorizationContextTest {
                             return true;
                         })
                 .when(mAuthTokenDao)
-                .insertAuthorizationToken(any(ODPAuthorizationToken.class));
+                .insertAuthorizationToken(any(OdpAuthorizationToken.class));
         authContext.updateAuthState(AUTH_METADATA, mMockTrainingEventLogger);
         assertNull(mAuthTokenDao.getUnexpiredAuthorizationToken(OWNER_ID));
         verify(mMockTrainingEventLogger, times(1)).logKeyAttestationLatencyEvent(anyLong());
@@ -182,8 +185,8 @@ public class AuthorizationContextTest {
 
     private void insertAuthToken() {
         // insert authorization token
-        ODPAuthorizationToken authToken =
-                new ODPAuthorizationToken.Builder(
+        OdpAuthorizationToken authToken =
+                new OdpAuthorizationToken.Builder(
                                 OWNER_ID,
                                 TOKEN,
                                 mClock.currentTimeMillis(),

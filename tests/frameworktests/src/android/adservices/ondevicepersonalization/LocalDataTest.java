@@ -16,9 +16,11 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
@@ -38,6 +40,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Unit Tests of LocalDataImpl API.
@@ -46,12 +50,13 @@ import java.util.Set;
 @RunWith(AndroidJUnit4.class)
 public class LocalDataTest {
     MutableKeyValueStore mLocalData;
+    LocalDataService mLocalDataService;
+    private static final long TIMEOUT_MILLI = 5000;
 
     @Before
     public void setup() {
-        mLocalData = new LocalDataImpl(
-                IDataAccessService.Stub.asInterface(
-                        new LocalDataService()));
+        mLocalDataService = new LocalDataService();
+        mLocalData = new LocalDataImpl(IDataAccessService.Stub.asInterface(mLocalDataService));
     }
 
     @Test
@@ -59,22 +64,48 @@ public class LocalDataTest {
         assertArrayEquals(new byte[] {1, 2, 3}, mLocalData.get("a"));
         assertArrayEquals(new byte[] {7, 8, 9}, mLocalData.get("c"));
         assertNull(mLocalData.get("e"));
+
+        assertTrue(
+                "Failed to await countdown latch!",
+                mLocalDataService.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertThat(mLocalDataService.mResponseCode).isEqualTo(Constants.STATUS_SUCCESS);
     }
 
     @Test
-    public void testLookupError() {
+    public void testLookupError() throws InterruptedException {
         // Triggers an expected error in the mock service.
         assertNull(mLocalData.get("z"));
+
+        assertTrue(
+                "Failed to await countdown latch!",
+                mLocalDataService.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertThat(mLocalDataService.mResponseCode).isEqualTo(Constants.STATUS_SERVICE_FAILED);
     }
 
     @Test
-    public void testKeysetSuccess() {
+    public void testLookupEmptyResult() throws Exception {
+        // Triggers an expected error in the mock service.
+        assertNull(mLocalData.get("empty"));
+
+        assertTrue(
+                "Failed to await countdown latch!",
+                mLocalDataService.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertThat(mLocalDataService.mResponseCode)
+                .isEqualTo(Constants.STATUS_SUCCESS_EMPTY_RESULT);
+    }
+
+    @Test
+    public void testKeysetSuccess() throws InterruptedException {
         Set<String> expectedResult = new HashSet<>();
         expectedResult.add("a");
         expectedResult.add("b");
         expectedResult.add("c");
 
-        assertEquals(expectedResult, mLocalData.keySet());
+        assertThat(expectedResult).isEqualTo(mLocalData.keySet());
+        assertTrue(
+                "Failed to await countdown latch!",
+                mLocalDataService.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertThat(mLocalDataService.mResponseCode).isEqualTo(Constants.STATUS_SUCCESS);
     }
 
     @Test
@@ -82,12 +113,22 @@ public class LocalDataTest {
         assertArrayEquals(new byte[] {1, 2, 3}, mLocalData.put("a", new byte[10]));
         assertNull(mLocalData.put("e", new byte[] {1, 2, 3}));
         assertArrayEquals(new byte[] {1, 2, 3}, mLocalData.get("e"));
+
+        assertTrue(
+                "Failed to await countdown latch!",
+                mLocalDataService.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertThat(mLocalDataService.mResponseCode).isEqualTo(Constants.STATUS_SUCCESS);
     }
 
     @Test
-    public void testPutError() {
+    public void testPutError() throws InterruptedException {
         // Triggers an expected error in the mock service.
         assertNull(mLocalData.put("z", new byte[10]));
+
+        assertTrue(
+                "Failed to await countdown latch!",
+                mLocalDataService.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertThat(mLocalDataService.mResponseCode).isEqualTo(Constants.STATUS_SERVICE_FAILED);
     }
 
     @Test
@@ -95,16 +136,28 @@ public class LocalDataTest {
         assertArrayEquals(new byte[] {1, 2, 3}, mLocalData.remove("a"));
         assertNull(mLocalData.remove("e"));
         assertNull(mLocalData.get("a"));
+
+        assertTrue(
+                "Failed to await countdown latch!",
+                mLocalDataService.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertThat(mLocalDataService.mResponseCode).isEqualTo(Constants.STATUS_SUCCESS);
     }
 
     @Test
-    public void testRemoveError() {
+    public void testRemoveError() throws InterruptedException {
         // Triggers an expected error in the mock service.
         assertNull(mLocalData.remove("z"));
+
+        assertTrue(
+                "Failed to await countdown latch!",
+                mLocalDataService.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertThat(mLocalDataService.mResponseCode).isEqualTo(Constants.STATUS_SERVICE_FAILED);
     }
 
     public static class LocalDataService extends IDataAccessService.Stub {
         HashMap<String, byte[]> mContents = new HashMap<String, byte[]>();
+        int mResponseCode;
+        CountDownLatch mLatch = new CountDownLatch(1);
 
         public LocalDataService() {
             mContents.put("a", new byte[] {1, 2, 3});
@@ -132,10 +185,19 @@ public class LocalDataTest {
 
             String key = params.getString(Constants.EXTRA_LOOKUP_KEYS);
             Objects.requireNonNull(key);
+            if (key.equals("empty")) {
+                // Raise expected error.
+                try {
+                    callback.onSuccess(null);
+                } catch (RemoteException e) {
+                    // Ignored.
+                }
+                return;
+            }
             if (key.equals("z")) {
                 // Raise expected error.
                 try {
-                    callback.onError(Constants.STATUS_INTERNAL_ERROR);
+                    callback.onError(Constants.STATUS_SERVICE_FAILED);
                 } catch (RemoteException e) {
                     // Ignored.
                 }
@@ -173,6 +235,9 @@ public class LocalDataTest {
         }
 
         @Override
-        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {}
+        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {
+            mLatch.countDown();
+            mResponseCode = responseCode;
+        }
     }
 }

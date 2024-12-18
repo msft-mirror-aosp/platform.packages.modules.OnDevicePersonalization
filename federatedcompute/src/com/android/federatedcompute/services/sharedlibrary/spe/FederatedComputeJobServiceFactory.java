@@ -87,6 +87,7 @@ public class FederatedComputeJobServiceFactory implements JobServiceFactory {
                 ModuleJobPolicy policy =
                         ProtoParser.parseBase64EncodedStringToProto(
                                 ModuleJobPolicy.parser(),
+                                ClientErrorLogger.getInstance(),
                                 PROTO_PROPERTY_FOR_LOGCAT,
                                 flags.getFcpModuleJobPolicy());
                 sSingleton =

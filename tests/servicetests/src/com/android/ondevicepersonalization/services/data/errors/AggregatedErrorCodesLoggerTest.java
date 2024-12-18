@@ -18,6 +18,8 @@ package com.android.ondevicepersonalization.services.data.errors;
 
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -53,7 +55,7 @@ public class AggregatedErrorCodesLoggerTest {
     private static final String TEST_PACKAGE = "test_package";
     private static final String TEST_CLASS = "test_class";
 
-    private static final int TEST_ISOLATED_SERVICE_ERROR_CODE = 2;
+    static final int TEST_ISOLATED_SERVICE_ERROR_CODE = 2;
 
     private static final ComponentName TEST_COMPONENT_NAME =
             new ComponentName(TEST_PACKAGE, TEST_CLASS);
@@ -79,26 +81,25 @@ public class AggregatedErrorCodesLoggerTest {
 
         ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService())
                 .when(OnDevicePersonalizationExecutors::getBackgroundExecutor);
+        doReturn(TEST_CERT_DIGEST).when(() -> PackageUtils.getCertDigest(any(), any()));
         mErrorDataDao.deleteExceptionData();
     }
 
     @Test
     public void logIsolatedServiceErrorCode_flagDisabled_skipsLogging() throws Exception {
         doReturn(new TestFlags(false)).when(FlagsFactory::getFlags);
-        doReturn(TEST_CERT_DIGEST).when(() -> PackageUtils.getCertDigest(any(), any()));
 
         ListenableFuture<?> loggingFuture =
                 AggregatedErrorCodesLogger.logIsolatedServiceErrorCode(
                         TEST_ISOLATED_SERVICE_ERROR_CODE, TEST_COMPONENT_NAME, mContext);
 
         assertTrue(loggingFuture.isDone());
-        assertTrue(mErrorDataDao.getExceptionData().isEmpty());
+        assertThat(mErrorDataDao.getExceptionData()).isEmpty();
     }
 
     @Test
-    public void logIsolatedServiceErrorCode_flagEnabled_logsException() throws Exception {
+    public void logIsolatedServiceErrorCode_flagEnabled_logsException() {
         doReturn(new TestFlags(true)).when(FlagsFactory::getFlags);
-        doReturn(TEST_CERT_DIGEST).when(() -> PackageUtils.getCertDigest(any(), any()));
 
         ListenableFuture<?> loggingFuture =
                 AggregatedErrorCodesLogger.logIsolatedServiceErrorCode(
@@ -110,12 +111,40 @@ public class AggregatedErrorCodesLoggerTest {
         assertEquals(getExpectedErrorData(mDayIndexUtc), exceptionData.get(0));
     }
 
+    @Test
+    public void cleanupAggregatedErrorData_flagDisabled_skipsCleanup() {
+        doReturn(new TestFlags(false)).when(FlagsFactory::getFlags);
+        mErrorDataDao.addExceptionCount(TEST_ISOLATED_SERVICE_ERROR_CODE, /* exceptionCount= */ 1);
+
+        ListenableFuture<?> cleanupFuture =
+                AggregatedErrorCodesLogger.cleanupAggregatedErrorData(mContext);
+
+        List<ErrorData> exceptionData = mErrorDataDao.getExceptionData();
+        assertTrue(cleanupFuture.isDone());
+        assertEquals(1, exceptionData.size());
+        assertEquals(getExpectedErrorData(mDayIndexUtc), exceptionData.get(0));
+    }
+
+    @Test
+    public void cleanupAggregatedErrorData_flagEnabled_performsCleanup() {
+        doReturn(new TestFlags(true)).when(FlagsFactory::getFlags);
+        mErrorDataDao.addExceptionCount(TEST_ISOLATED_SERVICE_ERROR_CODE, /* exceptionCount= */ 1);
+
+        ListenableFuture<?> cleanupFuture =
+                AggregatedErrorCodesLogger.cleanupAggregatedErrorData(mContext);
+
+        assertTrue(cleanupFuture.isDone());
+        assertThat(mErrorDataDao.getExceptionData()).isEmpty();
+        assertThat(OnDevicePersonalizationAggregatedErrorDataDao.getErrorDataTableNames(mContext))
+                .isEmpty();
+    }
+
     @After
     public void tearDown() {
         mSession.finishMocking();
     }
 
-    private static ErrorData getExpectedErrorData(int dayIndexUtc) {
+    static ErrorData getExpectedErrorData(int dayIndexUtc) {
         return new ErrorData.Builder(TEST_ISOLATED_SERVICE_ERROR_CODE, 1, dayIndexUtc, 0).build();
     }
 

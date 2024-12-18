@@ -23,6 +23,7 @@ import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
 import android.adservices.ondevicepersonalization.ExecuteOptionsParcel;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IIsFeatureEnabledCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -113,13 +114,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new IllegalArgumentException("missing service class name");
         }
 
-        if (options.getOutputType()
-                        == ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE
-                && options.getMaxIntValue() > mInjector.getFlags().getMaxIntValuesLimit()) {
-            throw new IllegalArgumentException(
-                    "The maxIntValue in OutputSpec can not exceed limit "
-                            + mInjector.getFlags().getMaxIntValuesLimit());
-        }
+        checkExecutionsOptions(options);
 
         final int uid = Binder.getCallingUid();
         enforceCallingPackageBelongsToUid(callingPackageName, uid);
@@ -217,6 +212,33 @@ public class OnDevicePersonalizationManagingServiceDelegate
     }
 
     @Override
+    public void isFeatureEnabled(
+            @NonNull String featureName,
+            @NonNull CallerMetadata metadata,
+            @NonNull IIsFeatureEnabledCallback callback) {
+        if (getGlobalKillSwitch()) {
+            throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+
+        if (!DeviceUtils.isOdpSupported(mContext)) {
+            throw new IllegalStateException("Device not supported.");
+        }
+
+        if (!getOdpIsFeatureEnabledFlagEnabled()) {
+            throw new IllegalStateException("isFeatureEnabled flag is not enabled.");
+        }
+
+        long serviceEntryTimeMillis = SystemClock.elapsedRealtime();
+        Trace.beginSection("OdpManagingServiceDelegate#IsFeatureEnabled");
+
+        FeatureStatusManager.getFeatureStatusAndSendResult(featureName,
+                serviceEntryTimeMillis,
+                callback);
+
+        Trace.endSection();
+    }
+
+    @Override
     public void logApiCallStats(
             String sdkPackageName, int apiName, long latencyMillis, long rpcCallLatencyMillis,
             long rpcReturnLatencyMillis, int responseCode) {
@@ -251,9 +273,15 @@ public class OnDevicePersonalizationManagingServiceDelegate
     private boolean getGlobalKillSwitch() {
         long origId = Binder.clearCallingIdentity();
         boolean globalKillSwitch = mInjector.getFlags().getGlobalKillSwitch();
-        mInjector.getFlags().setStableFlags();
         Binder.restoreCallingIdentity(origId);
         return globalKillSwitch;
+    }
+
+    private boolean getOdpIsFeatureEnabledFlagEnabled() {
+        long origId = Binder.clearCallingIdentity();
+        boolean flagEnabled = mInjector.getFlags().isFeatureEnabledApiEnabled();
+        Binder.restoreCallingIdentity(origId);
+        return flagEnabled;
     }
 
     private void enforceCallingPackageBelongsToUid(@NonNull String packageName, int uid) {
@@ -285,6 +313,21 @@ public class OnDevicePersonalizationManagingServiceDelegate
                         service.getPackageName());
                 throw new IllegalStateException(
                         "Service skipped as the isolated service is not enrolled to access ODP.");
+            }
+        } finally {
+            Binder.restoreCallingIdentity(origId);
+        }
+    }
+
+    private void checkExecutionsOptions(@NonNull ExecuteOptionsParcel options) {
+        long origId = Binder.clearCallingIdentity();
+        try {
+            if (options.getOutputType()
+                    == ExecuteInIsolatedServiceRequest.OutputSpec.OUTPUT_TYPE_BEST_VALUE
+                    && options.getMaxIntValue() > mInjector.getFlags().getMaxIntValuesLimit()) {
+                throw new IllegalArgumentException(
+                        "The maxIntValue in OutputSpec can not exceed limit "
+                                + mInjector.getFlags().getMaxIntValuesLimit());
             }
         } finally {
             Binder.restoreCallingIdentity(origId);

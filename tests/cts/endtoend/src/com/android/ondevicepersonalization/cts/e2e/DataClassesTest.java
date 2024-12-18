@@ -31,6 +31,7 @@ import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRespon
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.FederatedComputeInput;
 import android.adservices.ondevicepersonalization.FederatedComputeScheduleRequest;
+import android.adservices.ondevicepersonalization.FederatedComputeScheduleResponse;
 import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
 import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams;
@@ -55,7 +56,10 @@ import androidx.test.filters.SmallTest;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
+import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
 
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -77,6 +81,13 @@ public class DataClassesTest {
             "com.android.ondevicepersonalization.testing.sampleservice";
     private static final String SERVICE_CLASS =
             "com.android.ondevicepersonalization.testing.sampleservice.SampleService";
+
+    @Before
+    public void setUp() {
+        // Skip the test if it runs on unsupported platforms.
+        Assume.assumeTrue(DeviceSupportHelper.isDeviceSupported());
+        Assume.assumeTrue(DeviceSupportHelper.isOdpModuleAvailable());
+    }
 
     /**
      * Test builder and getters for ExecuteOutput.
@@ -221,6 +232,28 @@ public class DataClassesTest {
         assertEquals(testInterval, request.getParams().getTrainingInterval().getMinimumInterval());
         assertEquals(
                 testSchedulingMode, request.getParams().getTrainingInterval().getSchedulingMode());
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
+    public void testFederatedComputeSchedulerResponse() {
+        // Test for Data classes associated with FederatedComputeScheduler's schedule API.
+        String testPopulation = "testPopulation";
+        Duration testInterval = Duration.ofSeconds(5);
+        int testSchedulingMode = TrainingInterval.SCHEDULING_MODE_RECURRENT;
+        TrainingInterval testData =
+                new TrainingInterval.Builder()
+                        .setSchedulingMode(testSchedulingMode)
+                        .setMinimumInterval(testInterval)
+                        .build();
+
+        FederatedComputeScheduler.Params params = new FederatedComputeScheduler.Params(testData);
+        FederatedComputeScheduleRequest request =
+                new FederatedComputeScheduleRequest(params, testPopulation);
+
+        FederatedComputeScheduleResponse response = new FederatedComputeScheduleResponse(request);
+
+        assertEquals(response.getFederatedComputeScheduleRequest(), request);
     }
 
     /** Test for RequestLogRecord class. */

@@ -27,7 +27,6 @@ import com.android.adservices.ondevicepersonalization.flags.Flags;
  * {@link IsolatedWorker#onRender(RenderInput, android.os.OutcomeReceiver)}.
  *
  */
-@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public final class RenderInput {
     /** The width of the slot. */
     private int mWidth = 0;

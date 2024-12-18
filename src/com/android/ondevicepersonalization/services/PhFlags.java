@@ -16,6 +16,52 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static com.android.ondevicepersonalization.services.FlagsConstants.APP_INSTALL_HISTORY_TTL;
+import static com.android.ondevicepersonalization.services.FlagsConstants.EXECUTE_BEST_VALUE_NOISE;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_HTTP_RETRY_LIMIT;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_HTTP_TIMEOUT_SECONDS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_PATH;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_CALLER_APP_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_AGGREGATED_ERROR_REPORTING;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENCRYPTION_KEY_MAX_AGE_SECONDS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENCRYPTION_KEY_URL;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_GLOBAL_KILL_SWITCH;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ISOLATED_SERVICE_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ISOLATED_SERVICE_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ISOLATED_SERVICE_DEBUGGING_ENABLED;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_IS_FEATURE_ENABLED_API_ENABLED;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_JOB_SCHEDULING_LOGGING_ENABLED;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_MODULE_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_SPE_PILOT_JOB_ENABLED;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_OUTPUT_DATA_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_PLUGIN_PROCESS_RUNNER_ENABLED;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_RENDER_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_RESET_DATA_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_RESET_DATA_DELAY_SECONDS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_TRUSTED_PARTNER_APPS_LIST;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_USER_CONTROL_CACHE_IN_MILLIS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.MAX_INT_VALUES_LIMIT;
+
 import android.annotation.NonNull;
 import android.provider.DeviceConfig;
 
@@ -26,102 +72,13 @@ import java.util.Map;
 
 /** Flags Implementation that delegates to DeviceConfig. */
 public final class PhFlags implements Flags {
-    /*
-     * Keys for ALL the flags stored in DeviceConfig.
-     */
-    // Killswitch keys
-    public static final String KEY_GLOBAL_KILL_SWITCH = "global_kill_switch";
-
-    public static final String KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE =
-            "enable_personalization_status_override";
-
-    public static final String KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE =
-            "personalization_status_override_value";
-
-    public static final String KEY_ISOLATED_SERVICE_DEADLINE_SECONDS =
-            "isolated_service_deadline_seconds";
-
-    public static final String KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS =
-            "app_request_flow_deadline_seconds";
-
-    public static final String KEY_RENDER_FLOW_DEADLINE_SECONDS =
-            "render_flow_deadline_seconds";
-
-    public static final String KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS =
-            "web_view_flow_deadline_seconds";
-
-    public static final String KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS =
-            "web_trigger_flow_deadline_seconds";
-
-    public static final String KEY_TRUSTED_PARTNER_APPS_LIST = "trusted_partner_apps_list";
-
-    public static final String KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED =
-            "shared_isolated_process_feature_enabled";
-
-    public static final String KEY_CALLER_APP_ALLOW_LIST = "caller_app_allow_list";
-
-    public static final String KEY_ISOLATED_SERVICE_ALLOW_LIST = "isolated_service_allow_list";
-
-    public static final String KEY_OUTPUT_DATA_ALLOW_LIST = "output_data_allow_list";
-
-    public static final String KEY_USER_CONTROL_CACHE_IN_MILLIS =
-            "user_control_cache_duration_millis";
-
-    public static final String KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING =
-            "odp_enable_client_error_logging";
-
-    public static final String KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE =
-            "odp_background_job_sampling_logging_rate";
-
-    public static final String KEY_ODP_JOB_SCHEDULING_LOGGING_ENABLED =
-            "odp_job_scheduling_logging_enabled";
-
-    public static final String KEY_ODP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE =
-            "odp_job_scheduling_logging_sampling_rate";
-
-    public static final String KEY_ODP_MODULE_JOB_POLICY = "odp_module_job_policy";
-
-    public static final String KEY_ODP_SPE_PILOT_JOB_ENABLED = "odp_spe_pilot_job_enabled";
-
-    public static final String KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED =
-            "is_art_image_loading_optimization_enabled";
-
-    public static final String KEY_ISOLATED_SERVICE_DEBUGGING_ENABLED =
-            "isolated_service_debugging_enabled";
-
-    public static final String KEY_RESET_DATA_DELAY_SECONDS = "reset_data_delay_seconds";
-
-    public static final String KEY_RESET_DATA_DEADLINE_SECONDS = "reset_data_deadline_seconds";
-
-    public static final String APP_INSTALL_HISTORY_TTL = "app_install_history_ttl";
-    public static final String EXECUTE_BEST_VALUE_NOISE = "noise_for_execute_best_value";
-
-    public static final String KEY_ENABLE_AGGREGATED_ERROR_REPORTING =
-            "enable_aggregated_error_reporting";
-
-    public static final String KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS =
-            "aggregated_error_report_ttl_days";
-
-    public static final String KEY_AGGREGATED_ERROR_REPORTING_PATH =
-            "aggregated_error_reporting_path";
-
-    public static final String KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD =
-            "aggregated_error_reporting_threshold";
-
-    public static final String KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS =
-            "aggregated_error_reporting_interval_hours";
-
-    public static final String MAX_INT_VALUES_LIMIT = "max_int_values_limit";
 
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
 
     private final Map<String, Object> mStableFlags = new HashMap<>();
 
-    PhFlags() {
-        // This is only called onece so stable flags require process restart to be reset.
-        setStableFlags();
-    }
+    PhFlags() {}
 
     /** Returns the singleton instance of the PhFlags. */
     @NonNull
@@ -131,42 +88,6 @@ public final class PhFlags implements Flags {
 
     private static class PhFlagsLazyInstanceHolder {
         private static final PhFlags sSingleton = new PhFlags();
-    }
-
-    /** Sets the stable flag map. */
-    public void setStableFlags() {
-        mStableFlags.put(KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS,
-                getAppRequestFlowDeadlineSeconds());
-        mStableFlags.put(KEY_RENDER_FLOW_DEADLINE_SECONDS,
-                getRenderFlowDeadlineSeconds());
-        mStableFlags.put(KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS,
-                getWebTriggerFlowDeadlineSeconds());
-        mStableFlags.put(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS,
-                getWebViewFlowDeadlineSeconds());
-        mStableFlags.put(KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS,
-                getExampleStoreFlowDeadlineSeconds());
-        mStableFlags.put(KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS,
-                getDownloadFlowDeadlineSeconds());
-        mStableFlags.put(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
-                isSharedIsolatedProcessFeatureEnabled());
-        mStableFlags.put(KEY_TRUSTED_PARTNER_APPS_LIST,
-                getTrustedPartnerAppsList());
-        mStableFlags.put(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED,
-                isArtImageLoadingOptimizationEnabled());
-        mStableFlags.put(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE,
-                isPersonalizationStatusOverrideEnabled());
-        mStableFlags.put(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE,
-                getPersonalizationStatusOverrideValue());
-        mStableFlags.put(KEY_USER_CONTROL_CACHE_IN_MILLIS,
-                getUserControlCacheInMillis());
-    }
-
-    /** Gets a stable flag value based on flag name. */
-    public Object getStableFlag(String flagName) {
-        if (!mStableFlags.containsKey(flagName)) {
-            throw new IllegalArgumentException("Flag " + flagName + " is not stable.");
-        }
-        return mStableFlags.get(flagName);
     }
 
     // Group of All Killswitches
@@ -242,9 +163,6 @@ public final class PhFlags implements Flags {
                 /* defaultValue= */ WEB_TRIGGER_FLOW_DEADLINE_SECONDS);
     }
 
-    public static final String KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS =
-            "example_store_flow_deadline_seconds";
-
     @Override
     public int getExampleStoreFlowDeadlineSeconds() {
         return DeviceConfig.getInt(
@@ -252,9 +170,6 @@ public final class PhFlags implements Flags {
                 /* name= */ KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS,
                 /* defaultValue= */ EXAMPLE_STORE_FLOW_DEADLINE_SECONDS);
     }
-
-    public static final String KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS =
-            "download_flow_deadline_seconds";
 
     @Override
     public int getDownloadFlowDeadlineSeconds() {
@@ -464,10 +379,99 @@ public final class PhFlags implements Flags {
     }
 
     @Override
+    public boolean getAllowUnencryptedAggregatedErrorReportingPayload() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING,
+                /* defaultValue= */ DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD);
+    }
+
+    @Override
+    public int getAggregatedErrorReportingHttpTimeoutSeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_AGGREGATED_ERROR_REPORTING_HTTP_TIMEOUT_SECONDS,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_TIMEOUT_SECONDS);
+    }
+
+    @Override
+    public int getAggregatedErrorReportingHttpRetryLimit() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_AGGREGATED_ERROR_REPORTING_HTTP_RETRY_LIMIT,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_RETRY_LIMIT);
+    }
+
+    @Override
+    public String getEncryptionKeyFetchUrl() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ENCRYPTION_KEY_URL,
+                /* defaultValue= */ DEFAULT_ENCRYPTION_KEY_URL);
+    }
+
+    @Override
+    public long getEncryptionKeyMaxAgeSeconds() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ENCRYPTION_KEY_MAX_AGE_SECONDS,
+                /* defaultValue= */ DEFAULT_ENCRYPTION_KEY_MAX_AGE_SECONDS);
+    }
+
+    @Override
     public int getMaxIntValuesLimit() {
         return DeviceConfig.getInt(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ MAX_INT_VALUES_LIMIT,
                 /* defaultValue= */ DEFAULT_MAX_INT_VALUES);
+    }
+
+    @Override
+    public long getAdservicesIpcCallTimeoutInMillis() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS,
+                /* defaultValue= */ DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS);
+    }
+
+    @Override
+    public String getPlatformDataForTrainingAllowlist() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST,
+                /* defaultValue= */ DEFAULT_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST);
+    }
+
+    @Override
+    public String getDefaultPlatformDataForExecuteAllowlist() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST,
+                /* defaultValue= */ DEFAULT_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST);
+    }
+
+    @Override
+    public String getLogIsolatedServiceErrorCodeNonAggregatedAllowlist() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST,
+                /* defaultValue= */
+                DEFAULT_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST);
+    }
+
+    @Override
+    public boolean isPluginProcessRunnerEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_PLUGIN_PROCESS_RUNNER_ENABLED,
+                /* defaultValue= */ DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED);
+    }
+
+    @Override
+    public boolean isFeatureEnabledApiEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_IS_FEATURE_ENABLED_API_ENABLED,
+                /* defaultValue= */ DEFAULT_IS_FEATURE_ENABLED_API_ENABLED);
     }
 }

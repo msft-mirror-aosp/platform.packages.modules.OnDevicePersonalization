@@ -1,7 +1,7 @@
 // Signature format: 2.0
 package android.adservices.ondevicepersonalization {
 
-  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class MeasurementWebTriggerEventParams {
+  public final class MeasurementWebTriggerEventParams {
     method @NonNull public String getAppPackageName();
     method @Nullable public String getCertDigest();
     method @NonNull public android.net.Uri getDestinationUrl();
@@ -19,16 +19,16 @@ package android.adservices.ondevicepersonalization {
     method @NonNull public android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams.Builder setIsolatedService(@NonNull android.content.ComponentName);
   }
 
-  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationConfigManager {
+  public class OnDevicePersonalizationConfigManager {
     method @RequiresPermission(android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.MODIFY_ONDEVICEPERSONALIZATION_STATE) public void setPersonalizationEnabled(boolean, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<java.lang.Void,java.lang.Exception>);
   }
 
-  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationPermissions {
+  public class OnDevicePersonalizationPermissions {
     field public static final String MODIFY_ONDEVICEPERSONALIZATION_STATE = "android.permission.ondevicepersonalization.MODIFY_ONDEVICEPERSONALIZATION_STATE";
     field public static final String NOTIFY_MEASUREMENT_EVENT = "android.permission.ondevicepersonalization.NOTIFY_MEASUREMENT_EVENT";
   }
 
-  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationSystemEventManager {
+  public class OnDevicePersonalizationSystemEventManager {
     method @RequiresPermission(android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT) public void notifyMeasurementEvent(@NonNull android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<java.lang.Void,java.lang.Exception>);
   }
 

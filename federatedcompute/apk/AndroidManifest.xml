@@ -75,7 +75,7 @@
         </service>
         <!-- On BOOT_COMPLETED receiver for registering jobs -->
         <receiver android:name=".FederatedComputeBroadcastReceiver"
-            android:enabled="true"
+            android:enabled="@bool/config_enableBootReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

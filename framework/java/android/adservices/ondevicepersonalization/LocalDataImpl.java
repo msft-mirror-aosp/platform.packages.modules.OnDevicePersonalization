@@ -83,12 +83,20 @@ public class LocalDataImpl implements MutableKeyValueStore {
             int op, Bundle params, int apiName, long startTimeMillis) {
         int responseCode = Constants.STATUS_SUCCESS;
         try {
-            Bundle result = handleAsyncRequest(op, params);
-            ByteArrayParceledSlice data = result.getParcelable(
-                    Constants.EXTRA_RESULT, ByteArrayParceledSlice.class);
-            if (null == data) {
+            CallbackResult callbackResult = handleAsyncRequest(op, params);
+            if (callbackResult.mErrorCode != 0) {
+                responseCode = callbackResult.mErrorCode;
                 return null;
             }
+            Bundle result = callbackResult.mResult;
+            if (result == null
+                    || result.getParcelable(Constants.EXTRA_RESULT, ByteArrayParceledSlice.class)
+                    == null) {
+                responseCode = Constants.STATUS_SUCCESS_EMPTY_RESULT;
+                return null;
+            }
+            ByteArrayParceledSlice data =
+                    result.getParcelable(Constants.EXTRA_RESULT, ByteArrayParceledSlice.class);
             return data.getByteArray();
         } catch (RuntimeException e) {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
@@ -110,14 +118,19 @@ public class LocalDataImpl implements MutableKeyValueStore {
         final long startTimeMillis = System.currentTimeMillis();
         int responseCode = Constants.STATUS_SUCCESS;
         try {
-            Bundle result = handleAsyncRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET,
-                    Bundle.EMPTY);
-            HashSet<String> resultSet =
-                    result.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
-            if (null == resultSet) {
+            CallbackResult callbackResult =
+                    handleAsyncRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET, Bundle.EMPTY);
+            if (callbackResult.mErrorCode != 0) {
+                responseCode = callbackResult.mErrorCode;
                 return Collections.emptySet();
             }
-            return resultSet;
+            Bundle result = callbackResult.mResult;
+            if (result == null
+                    || result.getSerializable(Constants.EXTRA_RESULT, HashSet.class) == null) {
+                responseCode = Constants.STATUS_SUCCESS_EMPTY_RESULT;
+                return Collections.emptySet();
+            }
+            return result.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
         } catch (RuntimeException e) {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             throw e;
@@ -138,31 +151,37 @@ public class LocalDataImpl implements MutableKeyValueStore {
         return ModelId.TABLE_ID_LOCAL_DATA;
     }
 
-    private Bundle handleAsyncRequest(int op, Bundle params) {
+    private CallbackResult handleAsyncRequest(int op, Bundle params) {
         try {
-            BlockingQueue<Bundle> asyncResult = new ArrayBlockingQueue<>(1);
+            BlockingQueue<CallbackResult> asyncResult = new ArrayBlockingQueue<>(1);
             mDataAccessService.onRequest(
                     op,
                     params,
                     new IDataAccessServiceCallback.Stub() {
                         @Override
                         public void onSuccess(@NonNull Bundle result) {
-                            if (result != null) {
-                                asyncResult.add(result);
-                            } else {
-                                asyncResult.add(Bundle.EMPTY);
-                            }
+                            asyncResult.add(new CallbackResult(result, 0));
                         }
 
                         @Override
                         public void onError(int errorCode) {
-                            asyncResult.add(Bundle.EMPTY);
+                            asyncResult.add(new CallbackResult(null, errorCode));
                         }
                     });
             return asyncResult.take();
         } catch (InterruptedException | RemoteException e) {
             sLogger.e(TAG + ": Failed to retrieve result from localData", e);
             throw new IllegalStateException(e);
+        }
+    }
+
+    private static class CallbackResult {
+        final Bundle mResult;
+        final int mErrorCode;
+
+        CallbackResult(Bundle result, int errorCode) {
+            mResult = result;
+            mErrorCode = errorCode;
         }
     }
 }
