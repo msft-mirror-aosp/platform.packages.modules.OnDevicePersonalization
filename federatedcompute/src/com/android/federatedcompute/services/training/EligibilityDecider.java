@@ -149,9 +149,17 @@ public class EligibilityDecider {
         }
         boolean result = minSepPolicy.getMinimumSeparation()
                 <= minSepPolicy.getCurrentIndex() - taskHistory.getContributionRound();
-        LogUtil.d(TAG, "min sep policy eligible: %s, minSepPolicy.getMinimumSeparation(): %d, "
-                + "minSepPolicy.getCurrentIndex(): %d, taskHistory.getContributionRound(): %d",
-                result, minSepPolicy.getMinimumSeparation(), minSepPolicy.getCurrentIndex(),
+        LogUtil.d(
+                TAG,
+                "population name %s task id %s job id %d min sep policy eligible: %s, "
+                        + "MinimumSeparation: %d, CurrentIndex: %d "
+                        + "taskHistory.getContributionRound(): %d",
+                populationName,
+                taskId,
+                jobId,
+                result,
+                minSepPolicy.getMinimumSeparation(),
+                minSepPolicy.getCurrentIndex(),
                 taskHistory.getContributionRound());
         return result;
     }
