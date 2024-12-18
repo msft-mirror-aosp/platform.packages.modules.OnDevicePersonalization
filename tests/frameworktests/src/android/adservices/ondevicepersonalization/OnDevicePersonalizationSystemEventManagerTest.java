@@ -30,6 +30,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.os.SystemClock;
 import android.util.Log;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -140,6 +141,7 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                 ComponentName handler,
                 Bundle params,
                 CallerMetadata metadata,
+                ExecuteOptionsParcel options,
                 IExecuteCallback callback) {
             throw new UnsupportedOperationException();
         }
@@ -168,7 +170,9 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                         MeasurementWebTriggerEventParamsParcel.class);
                 String url = wtparams.getDestinationUrl().toString();
                 if (url.equals("http://error")) {
-                    callback.onError(Constants.STATUS_INTERNAL_ERROR);
+                    callback.onError(Constants.STATUS_INTERNAL_ERROR,
+                            new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
+                                    SystemClock.elapsedRealtime()).build());
                 } else if (url.equals("http://iae")) {
                     throw new IllegalArgumentException();
                 } else if (url.equals("http://npe")) {
@@ -176,11 +180,23 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                 } else if (url.equals("http://ise")) {
                     throw new IllegalStateException();
                 } else {
-                    callback.onSuccess();
+                    callback.onSuccess(
+                            new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
+                                    SystemClock.elapsedRealtime()).build());
                 }
             } catch (RemoteException e) {
                 Log.e(TAG, "callback error", e);
             }
+        }
+
+        @Override
+        public void logApiCallStats(
+                String sdkPackageName,
+                int apiName,
+                long latencyMillis,
+                long rpcCallLatencyMillis,
+                long rpcReturnLatencyMillis,
+                int responseCode) {
         }
     }
 

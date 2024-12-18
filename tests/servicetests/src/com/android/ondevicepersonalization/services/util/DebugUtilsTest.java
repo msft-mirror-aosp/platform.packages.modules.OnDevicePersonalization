@@ -35,6 +35,7 @@ import android.provider.Settings;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
@@ -161,11 +162,13 @@ public class DebugUtilsTest {
                 .thenReturn(0);
     }
 
-    class TestFlags implements Flags {
-        public boolean mIsolatedServiceDebuggingEnabled;
+    private static final class TestFlags implements Flags {
+        private final boolean mIsolatedServiceDebuggingEnabled;
+
         TestFlags(boolean value) {
             mIsolatedServiceDebuggingEnabled = value;
         }
+
         @Override public boolean isIsolatedServiceDebuggingEnabled() {
             return mIsolatedServiceDebuggingEnabled;
         }

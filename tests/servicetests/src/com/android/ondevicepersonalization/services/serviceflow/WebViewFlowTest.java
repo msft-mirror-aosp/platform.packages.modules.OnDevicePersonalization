@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.Mockito.spy;
@@ -32,8 +34,14 @@ import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.build.SdkLevel;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
@@ -45,62 +53,74 @@ import com.google.common.util.concurrent.FutureCallback;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
+import org.mockito.quality.Strictness;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 
-@RunWith(JUnit4.class)
+@RunWith(Parameterized.class)
 public class WebViewFlowTest {
 
     private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
     private final Context mContext = spy(ApplicationProvider.getApplicationContext());
-    private CountDownLatch mLatch;
     private final OnDevicePersonalizationDbHelper mDbHelper =
             OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
     private EventUrlPayload mTestEventPayload;
     private EventsDao mDao;
     private WebView mWebView;
-    private boolean mCallbackSuccess;
-    private boolean mCallbackFailure;
-    private Throwable mException;
-    private FutureCallback<EventOutputParcel> mCallback;
+    private FlowCallback mCallback;
     private static final ServiceFlowOrchestrator sSfo = ServiceFlowOrchestrator.getInstance();
 
+    @Parameterized.Parameter(0)
+    public boolean mIsSipFeatureEnabled;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(
+                new Object[][] {
+                        {true}, {false}
+                }
+        );
+    }
+
+    private Flags mSpyFlags = new Flags() {
+        int mIsolatedServiceDeadlineSeconds = 30;
+        @Override public int getIsolatedServiceDeadlineSeconds() {
+            return mIsolatedServiceDeadlineSeconds;
+        }
+    };
+
+    @Rule
+    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .mockStatic(FlagsFactory.class)
+            .spyStatic(StableFlags.class)
+            .setStrictness(Strictness.LENIENT)
+            .build();
     @Before
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
+        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
+        ExtendedMockito.doReturn(SdkLevel.isAtLeastU() && mIsSipFeatureEnabled).when(
+                () -> StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED));
 
         mDao = EventsDao.getInstanceForTest(mContext);
-        Query mTestQuery = new Query.Builder()
-                .setTimeMillis(1L)
-                .setService(new ComponentName("pkg", "cls"))
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query mTestQuery = new Query.Builder(
+                1L, "com.app", new ComponentName("pkg", "cls"), "certDigest",
+                        "query".getBytes(StandardCharsets.UTF_8))
                 .build();
         // Insert query for FK constraint
         mDao.insertQuery(mTestQuery);
 
         setUpWebView();
 
-        mLatch = new CountDownLatch(1);
-
-        mCallback = new FutureCallback<>() {
-                @Override
-                public void onSuccess(EventOutputParcel result) {
-                    mCallbackSuccess = true;
-                    mLatch.countDown();
-                }
-
-                @Override
-                public void onFailure(@NotNull Throwable t) {
-                    mCallbackFailure = true;
-                    mException = t;
-                    mLatch.countDown();
-                }
-        };
+        mCallback = new FlowCallback();
     }
 
     @After
@@ -116,11 +136,11 @@ public class WebViewFlowTest {
                 mContext, ComponentName.createRelative(mContext.getPackageName(), SERVICE_CLASS),
                 1L, new RequestLogRecord.Builder().addRow(new ContentValues()).build(),
                 mCallback, null);
-        mLatch.await();
+        mCallback.mLatch.await();
 
-        assertThat(mCallbackSuccess).isFalse();
-        assertThat(mCallbackFailure).isTrue();
-        assertThat(mException).isInstanceOf(NullPointerException.class);
+        assertThat(mCallback.mSuccess).isFalse();
+        assertThat(mCallback.mFailure).isTrue();
+        assertThat(mCallback.mException).isInstanceOf(NullPointerException.class);
         assertThat(getDbEntryCount()).isEqualTo(0);
     }
 
@@ -133,10 +153,35 @@ public class WebViewFlowTest {
                 mContext, ComponentName.createRelative(mContext.getPackageName(), SERVICE_CLASS),
                 1L, new RequestLogRecord.Builder().addRow(new ContentValues()).build(),
                 mCallback, mTestEventPayload);
-        mLatch.await();
+        mCallback.mLatch.await();
 
-        assertThat(mCallbackSuccess).isTrue();
-        assertThat(mCallbackFailure).isFalse();
+        assertThat(mCallback.mSuccess).isTrue();
+        assertThat(mCallback.mFailure).isFalse();
+        assertThat(getDbEntryCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void testDedupMultiplePayloads() throws Exception {
+        mTestEventPayload =
+                new EventUrlPayload(createEventParameters(), null, null);
+
+        sSfo.schedule(ServiceFlowType.WEB_VIEW_FLOW,
+                mContext, ComponentName.createRelative(mContext.getPackageName(), SERVICE_CLASS),
+                1L, new RequestLogRecord.Builder().addRow(new ContentValues()).build(),
+                mCallback, mTestEventPayload);
+        mCallback.mLatch.await();
+        assertThat(mCallback.mSuccess).isTrue();
+        assertThat(mCallback.mFailure).isFalse();
+
+        FlowCallback callback = new FlowCallback();
+        sSfo.schedule(ServiceFlowType.WEB_VIEW_FLOW,
+                mContext, ComponentName.createRelative(mContext.getPackageName(), SERVICE_CLASS),
+                1L, new RequestLogRecord.Builder().addRow(new ContentValues()).build(),
+                callback, mTestEventPayload);
+        callback.mLatch.await();
+        assertThat(callback.mSuccess).isTrue();
+        assertThat(callback.mFailure).isFalse();
+
         assertThat(getDbEntryCount()).isEqualTo(1);
     }
 
@@ -172,5 +217,24 @@ public class WebViewFlowTest {
         return mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME,
                 null, null, null, null,
                 null, null).getCount();
+    }
+
+    public class FlowCallback implements FutureCallback<EventOutputParcel> {
+        CountDownLatch mLatch =  new CountDownLatch(1);
+        boolean mSuccess;
+        boolean mFailure;
+        Throwable mException;
+        @Override
+        public void onSuccess(EventOutputParcel result) {
+            mSuccess = true;
+            mLatch.countDown();
+        }
+
+        @Override
+        public void onFailure(@NotNull Throwable t) {
+            mFailure = true;
+            mException = t;
+            mLatch.countDown();
+        }
     }
 }

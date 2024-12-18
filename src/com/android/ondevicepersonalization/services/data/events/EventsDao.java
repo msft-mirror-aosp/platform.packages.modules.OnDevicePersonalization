@@ -110,7 +110,11 @@ public class EventsDao {
      * @return true if all inserts succeeded, false otherwise.
      */
     public boolean insertEvents(@NonNull List<Event> events) {
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            return false;
+        }
+
         try {
             db.beginTransactionNonExclusive();
             for (Event event : events) {
@@ -141,6 +145,9 @@ public class EventsDao {
             values.put(QueriesContract.QueriesEntry.SERVICE_NAME,
                     query.getServiceName());
             values.put(QueriesContract.QueriesEntry.QUERY_DATA, query.getQueryData());
+            values.put(QueriesContract.QueriesEntry.APP_PACKAGE_NAME, query.getAppPackageName());
+            values.put(QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST,
+                    query.getServiceCertDigest());
             return db.insert(QueriesContract.QueriesEntry.TABLE_NAME, null,
                     values);
         } catch (SQLiteException e) {
@@ -177,7 +184,11 @@ public class EventsDao {
      * @return true if the all the update/inserts succeeded, false otherwise
      */
     public boolean updateOrInsertEventStatesTransaction(List<EventState> eventStates) {
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            return false;
+        }
+
         try {
             db.beginTransactionNonExclusive();
             for (EventState eventState : eventStates) {
@@ -202,7 +213,11 @@ public class EventsDao {
      * @return eventState if found, null otherwise
      */
     public EventState getEventState(String taskIdentifier, ComponentName service) {
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
+        if (db == null) {
+            return null;
+        }
+
         String selection = EventStateContract.EventStateEntry.TASK_IDENTIFIER + " = ? AND "
                 + EventStateContract.EventStateEntry.SERVICE_NAME + " = ?";
         String[] selectionArgs = {taskIdentifier, DbUtils.toTableValue(service)};
@@ -299,7 +314,11 @@ public class EventsDao {
 
     private List<Query> readQueryRows(String selection, String[] selectionArgs) {
         List<Query> queries = new ArrayList<>();
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
+        if (db == null) {
+            return queries;
+        }
+
         String orderBy = QueriesContract.QueriesEntry.QUERY_ID;
         try (Cursor cursor = db.query(
                 QueriesContract.QueriesEntry.TABLE_NAME,
@@ -320,13 +339,15 @@ public class EventsDao {
                 String serviceName = cursor.getString(
                         cursor.getColumnIndexOrThrow(
                                 QueriesContract.QueriesEntry.SERVICE_NAME));
-                queries.add(new Query.Builder()
+                String appPackageName = cursor.getString(cursor.getColumnIndexOrThrow(
+                        QueriesContract.QueriesEntry.APP_PACKAGE_NAME));
+                String certDigest = cursor.getString(cursor.getColumnIndexOrThrow(
+                        QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST));
+                queries.add(new Query.Builder(
+                        timeMillis, appPackageName, DbUtils.fromTableValue(serviceName),
+                                certDigest, queryData)
                         .setQueryId(queryId)
-                        .setQueryData(queryData)
-                        .setTimeMillis(timeMillis)
-                        .setService(DbUtils.fromTableValue(serviceName))
-                        .build()
-                );
+                        .build());
             }
         } catch (IllegalArgumentException e) {
             sLogger.e(e, TAG + ": Failed parse resulting query");
@@ -337,8 +358,11 @@ public class EventsDao {
 
     private List<JoinedEvent> readJoinedTableRows(String selection, String[] selectionArgs) {
         List<JoinedEvent> joinedEventList = new ArrayList<>();
+        SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
+        if (db == null) {
+            return List.of();
+        }
 
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
         String select = "SELECT "
                 + EventsContract.EventsEntry.EVENT_ID + ","
                 + EventsContract.EventsEntry.ROW_INDEX + ","
@@ -409,7 +433,11 @@ public class EventsDao {
      * @return true if the delete executed successfully, false otherwise.
      */
     public boolean deleteEventState(ComponentName service) {
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            return false;
+        }
+
         try {
             String selection = EventStateContract.EventStateEntry.SERVICE_NAME + " = ?";
             String[] selectionArgs = {DbUtils.toTableValue(service)};
@@ -428,7 +456,11 @@ public class EventsDao {
      * @return true if the delete executed successfully, false otherwise.
      */
     public boolean deleteEventsAndQueries(long timestamp) {
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            return false;
+        }
+
         try {
             db.beginTransactionNonExclusive();
             // Delete from events table first to satisfy FK requirements.
@@ -511,6 +543,41 @@ public class EventsDao {
         return idList;
     }
 
+    /**
+     * Returns whether an event with (queryId, type, rowIndex, service) exists.
+     */
+    public boolean hasEvent(long queryId, int type, int rowIndex, ComponentName service) {
+        try {
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+            String[] projection = {EventsContract.EventsEntry.EVENT_ID};
+            String selection = EventsContract.EventsEntry.QUERY_ID + " = ?"
+                    + " AND " + EventsContract.EventsEntry.TYPE + " = ?"
+                    + " AND " + EventsContract.EventsEntry.ROW_INDEX + " = ?"
+                    + " AND " + EventsContract.EventsEntry.SERVICE_NAME + " = ?";
+            String[] selectionArgs = {
+                    String.valueOf(queryId),
+                    String.valueOf(type),
+                    String.valueOf(rowIndex),
+                    DbUtils.toTableValue(service)
+            };
+            try (Cursor cursor = db.query(
+                    EventsContract.EventsEntry.TABLE_NAME,
+                    projection,
+                    selection,
+                    selectionArgs,
+                    /* groupBy= */ null,
+                    /* having= */ null,
+                    null
+            )) {
+                if (cursor.moveToNext()) {
+                    return true;
+                }
+            }
+        } catch (SQLiteException e) {
+            sLogger.e(TAG + ": Failed to read event ids for specified queryid", e);
+        }
+        return false;
+    }
 
     /**
      * Reads all ids in the event table associated with the specified queryId
@@ -580,14 +647,16 @@ public class EventsDao {
                         cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.QUERY_DATA));
                 long timeMillis = cursor.getLong(
                         cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.TIME_MILLIS));
+                String appPackageName = cursor.getString(cursor.getColumnIndexOrThrow(
+                        QueriesContract.QueriesEntry.APP_PACKAGE_NAME));
+                String certDigest = cursor.getString(cursor.getColumnIndexOrThrow(
+                        QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST));
                 String serviceName = cursor.getString(
                         cursor.getColumnIndexOrThrow(
                                 QueriesContract.QueriesEntry.SERVICE_NAME));
-                return new Query.Builder()
+                return new Query.Builder(
+                        timeMillis, appPackageName, service, certDigest, queryData)
                         .setQueryId(id)
-                        .setQueryData(queryData)
-                        .setTimeMillis(timeMillis)
-                        .setService(service)
                         .build();
             }
         } catch (SQLiteException e) {

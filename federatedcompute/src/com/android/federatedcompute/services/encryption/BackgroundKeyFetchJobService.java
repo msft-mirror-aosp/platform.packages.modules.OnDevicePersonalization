@@ -49,6 +49,7 @@ public class BackgroundKeyFetchJobService extends JobService {
     private static final int ENCRYPTION_KEY_FETCH_JOB_ID =
             FederatedComputeJobInfo.ENCRYPTION_KEY_FETCH_JOB_ID;
 
+    @VisibleForTesting
     static class Injector {
         ListeningExecutorService getExecutor() {
             return FederatedComputeExecutors.getBackgroundExecutor();
@@ -66,7 +67,7 @@ public class BackgroundKeyFetchJobService extends JobService {
     private final Injector mInjector;
 
     public BackgroundKeyFetchJobService() {
-        mInjector = new Injector();
+        this(new Injector());
     }
 
     @VisibleForTesting
@@ -196,6 +197,7 @@ public class BackgroundKeyFetchJobService extends JobService {
                         .setRequiresBatteryNotLow(true)
                         .setRequiresDeviceIdle(true)
                         .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
+                        .setPersisted(true)
                         .build();
 
         if (!jobInfo.equals(scheduledJob)) {

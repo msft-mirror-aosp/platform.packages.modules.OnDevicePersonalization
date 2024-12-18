@@ -16,6 +16,11 @@
 
 package com.android.ondevicepersonalization.services;
 
+import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
+
+import com.android.adservices.shared.common.flags.ConfigFlag;
+import com.android.adservices.shared.common.flags.FeatureFlag;
 import com.android.adservices.shared.common.flags.ModuleSharedFlags;
 
 /**
@@ -70,36 +75,29 @@ public interface Flags extends ModuleSharedFlags {
      */
     int WEB_TRIGGER_FLOW_DEADLINE_SECONDS = 30;
 
-
-    /**
-     * Default value for the list of trusted partner app names.
-     */
+    /** Default value for the list of trusted partner app names. */
     String DEFAULT_TRUSTED_PARTNER_APPS_LIST = "";
 
-    /**
-     * Default value for the shared isolated process feature.
-     */
+    /** Default value for the shared isolated process feature. */
     boolean DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED = true;
 
-    /**
-     * Default value for enabling client error logging.
-     */
+    /** Default value for enabling client error logging. */
     boolean DEFAULT_CLIENT_ERROR_LOGGING_ENABLED = false;
 
-    /**
-     * Default value for enabling background jobs logging.
-     */
-    boolean DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED = false;
+    /** Default value for the base64 encoded Job Policy proto for ODP background jobs. */
+    @ConfigFlag String DEFAULT_ODP_MODULE_JOB_POLICY = "";
 
-    /**
-     * Default value for background job sampling logging rate.
-     */
-    int DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE = 5;
+    /** Default value for SPE to be enabled for the pilot background jobs. */
+    @FeatureFlag boolean DEFAULT_SPE_PILOT_JOB_ENABLED = false;
 
-    /**
-     * Default value for isolated service debugging flag.
-     */
+    /** Default value for isolated service debugging flag. */
     boolean DEFAULT_ISOLATED_SERVICE_DEBUGGING_ENABLED = false;
+
+    /** Default delay before starting a data reset. */
+    int DEFAULT_RESET_DATA_DELAY_SECONDS = 24 * 60 * 60; // 24 hours
+
+    /** Default deadline for data reset. */
+    int DEFAULT_RESET_DATA_DEADLINE_SECONDS = 30 * 60 * 60; // 30 hours
 
     String DEFAULT_CALLER_APP_ALLOW_LIST =
             "android.ondevicepersonalization,"
@@ -146,9 +144,9 @@ public interface Flags extends ModuleSharedFlags {
     String DEFAULT_OUTPUT_DATA_ALLOW_LIST = "";
 
     /**
-     * Default value of valid duration of user consent cache in milliseconds (10 minutes).
+     * Default value of valid duration of user control cache in milliseconds (24 hours).
      */
-    long USER_CONSENT_CACHE_IN_MILLIS = 600000;
+    long USER_CONTROL_CACHE_IN_MILLIS = 86400000;
 
     default boolean getGlobalKillSwitch() {
         return GLOBAL_KILL_SWITCH;
@@ -182,18 +180,14 @@ public interface Flags extends ModuleSharedFlags {
         return WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
     }
 
-    /**
-     * Executiton deadline for example store flow.
-     */
+    /** Execution deadline for example store flow. */
     int EXAMPLE_STORE_FLOW_DEADLINE_SECONDS = 30;
 
     default int getExampleStoreFlowDeadlineSeconds() {
         return EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
     }
 
-    /**
-     * Executiton deadline for download flow.
-     */
+    /** Execution deadline for download flow. */
     int DOWNLOAD_FLOW_DEADLINE_SECONDS = 30;
 
     default int getDownloadFlowDeadlineSeconds() {
@@ -225,8 +219,8 @@ public interface Flags extends ModuleSharedFlags {
         return DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
     }
 
-    default long getUserConsentCacheInMillis() {
-        return USER_CONSENT_CACHE_IN_MILLIS;
+    default long getUserControlCacheInMillis() {
+        return USER_CONTROL_CACHE_IN_MILLIS;
     }
 
     default String getOutputDataAllowList() {
@@ -237,15 +231,129 @@ public interface Flags extends ModuleSharedFlags {
         return DEFAULT_ISOLATED_SERVICE_DEBUGGING_ENABLED;
     }
 
-    /** Set all stable flags. */
-    default void setStableFlags() {}
+    default String getOdpModuleJobPolicy() {
+        return DEFAULT_ODP_MODULE_JOB_POLICY;
+    }
 
-    /** Get a stable flag based on the flag name. */
-    default Object getStableFlag(String flagName) {
-        return null;
+    default boolean getSpePilotJobEnabled() {
+        return DEFAULT_SPE_PILOT_JOB_ENABLED;
     }
 
     default boolean getEnableClientErrorLogging() {
         return DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
+    }
+
+    default int getResetDataDelaySeconds() {
+        return DEFAULT_RESET_DATA_DELAY_SECONDS;
+    }
+
+    default int getResetDataDeadlineSeconds() {
+        return DEFAULT_RESET_DATA_DEADLINE_SECONDS;
+    }
+
+    // Keep app install in last 30 days.
+    long DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS = 30 * 24 * 60 * 60 * 1000L;
+
+    default long getAppInstallHistoryTtlInMillis() {
+        return DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS;
+    }
+
+    /**
+     * The probability that we will return a random integer for {@link
+     * OnDevicePersonalizationManager#executeInIsolatedService}.
+     */
+    float DEFAULT_EXECUTE_BEST_VALUE_NOISE = 0.1f;
+
+    default float getNoiseForExecuteBestValue() {
+        return DEFAULT_EXECUTE_BEST_VALUE_NOISE;
+    }
+
+    /** Default value for flag that enables aggregated error code reporting. */
+    boolean DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED = false;
+
+    default boolean getAggregatedErrorReportingEnabled() {
+        return DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED;
+    }
+
+    int DEFAULT_AGGREGATED_ERROR_REPORT_TTL_DAYS = 30;
+
+    /**
+     * TTL for aggregate counts after which they will be deleted without waiting for a successful
+     * upload attempt.
+     */
+    default int getAggregatedErrorReportingTtlInDays() {
+        return DEFAULT_AGGREGATED_ERROR_REPORT_TTL_DAYS;
+    }
+
+    String DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH =
+            "debugreporting/v1/exceptions:report-exceptions";
+
+    /**
+     * URL suffix that the reporting job will use to send adopters daily aggregated counts of {@link
+     * android.adservices.ondevicepersonalization.IsolatedServiceException}s.
+     */
+    default String getAggregatedErrorReportingServerPath() {
+        return DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH;
+    }
+
+    int DEFAULT_AGGREGATED_ERROR_REPORTING_THRESHOLD = 0;
+
+    /**
+     * Minimum threshold for counts of {@link
+     * android.adservices.ondevicepersonalization.IsolatedServiceException} below which counts from
+     * device won't be reported.
+     *
+     * <p>This is applied per error code.
+     */
+    default int getAggregatedErrorMinThreshold() {
+        return DEFAULT_AGGREGATED_ERROR_REPORTING_THRESHOLD;
+    }
+
+    int DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS = 24;
+
+    /**
+     * Interval for the periodic runs of the {@link
+     * com.android.ondevicepersonalization.services.data.errors.AggregateErrorDataReportingService}
+     * that reports counts of {@link android.adservices.ondevicepersonalization.IsolatedService}.
+     */
+    default int getAggregatedErrorReportingIntervalInHours() {
+        return DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
+    }
+
+    /**
+     * Default value for maximum int value caller can set in {@link
+     * ExecuteInIsolatedServiceRequest.OutputSpec#buildBestValueSpec}.
+     */
+    int DEFAULT_MAX_INT_VALUES = 100;
+
+    default int getMaxIntValuesLimit() {
+        return DEFAULT_MAX_INT_VALUES;
+    }
+
+    /**
+     * Default max wait time until timeout for AdServices IPC call
+     */
+    long DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS = 5000L;
+
+    default long getAdservicesIpcCallTimeoutInMillis() {
+        return DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS;
+    }
+
+    String DEFAULT_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST = "";
+
+    default String getPlatformDataForTrainingAllowlist() {
+        return DEFAULT_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST;
+    }
+
+    String DEFAULT_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST = "";
+
+    default String getDefaultPlatformDataForExecuteAllowlist() {
+        return DEFAULT_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST;
+    }
+
+    String DEFAULT_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST = "";
+
+    default String getLogIsolatedServiceErrorCodeNonAggregatedAllowlist() {
+        return DEFAULT_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST;
     }
 }

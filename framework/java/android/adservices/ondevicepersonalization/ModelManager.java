@@ -65,7 +65,14 @@ public class ModelManager {
             @NonNull InferenceInput input,
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<InferenceOutput, Exception> receiver) {
+        final long startTimeMillis = System.currentTimeMillis();
         Objects.requireNonNull(input);
+        if (input.getInputData().length == 0) {
+            throw new IllegalArgumentException("Input data can not be empty");
+        }
+        if (input.getExpectedOutputStructure().getDataOutputs().isEmpty()) {
+            throw new IllegalArgumentException("Expected output data structure can not be empty");
+        }
         Bundle bundle = new Bundle();
         bundle.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, mDataService.asBinder());
         bundle.putParcelable(Constants.EXTRA_INFERENCE_INPUT, new InferenceInputParcel(input));
@@ -77,27 +84,63 @@ public class ModelManager {
                         public void onSuccess(Bundle result) {
                             executor.execute(
                                     () -> {
+                                        int responseCode = Constants.STATUS_SUCCESS;
+                                        long endTimeMillis = System.currentTimeMillis();
                                         try {
                                             InferenceOutputParcel outputParcel =
                                                     Objects.requireNonNull(
                                                             result.getParcelable(
                                                                     Constants.EXTRA_RESULT,
                                                                     InferenceOutputParcel.class));
-                                            receiver.onResult(
-                                                    new InferenceOutput(outputParcel.getData()));
+                                            InferenceOutput output =
+                                                    new InferenceOutput(outputParcel.getData());
+                                            endTimeMillis = System.currentTimeMillis();
+                                            receiver.onResult(output);
                                         } catch (Exception e) {
+                                            endTimeMillis = System.currentTimeMillis();
+                                            responseCode = Constants.STATUS_INTERNAL_ERROR;
                                             receiver.onError(e);
+                                        } finally {
+                                            logApiCallStats(
+                                                    Constants.API_NAME_MODEL_MANAGER_RUN,
+                                                    endTimeMillis - startTimeMillis,
+                                                    responseCode);
                                         }
                                     });
                         }
 
                         @Override
                         public void onError(int errorCode) {
-                            receiver.onError(new IllegalStateException("Error: " + errorCode));
+                            executor.execute(
+                                    () -> {
+                                        long endTimeMillis = System.currentTimeMillis();
+                                        if (OnDevicePersonalizationException.isValidErrorCode(
+                                                errorCode)) {
+                                            receiver.onError(
+                                                    new OnDevicePersonalizationException(
+                                                            errorCode));
+                                        } else {
+                                            receiver.onError(
+                                                    new IllegalStateException(
+                                                            "Error: " + errorCode));
+                                        }
+                                        logApiCallStats(
+                                                Constants.API_NAME_MODEL_MANAGER_RUN,
+                                                endTimeMillis - startTimeMillis,
+                                                errorCode);
+                                    });
                         }
                     });
         } catch (RemoteException e) {
             receiver.onError(new IllegalStateException(e));
+        }
+    }
+
+    private void logApiCallStats(int apiName, long duration, int responseCode) {
+        try {
+            mDataService.logApiCallStats(apiName, duration, responseCode);
+        } catch (Exception e) {
+            sLogger.d(e, TAG + ": failed to log metrics");
         }
     }
 }

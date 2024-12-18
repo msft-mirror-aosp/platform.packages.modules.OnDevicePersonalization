@@ -23,9 +23,10 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
 
-
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.libraries.plugin.FailureType;
 import com.android.ondevicepersonalization.libraries.plugin.PluginCallback;
@@ -35,8 +36,6 @@ import com.android.ondevicepersonalization.libraries.plugin.PluginManager;
 import com.android.ondevicepersonalization.libraries.plugin.impl.PluginManagerImpl;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
-import com.android.ondevicepersonalization.services.util.Clock;
-import com.android.ondevicepersonalization.services.util.MonotonicClock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
@@ -153,33 +152,36 @@ public class PluginProcessRunner implements ProcessRunner {
             @NonNull ComponentName componentName,
             @NonNull PluginController pluginController) {
         return CallbackToFutureAdapter.getFuture(
-            completer -> {
-                try {
-                    sLogger.d(TAG + ": loadPlugin");
-                    pluginController.load(new PluginCallback() {
-                        @Override public void onSuccess(Bundle bundle) {
-                            try {
-                                completer.set(
-                                        new IsolatedServiceInfo(
-                                            startTimeMillis, componentName,
-                                            pluginController, /* isolatedServiceBinder= */ null));
-                            } catch (OdpServiceException e) {
-                                completer.setException(e);
-                            }
+                completer -> {
+                    try {
+                        sLogger.d(TAG + ": loadPlugin");
+                        pluginController.load(
+                                new PluginCallback() {
+                                    @Override
+                                    public void onSuccess(Bundle bundle) {
 
-                        }
-                        @Override public void onFailure(FailureType failure) {
-                            completer.setException(new OdpServiceException(
-                                    Constants.STATUS_INTERNAL_ERROR,
-                                    String.format("loadPlugin failed. %s", failure.toString())));
-                        }
-                    });
-                } catch (Exception e) {
-                    completer.setException(e);
-                }
-                return "loadPlugin";
-            }
-        );
+                                        completer.set(
+                                                new IsolatedServiceInfo(
+                                                        startTimeMillis,
+                                                        componentName,
+                                                        pluginController));
+                                    }
+
+                                    @Override
+                                    public void onFailure(FailureType failure) {
+                                        completer.setException(
+                                                new OdpServiceException(
+                                                        Constants.STATUS_INTERNAL_ERROR,
+                                                        String.format(
+                                                                "loadPlugin failed. %s",
+                                                                failure.toString())));
+                                    }
+                                });
+                    } catch (Exception e) {
+                        completer.setException(e);
+                    }
+                    return "loadPlugin";
+                });
     }
 
     @NonNull static ListenableFuture<Bundle> executePlugin(

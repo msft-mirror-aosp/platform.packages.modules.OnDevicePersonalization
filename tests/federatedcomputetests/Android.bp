@@ -21,6 +21,7 @@ android_test {
     srcs: [
         "src/**/*.java",
         ":federatedcompute-sources",
+        ":common-ondevicepersonalization-sources",
         ":federatedcompute-fbs",
         ":statslog-federatedcompute-java-gen",
         ":fcp_native_wrapper",
@@ -30,12 +31,12 @@ android_test {
         "modules-utils-testable-device-config-defaults",
     ],
     libs: [
-        "android.test.base",
-        "android.test.runner",
+        "android.test.base.stubs.system",
+        "android.test.runner.stubs.system",
         "auto_value_annotations",
         "framework-annotations-lib",
         "framework-ondevicepersonalization.impl",
-        "framework-configinfrastructure", // For PH flags
+        "framework-configinfrastructure.stubs.module_lib", // For PH flags
         "framework-statsd.stubs.module_lib", // For WW logging
         "truth",
     ],

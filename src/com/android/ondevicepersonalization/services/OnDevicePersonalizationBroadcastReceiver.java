@@ -23,37 +23,24 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
-import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
-import android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager;
-import android.os.Bundle;
-import android.os.RemoteException;
 
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.modules.utils.build.SdkLevel;
+import com.android.odp.module.common.DeviceUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
-import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
-import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
-import com.android.ondevicepersonalization.services.policyengine.api.ChronicleManager;
-import com.android.ondevicepersonalization.services.policyengine.data.impl.UserDataConnectionProvider;
-import com.android.ondevicepersonalization.services.policyengine.policy.DataIngressPolicy;
-import com.android.ondevicepersonalization.services.util.DeviceUtils;
+import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.concurrent.Executor;
 
 /** BroadcastReceiver used to schedule OnDevicePersonalization jobs/workers. */
 public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationBroadcastReceiver";
-    private static final String PERSONALIZATION_STATUS_KEY = "PERSONALIZATION_STATUS";
-    private static final int KEY_NOT_FOUND_ERROR = 404;
     private final Executor mExecutor;
 
     public OnDevicePersonalizationBroadcastReceiver() {
@@ -99,60 +86,10 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
             sLogger.d(TAG + ": Received unexpected intent " + intent.getAction());
             return;
         }
-        // Restore personalization status from the system server on U+ devices.
-        if (SdkLevel.isAtLeastU()) {
-            OnDevicePersonalizationSystemServiceManager systemServiceManager =
-                    context.getSystemService(OnDevicePersonalizationSystemServiceManager.class);
-            if (systemServiceManager != null) {
-                IOnDevicePersonalizationSystemService systemService =
-                        systemServiceManager.getService();
-                if (systemService != null) {
-                    try {
-                        systemService.readPersonalizationStatus(
-                                new IOnDevicePersonalizationSystemServiceCallback.Stub() {
-                                    @Override
-                                    public void onResult(Bundle bundle) {
-                                        boolean personalizationStatus =
-                                                bundle.getBoolean(PERSONALIZATION_STATUS_KEY);
-                                        UserPrivacyStatus.getInstance()
-                                                .setPersonalizationStatusEnabled(
-                                                        personalizationStatus);
-                                    }
-
-                                    @Override
-                                    public void onError(int errorCode) {
-                                        if (errorCode == KEY_NOT_FOUND_ERROR) {
-                                            sLogger.d(
-                                                    TAG
-                                                            + ": Personalization status "
-                                                            + "not found in the system server");
-                                        }
-                                    }
-                                });
-                    } catch (RemoteException e) {
-                        sLogger.e(TAG + ": Callback error.");
-                    }
-                } else {
-                    sLogger.w(TAG + ": System service is not ready.");
-                }
-            } else {
-                sLogger.w(TAG + ": Cannot find system server on U+ devices.");
-            }
-        }
-
-        // Initialize policy engine instance
-        ChronicleManager.getInstance(
-                new HashSet<>(Arrays.asList(new UserDataConnectionProvider())),
-                new HashSet<>(Arrays.asList(DataIngressPolicy.NPA_DATA_POLICY)));
-
-        // Schedule maintenance task
-        OnDevicePersonalizationMaintenanceJobService.schedule(context);
-        // Schedule user data collection task
-        UserDataCollectionJobService.schedule(context);
         final PendingResult pendingResult = goAsync();
         // Schedule MDD to download scripts periodically.
         Futures.addCallback(
-                MobileDataDownloadFactory.getMdd(context).schedulePeriodicBackgroundTasks(),
+                restoreOdpJobs(context, mExecutor),
                 new FutureCallback<Void>() {
                     @Override
                     public void onSuccess(Void result) {
@@ -166,5 +103,28 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
                     }
                 },
                 mExecutor);
+    }
+
+    /**
+     * Restores periodic jobs scheduling.
+     */
+    public static ListenableFuture<Void> restoreOdpJobs(Context context, Executor executor) {
+        if (FlagsFactory.getFlags().getGlobalKillSwitch() || !DeviceUtils.isOdpSupported(context)) {
+            sLogger.d(TAG + ": ODP disabled or unsupported device");
+            return null;
+        }
+
+        var unused =
+                Futures.submit(
+                        () -> {
+                            // Schedule maintenance task
+                            OnDevicePersonalizationMaintenanceJob.schedule(context);
+                            // Schedule user data collection task
+                            UserDataCollectionJobService.schedule(context);
+                        },
+                        executor);
+
+        // Schedule MDD to download scripts periodically.
+        return MobileDataDownloadFactory.getMdd(context).schedulePeriodicBackgroundTasks();
     }
 }

@@ -18,6 +18,7 @@ package android.adservices.ondevicepersonalization.aidl;
 
 import android.content.ComponentName;
 import android.adservices.ondevicepersonalization.CallerMetadata;
+import android.adservices.ondevicepersonalization.ExecuteOptionsParcel;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -32,6 +33,7 @@ interface IOnDevicePersonalizationManagingService {
         in ComponentName handler,
         in Bundle wrappedParams,
         in CallerMetadata metadata,
+        in ExecuteOptionsParcel options,
         in IExecuteCallback callback);
 
     void requestSurfacePackage(
@@ -49,4 +51,13 @@ interface IOnDevicePersonalizationManagingService {
         in Bundle params,
         in CallerMetadata metadata,
         in IRegisterMeasurementEventCallback callback);
+
+    void logApiCallStats(
+        in String sdkPackageName,
+        in int apiName,
+        in long latencyMillis,
+        in long rpcCallLatencyMillis,
+        in long rpcReturnLatencyMillis,
+        in int responseCode
+    );
 }

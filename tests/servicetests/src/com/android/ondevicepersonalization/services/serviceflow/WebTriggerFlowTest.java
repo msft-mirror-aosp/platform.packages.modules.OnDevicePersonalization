@@ -16,20 +16,19 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
-import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
+import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParamsParcel;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 
@@ -37,9 +36,12 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
-import com.android.modules.utils.testing.TestableDeviceConfig;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -52,17 +54,19 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
 import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 
-@RunWith(JUnit4.class)
+@RunWith(Parameterized.class)
 public class WebTriggerFlowTest {
 
-    private final Context mContext = spy(ApplicationProvider.getApplicationContext());
+    private final Context mContext = ApplicationProvider.getApplicationContext();
     private final CountDownLatch mLatch = new CountDownLatch(1);
     private final OnDevicePersonalizationDbHelper mDbHelper =
             OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
@@ -74,9 +78,36 @@ public class WebTriggerFlowTest {
 
     @Mock UserPrivacyStatus mUserPrivacyStatus;
 
+    @Parameterized.Parameter(0)
+    public boolean mIsSipFeatureEnabled;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(
+                new Object[][] {
+                        {true}, {false}
+                }
+        );
+    }
+
+    static class TestFlags implements Flags {
+        int mIsolatedServiceDeadlineSeconds = 30;
+        boolean mGlobalKillSwitch = false;
+        @Override
+        public boolean getGlobalKillSwitch() {
+            return mGlobalKillSwitch;
+        }
+        @Override public int getIsolatedServiceDeadlineSeconds() {
+            return mIsolatedServiceDeadlineSeconds;
+        }
+    };
+
+    private TestFlags mSpyFlags = new TestFlags();
+
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .mockStatic(FlagsFactory.class)
+            .spyStatic(StableFlags.class)
             .spyStatic(UserPrivacyStatus.class)
             .setStrictness(Strictness.LENIENT)
             .build();
@@ -85,9 +116,12 @@ public class WebTriggerFlowTest {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
-        PhFlagsTestUtil.disableGlobalKillSwitch();
+        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
+        ExtendedMockito.doReturn(SdkLevel.isAtLeastU() && mIsSipFeatureEnabled).when(
+                () -> StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED));
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+        doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
 
         setUpTestData();
 
@@ -103,10 +137,10 @@ public class WebTriggerFlowTest {
 
     @Test
     public void testWebTriggerFlow_GlobalKillswitchOn() throws Exception {
-        PhFlagsTestUtil.enableGlobalKillSwitch();
+        mSpyFlags.mGlobalKillSwitch = true;
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -114,29 +148,26 @@ public class WebTriggerFlowTest {
     }
 
     @Test
-    public void testWebTriggerFlow_EnforceCallerPermission() throws Exception {
-        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
-                .thenReturn(PackageManager.PERMISSION_DENIED);
+    public void testWebTriggerFlow_MeasurementControlRevoked() throws Exception {
+        doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
-        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+        assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
     }
 
     @Test
     public void testWebTriggerFlow_EmptyWebTriggerParams() throws Exception {
-        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
-                .thenReturn(PackageManager.PERMISSION_GRANTED);
         Bundle emptyWebTriggerParams = new Bundle();
         emptyWebTriggerParams.putParcelable(
                 Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
                 null);
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, emptyWebTriggerParams, mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -145,8 +176,6 @@ public class WebTriggerFlowTest {
 
     @Test
     public void testWebTriggerFlow_EmptyDestionalUrl() throws Exception {
-        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
-                .thenReturn(PackageManager.PERMISSION_GRANTED);
         Bundle emptyClassParams = new Bundle();
         emptyClassParams.putParcelable(
                 Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
@@ -158,7 +187,7 @@ public class WebTriggerFlowTest {
                         null, new byte[] {1, 2, 3}));
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, emptyClassParams, mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -167,8 +196,6 @@ public class WebTriggerFlowTest {
 
     @Test
     public void testWebTriggerFlow_InvalidCertDigest() throws Exception {
-        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
-                .thenReturn(PackageManager.PERMISSION_GRANTED);
         Bundle invalidCertDigestParams = new Bundle();
         invalidCertDigestParams.putParcelable(
                 Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
@@ -180,7 +207,7 @@ public class WebTriggerFlowTest {
                         "randomTestCertDigest", new byte[] {1, 2, 3}));
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, invalidCertDigestParams, mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -189,8 +216,6 @@ public class WebTriggerFlowTest {
 
     @Test
     public void testWebTriggerFlow_InvalidClassName() throws Exception {
-        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
-                .thenReturn(PackageManager.PERMISSION_GRANTED);
         Bundle invalidPackageNameParams = new Bundle();
         invalidPackageNameParams.putParcelable(
                 Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
@@ -202,7 +227,7 @@ public class WebTriggerFlowTest {
                         null, new byte[] {1, 2, 3}));
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, invalidPackageNameParams, mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -211,11 +236,8 @@ public class WebTriggerFlowTest {
 
     @Test
     public void testWebTriggerFlow_Success() throws Exception {
-        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
-                .thenReturn(PackageManager.PERMISSION_GRANTED);
-
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
@@ -247,20 +269,20 @@ public class WebTriggerFlowTest {
                 DbUtils.toTableValue(service),
                 "AABBCCDD", rows);
         EventsDao.getInstanceForTest(mContext).insertQuery(
-                new Query.Builder().setService(service).setQueryData(
-                        queryDataBytes).build());
+                new Query.Builder(1L, "com.app", service, "AABBCCDD", queryDataBytes)
+                .build());
         EventsDao.getInstanceForTest(mContext);
     }
 
     class TestWebCallback extends IRegisterMeasurementEventCallback.Stub {
         @Override
-        public void onSuccess() {
+        public void onSuccess(CalleeMetadata calleeMetadata) {
             mCallbackSuccess = true;
             mLatch.countDown();
         }
 
         @Override
-        public void onError(int errorCode) {
+        public void onError(int errorCode, CalleeMetadata calleeMetadata) {
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
             mLatch.countDown();

@@ -64,17 +64,24 @@ public final class PhFlags implements Flags {
 
     public static final String KEY_OUTPUT_DATA_ALLOW_LIST = "output_data_allow_list";
 
-    public static final String KEY_USER_CONSENT_CACHE_IN_MILLIS =
-            "user_consent_cache_duration_millis";
+    public static final String KEY_USER_CONTROL_CACHE_IN_MILLIS =
+            "user_control_cache_duration_millis";
 
     public static final String KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING =
             "odp_enable_client_error_logging";
 
-    public static final String KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED =
-            "odp_background_jobs_logging_enabled";
-
     public static final String KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE =
             "odp_background_job_sampling_logging_rate";
+
+    public static final String KEY_ODP_JOB_SCHEDULING_LOGGING_ENABLED =
+            "odp_job_scheduling_logging_enabled";
+
+    public static final String KEY_ODP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE =
+            "odp_job_scheduling_logging_sampling_rate";
+
+    public static final String KEY_ODP_MODULE_JOB_POLICY = "odp_module_job_policy";
+
+    public static final String KEY_ODP_SPE_PILOT_JOB_ENABLED = "odp_spe_pilot_job_enabled";
 
     public static final String KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED =
             "is_art_image_loading_optimization_enabled";
@@ -82,15 +89,46 @@ public final class PhFlags implements Flags {
     public static final String KEY_ISOLATED_SERVICE_DEBUGGING_ENABLED =
             "isolated_service_debugging_enabled";
 
+    public static final String KEY_RESET_DATA_DELAY_SECONDS = "reset_data_delay_seconds";
+
+    public static final String KEY_RESET_DATA_DEADLINE_SECONDS = "reset_data_deadline_seconds";
+
+    public static final String APP_INSTALL_HISTORY_TTL = "app_install_history_ttl";
+    public static final String EXECUTE_BEST_VALUE_NOISE = "noise_for_execute_best_value";
+
+    public static final String KEY_ENABLE_AGGREGATED_ERROR_REPORTING =
+            "enable_aggregated_error_reporting";
+
+    public static final String KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS =
+            "aggregated_error_report_ttl_days";
+
+    public static final String KEY_AGGREGATED_ERROR_REPORTING_PATH =
+            "aggregated_error_reporting_path";
+
+    public static final String KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD =
+            "aggregated_error_reporting_threshold";
+
+    public static final String KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS =
+            "aggregated_error_reporting_interval_hours";
+
+    public static final String MAX_INT_VALUES_LIMIT = "max_int_values_limit";
+
+    public static final String KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS =
+            "adservices_ipc_call_timeout_in_millis";
+    public static final String KEY_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST =
+            "platform_data_for_training_allowlist";
+    public static final String KEY_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST =
+            "platform_data_for_execute_allowlist";
+
+    public static final String KEY_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST =
+            "log_isolated_service_error_code_non_aggregated_allowlist";
+
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
 
     private final Map<String, Object> mStableFlags = new HashMap<>();
 
-    PhFlags() {
-        // This is only called onece so stable flags require process restart to be reset.
-        setStableFlags();
-    }
+    PhFlags() {}
 
     /** Returns the singleton instance of the PhFlags. */
     @NonNull
@@ -100,36 +138,6 @@ public final class PhFlags implements Flags {
 
     private static class PhFlagsLazyInstanceHolder {
         private static final PhFlags sSingleton = new PhFlags();
-    }
-
-    /** Sets the stable flag map. */
-    public void setStableFlags() {
-        mStableFlags.put(KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS,
-                getAppRequestFlowDeadlineSeconds());
-        mStableFlags.put(KEY_RENDER_FLOW_DEADLINE_SECONDS,
-                getRenderFlowDeadlineSeconds());
-        mStableFlags.put(KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS,
-                getWebTriggerFlowDeadlineSeconds());
-        mStableFlags.put(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS,
-                getWebViewFlowDeadlineSeconds());
-        mStableFlags.put(KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS,
-                getExampleStoreFlowDeadlineSeconds());
-        mStableFlags.put(KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS,
-                getDownloadFlowDeadlineSeconds());
-        mStableFlags.put(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
-                isSharedIsolatedProcessFeatureEnabled());
-        mStableFlags.put(KEY_TRUSTED_PARTNER_APPS_LIST,
-                getTrustedPartnerAppsList());
-        mStableFlags.put(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED,
-                isArtImageLoadingOptimizationEnabled());
-    }
-
-    /** Gets a stable flag value based on flag name. */
-    public Object getStableFlag(String flagName) {
-        if (!mStableFlags.containsKey(flagName)) {
-            throw new IllegalArgumentException("Flag " + flagName + " is not stable.");
-        }
-        return mStableFlags.get(flagName);
     }
 
     // Group of All Killswitches
@@ -231,9 +239,9 @@ public final class PhFlags implements Flags {
     public String getTrustedPartnerAppsList() {
         return SdkLevel.isAtLeastU()
                 ? DeviceConfig.getString(
-                    /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                    /* name= */ KEY_TRUSTED_PARTNER_APPS_LIST,
-                    /* defaultValue */ DEFAULT_TRUSTED_PARTNER_APPS_LIST)
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_TRUSTED_PARTNER_APPS_LIST,
+                /* defaultValue */ DEFAULT_TRUSTED_PARTNER_APPS_LIST)
                 : "";
     }
 
@@ -278,11 +286,11 @@ public final class PhFlags implements Flags {
     }
 
     @Override
-    public long getUserConsentCacheInMillis() {
+    public long getUserControlCacheInMillis() {
         return DeviceConfig.getLong(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name= */ KEY_USER_CONSENT_CACHE_IN_MILLIS,
-                /* defaultValue= */ USER_CONSENT_CACHE_IN_MILLIS);
+                /* name= */ KEY_USER_CONTROL_CACHE_IN_MILLIS,
+                /* defaultValue= */ USER_CONTROL_CACHE_IN_MILLIS);
     }
 
     @Override
@@ -293,16 +301,17 @@ public final class PhFlags implements Flags {
                 /* defaultValue= */ DEFAULT_CLIENT_ERROR_LOGGING_ENABLED);
     }
 
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>This method always return {@code true} because the underlying flag is fully launched on
+     * {@code OnDevicePersonalization} but the method cannot be removed (as it's defined on {@code
+     * ModuleSharedFlags}).
+     */
     @Override
     public boolean getBackgroundJobsLoggingEnabled() {
-        // needs stable: execution stats may be less accurate if flag changed during job execution
-        return (boolean) mStableFlags.computeIfAbsent(KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
-                key -> {
-                    return DeviceConfig.getBoolean(
-                            /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                            /* name= */ KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
-                            /* defaultValue= */ DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED);
-                });
+        return true;
     }
 
     @Override
@@ -310,7 +319,39 @@ public final class PhFlags implements Flags {
         return DeviceConfig.getInt(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE,
-                /* defaultValue= */ DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE);
+                /* defaultValue= */ BACKGROUND_JOB_SAMPLING_LOGGING_RATE);
+    }
+
+    @Override
+    public boolean getJobSchedulingLoggingEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ODP_JOB_SCHEDULING_LOGGING_ENABLED,
+                /* defaultValue= */ DEFAULT_JOB_SCHEDULING_LOGGING_ENABLED);
+    }
+
+    @Override
+    public int getJobSchedulingLoggingSamplingRate() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ODP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE,
+                /* defaultValue= */ DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE);
+    }
+
+    @Override
+    public String getOdpModuleJobPolicy() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name */ KEY_ODP_MODULE_JOB_POLICY,
+                /* defaultValue */ DEFAULT_ODP_MODULE_JOB_POLICY);
+    }
+
+    @Override
+    public boolean getSpePilotJobEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ODP_SPE_PILOT_JOB_ENABLED,
+                /* defaultValue= */ DEFAULT_SPE_PILOT_JOB_ENABLED);
     }
 
     @Override
@@ -319,5 +360,118 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED,
                 /* defaultValue= */ IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED);
+    }
+
+    @Override
+    public int getResetDataDelaySeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_RESET_DATA_DELAY_SECONDS,
+                /* defaultValue= */ DEFAULT_RESET_DATA_DELAY_SECONDS);
+    }
+
+    @Override
+    public int getResetDataDeadlineSeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_RESET_DATA_DEADLINE_SECONDS,
+                /* defaultValue= */ DEFAULT_RESET_DATA_DEADLINE_SECONDS);
+    }
+
+    @Override
+    public long getAppInstallHistoryTtlInMillis() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ APP_INSTALL_HISTORY_TTL,
+                /* defaultValue= */ DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS);
+    }
+
+    @Override
+    public float getNoiseForExecuteBestValue() {
+        return DeviceConfig.getFloat(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ EXECUTE_BEST_VALUE_NOISE,
+                /* defaultValue= */ DEFAULT_EXECUTE_BEST_VALUE_NOISE);
+    }
+
+    @Override
+    public boolean getAggregatedErrorReportingEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ENABLE_AGGREGATED_ERROR_REPORTING,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED);
+    }
+
+    @Override
+    public int getAggregatedErrorReportingTtlInDays() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORT_TTL_DAYS);
+    }
+
+    @Override
+    public String getAggregatedErrorReportingServerPath() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_AGGREGATED_ERROR_REPORTING_PATH,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH);
+    }
+
+    @Override
+    public int getAggregatedErrorMinThreshold() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORTING_THRESHOLD);
+    }
+
+    @Override
+    public int getAggregatedErrorReportingIntervalInHours() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS);
+    }
+
+    @Override
+    public int getMaxIntValuesLimit() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ MAX_INT_VALUES_LIMIT,
+                /* defaultValue= */ DEFAULT_MAX_INT_VALUES);
+    }
+
+    @Override
+    public long getAdservicesIpcCallTimeoutInMillis() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS,
+                /* defaultValue= */ DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS);
+    }
+
+    @Override
+    public String getPlatformDataForTrainingAllowlist() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST,
+                /* defaultValue= */ DEFAULT_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST);
+    }
+
+    @Override
+    public String getDefaultPlatformDataForExecuteAllowlist() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST,
+                /* defaultValue= */ DEFAULT_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST);
+    }
+
+    @Override
+    public String getLogIsolatedServiceErrorCodeNonAggregatedAllowlist() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST,
+                /* defaultValue= */
+                DEFAULT_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST);
     }
 }

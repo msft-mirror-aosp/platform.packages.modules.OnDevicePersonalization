@@ -70,6 +70,7 @@ public class IsolatedServiceTest {
     private Bundle mCallbackResult;
     private int mCallbackErrorCode;
     private int mIsolatedServiceErrorCode;
+    private byte[] mSerializedExceptionInfo;
 
     @Before
     public void setUp() {
@@ -616,6 +617,8 @@ public class IsolatedServiceTest {
     static class TestDataAccessService extends IDataAccessService.Stub {
         @Override
         public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {}
+        @Override
+        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {}
     }
 
     static class TestFederatedComputeService extends IFederatedComputeService.Stub {
@@ -740,9 +743,13 @@ public class IsolatedServiceTest {
         }
 
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode) {
+        public void onError(
+                int errorCode,
+                int isolatedServiceErrorCode,
+                byte[] serializedExceptionInfo) {
             mCallbackErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;
+            mSerializedExceptionInfo = serializedExceptionInfo;
             mLatch.countDown();
         }
     }

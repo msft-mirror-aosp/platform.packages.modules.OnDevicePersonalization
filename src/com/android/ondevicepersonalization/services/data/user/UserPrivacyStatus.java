@@ -16,22 +16,31 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
-import android.adservices.common.AdServicesCommonManager;
-import android.adservices.common.AdServicesCommonStates;
-import android.adservices.common.AdServicesCommonStatesResponse;
-import android.adservices.common.AdServicesOutcomeReceiver;
-import android.annotation.NonNull;
-import android.content.Context;
+import static android.adservices.ondevicepersonalization.Constants.API_NAME_ADSERVICES_GET_COMMON_STATES;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_CALLER_NOT_ALLOWED;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_INTERNAL_ERROR;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_METHOD_NOT_FOUND;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_REMOTE_EXCEPTION;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_SUCCESS;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_TIMEOUT;
 
-import androidx.concurrent.futures.CallbackToFutureAdapter;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_USER_CONTROL_CACHE_IN_MILLIS;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
-import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
-import com.android.ondevicepersonalization.services.PhFlags;
+import com.android.ondevicepersonalization.services.StableFlags;
+import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
+import com.android.ondevicepersonalization.services.util.DebugUtils;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 /**
  * A singleton class that stores all user privacy statuses in memory.
@@ -39,200 +48,216 @@ import com.google.common.util.concurrent.ListenableFuture;
 public final class UserPrivacyStatus {
     private static final String TAG = "UserPrivacyStatus";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+    private static final String PERSONALIZATION_STATUS_KEY = "PERSONALIZATION_STATUS";
     @VisibleForTesting
-    static final int CONSENT_GIVEN_STATUS_CODE = 3;
+    static final int CONTROL_GIVEN_STATUS_CODE = 3;
     @VisibleForTesting
-    static final int CONSENT_REVOKED_STATUS_CODE = 2;
-    static UserPrivacyStatus sUserPrivacyStatus = null;
-    private boolean mPersonalizationStatusEnabled;
+    static final int CONTROL_REVOKED_STATUS_CODE = 2;
+    private static final Object sLock = new Object();
+    private static volatile UserPrivacyStatus sUserPrivacyStatus = null;
     private boolean mProtectedAudienceEnabled;
     private boolean mMeasurementEnabled;
-    private long mLastUserConsentCacheUpdate;
+    private boolean mProtectedAudienceReset;
+    private boolean mMeasurementReset;
+    private long mLastUserControlCacheUpdate;
+    private final Clock mClock;
+    private final AdServicesCommonStatesWrapper mAdServicesCommonStatesWrapper;
 
-    private enum CommonState {
-        PROTECTED_AUDIENCE,
-        MEASUREMENT
-    }
-
-    private UserPrivacyStatus() {
+    @VisibleForTesting
+    UserPrivacyStatus(
+            AdServicesCommonStatesWrapper wrapper,
+            Clock clock) {
         // Assume the more privacy-safe option until updated.
-        mPersonalizationStatusEnabled = false;
         mProtectedAudienceEnabled = false;
         mMeasurementEnabled = false;
-        mLastUserConsentCacheUpdate = -1L;
+        mProtectedAudienceReset = false;
+        mMeasurementReset = false;
+        mLastUserControlCacheUpdate = -1L;
+        mAdServicesCommonStatesWrapper = Objects.requireNonNull(wrapper);
+        mClock = Objects.requireNonNull(clock);
     }
 
     /** Returns an instance of UserPrivacyStatus. */
     public static UserPrivacyStatus getInstance() {
-        synchronized (UserPrivacyStatus.class) {
-            if (sUserPrivacyStatus == null) {
-                sUserPrivacyStatus = new UserPrivacyStatus();
+        if (sUserPrivacyStatus == null) {
+            synchronized (sLock) {
+                if (sUserPrivacyStatus == null) {
+                    sUserPrivacyStatus = new UserPrivacyStatus(
+                            new AdServicesCommonStatesWrapperImpl(
+                                    OnDevicePersonalizationApplication.getAppContext()),
+                            MonotonicClock.getInstance());
+                }
             }
-            return sUserPrivacyStatus;
         }
+        return sUserPrivacyStatus;
     }
 
-    public void setPersonalizationStatusEnabled(boolean personalizationStatusEnabled) {
-        PhFlags phFlags = PhFlags.getInstance();
-        if (!phFlags.isPersonalizationStatusOverrideEnabled()) {
-            mPersonalizationStatusEnabled = personalizationStatusEnabled;
-        }
-    }
-
-    public boolean isPersonalizationStatusEnabled() {
-        PhFlags phFlags = PhFlags.getInstance();
-        if (phFlags.isPersonalizationStatusOverrideEnabled()) {
-            return phFlags.getPersonalizationStatusOverrideValue();
-        }
-        return mPersonalizationStatusEnabled;
+    private static boolean isOverrideEnabled() {
+        return DebugUtils.isDeveloperModeEnabled(
+                OnDevicePersonalizationApplication.getAppContext())
+                && (boolean) StableFlags.get(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE);
     }
 
     /**
-     * Returns the user consent status of Protected Audience (PA).
+     * Return if both Protected Audience (PA) and Measurement consent status are disabled
+     */
+    public boolean isProtectedAudienceAndMeasurementBothDisabled() {
+        if (isOverrideEnabled()) {
+            boolean overrideToBothEnabled =
+                    (boolean) StableFlags.get(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
+            return !overrideToBothEnabled;
+        }
+        if (isUserControlCacheValid()) {
+            return !mProtectedAudienceEnabled && !mMeasurementEnabled;
+        }
+        // make request to AdServices#getCommonStates API once
+        fetchStateFromAdServices();
+        return !mProtectedAudienceEnabled && !mMeasurementEnabled;
+    }
+
+    /**
+     * Returns the user control status of Protected Audience (PA).
      */
     public boolean isProtectedAudienceEnabled() {
-        if (isUserConsentCacheValid()) {
+        if (isOverrideEnabled()) {
+            return (boolean) StableFlags.get(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
+        }
+        if (isUserControlCacheValid()) {
             return mProtectedAudienceEnabled;
         }
         // make request to AdServices#getCommonStates API.
-        return fetchStateFromAdServices(CommonState.PROTECTED_AUDIENCE);
+        fetchStateFromAdServices();
+        return mProtectedAudienceEnabled;
     }
 
     /**
-     * Returns the user consent status of Measurement.
+     * Returns the user control status of Measurement.
      */
     public boolean isMeasurementEnabled() {
-        if (isUserConsentCacheValid()) {
+        if (isOverrideEnabled()) {
+            return (boolean) StableFlags.get(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
+        }
+        if (isUserControlCacheValid()) {
             return mMeasurementEnabled;
         }
         // make request to AdServices#getCommonStates API.
-        return fetchStateFromAdServices(CommonState.MEASUREMENT);
+        fetchStateFromAdServices();
+        return mMeasurementEnabled;
     }
 
     /**
-     * Update user consent cache and timestamp metadata.
+     * Returns true if the user requests a reset on PA-related data.
      */
-    @VisibleForTesting
-    void updateUserConsentCache(boolean protectedAudienceEnabled,
-            boolean measurementEnabled) {
-        mProtectedAudienceEnabled = protectedAudienceEnabled;
-        mMeasurementEnabled = measurementEnabled;
-        mLastUserConsentCacheUpdate = System.currentTimeMillis();
+    private boolean isProtectedAudienceReset() {
+        return mProtectedAudienceReset;
     }
 
     /**
-     * Returns whether the user consent cache remains valid.
+     * Returns true if the user requests a reset on measurement-related data.
+     */
+    private boolean isMeasurementReset() {
+        return mMeasurementReset;
+    }
+
+    /**
+     * Update user control cache and timestamp metadata.
      */
     @VisibleForTesting
-    boolean isUserConsentCacheValid() {
-        if (mLastUserConsentCacheUpdate == -1L) {
+    void updateUserControlCache(int protectedAudienceState,
+            int measurementState) {
+        mProtectedAudienceEnabled = (protectedAudienceState != CONTROL_REVOKED_STATUS_CODE);
+        mMeasurementEnabled = (measurementState != CONTROL_REVOKED_STATUS_CODE);
+        mProtectedAudienceReset = (protectedAudienceState != CONTROL_GIVEN_STATUS_CODE);
+        mMeasurementReset = (measurementState != CONTROL_GIVEN_STATUS_CODE);
+        mLastUserControlCacheUpdate = mClock.currentTimeMillis();
+        handleResetIfNeeded();
+    }
+
+    /**
+     * Returns whether the user control cache remains valid.
+     */
+    @VisibleForTesting
+    boolean isUserControlCacheValid() {
+        if (mLastUserControlCacheUpdate == -1L) {
             return false;
         }
-        long cacheDuration = System.currentTimeMillis() - mLastUserConsentCacheUpdate;
+        long cacheDuration = mClock.currentTimeMillis() - mLastUserControlCacheUpdate;
         return cacheDuration >= 0
-                        && cacheDuration < PhFlags.getInstance().getUserConsentCacheInMillis();
+                && cacheDuration < (long) StableFlags.get(KEY_USER_CONTROL_CACHE_IN_MILLIS);
     }
 
     /**
-     * Reset user consent info for testing.
+     * Reset user control info for testing.
      */
     @VisibleForTesting
-    void resetUserConsentForTesting() {
+    void resetUserControlForTesting() {
         mProtectedAudienceEnabled = false;
         mMeasurementEnabled = false;
-        mLastUserConsentCacheUpdate = -1L;
+        mProtectedAudienceReset = false;
+        mMeasurementReset = false;
+        mLastUserControlCacheUpdate = -1L;
     }
 
     /**
-     * Invalidate the user consent cache for testing.
+     * Invalidate the user control cache for testing.
      */
     @VisibleForTesting
-    void invalidateUserConsentCacheForTesting() {
-        mLastUserConsentCacheUpdate = System.currentTimeMillis()
-                        - 2 * PhFlags.getInstance().getUserConsentCacheInMillis();
+    void invalidateUserControlCacheForTesting() {
+        mLastUserControlCacheUpdate = mClock.currentTimeMillis()
+                        - 2 * (long) StableFlags.get(KEY_USER_CONTROL_CACHE_IN_MILLIS);
     }
 
-    private boolean fetchStateFromAdServices(CommonState state) {
+    private void fetchStateFromAdServices() {
+        long startTime = mClock.elapsedRealtime();
+        String packageName = OnDevicePersonalizationApplication.getAppContext().getPackageName();
         try {
             // IPC.
-            AdServicesCommonManager adServicesCommonManager = getAdServicesCommonManager();
-            AdServicesCommonStates commonStates =
-                            getAdServicesCommonStates(adServicesCommonManager);
-
+            AdServicesCommonStatesWrapper.CommonStatesResult commonStates =
+                    mAdServicesCommonStatesWrapper.getCommonStates().get();
+            StatsUtils.writeServiceRequestMetrics(
+                    API_NAME_ADSERVICES_GET_COMMON_STATES,
+                    packageName,
+                    null,
+                    mClock,
+                    STATUS_SUCCESS,
+                    startTime);
             // update cache.
-            boolean updatedProtectedAudienceEnabled =
-                    (commonStates.getPaState() == CONSENT_GIVEN_STATUS_CODE);
-            boolean updatedMeasurementEnabled =
-                    (commonStates.getMeasurementState() == CONSENT_GIVEN_STATUS_CODE);
-            updateUserConsentCache(updatedProtectedAudienceEnabled, updatedMeasurementEnabled);
-
-            // return requested common state.
-            switch (state) {
-                case PROTECTED_AUDIENCE -> {
-                    return updatedProtectedAudienceEnabled;
-                }
-                case MEASUREMENT -> {
-                    return updatedMeasurementEnabled;
-                }
-            }
-            return false;
+            int updatedProtectedAudienceState = commonStates.getPaState();
+            int updatedMeasurementState = commonStates.getMeasurementState();
+            updateUserControlCache(updatedProtectedAudienceState, updatedMeasurementState);
         } catch (Exception e) {
-            sLogger.e(TAG + ": fetchStateFromAdServices error", e);
-            return false;
+            int statusCode = getExceptionStatus(e);
+            sLogger.e(e, TAG + ": fetchStateFromAdServices error, status code %d", statusCode);
+            StatsUtils.writeServiceRequestMetrics(
+                    API_NAME_ADSERVICES_GET_COMMON_STATES,
+                    packageName,
+                    null,
+                    mClock,
+                    statusCode,
+                    startTime);
         }
     }
 
-    /**
-     * Get AdServices common manager from ODP.
-     */
-    private static AdServicesCommonManager getAdServicesCommonManager() {
-        Context odpContext = OnDevicePersonalizationApplication.getAppContext();
-        try {
-            return odpContext.getSystemService(AdServicesCommonManager.class);
-        } catch (NoClassDefFoundError e) {
-            throw new IllegalStateException("Cannot find AdServicesCommonManager.", e);
+    private void handleResetIfNeeded() {
+        if (isMeasurementReset() || isProtectedAudienceReset()) {
+            ResetDataJobService.schedule();
         }
     }
 
-    /**
-     * Get common states from AdServices, such as user consent.
-     */
-    private AdServicesCommonStates getAdServicesCommonStates(
-                    @NonNull AdServicesCommonManager adServicesCommonManager) {
-        ListenableFuture<AdServicesCommonStatesResponse> response =
-                        getAdServicesResponse(adServicesCommonManager);
-        try {
-            return response.get().getAdServicesCommonStates();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed when calling "
-                    + "AdServicesCommonManager#getAdServicesCommonStates().", e);
+    @VisibleForTesting
+    int getExceptionStatus(Exception e) {
+        if (e instanceof ExecutionException && e.getCause() instanceof TimeoutException) {
+            return STATUS_TIMEOUT;
         }
-    }
-
-    /**
-     * IPC to AdServices API.
-     */
-    private ListenableFuture<AdServicesCommonStatesResponse> getAdServicesResponse(
-                    @NonNull AdServicesCommonManager adServicesCommonManager) {
-        return CallbackToFutureAdapter.getFuture(
-                completer -> {
-                    adServicesCommonManager.getAdservicesCommonStates(
-                            OnDevicePersonalizationExecutors.getBackgroundExecutor(),
-                            new AdServicesOutcomeReceiver<AdServicesCommonStatesResponse,
-                                    Exception>() {
-                                @Override
-                                public void onResult(AdServicesCommonStatesResponse result) {
-                                    completer.set(result);
-                                }
-
-                                @Override
-                                public void onError(Exception error) {
-                                    completer.setException(error);
-                                }
-                            });
-                    // For debugging purpose only.
-                    return "getAdServicesCommonStates";
-                }
-        );
+        if (e instanceof NoSuchMethodException) {
+            return STATUS_METHOD_NOT_FOUND;
+        }
+        if (e instanceof SecurityException) {
+            return STATUS_CALLER_NOT_ALLOWED;
+        }
+        if (e instanceof IllegalArgumentException) {
+            return STATUS_INTERNAL_ERROR;
+        }
+        return STATUS_REMOTE_EXCEPTION;
     }
 }

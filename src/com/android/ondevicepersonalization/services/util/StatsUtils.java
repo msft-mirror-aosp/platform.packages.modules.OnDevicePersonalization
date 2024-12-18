@@ -20,6 +20,7 @@ import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.os.Bundle;
 
+import com.android.odp.module.common.Clock;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 
@@ -41,27 +42,31 @@ public class StatsUtils {
         return callerLatencyMillis - calleeLatencyMillis;
     }
 
-    /** Writes app request usage to statsd. */
-    public static void writeAppRequestMetrics(Clock clock, int responseCode, long startTimeMillis) {
-        int latencyMillis = (int) (clock.elapsedRealtime() - startTimeMillis);
-        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_EXECUTE)
-                .setLatencyMillis(latencyMillis)
-                .setResponseCode(responseCode)
-                .build();
+    /** Writes service request usage to statsd. Mainly for failure case. */
+    public static void writeServiceRequestMetrics(int apiName, int responseCode) {
+        ApiCallStats callStats =
+                new ApiCallStats.Builder(apiName).setResponseCode(responseCode).build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 
     /** Writes service request usage to statsd. */
     public static void writeServiceRequestMetrics(
-            int apiName, Bundle result, Clock clock, int responseCode, long startTimeMillis) {
+            int apiName,
+            String sdkPackageName,
+            Bundle result,
+            Clock clock,
+            int responseCode,
+            long startTimeMillis) {
         int latencyMillis = (int) (clock.elapsedRealtime() - startTimeMillis);
         int overheadLatencyMillis =
                 (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
-        ApiCallStats callStats = new ApiCallStats.Builder(apiName)
-                .setLatencyMillis(latencyMillis)
-                .setOverheadLatencyMillis(overheadLatencyMillis)
-                .setResponseCode(responseCode)
-                .build();
+        ApiCallStats callStats =
+                new ApiCallStats.Builder(apiName)
+                        .setLatencyMillis(latencyMillis)
+                        .setOverheadLatencyMillis(overheadLatencyMillis)
+                        .setResponseCode(responseCode)
+                        .setSdkPackageName(sdkPackageName == null ? "" : sdkPackageName)
+                        .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
     private StatsUtils() {}

@@ -20,11 +20,13 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_CALLER_AP
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_SPE_PILOT_JOB_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_OUTPUT_DATA_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 
 import android.provider.DeviceConfig;
 
-import androidx.test.InstrumentationRegistry;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 public class PhFlagsTestUtil {
     private static final String WRITE_DEVICE_CONFIG_PERMISSION =
@@ -104,6 +106,24 @@ public class PhFlagsTestUtil {
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 KEY_OUTPUT_DATA_ALLOW_LIST,
                 outputDataAllowList,
+                /* makeDefault */ false);
+    }
+
+    /** Set up output data allow list in device config */
+    public static void setSharedIsolatedProcessFeatureEnabled(boolean enabled) {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
+                Boolean.toString(enabled),
+                /* makeDefault */ false);
+    }
+
+    /** Sets up if SPE is enabled for pilot jobs. */
+    public static void setSpePilotJobEnabled(boolean enabled) {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ODP_SPE_PILOT_JOB_ENABLED,
+                Boolean.toString(enabled),
                 /* makeDefault */ false);
     }
 }

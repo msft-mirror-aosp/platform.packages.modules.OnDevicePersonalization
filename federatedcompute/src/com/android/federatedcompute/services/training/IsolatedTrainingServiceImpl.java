@@ -19,6 +19,7 @@ package com.android.federatedcompute.services.training;
 import static com.android.federatedcompute.services.common.Constants.TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING;
 
 import android.annotation.NonNull;
+import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.common.ClientConstants;
 import android.federatedcompute.common.ExampleConsumption;
@@ -30,11 +31,12 @@ import android.os.Trace;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
-import com.android.federatedcompute.services.common.FileUtils;
+import com.android.federatedcompute.services.data.fbs.TrainingFlags;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
 import com.android.federatedcompute.services.training.aidl.IIsolatedTrainingService;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
 import com.android.federatedcompute.services.training.util.ListenableSupplier;
+import com.android.odp.module.common.FileUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.FutureCallback;
@@ -48,6 +50,7 @@ import com.google.internal.federated.plan.ExampleSelector;
 import com.google.protobuf.Duration;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -62,8 +65,8 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
 
     private final ComputationRunner mComputationRunner;
 
-    public IsolatedTrainingServiceImpl() {
-        this(new ComputationRunner());
+    public IsolatedTrainingServiceImpl(Context context) {
+        this(new ComputationRunner(context));
     }
 
     @VisibleForTesting
@@ -81,6 +84,11 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
 
     private void runTraining(Bundle params, ITrainingResultCallback callback) {
         Trace.beginAsyncSection(TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING, 0);
+        byte[] flagsBytes =
+                Objects.requireNonNull(params.getByteArray(Constants.EXTRA_TRAINING_FLAGS));
+        TrainingFlags trainingFlags = getTrainingFlags(flagsBytes);
+
+        long tfErrorRescheduleSeconds = trainingFlags.tfErrorRescheduleSeconds();
         try {
             IExampleStoreIterator exampleStoreIteratorBinder =
                     IExampleStoreIterator.Stub.asInterface(
@@ -96,7 +104,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                 exampleSelector = ExampleSelector.parseFrom(exampleSelectorBytes);
             } catch (InvalidProtocolBufferException e) {
                 LogUtil.e(TAG, e, "ExampleSelector proto is invalid");
-                sendResult(createFailedResult(), callback);
+                sendResult(createFailedResult(tfErrorRescheduleSeconds), callback);
                 return;
             }
             ExampleConsumptionRecorder recorder = new ExampleConsumptionRecorder();
@@ -126,7 +134,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                 clientPlan = ClientOnlyPlan.parseFrom(clientPlanBytes);
             } catch (InvalidProtocolBufferException e) {
                 LogUtil.e(TAG, e, "ClientOnlyPlan proto is invalid");
-                sendResult(createFailedResult(), callback);
+                sendResult(createFailedResult(tfErrorRescheduleSeconds), callback);
                 return;
             }
 
@@ -179,12 +187,11 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                                                         RetryInfo.newBuilder()
                                                                 .setMinimumDelay(
                                                                         Duration.newBuilder()
-                                                                                // Set retry to 24
-                                                                                // hours
-                                                                                // in case TF failed
-                                                                                // to
-                                                                                // do computation
-                                                                                .setSeconds(86400)))
+                                                                                // Set retry to
+                                                                                // provided flag
+                                                                                // value
+                                                                                .setSeconds(
+                                                                                        tfErrorRescheduleSeconds)))
                                                 .build();
                             }
                             bundle.putByteArray(
@@ -199,17 +206,21 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                         @Override
                         public void onFailure(Throwable t) {
                             LogUtil.e(TAG, t, "Failed to runTaskWithNativeRunner");
-                            sendResult(createFailedResult(), callback);
+                            sendResult(createFailedResult(tfErrorRescheduleSeconds), callback);
                         }
                     },
                     FederatedComputeExecutors.getLightweightExecutor());
         } catch (Exception e) {
             LogUtil.e(TAG, e, "Got exception when run FL training");
-            sendResult(createFailedResult(), callback);
+            sendResult(createFailedResult(tfErrorRescheduleSeconds), callback);
         }
     }
 
-    private Bundle createFailedResult() {
+    private TrainingFlags getTrainingFlags(byte[] data) {
+        return TrainingFlags.getRootAsTrainingFlags(ByteBuffer.wrap(data));
+    }
+
+    private Bundle createFailedResult(long tfErrorRescheduleSeconds) {
         Bundle bundle = new Bundle();
         FLRunnerResult result =
                 FLRunnerResult.newBuilder()
@@ -220,7 +231,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                                                 Duration.newBuilder()
                                                         // Set retry to 24 hours in case TF failed
                                                         // to do computation
-                                                        .setSeconds(86400)))
+                                                        .setSeconds(tfErrorRescheduleSeconds)))
                         .build();
         bundle.putByteArray(Constants.EXTRA_FL_RUNNER_RESULT, result.toByteArray());
         return bundle;

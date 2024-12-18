@@ -1,0 +1,145 @@
+/*
+ * Copyright (C) 2024 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.android.federatedcompute.services.examplestore;
+
+import static com.android.federatedcompute.services.common.Constants.TRACE_GET_EXAMPLE_STORE_ITERATOR;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_ERROR;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_START;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_SUCCESS;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_TIMEOUT;
+
+import android.content.Context;
+import android.federatedcompute.aidl.IExampleStoreCallback;
+import android.federatedcompute.aidl.IExampleStoreIterator;
+import android.federatedcompute.aidl.IExampleStoreService;
+import android.federatedcompute.common.ClientConstants;
+import android.os.Bundle;
+import android.os.Trace;
+
+import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.federatedcompute.internal.util.LogUtil;
+import com.android.federatedcompute.services.common.FlagsFactory;
+import com.android.federatedcompute.services.common.TrainingEventLogger;
+import com.android.federatedcompute.services.data.FederatedTrainingTask;
+
+import com.google.internal.federated.plan.ExampleSelector;
+
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+/** Provides {@link IExampleStoreService}. */
+public class ExampleStoreServiceProvider {
+    private static final String TAG = ExampleStoreServiceProvider.class.getSimpleName();
+    private AbstractServiceBinder<IExampleStoreService> mExampleStoreServiceBinder;
+
+    /** Returns {@link IExampleStoreService}. */
+    public IExampleStoreService getExampleStoreService(String packageName, Context context) {
+        mExampleStoreServiceBinder =
+                AbstractServiceBinder.getServiceBinderByIntent(
+                        context,
+                        ClientConstants.EXAMPLE_STORE_ACTION,
+                        packageName,
+                        IExampleStoreService.Stub::asInterface);
+        return mExampleStoreServiceBinder.getService(Runnable::run);
+    }
+
+    /** Unbind from {@link IExampleStoreService}. */
+    public void unbindFromExampleStoreService() {
+        mExampleStoreServiceBinder.unbindFromService();
+    }
+
+    /** Returns an {@link IExampleStoreIterator} implemented by client app in synchronized call. */
+    public IExampleStoreIterator getExampleIterator(
+            IExampleStoreService exampleStoreService,
+            FederatedTrainingTask task,
+            String taskName,
+            int minExample,
+            ExampleSelector exampleSelector,
+            TrainingEventLogger logger) {
+        try {
+            Trace.beginAsyncSection(TRACE_GET_EXAMPLE_STORE_ITERATOR, 1);
+            Bundle bundle = new Bundle();
+            bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, task.populationName());
+            bundle.putString(ClientConstants.EXTRA_TASK_ID, taskName);
+            bundle.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA, task.contextData());
+            bundle.putInt(ClientConstants.EXTRA_ELIGIBILITY_MIN_EXAMPLE, minExample);
+            if (exampleSelector != null) {
+                byte[] criteria = exampleSelector.getCriteria().toByteArray();
+                byte[] resumptionToken = exampleSelector.getResumptionToken().toByteArray();
+                bundle.putByteArray(
+                        ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN, resumptionToken);
+                bundle.putByteArray(ClientConstants.EXTRA_EXAMPLE_ITERATOR_CRITERIA, criteria);
+                bundle.putString(
+                        ClientConstants.EXTRA_COLLECTION_URI, exampleSelector.getCollectionUri());
+            }
+            BlockingQueue<CallbackResult> asyncResult = new ArrayBlockingQueue<>(1);
+            logger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_START);
+            exampleStoreService.startQuery(
+                    bundle,
+                    new IExampleStoreCallback.Stub() {
+                        @Override
+                        public void onStartQuerySuccess(IExampleStoreIterator iterator) {
+                            LogUtil.d(TAG, "Acquired iterator");
+                            asyncResult.add(new CallbackResult(iterator, 0));
+                            Trace.endAsyncSection(TRACE_GET_EXAMPLE_STORE_ITERATOR, 1);
+                        }
+
+                        @Override
+                        public void onStartQueryFailure(int errorCode) {
+                            LogUtil.e(TAG, "Could not acquire iterator: " + errorCode);
+                            asyncResult.add(new CallbackResult(null, errorCode));
+                            Trace.endAsyncSection(TRACE_GET_EXAMPLE_STORE_ITERATOR, 1);
+                        }
+                    });
+            CallbackResult callbackResult =
+                    asyncResult.poll(
+                            FlagsFactory.getFlags().getExampleStoreServiceCallbackTimeoutSec(),
+                            TimeUnit.SECONDS);
+            // Callback result is null if timeout.
+            if (callbackResult == null) {
+                logger.logEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_TIMEOUT);
+                return null;
+            }
+            if (callbackResult.mErrorCode != 0 || callbackResult.mIterator == null) {
+                logger.logEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_ERROR);
+                return null;
+            }
+            logger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_SUCCESS);
+            return callbackResult.mIterator;
+        } catch (Exception e) {
+            LogUtil.e(TAG, e, "Got exception when StartQuery");
+            logger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_ERROR);
+            return null;
+        }
+    }
+
+    private static class CallbackResult {
+        final IExampleStoreIterator mIterator;
+        final int mErrorCode;
+
+        CallbackResult(IExampleStoreIterator iterator, int errorCode) {
+            mIterator = iterator;
+            mErrorCode = errorCode;
+        }
+    }
+}

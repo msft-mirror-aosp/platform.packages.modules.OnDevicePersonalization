@@ -19,10 +19,9 @@ package com.android.federatedcompute.services.http;
 import static com.android.federatedcompute.services.common.Constants.TRACE_HTTP_ISSUE_CHECKIN;
 import static com.android.federatedcompute.services.common.Constants.TRACE_HTTP_REPORT_RESULT;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBackgroundExecutor;
+import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBlockingExecutor;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getLightweightExecutor;
-import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
-import static com.android.federatedcompute.services.common.FileUtils.readFileAsByteArray;
-import static com.android.federatedcompute.services.common.FileUtils.writeToFile;
+import static com.android.federatedcompute.services.common.TrainingEventLogger.getTaskIdForLogging;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.FCP_OWNER_ID_DIGEST;
 import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
@@ -30,10 +29,13 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_UNAUTHORIZED_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
-import static com.android.federatedcompute.services.http.HttpClientUtil.compressWithGzip;
-import static com.android.federatedcompute.services.http.HttpClientUtil.getTotalReceivedBytes;
-import static com.android.federatedcompute.services.http.HttpClientUtil.getTotalSentBytes;
-import static com.android.federatedcompute.services.http.HttpClientUtil.uncompressWithGzip;
+import static com.android.odp.module.common.FileUtils.createTempFile;
+import static com.android.odp.module.common.FileUtils.readFileAsByteArray;
+import static com.android.odp.module.common.FileUtils.writeToFile;
+import static com.android.odp.module.common.HttpClientUtils.compressWithGzip;
+import static com.android.odp.module.common.HttpClientUtils.getTotalReceivedBytes;
+import static com.android.odp.module.common.HttpClientUtils.getTotalSentBytes;
+import static com.android.odp.module.common.HttpClientUtils.uncompressWithGzip;
 
 import android.os.Trace;
 import android.util.Base64;
@@ -45,9 +47,12 @@ import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.encryption.Encrypter;
 import com.android.federatedcompute.services.http.HttpClientUtil.FederatedComputePayloadDataContract;
-import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 import com.android.federatedcompute.services.security.AuthorizationContext;
 import com.android.federatedcompute.services.training.util.ComputationResult;
+import com.android.odp.module.common.HttpClient;
+import com.android.odp.module.common.HttpClientUtils;
+import com.android.odp.module.common.OdpHttpRequest;
+import com.android.odp.module.common.OdpHttpResponse;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -58,28 +63,30 @@ import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federatedcompute.v1.ClientVersion;
 import com.google.internal.federatedcompute.v1.RejectionInfo;
 import com.google.internal.federatedcompute.v1.Resource;
-import com.google.internal.federatedcompute.v1.ResourceCapabilities;
 import com.google.internal.federatedcompute.v1.ResourceCompressionFormat;
+import com.google.internal.federatedcompute.v1.UploadInstruction;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentRequest;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentResponse;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultRequest;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultRequest.Result;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultResponse;
 import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
-import com.google.ondevicepersonalization.federatedcompute.proto.UploadInstruction;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.zip.GZIPInputStream;
 
 /** Implements a single session of HTTP-based federated compute protocol. */
 public final class HttpFederatedProtocol {
     public static final String TAG = HttpFederatedProtocol.class.getSimpleName();
-    private final String mClientVersion;
+    private final long mClientVersion;
     private final String mPopulationName;
     private final HttpClient mHttpClient;
     private final ProtocolRequestCreator mTaskAssignmentRequestCreator;
@@ -92,7 +99,7 @@ public final class HttpFederatedProtocol {
     @VisibleForTesting
     HttpFederatedProtocol(
             String entryUri,
-            String clientVersion,
+            long clientVersion,
             String populationName,
             HttpClient httpClient,
             Encrypter encrypter,
@@ -108,7 +115,7 @@ public final class HttpFederatedProtocol {
     /** Creates a HttpFederatedProtocol object. */
     public static HttpFederatedProtocol create(
             String entryUri,
-            String clientVersion,
+            long clientVersion,
             String populationName,
             Encrypter encrypter,
             TrainingEventLogger trainingEventLogger) {
@@ -116,7 +123,8 @@ public final class HttpFederatedProtocol {
                 entryUri,
                 clientVersion,
                 populationName,
-                new HttpClient(),
+                new HttpClient(
+                        FlagsFactory.getFlags().getHttpRequestRetryLimit(), getBlockingExecutor()),
                 encrypter,
                 trainingEventLogger);
     }
@@ -137,13 +145,14 @@ public final class HttpFederatedProtocol {
                         getLightweightExecutor());
     }
 
-    /** Donwloads model checkpoint and federated compute plan from remote server. */
+    /** Downloads model checkpoint and federated compute plan from remote server. */
     public ListenableFuture<CheckinResult> downloadTaskAssignment(TaskAssignment taskAssignment) {
         NetworkStats networkStats = new NetworkStats();
-        ListenableFuture<FederatedComputeHttpResponse> planDataResponseFuture =
+        networkStats.recordStartTimeNow();
+        ListenableFuture<OdpHttpResponse> planDataResponseFuture =
                 fetchTaskResource(taskAssignment.getPlan(), networkStats);
-        ListenableFuture<FederatedComputeHttpResponse> checkpointDataResponseFuture =
-                fetchTaskResource(taskAssignment.getInitCheckpoint(), networkStats);
+        ListenableFuture<OdpHttpResponse> checkpointDataResponseFuture =
+                fetchTaskResource(taskAssignment.getInitCheckpoint(), networkStats, true);
         return Futures.whenAllSucceed(planDataResponseFuture, checkpointDataResponseFuture)
                 .call(
                         new Callable<CheckinResult>() {
@@ -159,21 +168,22 @@ public final class HttpFederatedProtocol {
                         getBackgroundExecutor());
     }
 
-    /** Helper functions to reporting result and upload result. */
+    /** Helper functions to report and upload result. */
     public FluentFuture<RejectionInfo> reportResult(
             ComputationResult computationResult,
             FederatedComputeEncryptionKey encryptionKey,
             AuthorizationContext authContext) {
         Trace.beginAsyncSection(TRACE_HTTP_REPORT_RESULT, 0);
-        NetworkStats uploadStats = new NetworkStats();
+        NetworkStats reportResultStats = new NetworkStats();
         if (computationResult != null
                 && computationResult.isResultSuccess()
                 && encryptionKey != null) {
             return FluentFuture.from(
-                            performReportResult(computationResult, authContext, uploadStats))
+                            performReportResult(computationResult, authContext, reportResultStats))
                     .transformAsync(
                             reportResp -> {
-                                uploadStats.addBytesDownloaded(getTotalReceivedBytes(reportResp));
+                                reportResultStats.addBytesDownloaded(
+                                        getTotalReceivedBytes(reportResp));
                                 if (authContext.isFirstAuthTry()) {
                                     validateHttpResponseAllowAuthStatus("ReportResult", reportResp);
                                 } else {
@@ -187,10 +197,11 @@ public final class HttpFederatedProtocol {
                                 ReportResultResponse reportResultResponse =
                                         ReportResultResponse.parseFrom(reportResp.getPayload());
                                 if (reportResultResponse.hasRejectionInfo()) {
-                                    mTrainingEventLogger.logResultUploadRejected(uploadStats);
+                                    mTrainingEventLogger.logResultUploadRejected(reportResultStats);
                                     return Futures.immediateFuture(
                                             reportResultResponse.getRejectionInfo());
                                 }
+                                NetworkStats uploadStats = new NetworkStats();
                                 return FluentFuture.from(
                                                 processReportResultResponseAndUploadResult(
                                                         reportResultResponse,
@@ -199,6 +210,7 @@ public final class HttpFederatedProtocol {
                                                         uploadStats))
                                         .transform(
                                                 resp -> {
+                                                    uploadStats.recordEndTimeNow();
                                                     validateHttpResponseStatus(
                                                             "Upload result", resp);
                                                     mTrainingEventLogger.logResultUploadCompleted(
@@ -211,13 +223,16 @@ public final class HttpFederatedProtocol {
                             },
                             getBackgroundExecutor());
         } else {
+            reportResultStats.recordStartTimeNow();
             return FluentFuture.from(
-                            performReportResult(computationResult, authContext, uploadStats))
+                            performReportResult(computationResult, authContext, reportResultStats))
                     .transform(
                             resp -> {
+                                reportResultStats.recordEndTimeNow();
                                 validateHttpResponseStatus("Report failure result", resp);
-                                uploadStats.addBytesDownloaded(getTotalReceivedBytes(resp));
-                                mTrainingEventLogger.logFailureResultUploadCompleted(uploadStats);
+                                reportResultStats.addBytesDownloaded(getTotalReceivedBytes(resp));
+                                mTrainingEventLogger.logFailureResultUploadCompleted(
+                                        reportResultStats);
                                 return null;
                             },
                             getLightweightExecutor());
@@ -225,9 +240,8 @@ public final class HttpFederatedProtocol {
     }
 
     private CreateTaskAssignmentResponse processCreateTaskAssignmentResponse(
-            AuthorizationContext authContext,
-            FederatedComputeHttpResponse response,
-            NetworkStats networkStats) {
+            AuthorizationContext authContext, OdpHttpResponse response, NetworkStats networkStats) {
+        networkStats.recordEndTimeNow();
         if (authContext.isFirstAuthTry()) {
             validateHttpResponseAllowAuthStatus("Start task assignment", response);
         } else {
@@ -247,26 +261,26 @@ public final class HttpFederatedProtocol {
             throw new IllegalStateException("Could not parse StartTaskAssignmentResponse proto", e);
         }
         if (taskAssignmentResponse.hasRejectionInfo()) {
-            mTrainingEventLogger.logCheckinRejected(networkStats);
+            mTrainingEventLogger.logCheckinRejected(
+                    taskAssignmentResponse.getRejectionInfo(), networkStats);
             return taskAssignmentResponse;
         }
         TaskAssignment taskAssignment = getTaskAssignment(taskAssignmentResponse);
-        String taskName = taskAssignment.getPopulationName() + "/" + taskAssignment.getTaskId();
-        mTrainingEventLogger.setTaskId(taskName.hashCode());
+        mTrainingEventLogger.setTaskId(
+                getTaskIdForLogging(
+                        taskAssignment.getPopulationName(), taskAssignment.getTaskId()));
         mTrainingEventLogger.logCheckinPlanUriReceived(networkStats);
         return taskAssignmentResponse;
     }
 
-    private ListenableFuture<FederatedComputeHttpResponse> createTaskAssignment(
+    private ListenableFuture<OdpHttpResponse> createTaskAssignment(
             AuthorizationContext authContext, NetworkStats networkStats) {
         CreateTaskAssignmentRequest request =
                 CreateTaskAssignmentRequest.newBuilder()
-                        .setClientVersion(ClientVersion.newBuilder().setVersionCode(mClientVersion))
-                        .setResourceCapabilities(
-                                ResourceCapabilities.newBuilder()
-                                        .addSupportedCompressionFormats(
-                                                ResourceCompressionFormat
-                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP))
+                        .setClientVersion(
+                                ClientVersion.newBuilder()
+                                        .setVersionCode(String.valueOf(mClientVersion)))
+                        .setResourceCapabilities(HttpClientUtils.getResourceCapabilities())
                         .build();
 
         String taskAssignmentUriSuffix =
@@ -278,15 +292,16 @@ public final class HttpFederatedProtocol {
         headers.put(ODP_IDEMPOTENCY_KEY, System.currentTimeMillis() + " - " + UUID.randomUUID());
         headers.put(
                 FCP_OWNER_ID_DIGEST, authContext.getOwnerId() + "-" + authContext.getOwnerCert());
-        FederatedComputeHttpRequest httpRequest =
+        OdpHttpRequest httpRequest =
                 mTaskAssignmentRequestCreator.createProtoRequest(
                         taskAssignmentUriSuffix,
-                        HttpMethod.POST,
+                        HttpClientUtils.HttpMethod.POST,
                         headers,
                         request.toByteArray(),
                         /* isProtobufEncoded= */ true);
         mTrainingEventLogger.logCheckinStarted();
         networkStats.addBytesUploaded(getTotalSentBytes(httpRequest));
+        networkStats.recordStartTimeNow();
         return mHttpClient.performRequestAsyncWithRetry(httpRequest);
     }
 
@@ -325,15 +340,14 @@ public final class HttpFederatedProtocol {
     }
 
     private CheckinResult getCheckinResult(
-            ListenableFuture<FederatedComputeHttpResponse> planDataResponseFuture,
-            ListenableFuture<FederatedComputeHttpResponse> checkpointDataResponseFuture,
+            ListenableFuture<OdpHttpResponse> planDataResponseFuture,
+            ListenableFuture<OdpHttpResponse> checkpointDataResponseFuture,
             TaskAssignment taskAssignment,
             NetworkStats networkStats)
             throws Exception {
-
-        FederatedComputeHttpResponse planDataResponse = Futures.getDone(planDataResponseFuture);
-        FederatedComputeHttpResponse checkpointDataResponse =
-                Futures.getDone(checkpointDataResponseFuture);
+        networkStats.recordEndTimeNow();
+        OdpHttpResponse planDataResponse = Futures.getDone(planDataResponseFuture);
+        OdpHttpResponse checkpointDataResponse = Futures.getDone(checkpointDataResponseFuture);
         validateHttpResponseStatus("Fetch plan", planDataResponse);
         validateHttpResponseStatus("Fetch checkpoint", checkpointDataResponse);
         networkStats.addBytesDownloaded(getTotalReceivedBytes(planDataResponse));
@@ -353,22 +367,42 @@ public final class HttpFederatedProtocol {
             mTrainingEventLogger.logCheckinInvalidPayload(networkStats);
             throw new IllegalStateException("Could not parse ClientOnlyPlan proto", e);
         }
-        mTrainingEventLogger.logCheckinFinished(networkStats);
-
-        // Process download checkpoint resource.
-        String inputCheckpointFile = createTempFile("input", ".ckp");
-        byte[] checkpointData = checkpointDataResponse.getPayload();
-        if (taskAssignment.getInitCheckpoint().getCompressionFormat()
-                        == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP
-                || checkpointDataResponse.isResponseCompressed()) {
-            checkpointData = uncompressWithGzip(checkpointData);
+        if (checkpointDataResponse.getPayloadFileName() == null) {
+            Trace.endAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
+            mTrainingEventLogger.logCheckinInvalidPayload(networkStats);
+            return null;
         }
-        writeToFile(inputCheckpointFile, checkpointData);
+
+        // Process downloaded checkpoint resource.
+        String payloadFileName = checkpointDataResponse.getPayloadFileName();
+        long checkpointFileSize = checkpointDataResponse.getDownloadedPayloadSize();
+        if (checkpointDataResponse.isResponseCompressed()) {
+            String checkpointFile = createTempFile("input", ".ckp");
+            checkpointFileSize =
+                    writeToFile(
+                            checkpointFile,
+                            new GZIPInputStream(
+                                    new BufferedInputStream(new FileInputStream(payloadFileName))));
+            LogUtil.d(TAG, "Uncompressed checkpoint data file size: %d", checkpointFileSize);
+            payloadFileName = checkpointFile;
+        }
+        if (checkpointFileSize > FlagsFactory.getFlags().getFcpCheckpointFileSizeLimit()) {
+            LogUtil.e(
+                    TAG,
+                    "CheckPoint data is too large: %d, which more than a limit: %d",
+                    checkpointFileSize,
+                    FlagsFactory.getFlags().getFcpCheckpointFileSizeLimit());
+            Trace.endAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
+            mTrainingEventLogger.logCheckinInvalidPayload(networkStats);
+            return null;
+        }
+
+        mTrainingEventLogger.logCheckinFinished(networkStats);
         Trace.endAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
-        return new CheckinResult(inputCheckpointFile, clientOnlyPlan, taskAssignment);
+        return new CheckinResult(payloadFileName, clientOnlyPlan, taskAssignment);
     }
 
-    private ListenableFuture<FederatedComputeHttpResponse> performReportResult(
+    private ListenableFuture<OdpHttpResponse> performReportResult(
             ComputationResult computationResult,
             AuthorizationContext authContext,
             NetworkStats networkStats) {
@@ -380,7 +414,10 @@ public final class HttpFederatedProtocol {
             mTrainingEventLogger.logFailureResultUploadStarted();
         }
         ReportResultRequest startDataUploadRequest =
-                ReportResultRequest.newBuilder().setResult(result).build();
+                ReportResultRequest.newBuilder()
+                        .setResult(result)
+                        .setResourceCapabilities(HttpClientUtils.getResourceCapabilities())
+                        .build();
         String startDataUploadUri =
                 String.format(
                         "/taskassignment/v1/population/%1$s/task/%2$s/aggregation"
@@ -395,10 +432,10 @@ public final class HttpFederatedProtocol {
                 mAssignmentId,
                 result.toString());
         Map<String, String> headers = authContext.generateAuthHeaders();
-        FederatedComputeHttpRequest httpRequest =
+        OdpHttpRequest httpRequest =
                 mTaskAssignmentRequestCreator.createProtoRequest(
                         startDataUploadUri,
-                        HttpMethod.PUT,
+                        HttpClientUtils.HttpMethod.PUT,
                         headers,
                         startDataUploadRequest.toByteArray(),
                         /* isProtobufEncoded= */ true);
@@ -406,12 +443,11 @@ public final class HttpFederatedProtocol {
         return mHttpClient.performRequestAsyncWithRetry(httpRequest);
     }
 
-    private ListenableFuture<FederatedComputeHttpResponse>
-            processReportResultResponseAndUploadResult(
-                    ReportResultResponse reportResultResponse,
-                    ComputationResult computationResult,
-                    FederatedComputeEncryptionKey encryptionKey,
-                    NetworkStats networkStats) {
+    private ListenableFuture<OdpHttpResponse> processReportResultResponseAndUploadResult(
+            ReportResultResponse reportResultResponse,
+            ComputationResult computationResult,
+            FederatedComputeEncryptionKey encryptionKey,
+            NetworkStats networkStats) {
         try {
             Preconditions.checkArgument(
                     !computationResult.getOutputCheckpointFile().isEmpty(),
@@ -426,15 +462,10 @@ public final class HttpFederatedProtocol {
             // Apply a top-level compression to the payload.
             if (uploadInstruction.getCompressionFormat()
                     == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP) {
-                outputBytes = compressWithGzip(outputBytes);
+                outputBytes = HttpClientUtils.compressWithGzip(outputBytes);
             }
-            HashMap<String, String> requestHeader = new HashMap<>();
-            uploadInstruction
-                    .getExtraRequestHeadersMap()
-                    .forEach(
-                            (key, value) -> {
-                                requestHeader.put(key, value);
-                            });
+            HashMap<String, String> requestHeader =
+                    new HashMap<>(uploadInstruction.getExtraRequestHeadersMap());
             LogUtil.d(
                     TAG,
                     "Start upload training result: population name %s, task name %s,"
@@ -442,12 +473,13 @@ public final class HttpFederatedProtocol {
                     mPopulationName,
                     mTaskId,
                     mAssignmentId);
-            FederatedComputeHttpRequest httpUploadRequest =
-                    FederatedComputeHttpRequest.create(
+            OdpHttpRequest httpUploadRequest =
+                    OdpHttpRequest.create(
                             uploadInstruction.getUploadLocation(),
-                            HttpMethod.PUT,
+                            HttpClientUtils.HttpMethod.PUT,
                             requestHeader,
                             outputBytes);
+            networkStats.recordStartTimeNow();
             networkStats.addBytesUploaded(getTotalSentBytes(httpUploadRequest));
             return mHttpClient.performRequestAsyncWithRetry(httpUploadRequest);
         } catch (Exception e) {
@@ -484,8 +516,7 @@ public final class HttpFederatedProtocol {
         return body.toString().getBytes();
     }
 
-    private void validateHttpResponseStatus(
-            String stage, FederatedComputeHttpResponse httpResponse) {
+    private static void validateHttpResponseStatus(String stage, OdpHttpResponse httpResponse) {
         if (!HTTP_OK_STATUS.contains(httpResponse.getStatusCode())) {
             throw new IllegalStateException(stage + " failed: " + httpResponse.getStatusCode());
         }
@@ -493,8 +524,8 @@ public final class HttpFederatedProtocol {
         LogUtil.i(TAG, stage + " success.");
     }
 
-    private void validateHttpResponseAllowAuthStatus(
-            String stage, FederatedComputeHttpResponse httpResponse) {
+    private static void validateHttpResponseAllowAuthStatus(
+            String stage, OdpHttpResponse httpResponse) {
         if (!HTTP_OK_OR_UNAUTHENTICATED_STATUS.contains(httpResponse.getStatusCode())) {
             throw new IllegalStateException(stage + " failed: " + httpResponse.getStatusCode());
         }
@@ -502,28 +533,37 @@ public final class HttpFederatedProtocol {
         LogUtil.i(TAG, stage + " success.");
     }
 
-    private ListenableFuture<FederatedComputeHttpResponse> fetchTaskResource(
+    private ListenableFuture<OdpHttpResponse> fetchTaskResource(
             Resource resource, NetworkStats networkStats) {
+        return fetchTaskResource(resource, networkStats, false);
+    }
+
+    private ListenableFuture<OdpHttpResponse> fetchTaskResource(
+            Resource resource, NetworkStats networkStats, boolean payloadIntoFileEnabled) {
         switch (resource.getResourceCase()) {
             case URI:
                 Preconditions.checkArgument(
                         !resource.getUri().isEmpty(), "Resource.uri must be non-empty when set");
                 HashMap<String, String> headerList = new HashMap<>();
-                if (resource.getCompressionFormat()
-                        == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP) {
+                boolean gZipCompressionEnabled = resource.getCompressionFormat()
+                        == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP;
+                if (gZipCompressionEnabled) {
                     // Set this header to disable decompressive transcoding when download from
                     // Google Cloud Storage.
                     // https://cloud.google.com/storage/docs/transcoding#decompressive_transcoding
                     headerList.put(ACCEPT_ENCODING_HDR, GZIP_ENCODING_HDR);
                 }
                 LogUtil.d(TAG, "start fetch task resources");
-                FederatedComputeHttpRequest httpRequest =
-                        FederatedComputeHttpRequest.create(
+                OdpHttpRequest httpRequest =
+                        OdpHttpRequest.create(
                                 resource.getUri(),
-                                HttpMethod.GET,
+                                HttpClientUtils.HttpMethod.GET,
                                 headerList,
                                 HttpClientUtil.EMPTY_BODY);
                 networkStats.addBytesUploaded(getTotalSentBytes(httpRequest));
+                if (payloadIntoFileEnabled) {
+                    return mHttpClient.performRequestIntoFileAsyncWithRetry(httpRequest);
+                }
                 return mHttpClient.performRequestAsyncWithRetry(httpRequest);
             case INLINE_RESOURCE:
                 return Futures.immediateFailedFuture(

@@ -16,6 +16,8 @@
 
 package com.android.federatedcompute.services.common;
 
+import com.android.adservices.shared.common.flags.ConfigFlag;
+import com.android.adservices.shared.common.flags.FeatureFlag;
 import com.android.adservices.shared.common.flags.ModuleSharedFlags;
 
 import java.util.concurrent.TimeUnit;
@@ -189,6 +191,17 @@ public interface Flags extends ModuleSharedFlags {
         return FCP_RESCHEDULE_LIMIT;
     }
 
+    int FCP_RECURRENT_RESCHEDULE_LIMIT = 100;
+
+    /**
+     * Limitation of how much times can FCP task job can be rescheduled if it failed, if federated
+     * compute job retry times exceeds this limit, the job will be canceled/abort.
+     * This one is for recurrent jobs.
+     */
+    default int getFcpRecurrentRescheduleLimit() {
+        return FCP_RECURRENT_RESCHEDULE_LIMIT;
+    }
+
     // 7 days in milliseconds
     long ODP_AUTHORIZATION_TOKEN_TTL = 7 * 24 * 60 * 60 * 1000L;
 
@@ -209,16 +222,56 @@ public interface Flags extends ModuleSharedFlags {
         return DEFAULT_TASK_HISTORY_TTL_MILLIS;
     }
 
-    boolean DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED = false;
+    int DEFAULT_EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC = 10;
 
-    default boolean getBackgroundJobsLoggingEnabled() {
-        return DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED;
+    default int getExampleStoreServiceCallbackTimeoutSec() {
+        return DEFAULT_EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC;
     }
 
-    /** Default logging rate in percent */
-    int DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE = 5;
+    int DEFAULT_EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC = 2;
 
-    default int getBackgroundJobSamplingLoggingRate() {
-        return DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
+    default int getExampleIteratorNextTimeoutSec() {
+        return DEFAULT_EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC;
+    }
+
+    long FCP_TF_ERROR_RESCHEDULE_SECONDS = 86400; // 24 hours in seconds
+
+    /** Reschedule FCP jobs in case of TF failure. */
+    default long getFcpTfErrorRescheduleSeconds() {
+        return FCP_TF_ERROR_RESCHEDULE_SECONDS;
+    }
+
+    long FCP_DEFAULT_MEMORY_SIZE_LIMIT = 50000000L; // 50 MBs in bytes
+
+    /** Provides lower limit for FCP temp files. */
+    default long getFcpMemorySizeLimit() {
+        return FCP_DEFAULT_MEMORY_SIZE_LIMIT;
+    }
+
+    /** Default value for the base64 encoded Job Policy proto for FCP background jobs. */
+    @ConfigFlag String DEFAULT_FCP_MODULE_JOB_POLICY = "";
+
+    default String getFcpModuleJobPolicy() {
+        return DEFAULT_FCP_MODULE_JOB_POLICY;
+    }
+
+    /** Default value for SPE to be enabled for the pilot background jobs. */
+    @FeatureFlag boolean DEFAULT_SPE_PILOT_JOB_ENABLED = false;
+
+    default boolean getSpePilotJobEnabled() {
+        return DEFAULT_SPE_PILOT_JOB_ENABLED;
+    }
+
+    @ConfigFlag int DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE = 50;
+
+    default int getFcpTaskLimitPerPackage() {
+        return DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE;
+    }
+
+    int FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT = 50000000; // 50 MBs in bytes
+
+    /** Provides upper limit for FCP temp files. */
+    default int getFcpCheckpointFileSizeLimit() {
+        return FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT;
     }
 }

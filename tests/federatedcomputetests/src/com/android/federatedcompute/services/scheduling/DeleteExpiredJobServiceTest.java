@@ -16,6 +16,9 @@
 
 package com.android.federatedcompute.services.scheduling;
 
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SUCCESSFUL;
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertNotNull;
@@ -25,7 +28,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -44,19 +46,21 @@ import android.database.sqlite.SQLiteException;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FederatedComputeJobInfo;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
-import com.android.federatedcompute.services.common.MonotonicClock;
-import com.android.federatedcompute.services.common.PhFlagsTestUtil;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.ODPAuthorizationToken;
 import com.android.federatedcompute.services.data.ODPAuthorizationTokenContract;
 import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
 import com.android.federatedcompute.services.data.TaskHistory;
+import com.android.federatedcompute.services.sharedlibrary.spe.FederatedComputeJobScheduler;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -66,12 +70,16 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.quality.Strictness;
 
 import java.util.UUID;
 
+@MockStatic(FlagsFactory.class)
 public class DeleteExpiredJobServiceTest {
+    @Rule(order = 0)
+    public final ExtendedMockitoRule extendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
+
     private static final String TAG = DeleteExpiredJobServiceTest.class.getSimpleName();
     private static final String POPULATION_NAME = "population_name";
     private static final int JOB_ID = 123;
@@ -86,12 +94,14 @@ public class DeleteExpiredJobServiceTest {
     @Mock private Clock mClock;
     @Mock private Flags mMockFlag;
 
-    @Rule public MockitoRule rule = MockitoJUnit.rule();
-
     @Before
     public void setUp() throws Exception {
-        PhFlagsTestUtil.setUpDeviceConfigPermissions();
-        PhFlagsTestUtil.disableGlobalKillSwitch();
+        doReturn(mMockFlag).when(FlagsFactory::getFlags);
+        when(mMockFlag.getGlobalKillSwitch()).thenReturn(false);
+
+        // By default, disable SPE.
+        when(mMockFlag.getSpePilotJobEnabled()).thenReturn(false);
+
         mContext = ApplicationProvider.getApplicationContext();
         when(mClock.currentTimeMillis()).thenReturn(400L);
         when(mMockFlag.getTaskHistoryTtl()).thenReturn(200L);
@@ -111,6 +121,12 @@ public class DeleteExpiredJobServiceTest {
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
+    }
+
+    @Test
+    public void testDefaultNoArgConstructor() {
+        DeleteExpiredJobService instance = new DeleteExpiredJobService();
+        assertNotNull("default no-arg constructor is required by JobService", instance);
     }
 
     @Test
@@ -192,9 +208,14 @@ public class DeleteExpiredJobServiceTest {
 
     @Test
     public void enableKillSwitch() {
-        PhFlagsTestUtil.enableGlobalKillSwitch();
+        when(mMockFlag.getGlobalKillSwitch()).thenReturn(true);
         doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
-        DeleteExpiredJobService.scheduleJobIfNeeded(mContext, FlagsFactory.getFlags());
+
+        assertThat(
+                        DeleteExpiredJobService.scheduleJobIfNeeded(
+                                mContext, FlagsFactory.getFlags(), /* forceSchedule= */ false))
+                .isEqualTo(SCHEDULING_RESULT_CODE_SUCCESSFUL);
+
         assertNotNull(mJobScheduler.getPendingJob(FederatedComputeJobInfo.DELETE_EXPIRED_JOB_ID));
         doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
 
@@ -204,6 +225,22 @@ public class DeleteExpiredJobServiceTest {
         verify(mSpyService, times(1)).jobFinished(any(), eq(false));
         verify(mSpyAuthTokenDao, never()).deleteExpiredAuthorizationTokens();
         assertNull(mJobScheduler.getPendingJob(FederatedComputeJobInfo.DELETE_EXPIRED_JOB_ID));
+    }
+
+    @Test
+    @MockStatic(FederatedComputeJobScheduler.class)
+    public void testOnStartJob_speEnabled() {
+        // Enable SPE.
+        when(mMockFlag.getSpePilotJobEnabled()).thenReturn(true);
+
+        // Mock OdpJobScheduler to not actually schedule the job.
+        FederatedComputeJobScheduler mockedScheduler = mock(FederatedComputeJobScheduler.class);
+        doReturn(mockedScheduler).when(() -> FederatedComputeJobScheduler.getInstance(any()));
+
+        assertThat(mSpyService.onStartJob(mock(JobParameters.class))).isFalse();
+
+        // Verify SPE scheduler has rescheduled the job.
+        verify(mockedScheduler).schedule(any(), any());
     }
 
     @Test

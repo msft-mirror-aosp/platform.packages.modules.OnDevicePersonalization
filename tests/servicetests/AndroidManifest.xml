@@ -25,6 +25,8 @@
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.INTERNAL_SYSTEM_WINDOW"/>
+    <!-- Permissions required for reading device configs -->
+    <uses-permission android:name="android.permission.READ_DEVICE_CONFIG" />
 
     <!-- Required for reading and writing device configs -->
 
@@ -43,11 +45,6 @@
         <service android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationManagingServiceImpl" android:exported="true" >
             <intent-filter>
                 <action android:name="android.OnDevicePersonalizationService" />
-            </intent-filter>
-        </service>
-        <service android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationConfigServiceImpl" android:exported="true" >
-            <intent-filter>
-                <action android:name="android.OnDevicePersonalizationConfigService" />
             </intent-filter>
         </service>
         <service android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationDebugServiceImpl" android:exported="true" >
@@ -73,6 +70,14 @@
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
         <service android:name="com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service android:name="com.android.ondevicepersonalization.services.reset.ResetDataJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service android:name="com.android.ondevicepersonalization.services.data.errors.AggregateErrorDataReportingService"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
@@ -102,13 +107,21 @@
             android:isolatedProcess="true"
             android:allowSharedIsolatedProcess="true"/>
 
+        <!-- The JobService schedules all jobs for ODP using SPE framework. -->
+        <service
+            android:name="com.android.ondevicepersonalization.services.sharedlibrary.spe.OdpJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+
         <!-- On BOOT_COMPLETED receiver for registering jobs -->
         <!-- TODO(b/250001593) Enable any required broadcast receivers during runtime/onCreate. -->
-        <receiver android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationBroadcastReceiver"
-                  android:enabled="false"
-                  android:exported="false">
+        <receiver
+            android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationBroadcastReceiver"
+            android:enabled="false"
+            android:exported="false">
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
             </intent-filter>
         </receiver>
     </application>

@@ -63,6 +63,7 @@ public class IsolatedServiceExceptionSafetyTest {
     private AbstractServiceBinder<IIsolatedService> mServiceBinder;
     private int mCallbackErrorCode;
     private int mIsolatedServiceErrorCode;
+    private byte[] mSerializedExceptionInfo;
     private CountDownLatch mLatch;
 
     @Parameterized.Parameter(0)
@@ -207,9 +208,13 @@ public class IsolatedServiceExceptionSafetyTest {
         }
 
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode) {
+        public void onError(
+                int errorCode,
+                int isolatedServiceErrorCode,
+                byte[] serializedExceptionInfo) {
             mCallbackErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;
+            mSerializedExceptionInfo = serializedExceptionInfo;
             mLatch.countDown();
         }
     }
@@ -240,6 +245,9 @@ public class IsolatedServiceExceptionSafetyTest {
                 }
             }
         }
+
+        @Override
+        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {}
     }
 
     static class TestFederatedComputeService extends IFederatedComputeService.Stub {

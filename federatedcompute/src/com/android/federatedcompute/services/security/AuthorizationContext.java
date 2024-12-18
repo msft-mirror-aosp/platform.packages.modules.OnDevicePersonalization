@@ -24,14 +24,14 @@ import android.annotation.Nullable;
 import android.content.Context;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FlagsFactory;
-import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.ODPAuthorizationToken;
 import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -172,8 +172,9 @@ public class AuthorizationContext {
                 AuthTokenCallbackResult callbackResult =
                         authTokenBlockingQueue.poll(
                                 BLOCKING_QUEUE_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS);
-                if (!callbackResult.isEmpty()) {
-                    LogUtil.e(TAG, "checking blocking queue");
+                if (callbackResult.isEmpty()) {
+                    LogUtil.e(TAG, "Timed out waiting for  blocking queue.");
+                } else {
                     headers.put(
                             ODP_AUTHORIZATION_KEY,
                             callbackResult.getAuthToken().getAuthorizationToken());
@@ -188,7 +189,7 @@ public class AuthorizationContext {
         return headers;
     }
 
-    private FutureCallback<AuthTokenCallbackResult> createCallbackForBlockingQueue(
+    private static FutureCallback<AuthTokenCallbackResult> createCallbackForBlockingQueue(
             BlockingQueue<AuthTokenCallbackResult> authorizationTokenBlockingQueue) {
         return new FutureCallback<>() {
             @Override
@@ -203,7 +204,7 @@ public class AuthorizationContext {
         };
     }
 
-    private AuthTokenCallbackResult convertODPAuthToken(ODPAuthorizationToken authToken) {
+    private static AuthTokenCallbackResult convertODPAuthToken(ODPAuthorizationToken authToken) {
         return new AuthTokenCallbackResult(authToken, authToken == null);
     }
 

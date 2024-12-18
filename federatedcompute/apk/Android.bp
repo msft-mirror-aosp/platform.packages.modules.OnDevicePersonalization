@@ -21,17 +21,17 @@ genrule {
     name: "statslog-federatedcompute-java-gen",
     tools: ["stats-log-api-gen"],
     cmd: "$(location stats-log-api-gen) --java $(out) --module ondevicepersonalization" +
-         " --javaPackage com.android.federatedcompute.services.stats" +
-         " --javaClass FederatedComputeStatsLog",
+        " --javaPackage com.android.federatedcompute.services.stats" +
+        " --javaClass FederatedComputeStatsLog",
     out: ["com/android/federatedcompute/services/stats/FederatedComputeStatsLog.java"],
     visibility: [
-      "//packages/modules/OnDevicePersonalization:__subpackages__"
+        "//packages/modules/OnDevicePersonalization:__subpackages__",
     ],
 }
 
 filegroup {
     name: "fcp-apk-jarjar",
-    srcs: ["jarjar_rules.txt"]
+    srcs: ["jarjar_rules.txt"],
 }
 
 android_app_certificate {
@@ -42,6 +42,7 @@ android_app_certificate {
 android_app {
     name: "FederatedCompute",
     srcs: [
+        ":common-ondevicepersonalization-sources",
         ":federatedcompute-sources",
         ":federatedcompute-fbs",
         ":statslog-federatedcompute-java-gen",
@@ -51,7 +52,7 @@ android_app {
         "auto_value_annotations",
         "framework-ondevicepersonalization.impl",
         "framework-annotations-lib",
-        "framework-configinfrastructure", // For PH flags
+        "framework-configinfrastructure.stubs.module_lib", // For PH flags
         "framework-statsd.stubs.module_lib", // For WW logging
     ],
     plugins: ["auto_value_plugin"],

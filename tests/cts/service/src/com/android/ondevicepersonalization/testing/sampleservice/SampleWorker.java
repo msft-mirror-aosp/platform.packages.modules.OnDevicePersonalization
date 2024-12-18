@@ -16,19 +16,28 @@
 
 package com.android.ondevicepersonalization.testing.sampleservice;
 
+import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventUrlProvider;
 import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
+import android.adservices.ondevicepersonalization.FederatedComputeInput;
+import android.adservices.ondevicepersonalization.FederatedComputeScheduleRequest;
+import android.adservices.ondevicepersonalization.FederatedComputeScheduleResponse;
+import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
 import android.adservices.ondevicepersonalization.InferenceInput;
 import android.adservices.ondevicepersonalization.InferenceOutput;
 import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
+import android.adservices.ondevicepersonalization.KeyValueStore;
+import android.adservices.ondevicepersonalization.LogReader;
 import android.adservices.ondevicepersonalization.ModelManager;
 import android.adservices.ondevicepersonalization.MutableKeyValueStore;
 import android.adservices.ondevicepersonalization.RenderInput;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.TrainingInterval;
+import android.adservices.ondevicepersonalization.UserData;
 import android.annotation.NonNull;
 import android.content.ContentValues;
 import android.net.Uri;
@@ -39,38 +48,56 @@ import android.util.Log;
 
 import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 class SampleWorker implements IsolatedWorker {
     private static final String TAG = "OdpTestingSampleService";
 
     private static final int ERROR_SAMPLE_SERVICE_FAILED = 1;
+    private static final int SCHEDULE_CALLBACK_TIMEOUT_SECONDS = 5;
 
     private static final String TRANSPARENT_PNG_BASE64 =
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA"
                     + "AAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC";
     private static final byte[] TRANSPARENT_PNG_BYTES = Base64.decode(TRANSPARENT_PNG_BASE64, 0);
 
+    private final KeyValueStore mRemoteData;
     private final MutableKeyValueStore mLocalData;
+    private final UserData mUserData;
     private final EventUrlProvider mEventUrlProvider;
     private final ModelManager mModelManager;
+    private final LogReader mLogReader;
+    private final FederatedComputeScheduler mFcpScheduler;
 
     private final ExecutorService mExecutor = Executors.newCachedThreadPool();
 
     SampleWorker(
+            KeyValueStore remoteData,
             MutableKeyValueStore localData,
+            UserData userData,
             EventUrlProvider eventUrlProvider,
-            ModelManager modelManager) {
+            ModelManager modelManager,
+            LogReader logReader,
+            FederatedComputeScheduler fcpScheduler) {
+        mRemoteData = remoteData;
         mLocalData = localData;
+        mUserData = userData;
         mEventUrlProvider = eventUrlProvider;
         mModelManager = modelManager;
+        mLogReader = logReader;
+        mFcpScheduler = fcpScheduler;
     }
 
     @Override
@@ -115,6 +142,20 @@ class SampleWorker implements IsolatedWorker {
                 result = handleCheckValueLength(appParams);
             } else if (op.equals(SampleServiceApi.OPCODE_RUN_MODEL_INFERENCE)) {
                 result = handleRunModelInference(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_RETURN_OUTPUT_DATA)) {
+                result = handleReturnOutputData(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_READ_REMOTE_DATA)) {
+                result = handleReadRemoteData(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_READ_USER_DATA)) {
+                result = handleReadUserData(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_READ_LOG)) {
+                result = handleReadLog(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB)) {
+                result = handleScheduleFederatedJob(appParams, /* useLegacyScheduleApi= */ true);
+            } else if (op.equals(SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB_V2)) {
+                result = handleScheduleFederatedJob(appParams, /* useLegacyScheduleApi= */ false);
+            } else if (op.equals(SampleServiceApi.OPCODE_CANCEL_FEDERATED_JOB)) {
+                result = handleCancelFederatedJob(appParams);
             }
 
         } catch (Exception e) {
@@ -129,6 +170,7 @@ class SampleWorker implements IsolatedWorker {
     }
 
     private ExecuteOutput handleRenderAndLog(PersistableBundle appParams) {
+        Log.i(TAG, "handleRenderAndLog()");
         var builder = new ExecuteOutput.Builder();
         String renderingConfigIdList =
                 appParams.getString(SampleServiceApi.KEY_RENDERING_CONFIG_IDS);
@@ -156,6 +198,7 @@ class SampleWorker implements IsolatedWorker {
     }
 
     private ExecuteOutput handleWriteLocalData(PersistableBundle appParams) {
+        Log.i(TAG, "handleWriteLocalData()");
         String key = Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_TABLE_KEY));
         String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
         byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
@@ -169,8 +212,97 @@ class SampleWorker implements IsolatedWorker {
         return new ExecuteOutput.Builder().build();
     }
 
+    private ExecuteOutput handleReturnOutputData(PersistableBundle appParams) {
+        Log.i(TAG, "handleReturnOutputData()");
+        String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
+        byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
+        return new ExecuteOutput.Builder().setOutputData(value).build();
+    }
+
+    private ExecuteOutput handleReadRemoteData(PersistableBundle appParams) {
+        Log.i(TAG, "handleReadRemoteData()");
+        Objects.requireNonNull(mRemoteData);
+        return new ExecuteOutput.Builder().build();
+        // TODO(b/273826477): Add remote data verification.
+    }
+
+    private ExecuteOutput handleReadUserData(PersistableBundle appParams) {
+        Log.i(TAG, "handleReadUserData()");
+        Objects.requireNonNull(mUserData);
+        int numInstalled = 0;
+        for (var entry : mUserData.getAppInfos().entrySet()) {
+            if (entry.getValue().isInstalled()) {
+                ++numInstalled;
+            }
+        }
+        var capabilities = mUserData.getNetworkCapabilities();
+        // TODO(b/273826477): Enable user data collection in CTS and add
+        // validation for installed apps and network capabilities.
+        if (mUserData.getAvailableStorageBytes() < 0) {
+            throw new IllegalStateException("available storage bytes");
+        }
+        if (mUserData.getBatteryPercentage() < 0) {
+            throw new IllegalStateException("battery percentage");
+        }
+        if (mUserData.getCarrier() == null) {
+            throw new IllegalStateException("carrier");
+        }
+        if (mUserData.getDataNetworkType() < 0) {
+            throw new IllegalStateException("data network type");
+        }
+        if (mUserData.getOrientation() < 0) {
+            throw new IllegalStateException("orientation");
+        }
+        if (mUserData.getTimezoneUtcOffset() == null) {
+            throw new IllegalStateException("timezone utc offset");
+        }
+        return new ExecuteOutput.Builder().build();
+    }
+
+    private ExecuteOutput handleReadLog(PersistableBundle appParams) {
+        Log.i(TAG, "handleReadLog()");
+        Objects.requireNonNull(mLogReader);
+        final long now = System.currentTimeMillis();
+        final long expectedValue = appParams.getLong(SampleServiceApi.KEY_EXPECTED_LOG_DATA_VALUE);
+        List<RequestLogRecord> records =
+                mLogReader.getRequests(
+                        Instant.ofEpochMilli(now - 60 * 60 * 1000), Instant.ofEpochMilli(now));
+        if (records.isEmpty()) {
+            throw new IllegalStateException("no log records");
+        }
+        Log.i(TAG, "Found " + records.size() + " records");
+        boolean found = false;
+        for (var record : records) {
+            if (record.getRows() == null) {
+                continue;
+            }
+            for (var row : record.getRows()) {
+                Long value = row.getAsLong(SampleServiceApi.KEY_EXPECTED_LOG_DATA_KEY);
+                if (value == null) {
+                    continue;
+                }
+                if (value == expectedValue) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                break;
+            }
+        }
+        if (!found) {
+            throw new IllegalStateException("log not found");
+        }
+        List<EventLogRecord> events =
+                mLogReader.getJoinedEvents(
+                        Instant.ofEpochMilli(now - 60 * 60 * 1000), Instant.ofEpochMilli(now));
+        Log.i(TAG, "Found " + events.size() + " event records");
+        return new ExecuteOutput.Builder().build();
+    }
+
     private ExecuteOutput handleRunModelInference(PersistableBundle appParams)
             throws InterruptedException, ExecutionException {
+        Log.i(TAG, "handleRunModelInference()");
         String tableKey =
                 Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_TABLE_KEY));
         InferenceInput.Params params =
@@ -225,6 +357,7 @@ class SampleWorker implements IsolatedWorker {
     }
 
     private ExecuteOutput handleReadLocalData(PersistableBundle appParams) {
+        Log.i(TAG, "handleReadLocalData()");
         String key = Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_TABLE_KEY));
         String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
         byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
@@ -246,6 +379,7 @@ class SampleWorker implements IsolatedWorker {
     }
 
     private ExecuteOutput handleCheckValueLength(PersistableBundle appParams) {
+        Log.i(TAG, "handleCheckValueLength()");
         String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
         byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
         int expectedLength = appParams.getInt(SampleServiceApi.KEY_VALUE_LENGTH);
@@ -283,6 +417,8 @@ class SampleWorker implements IsolatedWorker {
             cv.put(key, (String) value);
         } else if (value instanceof Double) {
             cv.put(key, (Double) value);
+        } else if (value instanceof Long) {
+            cv.put(key, (Long) value);
         }
     }
 
@@ -301,6 +437,11 @@ class SampleWorker implements IsolatedWorker {
             receiver.onError(new IsolatedServiceException(ERROR_SAMPLE_SERVICE_FAILED));
             return;
         }
+        if (input.getHeight() < 0 || input.getWidth() < 0) {
+            receiver.onError(new IsolatedServiceException(ERROR_SAMPLE_SERVICE_FAILED));
+            return;
+        }
+
         PersistableBundle eventParams = new PersistableBundle();
         eventParams.putInt(SampleServiceApi.KEY_EVENT_TYPE, SampleServiceApi.EVENT_TYPE_VIEW);
         String viewUrl =
@@ -325,5 +466,67 @@ class SampleWorker implements IsolatedWorker {
                         + "</a></body>";
         Log.i(TAG, "HTML output: " + html);
         receiver.onResult(new RenderOutput.Builder().setContent(html).build());
+    }
+
+    private ExecuteOutput handleScheduleFederatedJob(
+            PersistableBundle appParams, boolean useLegacyScheduleApi) {
+        Log.i(TAG, "handleScheduleFederatedJob()");
+        String populationName =
+                Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_POPULATION_NAME));
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder().setPopulationName(populationName).build();
+        TrainingInterval interval =
+                new TrainingInterval.Builder()
+                        .setMinimumInterval(Duration.ofSeconds(10))
+                        .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_ONE_TIME)
+                        .build();
+        FederatedComputeScheduler.Params params = new FederatedComputeScheduler.Params(interval);
+
+        if (useLegacyScheduleApi) {
+            mFcpScheduler.schedule(params, input);
+            return new ExecuteOutput.Builder().build();
+        }
+
+        // Use new schedule API with outcome-receiver
+        BlockingQueue<Object> asyncResult = new ArrayBlockingQueue<>(1);
+        final Object emptyValue = new Object();
+        FederatedComputeScheduleRequest request =
+                new FederatedComputeScheduleRequest(params, populationName);
+        mFcpScheduler.schedule(
+                request,
+                new OutcomeReceiver<FederatedComputeScheduleResponse, Exception>() {
+                    @Override
+                    public void onResult(FederatedComputeScheduleResponse result) {
+                        Log.e(TAG, "FCP schedule request successful!");
+                        asyncResult.add(result);
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        Log.e(TAG, "FCP schedule request failed: " + e.getMessage());
+                        asyncResult.add(emptyValue);
+                    }
+                });
+
+        // Wait for outcome receiver callback.
+        Object response = null;
+        try {
+            response = asyncResult.poll(SCHEDULE_CALLBACK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Log.e(TAG, "Timed out waiting for schedule request to succeed!");
+        }
+        return (response == null || response == emptyValue)
+                ? null
+                : new ExecuteOutput.Builder().build();
+    }
+
+    private ExecuteOutput handleCancelFederatedJob(PersistableBundle appParams) {
+        Log.i(TAG, "handleCancelFederatedJob()");
+        String populationName =
+                Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_POPULATION_NAME));
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder().setPopulationName(populationName).build();
+        mFcpScheduler.cancel(input);
+        return new ExecuteOutput.Builder().build();
     }
 }

@@ -30,7 +30,41 @@ public class Constants {
     public static final int STATUS_NAME_NOT_FOUND = 101;
     public static final int STATUS_CLASS_NOT_FOUND = 102;
     public static final int STATUS_SERVICE_FAILED = 103;
+
+    /**
+     * Internal code that tracks user privacy is not eligible to run operation. DO NOT expose this
+     * status externally.
+     */
     public static final int STATUS_PERSONALIZATION_DISABLED = 104;
+
+    public static final int STATUS_KEY_NOT_FOUND = 105;
+
+    /** Internal error code that tracks failure to read ODP manifest settings. */
+    public static final int STATUS_MANIFEST_PARSING_FAILED = 106;
+
+    /** Internal error code that tracks misconfigured ODP manifest settings. */
+    public static final int STATUS_MANIFEST_MISCONFIGURED = 107;
+
+    /** Internal error code that tracks errors in loading the Isolated Service. */
+    public static final int STATUS_ISOLATED_SERVICE_LOADING_FAILED = 108;
+
+    /** Internal error code that tracks error when Isolated Service times out. */
+    public static final int STATUS_ISOLATED_SERVICE_TIMEOUT = 109;
+
+    /** Internal error code that tracks error when the FCP manifest is invalid or missing. */
+    public static final int STATUS_FCP_MANIFEST_INVALID = 110;
+
+    /** Internal code that tracks empty result returned from data storage. */
+    public static final int STATUS_SUCCESS_EMPTY_RESULT = 111;
+
+    /** Internal code that tracks timeout exception when run operation. */
+    public static final int STATUS_TIMEOUT = 112;
+
+    /** Internal code that tracks remote exception when run operation. */
+    public static final int STATUS_REMOTE_EXCEPTION = 113;
+    /** Internal code that tracks method not found. */
+    public static final int STATUS_METHOD_NOT_FOUND = 114;
+    public static final int STATUS_CALLER_NOT_ALLOWED = 115;
 
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
@@ -63,6 +97,8 @@ public class Constants {
     public static final String EXTRA_MIME_TYPE = "android.ondevicepersonalization.extra.mime_type";
     public static final String EXTRA_OUTPUT_DATA =
             "android.ondevicepersonalization.extra.output_data";
+    public static final String EXTRA_OUTPUT_BEST_VALUE =
+            "android.ondevicepersonalization.extra.output_best_value";
     public static final String EXTRA_RESPONSE_DATA =
             "android.ondevicepersonalization.extra.response_data";
     public static final String EXTRA_RESULT = "android.ondevicepersonalization.extra.result";
@@ -74,11 +110,37 @@ public class Constants {
             "android.ondevicepersonalization.extra.model_inputs";
     public static final String EXTRA_MODEL_OUTPUTS =
             "android.ondevicepersonalization.extra.model_outputs";
-
     // Inference related constants,
     public static final String EXTRA_INFERENCE_INPUT =
             "android.ondevicepersonalization.extra.inference_input";
     public static final String EXTRA_MODEL_ID = "android.ondevicepersonalization.extra.model_id";
+
+    // API Names for API metrics logging. Must match the values in
+    // frameworks/proto_logging/stats/atoms/ondevicepersonalization/ondevicepersonalization_extension_atoms.proto
+    public static final int API_NAME_UNKNOWN = 0;
+    public static final int API_NAME_EXECUTE = 1;
+    public static final int API_NAME_REQUEST_SURFACE_PACKAGE = 2;
+    public static final int API_NAME_SERVICE_ON_EXECUTE = 3;
+    public static final int API_NAME_SERVICE_ON_DOWNLOAD_COMPLETED = 4;
+    public static final int API_NAME_SERVICE_ON_RENDER = 5;
+    public static final int API_NAME_SERVICE_ON_EVENT = 6;
+    public static final int API_NAME_SERVICE_ON_TRAINING_EXAMPLE = 7;
+    public static final int API_NAME_SERVICE_ON_WEB_TRIGGER = 8;
+    public static final int API_NAME_REMOTE_DATA_GET = 9;
+    public static final int API_NAME_REMOTE_DATA_KEYSET = 10;
+    public static final int API_NAME_LOCAL_DATA_GET = 11;
+    public static final int API_NAME_LOCAL_DATA_KEYSET = 12;
+    public static final int API_NAME_LOCAL_DATA_PUT = 13;
+    public static final int API_NAME_LOCAL_DATA_REMOVE = 14;
+    public static final int API_NAME_EVENT_URL_CREATE_WITH_RESPONSE = 15;
+    public static final int API_NAME_EVENT_URL_CREATE_WITH_REDIRECT = 16;
+    public static final int API_NAME_LOG_READER_GET_REQUESTS = 17;
+    public static final int API_NAME_LOG_READER_GET_JOINED_EVENTS = 18;
+    public static final int API_NAME_FEDERATED_COMPUTE_SCHEDULE = 19;
+    public static final int API_NAME_MODEL_MANAGER_RUN = 20;
+    public static final int API_NAME_FEDERATED_COMPUTE_CANCEL = 21;
+    public static final int API_NAME_NOTIFY_MEASUREMENT_EVENT = 22;
+    public static final int API_NAME_ADSERVICES_GET_COMMON_STATES = 23;
 
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;

@@ -48,8 +48,10 @@ public class RemoteDataImpl implements KeyValueStore {
     @Override @Nullable
     public byte[] get(@NonNull String key) {
         Objects.requireNonNull(key);
+        final long startTimeMillis = System.currentTimeMillis();
+        int responseCode = Constants.STATUS_SUCCESS;
         try {
-            BlockingQueue<Bundle> asyncResult = new ArrayBlockingQueue<>(1);
+            BlockingQueue<CallbackResult> asyncResult = new ArrayBlockingQueue<>(1);
             Bundle params = new Bundle();
             params.putString(Constants.EXTRA_LOOKUP_KEYS, key);
             mDataAccessService.onRequest(
@@ -58,68 +60,106 @@ public class RemoteDataImpl implements KeyValueStore {
                     new IDataAccessServiceCallback.Stub() {
                         @Override
                         public void onSuccess(@NonNull Bundle result) {
-                            if (result != null) {
-                                asyncResult.add(result);
-                            } else {
-                                asyncResult.add(Bundle.EMPTY);
-                            }
+                            asyncResult.add(new CallbackResult(result, 0));
                         }
 
                         @Override
                         public void onError(int errorCode) {
-                            asyncResult.add(Bundle.EMPTY);
+                            asyncResult.add(new CallbackResult(Bundle.EMPTY, errorCode));
                         }
                     });
-            Bundle result = asyncResult.take();
-            ByteArrayParceledSlice data = result.getParcelable(
-                            Constants.EXTRA_RESULT, ByteArrayParceledSlice.class);
-            if (null == data) {
+
+            CallbackResult callbackResult = asyncResult.take();
+            if (callbackResult.mErrorCode != 0) {
+                responseCode = Constants.STATUS_INTERNAL_ERROR;
                 return null;
             }
+            Bundle result = callbackResult.mResult;
+            if (result == null
+                    || result.getParcelable(Constants.EXTRA_RESULT, ByteArrayParceledSlice.class)
+                            == null) {
+                responseCode = Constants.STATUS_SUCCESS_EMPTY_RESULT;
+                return null;
+            }
+            ByteArrayParceledSlice data =
+                    result.getParcelable(Constants.EXTRA_RESULT, ByteArrayParceledSlice.class);
             return data.getByteArray();
         } catch (InterruptedException | RemoteException e) {
             sLogger.e(TAG + ": Failed to retrieve key from remoteData", e);
+            responseCode = Constants.STATUS_INTERNAL_ERROR;
             throw new IllegalStateException(e);
+        } finally {
+            try {
+                mDataAccessService.logApiCallStats(
+                        Constants.API_NAME_REMOTE_DATA_GET,
+                        System.currentTimeMillis() - startTimeMillis,
+                        responseCode);
+            } catch (Exception e) {
+                sLogger.d(e, TAG + ": failed to log metrics");
+            }
         }
     }
 
     @Override @NonNull
     public Set<String> keySet() {
+        final long startTimeMillis = System.currentTimeMillis();
+        int responseCode = Constants.STATUS_SUCCESS;
         try {
-            BlockingQueue<Bundle> asyncResult = new ArrayBlockingQueue<>(1);
+            BlockingQueue<CallbackResult> asyncResult = new ArrayBlockingQueue<>(1);
             mDataAccessService.onRequest(
                     Constants.DATA_ACCESS_OP_REMOTE_DATA_KEYSET,
                     Bundle.EMPTY,
                     new IDataAccessServiceCallback.Stub() {
                         @Override
                         public void onSuccess(@NonNull Bundle result) {
-                            if (result != null) {
-                                asyncResult.add(result);
-                            } else {
-                                asyncResult.add(Bundle.EMPTY);
-                            }
+                            asyncResult.add(new CallbackResult(result, 0));
                         }
 
                         @Override
                         public void onError(int errorCode) {
-                            asyncResult.add(Bundle.EMPTY);
+                            asyncResult.add(new CallbackResult(null, errorCode));
                         }
                     });
-            Bundle result = asyncResult.take();
-            HashSet<String> resultSet =
-                    result.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
-            if (null == resultSet) {
+            CallbackResult callbackResult = asyncResult.take();
+            if (callbackResult.mErrorCode != 0) {
+                responseCode = callbackResult.mErrorCode;
                 return Collections.emptySet();
             }
-            return resultSet;
+            Bundle result = callbackResult.mResult;
+            if (result == null
+                    || result.getSerializable(Constants.EXTRA_RESULT, HashSet.class) == null) {
+                responseCode = Constants.STATUS_SUCCESS_EMPTY_RESULT;
+                return Collections.emptySet();
+            }
+            return result.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
         } catch (InterruptedException | RemoteException e) {
             sLogger.e(TAG + ": Failed to retrieve keySet from remoteData", e);
+            responseCode = Constants.STATUS_INTERNAL_ERROR;
             throw new IllegalStateException(e);
+        } finally {
+            try {
+                mDataAccessService.logApiCallStats(
+                        Constants.API_NAME_REMOTE_DATA_KEYSET,
+                        System.currentTimeMillis() - startTimeMillis,
+                        responseCode);
+            } catch (Exception e) {
+                sLogger.d(e, TAG + ": failed to log metrics");
+            }
         }
     }
 
     @Override
     public int getTableId() {
         return ModelId.TABLE_ID_REMOTE_DATA;
+    }
+
+    private static class CallbackResult {
+        final Bundle mResult;
+        final int mErrorCode;
+
+        CallbackResult(Bundle result, int errorCode) {
+            mResult = result;
+            mErrorCode = errorCode;
+        }
     }
 }

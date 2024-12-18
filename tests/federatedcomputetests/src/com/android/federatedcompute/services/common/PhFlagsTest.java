@@ -16,15 +16,22 @@
 
 package com.android.federatedcompute.services.common;
 
-import static com.android.federatedcompute.services.common.Flags.DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED;
-import static com.android.federatedcompute.services.common.Flags.DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
+import static com.android.adservices.shared.common.flags.ModuleSharedFlags.BACKGROUND_JOB_LOGGING_ENABLED;
+import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_ENABLED;
+import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_ENABLE_ELIGIBILITY_TASK;
+import static com.android.federatedcompute.services.common.Flags.DEFAULT_FCP_MODULE_JOB_POLICY;
+import static com.android.federatedcompute.services.common.Flags.DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_SCHEDULING_PERIOD_SECS;
+import static com.android.federatedcompute.services.common.Flags.DEFAULT_SPE_PILOT_JOB_ENABLED;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_THERMAL_STATUS_TO_THROTTLE;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_TRAINING_MIN_BATTERY_LEVEL;
 import static com.android.federatedcompute.services.common.Flags.ENABLE_CLIENT_ERROR_LOGGING;
 import static com.android.federatedcompute.services.common.Flags.ENCRYPTION_ENABLED;
+import static com.android.federatedcompute.services.common.Flags.FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT;
+import static com.android.federatedcompute.services.common.Flags.FCP_DEFAULT_MEMORY_SIZE_LIMIT;
+import static com.android.federatedcompute.services.common.Flags.FCP_RECURRENT_RESCHEDULE_LIMIT;
 import static com.android.federatedcompute.services.common.Flags.FCP_RESCHEDULE_LIMIT;
 import static com.android.federatedcompute.services.common.Flags.FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH;
 import static com.android.federatedcompute.services.common.Flags.HTTP_REQUEST_RETRY_LIMIT;
@@ -38,10 +45,19 @@ import static com.android.federatedcompute.services.common.PhFlags.DEFAULT_SCHED
 import static com.android.federatedcompute.services.common.PhFlags.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
 import static com.android.federatedcompute.services.common.PhFlags.ENABLE_ELIGIBILITY_TASK;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_CHECKPOINT_FILE_SIZE_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_BACKGROUND_JOBS_LOGGING;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_CLIENT_ERROR_LOGGING;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_ENCRYPTION;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_JOB_SCHEDULING_LOGGING_ENABLED;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_MODULE_JOB_POLICY;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_RECURRENT_RESCHEDULE_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_RESCHEDULE_LIMIT_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_SPE_PILOT_JOB_ENABLED;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL;
 import static com.android.federatedcompute.services.common.PhFlags.HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
@@ -144,18 +160,58 @@ public class PhFlagsTest {
                 /* makeDefault= */ false);
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_RECURRENT_RESCHEDULE_LIMIT_CONFIG_NAME,
+                Integer.toString(FCP_RECURRENT_RESCHEDULE_LIMIT),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 FCP_ENABLE_CLIENT_ERROR_LOGGING,
                 Boolean.toString(ENABLE_CLIENT_ERROR_LOGGING),
                 /* makeDefault= */ false);
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
-                Boolean.toString(DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED),
+                Boolean.toString(BACKGROUND_JOB_LOGGING_ENABLED),
                 /* makeDefault= */ false);
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE,
-                Integer.toString(DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE),
+                Integer.toString(FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_JOB_SCHEDULING_LOGGING_ENABLED,
+                Boolean.toString(DEFAULT_JOB_SCHEDULING_LOGGING_ENABLED),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE,
+                Integer.toString(DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_MODULE_JOB_POLICY,
+                DEFAULT_FCP_MODULE_JOB_POLICY,
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_SPE_PILOT_JOB_ENABLED,
+                Boolean.toString(DEFAULT_SPE_PILOT_JOB_ENABLED),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME,
+                Long.toString(FCP_DEFAULT_MEMORY_SIZE_LIMIT),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME,
+                Integer.toString(DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_CHECKPOINT_FILE_SIZE_LIMIT_CONFIG_NAME,
+                Integer.toString(FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT),
                 /* makeDefault= */ false);
     }
 
@@ -526,6 +582,29 @@ public class PhFlagsTest {
     }
 
     @Test
+    public void testGetFcpRecurrentRescheduleLimit() {
+        // Without Overriding
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_RECURRENT_RESCHEDULE_LIMIT_CONFIG_NAME,
+                Integer.toString(FCP_RECURRENT_RESCHEDULE_LIMIT),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getFcpRecurrentRescheduleLimit())
+                .isEqualTo(FCP_RECURRENT_RESCHEDULE_LIMIT);
+
+        // Now overriding the value from PH.
+        int overrideFcpRescheduleLimit = 4;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_RECURRENT_RESCHEDULE_LIMIT_CONFIG_NAME,
+                Integer.toString(overrideFcpRescheduleLimit),
+                /* makeDefault= */ false);
+
+        Flags phFlags = FlagsFactory.getFlags();
+        assertThat(phFlags.getFcpRecurrentRescheduleLimit()).isEqualTo(overrideFcpRescheduleLimit);
+    }
+
+    @Test
     public void testGetEnableClientErrorLogging() {
         // Without Overriding
         DeviceConfig.setProperty(
@@ -548,35 +627,16 @@ public class PhFlagsTest {
 
     @Test
     public void testGetBackgroundJobsLoggingEnabled() {
-        // read a stable flag value
-        boolean stableValue = FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled();
-
-        // Now overriding the value from PH.
-        boolean overrideEnabled = !stableValue;
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
-                Boolean.toString(overrideEnabled),
-                /* makeDefault= */ false);
-
-        // the flag value remains stable
         assertThat(FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled())
-                .isEqualTo(stableValue);
+                .isEqualTo(true);
     }
 
     @Test
     public void testGetBackgroundJobSamplingLoggingRate() {
-        int currentValue = 10;
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE,
-                Integer.toString(currentValue),
-                /* makeDefault= */ false);
-        assertThat(FlagsFactory.getFlags().getBackgroundJobSamplingLoggingRate())
-                .isEqualTo(currentValue);
+        int defaultValue = FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 
         // Now overriding the value from PH.
-        int overrideRate = 1;
+        int overrideRate = defaultValue + 1;
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE,
@@ -584,5 +644,140 @@ public class PhFlagsTest {
                 /* makeDefault= */ false);
         assertThat(FlagsFactory.getFlags().getBackgroundJobSamplingLoggingRate())
                 .isEqualTo(overrideRate);
+    }
+
+    @Test
+    public void testGetFcpMemorySizeLimit() {
+        // Without Overriding
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME,
+                Long.toString(FCP_DEFAULT_MEMORY_SIZE_LIMIT),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getFcpMemorySizeLimit())
+                .isEqualTo(FCP_DEFAULT_MEMORY_SIZE_LIMIT);
+
+        // Now overriding the value from PH.
+        long overrideFcpMemLimit = 1000;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME,
+                Long.toString(overrideFcpMemLimit),
+                /* makeDefault= */ false);
+
+        Flags phFlags = FlagsFactory.getFlags();
+        assertThat(phFlags.getFcpMemorySizeLimit()).isEqualTo(overrideFcpMemLimit);
+    }
+
+    @Test
+    public void testGetFcpTaskCountPerPackage() {
+        // Without Overriding
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME,
+                Integer.toString(DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getFcpTaskLimitPerPackage())
+                .isEqualTo(DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE);
+
+        // Now overriding the value from PH.
+        int overrideFcpTaskLimit = 1000;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME,
+                Integer.toString(overrideFcpTaskLimit),
+                /* makeDefault= */ false);
+
+        Flags phFlags = FlagsFactory.getFlags();
+        assertThat(phFlags.getFcpTaskLimitPerPackage()).isEqualTo(overrideFcpTaskLimit);
+    }
+
+    @Test
+    public void testGetFcpCheckinFileSizeLimit() {
+        // Without Overriding
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_CHECKPOINT_FILE_SIZE_LIMIT_CONFIG_NAME,
+                Integer.toString(FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getFcpCheckpointFileSizeLimit())
+                .isEqualTo(FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT);
+
+        // Now overriding the value from PH.
+        int overrideFcpCheckinFileSizeLimit = 1000;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_CHECKPOINT_FILE_SIZE_LIMIT_CONFIG_NAME,
+                Integer.toString(overrideFcpCheckinFileSizeLimit),
+                /* makeDefault= */ false);
+
+        Flags phFlags = FlagsFactory.getFlags();
+        assertThat(phFlags.getFcpCheckpointFileSizeLimit())
+                .isEqualTo(overrideFcpCheckinFileSizeLimit);
+    }
+
+    @Test
+    public void testGetJobSchedulingLoggingEnabled() {
+        // read a stable flag value and verify it's equal to the default value.
+        boolean stableValue = FlagsFactory.getFlags().getJobSchedulingLoggingEnabled();
+
+        // override the value in device config.
+        boolean overrideEnabled = !stableValue;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_JOB_SCHEDULING_LOGGING_ENABLED,
+                Boolean.toString(overrideEnabled),
+                /* makeDefault= */ false);
+
+        // the flag value remains stable
+        assertThat(FlagsFactory.getFlags().getJobSchedulingLoggingEnabled())
+                .isEqualTo(overrideEnabled);
+    }
+
+    @Test
+    public void testGetJobSchedulingLoggingSamplingRate() {
+        int defaultValue = DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
+
+        // Override the value in device config.
+        int overrideRate = defaultValue + 1;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE,
+                Integer.toString(overrideRate),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getJobSchedulingLoggingSamplingRate())
+                .isEqualTo(overrideRate);
+    }
+
+    @Test
+    public void testGetFcpModuleJobPolicy() {
+        assertThat(FlagsFactory.getFlags().getFcpModuleJobPolicy())
+                .isEqualTo(DEFAULT_FCP_MODULE_JOB_POLICY);
+
+        String overrideValue = "Something";
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_MODULE_JOB_POLICY,
+                overrideValue,
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getFcpModuleJobPolicy()).isEqualTo(overrideValue);
+    }
+
+    @Test
+    public void testGetSpePilotJobEnabled() {
+        // read a stable flag value and verify it's equal to the default value.
+        boolean stableValue = FlagsFactory.getFlags().getSpePilotJobEnabled();
+        assertThat(stableValue).isEqualTo(DEFAULT_SPE_PILOT_JOB_ENABLED);
+
+        // override the value in device config.
+        boolean overrideEnabled = !stableValue;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_SPE_PILOT_JOB_ENABLED,
+                Boolean.toString(overrideEnabled),
+                /* makeDefault= */ false);
+
+        // the flag value remains stable
+        assertThat(FlagsFactory.getFlags().getSpePilotJobEnabled()).isEqualTo(overrideEnabled);
     }
 }

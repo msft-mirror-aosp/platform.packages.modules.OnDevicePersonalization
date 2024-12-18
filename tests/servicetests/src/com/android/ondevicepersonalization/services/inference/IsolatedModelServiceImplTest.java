@@ -30,6 +30,7 @@ import android.adservices.ondevicepersonalization.InferenceInputParcel;
 import android.adservices.ondevicepersonalization.InferenceOutput;
 import android.adservices.ondevicepersonalization.InferenceOutputParcel;
 import android.adservices.ondevicepersonalization.ModelId;
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationException;
 import android.adservices.ondevicepersonalization.RemoteDataImpl;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
@@ -53,6 +54,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class IsolatedModelServiceImplTest {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
@@ -89,11 +91,8 @@ public class IsolatedModelServiceImplTest {
         IsolatedModelServiceImpl modelService = new IsolatedModelServiceImpl();
         var callback = new TestServiceCallback();
         modelService.runInference(bundle, callback);
-        callback.mLatch.await();
 
-        assertFalse(callback.mError);
-        InferenceOutputParcel result =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, InferenceOutputParcel.class);
+        InferenceOutputParcel result = verifyAndGetCallbackResult(callback);
         Map<Integer, Object> outputs = result.getData();
         float[] output1 = (float[]) outputs.get(0);
         assertThat(output1.length).isEqualTo(1);
@@ -119,11 +118,8 @@ public class IsolatedModelServiceImplTest {
         IsolatedModelServiceImpl modelService = new IsolatedModelServiceImpl();
         var callback = new TestServiceCallback();
         modelService.runInference(bundle, callback);
-        callback.mLatch.await();
 
-        assertFalse(callback.mError);
-        InferenceOutputParcel result =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, InferenceOutputParcel.class);
+        InferenceOutputParcel result = verifyAndGetCallbackResult(callback);
         Map<Integer, Object> outputs = result.getData();
         float[] output1 = (float[]) outputs.get(0);
         assertThat(output1.length).isEqualTo(numExample);
@@ -148,11 +144,8 @@ public class IsolatedModelServiceImplTest {
         IsolatedModelServiceImpl modelService = new IsolatedModelServiceImpl();
         var callback = new TestServiceCallback();
         modelService.runInference(bundle, callback);
-        callback.mLatch.await();
 
-        assertFalse(callback.mError);
-        InferenceOutputParcel result =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, InferenceOutputParcel.class);
+        InferenceOutputParcel result = verifyAndGetCallbackResult(callback);
         Map<Integer, Object> outputs = result.getData();
         float[] output1 = (float[]) outputs.get(0);
         assertThat(output1.length).isEqualTo(numExample);
@@ -176,11 +169,8 @@ public class IsolatedModelServiceImplTest {
         IsolatedModelServiceImpl modelService = new IsolatedModelServiceImpl();
         var callback = new TestServiceCallback();
         modelService.runInference(bundle, callback);
-        callback.mLatch.await();
 
-        assertFalse(callback.mError);
-        InferenceOutputParcel result =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, InferenceOutputParcel.class);
+        InferenceOutputParcel result = verifyAndGetCallbackResult(callback);
         Map<Integer, Object> outputs = result.getData();
         float[] output1 = (float[]) outputs.get(0);
         assertThat(output1.length).isEqualTo(numExample);
@@ -205,10 +195,8 @@ public class IsolatedModelServiceImplTest {
         IsolatedModelServiceImpl modelService = new IsolatedModelServiceImpl();
         var callback = new TestServiceCallback();
         modelService.runInference(bundle, callback);
-        callback.mLatch.await();
 
-        assertTrue(callback.mError);
-        assertThat(callback.mErrorCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
+        verifyCallBackError(callback, OnDevicePersonalizationException.ERROR_INFERENCE_FAILED);
     }
 
     @Test
@@ -262,9 +250,30 @@ public class IsolatedModelServiceImplTest {
         var callback = new TestServiceCallback();
         modelService.runInference(bundle, callback);
 
-        callback.mLatch.await();
-        assertTrue(callback.mError);
-        assertThat(callback.mErrorCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
+        verifyCallBackError(callback, OnDevicePersonalizationException.ERROR_INFERENCE_FAILED);
+    }
+
+    @Test
+    public void runModelInference_modelNotExist() throws Exception {
+        InferenceInput.Params params =
+                new InferenceInput.Params.Builder(mRemoteData, "nonexist").build();
+        InferenceInput inferenceInput =
+                // Not set output structure in InferenceOutput.
+                new InferenceInput.Builder(
+                                params, generateInferenceInput(1), generateInferenceOutput(1))
+                        .build();
+
+        Bundle bundle = new Bundle();
+        bundle.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        bundle.putParcelable(
+                Constants.EXTRA_INFERENCE_INPUT, new InferenceInputParcel(inferenceInput));
+
+        IsolatedModelServiceImpl modelService = new IsolatedModelServiceImpl();
+        var callback = new TestServiceCallback();
+        modelService.runInference(bundle, callback);
+
+        verifyCallBackError(
+                callback, OnDevicePersonalizationException.ERROR_INFERENCE_MODEL_NOT_FOUND);
     }
 
     @Test
@@ -283,6 +292,23 @@ public class IsolatedModelServiceImplTest {
         assertThrows(
                 NullPointerException.class,
                 () -> modelService.runInference(bundle, new TestServiceCallback()));
+    }
+
+    private void verifyCallBackError(TestServiceCallback callback, int errorCode) throws Exception {
+        assertTrue(
+                "Timeout when run ModelService.runInference complete",
+                callback.mLatch.await(5000, TimeUnit.SECONDS));
+        assertTrue(callback.mError);
+        assertThat(callback.mErrorCode).isEqualTo(errorCode);
+    }
+
+    private InferenceOutputParcel verifyAndGetCallbackResult(TestServiceCallback callback)
+            throws Exception {
+        assertTrue(
+                "Timeout when run ModelService.runInference complete",
+                callback.mLatch.await(5000, TimeUnit.SECONDS));
+        assertFalse(callback.mError);
+        return mCallbackResult.getParcelable(Constants.EXTRA_RESULT, InferenceOutputParcel.class);
     }
 
     private Object[] generateInferenceInput(int numExample) {
@@ -329,6 +355,10 @@ public class IsolatedModelServiceImplTest {
                             TAG
                                     + " TestDataAccessService onRequest model id %s"
                                     + modelId.getKey());
+                    if (modelId.getKey().equals("nonexist")) {
+                        callback.onSuccess(Bundle.EMPTY);
+                        return;
+                    }
                     assertThat(modelId.getKey()).isEqualTo(MODEL_KEY);
                     assertThat(modelId.getTableId()).isEqualTo(ModelId.TABLE_ID_REMOTE_DATA);
                     Context context = ApplicationProvider.getApplicationContext();
@@ -351,5 +381,8 @@ public class IsolatedModelServiceImplTest {
                 }
             }
         }
+
+        @Override
+        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {}
     }
 }
