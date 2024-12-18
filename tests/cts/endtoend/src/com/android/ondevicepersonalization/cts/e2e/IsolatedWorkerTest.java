@@ -29,7 +29,6 @@ import android.adservices.ondevicepersonalization.EventInput;
 import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventOutput;
 import android.adservices.ondevicepersonalization.ExecuteInput;
-import android.adservices.ondevicepersonalization.ExecuteInputParcel;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
@@ -46,13 +45,16 @@ import android.adservices.ondevicepersonalization.WebTriggerOutput;
 import android.net.Uri;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
+import android.platform.test.annotations.RequiresFlagsEnabled;
+import android.platform.test.flag.junit.CheckFlagsRule;
+import android.platform.test.flag.junit.DeviceFlagsValueProvider;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
-import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
-import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -65,20 +67,18 @@ import java.util.Set;
  */
 @SmallTest
 @RunWith(AndroidJUnit4.class)
+@RequiresFlagsEnabled(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
 public class IsolatedWorkerTest {
+    @Rule
+    public final CheckFlagsRule mCheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule();
+
     @Test
     public void testOnExecute() throws Exception {
         IsolatedWorker worker = new TestWorker();
         WorkerResultReceiver<ExecuteOutput> receiver = new WorkerResultReceiver<>();
         PersistableBundle bundle = new PersistableBundle();
         bundle.putString("x", "y");
-        ByteArrayParceledSlice slice = new ByteArrayParceledSlice(
-                PersistableBundleUtils.toByteArray(bundle));
-        ExecuteInputParcel inputParcel = new ExecuteInputParcel.Builder()
-                .setAppPackageName("com.example.app")
-                .setSerializedAppParams(slice)
-                .build();
-        worker.onExecute(new ExecuteInput(inputParcel), receiver);
+        worker.onExecute(new ExecuteInput("com.example.app", bundle), receiver);
     }
 
     @Test
@@ -97,8 +97,7 @@ public class IsolatedWorkerTest {
         WorkerResultReceiver<DownloadCompletedOutput> receiver = new WorkerResultReceiver<>();
         TestKeyValueStore store = new TestKeyValueStore(
                 Map.of("a", new byte[]{'A'}, "b", new byte[]{'B'}));
-        worker.onDownloadCompleted(
-                new DownloadCompletedInput.Builder(store).build(), receiver);
+        worker.onDownloadCompleted(new DownloadCompletedInput(store), receiver);
         assertThat(receiver.mResult.getRetainedKeys(), containsInAnyOrder("a", "b"));
     }
 

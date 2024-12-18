@@ -38,6 +38,7 @@ import android.adservices.ondevicepersonalization.WebTriggerOutput;
 import android.annotation.NonNull;
 import android.content.ContentValues;
 import android.os.OutcomeReceiver;
+import android.os.PersistableBundle;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -48,7 +49,11 @@ import java.util.Set;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
 public class TestPersonalizationHandler implements IsolatedWorker {
-    public final String TAG = "TestPersonalizationHandler";
+    public static final String TAG = "TestPersonalizationHandler";
+
+    /** Bundle key that mimics a timeout in {@link #onExecute}. */
+    public static final String TIMEOUT_KEY = "timeout_key";
+
     private final KeyValueStore mRemoteData;
 
     TestPersonalizationHandler(KeyValueStore remoteData) {
@@ -82,6 +87,12 @@ public class TestPersonalizationHandler implements IsolatedWorker {
             @NonNull ExecuteInput input,
             @NonNull OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
         Log.d(TAG, "onExecute() started.");
+        PersistableBundle inputBundle = input.getAppParams();
+        if (inputBundle != null && inputBundle.getBoolean("timeout_key", false)) {
+            Log.d(TAG, "onExecute() skipped.");
+            return;
+        }
+        Log.d(TAG, "onExecute() continuing.");
         ContentValues logData = new ContentValues();
         logData.put("id", "bid1");
         logData.put("pr", 5.0);

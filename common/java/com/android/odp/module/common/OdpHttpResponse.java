@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.http;
+package com.android.odp.module.common;
 
-import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_ENCODING_HDR;
-import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
+import static com.android.odp.module.common.HttpClientUtils.CONTENT_ENCODING_HDR;
+import static com.android.odp.module.common.HttpClientUtils.GZIP_ENCODING_HDR;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -26,15 +26,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Class to hold FederatedCompute http response. */
-public class FederatedComputeHttpResponse {
+public class OdpHttpResponse {
     private Integer mStatusCode;
     private Map<String, List<String>> mHeaders = new HashMap<>();
     private byte[] mPayload;
+    private String mPayloadFileName;
+    private long mDownloadedPayloadSize;
 
-    private FederatedComputeHttpResponse() {}
+    private OdpHttpResponse() {}
 
-    @NonNull
     public int getStatusCode() {
         return mStatusCode;
     }
@@ -49,6 +49,15 @@ public class FederatedComputeHttpResponse {
         return mPayload;
     }
 
+    @Nullable
+    public String getPayloadFileName() {
+        return mPayloadFileName;
+    }
+
+    public long getDownloadedPayloadSize() {
+        return mDownloadedPayloadSize;
+    }
+
     /** Returns whether http response body is compressed with gzip. */
     public boolean isResponseCompressed() {
         if (mHeaders.containsKey(CONTENT_ENCODING_HDR)) {
@@ -61,13 +70,13 @@ public class FederatedComputeHttpResponse {
         return false;
     }
 
-    /** Builder for FederatedComputeHttpResponse. */
+    /** Builder for {@link OdpHttpResponse}. */
     public static final class Builder {
-        private final FederatedComputeHttpResponse mHttpResponse;
+        private final OdpHttpResponse mHttpResponse;
 
-        /** Default constructor of {@link FederatedComputeHttpResponse}. */
+        /** Default constructor of {@link OdpHttpResponse}. */
         public Builder() {
-            mHttpResponse = new FederatedComputeHttpResponse();
+            mHttpResponse = new OdpHttpResponse();
         }
 
         /** Set the status code of http response. */
@@ -88,8 +97,20 @@ public class FederatedComputeHttpResponse {
             return this;
         }
 
-        /** Build {@link FederatedComputeHttpResponse}. */
-        public FederatedComputeHttpResponse build() {
+        /** Set payload file name where payload is saved. */
+        public Builder setPayloadFileName(String fileName) {
+            mHttpResponse.mPayloadFileName = fileName;
+            return this;
+        }
+
+        /** Set payload file name where payload is saved. */
+        public Builder setDownloadedPayloadSize(long downloadedSize) {
+            mHttpResponse.mDownloadedPayloadSize = downloadedSize;
+            return this;
+        }
+
+        /** Build {@link OdpHttpResponse}. */
+        public OdpHttpResponse build() {
             if (mHttpResponse.mStatusCode == null) {
                 throw new IllegalArgumentException("Empty status code.");
             }

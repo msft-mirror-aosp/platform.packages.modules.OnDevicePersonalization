@@ -30,6 +30,7 @@ import android.os.Looper;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
 import android.os.Trace;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 import android.view.SurfaceHolder;
@@ -37,10 +38,13 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
+import android.widget.TextView;
+import android.widget.ViewSwitcher;
 
 import com.google.common.util.concurrent.Futures;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -52,7 +56,8 @@ public class MainActivity extends Activity {
     private static final String SERVICE_CLASS = "com.example.odpsamplenetwork.SampleService";
     private static final String ODP_APEX = "com.google.android.ondevicepersonalization";
     private static final String ADSERVICES_APEX = "com.google.android.adservices";
-
+    private static final int SURFACE_VIEW_INDEX = 0;
+    private static final int MESSAGE_BOX_INDEX = 1;
     private EditText mTextBox;
     private Button mGetAdButton;
     private EditText mScheduleTrainingTextBox;
@@ -62,6 +67,8 @@ public class MainActivity extends Activity {
     private EditText mReportConversionTextBox;
     private Button mReportConversionButton;
     private SurfaceView mRenderedView;
+    private TextView mMessageBox;
+    private ViewSwitcher mViewSwitcher;
     private Context mContext;
     private static Executor sCallbackExecutor = Executors.newSingleThreadExecutor();
 
@@ -95,6 +102,9 @@ public class MainActivity extends Activity {
         mScheduleTrainingTextBox = findViewById(R.id.schedule_training_text_box);
         mScheduleIntervalTextBox = findViewById(R.id.schedule_interval_text_box);
         mReportConversionTextBox = findViewById(R.id.report_conversion_text_box);
+        mMessageBox = findViewById(R.id.message_box);
+        mMessageBox.setMovementMethod(new ScrollingMovementMethod());
+        mViewSwitcher = findViewById(R.id.view_switcher);
         registerGetAdButton();
         registerScheduleTrainingButton();
         registerReportConversionButton();
@@ -114,7 +124,7 @@ public class MainActivity extends Activity {
         mReportConversionButton.setOnClickListener(v -> reportConversion());
     }
 
-    private OnDevicePersonalizationManager getOdpManager() {
+    private OnDevicePersonalizationManager getOdpManager() throws NoClassDefFoundError {
         return mContext.getSystemService(OnDevicePersonalizationManager.class);
     }
 
@@ -125,7 +135,7 @@ public class MainActivity extends Activity {
             Log.i(TAG, "Starting execute() " + getResources().getString(R.string.get_ad)
                     + " with " + mTextBox.getHint().toString() + ": "
                     + mTextBox.getText().toString());
-            AtomicReference<ExecuteResult> slotResultHandle = new AtomicReference<>();
+            AtomicReference<ExecuteResult> executeResult = new AtomicReference<>();
             PersistableBundle appParams = new PersistableBundle();
             appParams.putString("keyword", mTextBox.getText().toString());
 
@@ -142,26 +152,33 @@ public class MainActivity extends Activity {
                             Trace.endAsyncSection("OdpClient:makeRequest:odpManager.execute", 0);
                             Log.i(TAG, "execute() success: " + result);
                             if (result != null) {
-                                slotResultHandle.set(result);
+                                executeResult.set(result);
                             } else {
                                 Log.e(TAG, "No results!");
                             }
+                            clearText();
                             latch.countDown();
                         }
 
                         @Override
                         public void onError(Exception e) {
                             Trace.endAsyncSection("OdpClient:makeRequest:odpManager.execute", 0);
-                            makeToast("execute() error: " + e.toString());
+                            showError("OdpClient:makeRequest:odpManager.execute", e);
                             latch.countDown();
                         }
                     });
             latch.await();
             Log.d(TAG, "makeRequest:odpManager.execute wait success");
 
+            if (executeResult.get() == null
+                    || executeResult.get().getSurfacePackageToken() == null) {
+                Log.i(TAG, "No surfacePackageToken returned, skipping render.");
+                return;
+            }
+
             Trace.beginAsyncSection("OdpClient:makeRequest:odpManager.requestSurfacePackage", 0);
             odpManager.requestSurfacePackage(
-                    slotResultHandle.get().getSurfacePackageToken(),
+                    executeResult.get().getSurfacePackageToken(),
                     mRenderedView.getHostToken(),
                     getDisplay().getDisplayId(),
                     mRenderedView.getWidth(),
@@ -175,6 +192,7 @@ public class MainActivity extends Activity {
                             Log.i(TAG,
                                     "requestSurfacePackage() success: "
                                     + surfacePackage.toString());
+                            clearText();
                             new Handler(Looper.getMainLooper()).post(() -> {
                                 if (surfacePackage != null) {
                                     mRenderedView.setChildSurfacePackage(
@@ -182,6 +200,7 @@ public class MainActivity extends Activity {
                                 }
                                 mRenderedView.setZOrderOnTop(true);
                                 mRenderedView.setVisibility(View.VISIBLE);
+                                mViewSwitcher.setDisplayedChild(SURFACE_VIEW_INDEX);
                             });
                         }
 
@@ -189,11 +208,12 @@ public class MainActivity extends Activity {
                         public void onError(Exception e) {
                             Trace.endAsyncSection(
                                     "OdpClient:makeRequest:odpManager.requestSurfacePackage", 0);
-                            makeToast("requestSurfacePackage() error: " + e.toString());
+                            showError(
+                                    "OdpClient:makeRequest:odpManager.requestSurfacePackage", e);
                         }
                     });
-        } catch (Exception e) {
-            Log.e(TAG, "Error", e);
+        } catch (Throwable e) {
+            showError("makeRequest", e);
         }
     }
 
@@ -237,6 +257,7 @@ public class MainActivity extends Activity {
                             Trace.endAsyncSection(
                                     "OdpClient:scheduleTraining:odpManager.execute", 0);
                             Log.i(TAG, "execute() success: " + result);
+                            clearText();
                             latch.countDown();
                         }
 
@@ -244,14 +265,14 @@ public class MainActivity extends Activity {
                         public void onError(Exception e) {
                             Trace.endAsyncSection(
                                     "OdpClient:scheduleTraining:odpManager.execute", 0);
-                            makeToast("execute() error: " + e.toString());
+                            showError("OdpClient:scheduleTraining:odpManager.execute", e);
                             latch.countDown();
                         }
                     });
             latch.await();
             Log.d(TAG, "scheduleTraining:odpManager.execute wait success");
-        } catch (Exception e) {
-            Log.e(TAG, "Error", e);
+        } catch (Throwable e) {
+            showError("scheduleTraining", e);
         }
     }
 
@@ -284,6 +305,7 @@ public class MainActivity extends Activity {
                             Trace.endAsyncSection(
                                     "OdpClient:cancelTraining:odpManager.execute", 0);
                             Log.i(TAG, "execute() success: " + result);
+                            clearText();
                             latch.countDown();
                         }
 
@@ -291,14 +313,14 @@ public class MainActivity extends Activity {
                         public void onError(Exception e) {
                             Trace.endAsyncSection(
                                     "OdpClient:cancelTraining:odpManager.execute", 0);
-                            makeToast("execute() error: " + e.toString());
+                            showError("OdpClient:cancelTraining:odpManager.execute", e);
                             latch.countDown();
                         }
                     });
             latch.await();
             Log.d(TAG, "cancelTraining:odpManager.execute wait success");
-        } catch (Exception e) {
-            Log.e(TAG, "Error", e);
+        } catch (Throwable e) {
+            showError("cancelTraining", e);
         }
     }
 
@@ -325,6 +347,7 @@ public class MainActivity extends Activity {
                             Trace.endAsyncSection(
                                     "OdpClient:reportConversion:odpManager.execute", 0);
                             Log.i(TAG, "execute() success: " + result);
+                            clearText();
                             latch.countDown();
                         }
 
@@ -332,20 +355,36 @@ public class MainActivity extends Activity {
                         public void onError(Exception e) {
                             Trace.endAsyncSection(
                                     "OdpClient:reportConversion:odpManager.execute", 0);
-                            makeToast("execute() error: " + e.toString());
+                            showError("OdpClient:reportConversion:odpManager.execute", e);
                             latch.countDown();
                         }
                     });
             latch.await();
             Log.d(TAG, "reportConversion:odpManager.execute wait success");
-        } catch (Exception e) {
-            Log.e(TAG, "Error", e);
+        } catch (Throwable e) {
+            showError("reportConversion", e);
         }
     }
 
-    private void makeToast(String message) {
-        Log.i(TAG, message);
-        runOnUiThread(() -> Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show());
+    private void showError(String message, Throwable e) {
+        Log.i(TAG, "Error: " + message, e);
+        StringWriter out = new StringWriter();
+        PrintWriter pw = new PrintWriter(out);
+        pw.println("Error: " + message);
+        e.printStackTrace(pw);
+        pw.flush();
+        showText(out.toString());
+    }
+
+    private void showText(String s) {
+        runOnUiThread(() -> {
+            mMessageBox.setText(s);
+            mViewSwitcher.setDisplayedChild(MESSAGE_BOX_INDEX);
+        });
+    }
+
+    private void clearText() {
+        runOnUiThread(() -> mMessageBox.setText(""));
     }
 
     @Override
@@ -396,7 +435,7 @@ public class MainActivity extends Activity {
             String versionName = packageInfo.versionName;
             Log.i(TAG, "packageName: " + packageName + ", versionName: " + versionName);
         } catch (PackageManager.NameNotFoundException e) {
-            Log.e(TAG, "can't find package name " + packageName);
+            showError("can't find package name " + packageName, e);
         }
     }
 
@@ -409,7 +448,7 @@ public class MainActivity extends Activity {
                 Log.i(TAG, "apexName: " + apexName + ", longVersionCode: " + apexVersionCode);
             }
         } catch (PackageManager.NameNotFoundException e) {
-            Log.e(TAG, "apex " + apexName + " not found");
+            showError("apex " + apexName + " not found", e);
         }
     }
 
