@@ -316,7 +316,8 @@ public class FederatedComputeWorker {
                                             run.mTask.ownerPackageName(),
                                             run.mTask.ownerClassName())
                                     .flattenToString(),
-                            run.mTask.ownerIdCertDigest());
+                            run.mTask.ownerIdCertDigest(),
+                            run.mTrainingEventLogger);
             return FluentFuture.from(mHttpFederatedProtocol.createTaskAssignment(authContext))
                     .transformAsync(
                             taskAssignmentResponse -> {
@@ -441,7 +442,8 @@ public class FederatedComputeWorker {
                                                 run.mTask.ownerPackageName(),
                                                 run.mTask.ownerClassName())
                                         .flattenToString(),
-                                run.mTask.ownerIdCertDigest()),
+                                run.mTask.ownerIdCertDigest(),
+                                run.mTrainingEventLogger),
                         run.mTrainingEventLogger);
                 run.mTrainingEventLogger.logEventKind(
                         FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_NOT_ELIGIBLE);
@@ -574,7 +576,8 @@ public class FederatedComputeWorker {
                                                     AuthorizationContext.create(
                                                             mContext,
                                                             ownerId,
-                                                            run.mTask.ownerIdCertDigest())),
+                                                            run.mTask.ownerIdCertDigest(),
+                                                            run.mTrainingEventLogger)),
                                     getLightweightExecutor());
                             return "Report computation result failure to the server.";
                         });
@@ -593,7 +596,10 @@ public class FederatedComputeWorker {
                                     result,
                                     encryptionKey,
                                     mInjector.createAuthContext(
-                                            mContext, ownerId, run.mTask.ownerIdCertDigest()),
+                                            mContext,
+                                            ownerId,
+                                            run.mTask.ownerIdCertDigest(),
+                                            run.mTrainingEventLogger),
                                     run.mTrainingEventLogger);
                         },
                         getLightweightExecutor());
@@ -685,7 +691,8 @@ public class FederatedComputeWorker {
                                             run.mTask.ownerPackageName(),
                                             run.mTask.ownerClassName())
                                     .flattenToString(),
-                            run.mTask.ownerIdCertDigest()),
+                            run.mTask.ownerIdCertDigest(),
+                            run.mTrainingEventLogger),
                     run.mTrainingEventLogger);
         } catch (Exception e) {
             LogUtil.e(TAG, e, "Failed to report failure result to server.");
@@ -1240,8 +1247,12 @@ public class FederatedComputeWorker {
                     trainingEventLogger);
         }
 
-        AuthorizationContext createAuthContext(Context context, String ownerId, String ownerCert) {
-            return AuthorizationContext.create(context, ownerId, ownerCert);
+        AuthorizationContext createAuthContext(
+                Context context,
+                String ownerId,
+                String ownerCert,
+                TrainingEventLogger trainingEventLogger) {
+            return AuthorizationContext.create(context, ownerId, ownerCert, trainingEventLogger);
         }
 
         EligibilityDecider getEligibilityDecider(Context context) {

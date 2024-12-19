@@ -28,7 +28,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.quality.Strictness;
 
-
 @RunWith(JUnit4.class)
 public final class StableFlagsTest {
     @Rule
@@ -46,7 +45,7 @@ public final class StableFlagsTest {
     @Test
     public void testValidStableFlags() {
         Object isSipFeatureEnabled =
-                StableFlags.get(PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
+                StableFlags.get(FlagsConstants.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
 
         assertThat(isSipFeatureEnabled).isNotNull();
     }

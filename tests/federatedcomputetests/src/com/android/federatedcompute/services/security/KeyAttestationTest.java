@@ -16,9 +16,16 @@
 
 package com.android.federatedcompute.services.security;
 
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_CERTIFICATE_EXCEPTION;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_ERROR;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_KEYSTORE_EXCEPTION;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_NO_SUCH_ALGORITHM_EXCEPTION;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_NO_SUCH_PROVIDER_EXCEPTION;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -26,18 +33,22 @@ import static org.mockito.Mockito.when;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.android.federatedcompute.services.common.TrainingEventLogger;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
-import java.security.ProviderException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.List;
@@ -58,8 +69,10 @@ public final class KeyAttestationTest {
     @Mock private KeyStore mMockKeyStore;
 
     @Mock private KeyPairGenerator mMockKeyPairGenerator;
+    @Mock private TrainingEventLogger mTrainingEventLogger;
 
     @Mock private Certificate mMockCert;
+    @Captor private ArgumentCaptor<Integer> mEventKindCaptor;
 
     @Before
     public void setUp() throws Exception {
@@ -67,30 +80,39 @@ public final class KeyAttestationTest {
         mKeyAttestation =
                 KeyAttestation.getInstanceForTest(
                         ApplicationProvider.getApplicationContext(), new TestInjector());
+        doNothing().when(mTrainingEventLogger).logEventKind(mEventKindCaptor.capture());
     }
 
     @Test
     public void testGenerateAttestationRecord_nullKey() {
         doReturn(null).when(mMockKeyPairGenerator).generateKeyPair();
 
-        List<String> record = mKeyAttestation.generateAttestationRecord(CHALLENGE, CALLING_APP);
+        List<String> record =
+                mKeyAttestation.generateAttestationRecord(
+                        CHALLENGE, CALLING_APP, mTrainingEventLogger);
 
         assertThat(record).isEmpty();
     }
 
     @Test
-    public void testGenerateHybridKey_initFailure() throws Exception {
-        doThrow(new InvalidAlgorithmParameterException("Invalid Parameters"))
-                .when(mMockKeyPairGenerator)
-                .initialize(any());
+    public void testGenerateHybridKey_noSuchAlgoFailure() {
+        KeyAttestation keyAttestation =
+                KeyAttestation.getInstanceForTest(
+                        ApplicationProvider.getApplicationContext(),
+                        new TestInjectorWithNoSuchAlgoException());
 
-        KeyPair keyPair = mKeyAttestation.generateHybridKey(CHALLENGE, KEY_ALIAS);
+        List<String> record =
+                keyAttestation.generateAttestationRecord(
+                        CHALLENGE, CALLING_APP, mTrainingEventLogger);
 
-        assertThat(keyPair).isNull();
+        assertThat(mEventKindCaptor.getValue())
+                .isEqualTo(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_NO_SUCH_ALGORITHM_EXCEPTION);
+        assertThat(record).isEmpty();
     }
 
     @Test
-    public void testGetAttestationRecordFromKeyAlias_noKey() {
+    public void testGetAttestationRecordFromKeyAlias_noKey() throws Exception {
         String keyAlias2 = CALLING_APP + "-ODPKeyAttestation2";
 
         KeyPair unused = mKeyAttestation.generateHybridKey(CHALLENGE, KEY_ALIAS);
@@ -101,30 +123,49 @@ public final class KeyAttestationTest {
 
     @Test
     public void testGetAttestationRecordFromKeyAlias_certFailure() throws Exception {
+        doReturn(new KeyPair(null, null)).when(mMockKeyPairGenerator).generateKeyPair();
         doThrow(new CertificateException("Cert Exception")).when(mMockKeyStore).load(any());
 
-        List<String> record = mKeyAttestation.getAttestationRecordFromKeyAlias(KEY_ALIAS);
+        List<String> record =
+                mKeyAttestation.generateAttestationRecord(
+                        CHALLENGE, CALLING_APP, mTrainingEventLogger);
 
+        assertThat(mEventKindCaptor.getValue())
+                .isEqualTo(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_CERTIFICATE_EXCEPTION);
         assertThat(record).isEmpty();
     }
 
     @Test
-    public void testGetAttestationRecordFromKeyAlias_keyStoreFailure() throws Exception {
-        doThrow(new KeyStoreException("Key Store Exception"))
-                .when(mMockKeyStore)
-                .getCertificateChain(any());
+    public void testGetAttestationRecordFromKeyAlias_keyStoreFailure() {
+        doReturn(new KeyPair(null, null)).when(mMockKeyPairGenerator).generateKeyPair();
+        KeyAttestation keyAttestation =
+                KeyAttestation.getInstanceForTest(
+                        ApplicationProvider.getApplicationContext(),
+                        new TestInjectorWithKeyStoreException());
 
-        List<String> record = mKeyAttestation.getAttestationRecordFromKeyAlias(KEY_ALIAS);
+        List<String> record =
+                keyAttestation.generateAttestationRecord(
+                        CHALLENGE, CALLING_APP, mTrainingEventLogger);
 
+        assertThat(mEventKindCaptor.getValue())
+                .isEqualTo(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_KEYSTORE_EXCEPTION);
         assertThat(record).isEmpty();
     }
 
     @Test
     public void testGetAttestationRecordFromKeyAlias_nullCertificate() throws Exception {
+        doReturn(new KeyPair(null, null)).when(mMockKeyPairGenerator).generateKeyPair();
         when(mMockKeyStore.getCertificateChain(any())).thenReturn(null);
 
-        List<String> record = mKeyAttestation.getAttestationRecordFromKeyAlias(KEY_ALIAS);
+        List<String> record =
+                mKeyAttestation.generateAttestationRecord(
+                        CHALLENGE, CALLING_APP, mTrainingEventLogger);
 
+        assertThat(mEventKindCaptor.getValue())
+                .isEqualTo(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_ERROR);
         assertThat(record).isEmpty();
     }
 
@@ -139,14 +180,56 @@ public final class KeyAttestationTest {
     }
 
     @Test
-    public void testGetAttestationRecord_securityProviderException() throws Exception {
-        doThrow(new ProviderException("Failed to generate key pair."))
-                .when(mMockKeyPairGenerator)
-                .generateKeyPair();
+    public void testGetAttestationRecord_noSuchProviderException() {
+        KeyAttestation keyAttestation =
+                KeyAttestation.getInstanceForTest(
+                        ApplicationProvider.getApplicationContext(),
+                        new TestInjectorWithNoSuchProviderException());
 
-        KeyPair keyPair = mKeyAttestation.generateHybridKey(CHALLENGE, KEY_ALIAS);
+        List<String> record =
+                keyAttestation.generateAttestationRecord(
+                        CHALLENGE, CALLING_APP, mTrainingEventLogger);
 
-        assertThat(keyPair).isNull();
+        assertThat(mEventKindCaptor.getValue())
+                .isEqualTo(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_NO_SUCH_PROVIDER_EXCEPTION);
+        assertThat(record).isEmpty();
+    }
+
+    private class TestInjectorWithNoSuchProviderException extends KeyAttestation.Injector {
+        @Override
+        KeyPairGenerator getKeyPairGenerator() throws NoSuchProviderException {
+            throw new NoSuchProviderException("no such provider exception");
+        }
+
+        @Override
+        KeyStore getKeyStore() {
+            return mMockKeyStore;
+        }
+    }
+
+    private class TestInjectorWithKeyStoreException extends KeyAttestation.Injector {
+        @Override
+        KeyPairGenerator getKeyPairGenerator() {
+            return mMockKeyPairGenerator;
+        }
+
+        @Override
+        KeyStore getKeyStore() throws KeyStoreException {
+            throw new KeyStoreException("key store exception");
+        }
+    }
+
+    private class TestInjectorWithNoSuchAlgoException extends KeyAttestation.Injector {
+        @Override
+        KeyPairGenerator getKeyPairGenerator() throws NoSuchAlgorithmException {
+            throw new NoSuchAlgorithmException("no such algo exception");
+        }
+
+        @Override
+        KeyStore getKeyStore() {
+            return mMockKeyStore;
+        }
     }
 
     private class TestInjector extends KeyAttestation.Injector {

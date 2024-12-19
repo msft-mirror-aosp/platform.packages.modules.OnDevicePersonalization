@@ -19,7 +19,6 @@ package com.android.odp.module.common.http;
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -70,7 +69,7 @@ public final class HttpClientTest {
 
         assertEquals(DEFAULT_RETRY_LIMIT, testSupplier.mCallCount.get());
         assertThat(returnedResponse.getStatusCode()).isEqualTo(HTTP_UNAVAILABLE);
-        assertTrue(returnedResponse.getHeaders().isEmpty());
+        assertThat(returnedResponse.getHeaders()).isEmpty();
         assertThat(returnedResponse.getPayload()).isEqualTo(failureMessage.getBytes(UTF_8));
     }
 

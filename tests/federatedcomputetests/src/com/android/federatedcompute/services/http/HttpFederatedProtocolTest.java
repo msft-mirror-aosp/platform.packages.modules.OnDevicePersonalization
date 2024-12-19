@@ -243,9 +243,12 @@ public final class HttpFederatedProtocolTest {
 
     @Before
     public void setUp() throws Exception {
+        // Clear any existing data in the token dao.
         mOdpAuthorizationTokenDao =
                 OdpAuthorizationTokenDao.getInstanceForTest(
                         FederatedComputeDbHelper.getInstanceForTest(sTestContent));
+        mOdpAuthorizationTokenDao.deleteAuthorizationToken(OWNER_ID);
+
         mHttpFederatedProtocol =
                 new HttpFederatedProtocol(
                         TASK_ASSIGNMENT_TARGET_URI,
@@ -254,7 +257,9 @@ public final class HttpFederatedProtocolTest {
                         mMockHttpClient,
                         new HpkeJniEncrypter(),
                         mTrainingEventLogger);
-        doReturn(KA_RECORD).when(mMockKeyAttestation).generateAttestationRecord(any(), any());
+        doReturn(KA_RECORD)
+                .when(mMockKeyAttestation)
+                .generateAttestationRecord(any(), any(), any());
         doNothing().when(mTrainingEventLogger).logReportResultUnauthorized();
         doNothing().when(mTrainingEventLogger).logReportResultAuthSucceeded();
         doNothing().when(mTrainingEventLogger).logTaskAssignmentUnauthorized();
@@ -1145,7 +1150,8 @@ public final class HttpFederatedProtocolTest {
                 OWNER_ID_CERT_DIGEST,
                 mOdpAuthorizationTokenDao,
                 mMockKeyAttestation,
-                mClock);
+                mClock,
+                mTrainingEventLogger);
     }
 
     private AuthorizationContext createAuthContextWithAttestationRecord() {
@@ -1155,7 +1161,8 @@ public final class HttpFederatedProtocolTest {
                         OWNER_ID_CERT_DIGEST,
                         mOdpAuthorizationTokenDao,
                         mMockKeyAttestation,
-                        mClock);
+                        mClock,
+                        mTrainingEventLogger);
         // Pretend 1st try failed.
         authContext.updateAuthState(AUTH_METADATA, mTrainingEventLogger);
         return authContext;

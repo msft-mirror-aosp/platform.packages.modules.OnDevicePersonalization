@@ -22,7 +22,6 @@ import static com.android.odp.module.common.http.HttpClientUtils.GZIP_ENCODING_H
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -85,7 +84,7 @@ public final class OdpHttpRequestTest {
         assertThat(request.getUri()).isEqualTo(expectedUri);
         assertThat(request.getHttpMethod()).isEqualTo(HttpClientUtils.HttpMethod.GET);
         assertThat(request.getBody()).isEqualTo(HttpClientUtils.EMPTY_BODY);
-        assertTrue(request.getExtraHeaders().isEmpty());
+        assertThat(request.getExtraHeaders()).isEmpty();
     }
 
     @Test
@@ -117,7 +116,7 @@ public final class OdpHttpRequestTest {
                         HttpClientUtils.EMPTY_BODY);
 
         assertThat(request.getUri()).isEqualTo(expectedUri);
-        assertTrue(request.getExtraHeaders().isEmpty());
+        assertThat(request.getExtraHeaders()).isEmpty();
         assertThat(request.getHttpMethod()).isEqualTo(HttpClientUtils.HttpMethod.POST);
         assertThat(request.getBody()).isEqualTo(HttpClientUtils.EMPTY_BODY);
     }

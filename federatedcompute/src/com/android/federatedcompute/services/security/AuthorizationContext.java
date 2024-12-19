@@ -68,6 +68,7 @@ public class AuthorizationContext {
     private final KeyAttestation mKeyAttestation;
     private final OdpAuthorizationTokenDao mAuthorizationTokenDao;
     private final Clock mClock;
+    private final TrainingEventLogger mTrainingEventLogger;
 
     private static final int BLOCKING_QUEUE_TIMEOUT_IN_SECONDS = 2;
 
@@ -77,23 +78,29 @@ public class AuthorizationContext {
             @NonNull String ownerCert,
             OdpAuthorizationTokenDao authorizationTokenDao,
             KeyAttestation keyAttestation,
-            Clock clock) {
+            Clock clock,
+            TrainingEventLogger trainingEventLogger) {
         mOwnerId = ownerId;
         mOwnerCert = ownerCert;
         mAuthorizationTokenDao = authorizationTokenDao;
         mKeyAttestation = keyAttestation;
         mClock = clock;
+        mTrainingEventLogger = trainingEventLogger;
     }
 
     /** Creates a new {@link AuthorizationContext} used for authentication with remote server. */
     public static AuthorizationContext create(
-            Context context, @NonNull String ownerId, @NonNull String ownerCert) {
+            Context context,
+            @NonNull String ownerId,
+            @NonNull String ownerCert,
+            TrainingEventLogger trainingEventLogger) {
         return new AuthorizationContext(
                 ownerId,
                 ownerCert,
                 OdpAuthorizationTokenDao.getInstance(FederatedComputeDbHelper.getInstance(context)),
                 KeyAttestation.getInstance(context),
-                MonotonicClock.getInstance());
+                MonotonicClock.getInstance(),
+                trainingEventLogger);
     }
 
     public synchronized boolean isFirstAuthTry() {
@@ -130,7 +137,8 @@ public class AuthorizationContext {
             mAttestationRecord =
                     mKeyAttestation.generateAttestationRecord(
                             authMetadata.getKeyAttestationMetadata().getChallenge().toByteArray(),
-                            mOwnerId);
+                            mOwnerId,
+                            mTrainingEventLogger);
             trainingEventLogger.logKeyAttestationLatencyEvent(
                     mClock.currentTimeMillis() - kaStartTime);
         }
@@ -145,7 +153,7 @@ public class AuthorizationContext {
     public Map<String, String> generateAuthHeaders() {
         Map<String, String> headers = new HashMap<>();
         synchronized (this) {
-            if (mAttestationRecord != null) {
+            if (mAttestationRecord != null && !mAttestationRecord.isEmpty()) {
                 // Only when the device is solving challenge, the attestation record is not null.
                 JSONArray attestationArr = new JSONArray(mAttestationRecord);
                 headers.put(ODP_AUTHENTICATION_KEY, attestationArr.toString());
