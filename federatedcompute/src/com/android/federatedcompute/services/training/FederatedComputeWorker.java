@@ -316,7 +316,8 @@ public class FederatedComputeWorker {
                                             run.mTask.ownerPackageName(),
                                             run.mTask.ownerClassName())
                                     .flattenToString(),
-                            run.mTask.ownerIdCertDigest());
+                            run.mTask.ownerIdCertDigest(),
+                            run.mTrainingEventLogger);
             return FluentFuture.from(mHttpFederatedProtocol.createTaskAssignment(authContext))
                     .transformAsync(
                             taskAssignmentResponse -> {
@@ -357,9 +358,19 @@ public class FederatedComputeWorker {
             CreateTaskAssignmentResponse createTaskAssignmentResponse,
             AuthorizationContext authContext) {
         // Generate attestation record and make 2nd try.
-        authContext.updateAuthState(
-                createTaskAssignmentResponse.getRejectionInfo().getAuthMetadata(),
-                run.mTrainingEventLogger);
+        List<String> attestationRecord =
+                authContext.updateAuthState(
+                        createTaskAssignmentResponse.getRejectionInfo().getAuthMetadata(),
+                        run.mTrainingEventLogger);
+        if (attestationRecord == null || attestationRecord.isEmpty()) {
+            String errorMsg =
+                    String.format(
+                            "Failed to generate attestation record for population name %s "
+                                    + "when task assignment",
+                            run.mTask.populationName());
+            LogUtil.e(TAG, errorMsg);
+            return Futures.immediateFailedFuture(new IllegalStateException(errorMsg));
+        }
         return FluentFuture.from(mHttpFederatedProtocol.createTaskAssignment(authContext))
                 .transformAsync(
                         taskAssignmentOnUnauthenticated -> {
@@ -441,7 +452,8 @@ public class FederatedComputeWorker {
                                                 run.mTask.ownerPackageName(),
                                                 run.mTask.ownerClassName())
                                         .flattenToString(),
-                                run.mTask.ownerIdCertDigest()),
+                                run.mTask.ownerIdCertDigest(),
+                                run.mTrainingEventLogger),
                         run.mTrainingEventLogger);
                 run.mTrainingEventLogger.logEventKind(
                         FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_NOT_ELIGIBLE);
@@ -574,7 +586,8 @@ public class FederatedComputeWorker {
                                                     AuthorizationContext.create(
                                                             mContext,
                                                             ownerId,
-                                                            run.mTask.ownerIdCertDigest())),
+                                                            run.mTask.ownerIdCertDigest(),
+                                                            run.mTrainingEventLogger)),
                                     getLightweightExecutor());
                             return "Report computation result failure to the server.";
                         });
@@ -593,7 +606,10 @@ public class FederatedComputeWorker {
                                     result,
                                     encryptionKey,
                                     mInjector.createAuthContext(
-                                            mContext, ownerId, run.mTask.ownerIdCertDigest()),
+                                            mContext,
+                                            ownerId,
+                                            run.mTask.ownerIdCertDigest(),
+                                            run.mTrainingEventLogger),
                                     run.mTrainingEventLogger);
                         },
                         getLightweightExecutor());
@@ -685,7 +701,8 @@ public class FederatedComputeWorker {
                                             run.mTask.ownerPackageName(),
                                             run.mTask.ownerClassName())
                                     .flattenToString(),
-                            run.mTask.ownerIdCertDigest()),
+                            run.mTask.ownerIdCertDigest(),
+                            run.mTrainingEventLogger),
                     run.mTrainingEventLogger);
         } catch (Exception e) {
             LogUtil.e(TAG, e, "Failed to report failure result to server.");
@@ -1176,8 +1193,15 @@ public class FederatedComputeWorker {
                                 return Futures.immediateFuture(null);
                             }
                             if (authContext.isFirstAuthTry() && resp.hasAuthMetadata()) {
-                                authContext.updateAuthState(
-                                        resp.getAuthMetadata(), trainingEventLogger);
+                                List<String> attestationRecord =
+                                        authContext.updateAuthState(
+                                                resp.getAuthMetadata(), trainingEventLogger);
+                                if (attestationRecord == null || attestationRecord.isEmpty()) {
+                                    return Futures.immediateFailedFuture(
+                                            new IllegalStateException(
+                                                    "Failed to generate attestation record when"
+                                                            + " report result"));
+                                }
                                 return reportResultWithAuthentication(
                                         computationResult,
                                         encryptionKey,
@@ -1240,8 +1264,12 @@ public class FederatedComputeWorker {
                     trainingEventLogger);
         }
 
-        AuthorizationContext createAuthContext(Context context, String ownerId, String ownerCert) {
-            return AuthorizationContext.create(context, ownerId, ownerCert);
+        AuthorizationContext createAuthContext(
+                Context context,
+                String ownerId,
+                String ownerCert,
+                TrainingEventLogger trainingEventLogger) {
+            return AuthorizationContext.create(context, ownerId, ownerCert, trainingEventLogger);
         }
 
         EligibilityDecider getEligibilityDecider(Context context) {
