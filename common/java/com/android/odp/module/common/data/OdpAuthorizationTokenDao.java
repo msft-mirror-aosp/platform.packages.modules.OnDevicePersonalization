@@ -117,7 +117,7 @@ public class OdpAuthorizationTokenDao {
     }
 
     /**
-     * Delete an ODP adopter's authorization token.
+     * Delete an ODP adopter's authorization token independent of whether it is expired or not.
      *
      * @return the number of rows deleted.
      */
@@ -129,11 +129,7 @@ public class OdpAuthorizationTokenDao {
         String whereClause = ODPAuthorizationTokenColumns.OWNER_IDENTIFIER + " = ?";
         String[] whereArgs = {ownerIdentifier};
         int deletedRows = db.delete(ODP_AUTHORIZATION_TOKEN_TABLE, whereClause, whereArgs);
-        LogUtil.d(
-                TAG,
-                "Deleted %d expired tokens for %s from database",
-                deletedRows,
-                ownerIdentifier);
+        LogUtil.d(TAG, "Deleted %d tokens for %s from database", deletedRows, ownerIdentifier);
         return deletedRows;
     }
 

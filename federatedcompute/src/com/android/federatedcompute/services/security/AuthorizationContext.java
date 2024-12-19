@@ -68,6 +68,7 @@ public class AuthorizationContext {
     private final KeyAttestation mKeyAttestation;
     private final OdpAuthorizationTokenDao mAuthorizationTokenDao;
     private final Clock mClock;
+    private final TrainingEventLogger mTrainingEventLogger;
 
     private static final int BLOCKING_QUEUE_TIMEOUT_IN_SECONDS = 2;
 
@@ -77,23 +78,29 @@ public class AuthorizationContext {
             @NonNull String ownerCert,
             OdpAuthorizationTokenDao authorizationTokenDao,
             KeyAttestation keyAttestation,
-            Clock clock) {
+            Clock clock,
+            TrainingEventLogger trainingEventLogger) {
         mOwnerId = ownerId;
         mOwnerCert = ownerCert;
         mAuthorizationTokenDao = authorizationTokenDao;
         mKeyAttestation = keyAttestation;
         mClock = clock;
+        mTrainingEventLogger = trainingEventLogger;
     }
 
     /** Creates a new {@link AuthorizationContext} used for authentication with remote server. */
     public static AuthorizationContext create(
-            Context context, @NonNull String ownerId, @NonNull String ownerCert) {
+            Context context,
+            @NonNull String ownerId,
+            @NonNull String ownerCert,
+            TrainingEventLogger trainingEventLogger) {
         return new AuthorizationContext(
                 ownerId,
                 ownerCert,
                 OdpAuthorizationTokenDao.getInstance(FederatedComputeDbHelper.getInstance(context)),
                 KeyAttestation.getInstance(context),
-                MonotonicClock.getInstance());
+                MonotonicClock.getInstance(),
+                trainingEventLogger);
     }
 
     public synchronized boolean isFirstAuthTry() {
@@ -118,7 +125,7 @@ public class AuthorizationContext {
     /**
      * Updates authentication state e.g. update retry count, generate attestation record if needed.
      */
-    public synchronized void updateAuthState(
+    public synchronized List<String> updateAuthState(
             AuthenticationMetadata authMetadata, TrainingEventLogger trainingEventLogger) {
         // TODO: introduce auth state if we plan to auth more than twice.
         // After first authentication failed, we will clean up expired token and generate
@@ -126,14 +133,14 @@ public class AuthorizationContext {
         if (mTryCount == 1) {
             mTryCount++;
             mAuthorizationTokenDao.deleteAuthorizationToken(mOwnerId);
-            long kaStartTime = mClock.currentTimeMillis();
             mAttestationRecord =
                     mKeyAttestation.generateAttestationRecord(
                             authMetadata.getKeyAttestationMetadata().getChallenge().toByteArray(),
-                            mOwnerId);
-            trainingEventLogger.logKeyAttestationLatencyEvent(
-                    mClock.currentTimeMillis() - kaStartTime);
+                            mOwnerId,
+                            mTrainingEventLogger);
+            return mAttestationRecord;
         }
+        return null;
     }
 
     /**
@@ -145,7 +152,7 @@ public class AuthorizationContext {
     public Map<String, String> generateAuthHeaders() {
         Map<String, String> headers = new HashMap<>();
         synchronized (this) {
-            if (mAttestationRecord != null) {
+            if (mAttestationRecord != null && !mAttestationRecord.isEmpty()) {
                 // Only when the device is solving challenge, the attestation record is not null.
                 JSONArray attestationArr = new JSONArray(mAttestationRecord);
                 headers.put(ODP_AUTHENTICATION_KEY, attestationArr.toString());

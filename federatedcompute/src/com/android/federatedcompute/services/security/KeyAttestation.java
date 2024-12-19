@@ -16,6 +16,13 @@
 
 package com.android.federatedcompute.services.security;
 
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_CERTIFICATE_EXCEPTION;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_ERROR;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_IO_EXCEPTION;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_KEYSTORE_EXCEPTION;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_NO_SUCH_ALGORITHM_EXCEPTION;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_NO_SUCH_PROVIDER_EXCEPTION;
+
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.security.keystore.KeyGenParameterSpec;
@@ -23,8 +30,13 @@ import android.security.keystore.KeyProperties;
 import android.util.Base64;
 
 import com.android.federatedcompute.internal.util.LogUtil;
+import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 
+import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -32,6 +44,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.security.spec.ECGenParameterSpec;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,6 +68,10 @@ public class KeyAttestation {
         KeyPairGenerator getKeyPairGenerator()
                 throws NoSuchAlgorithmException, NoSuchProviderException {
             return KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, ANDROID_KEY_STORE);
+        }
+
+        Clock getClock() {
+            return MonotonicClock.getInstance();
         }
     }
 
@@ -110,58 +127,97 @@ public class KeyAttestation {
      * <p>Returned list is empty in case of failure.
      */
     public List<String> generateAttestationRecord(
-            final byte[] challenge, final String callingPackage) {
-        final String keyAlias = getKeyAlias(callingPackage);
-        // Generate the key pair and attestation certificate using the provided challenge.
-        // The key-pair is unused, but the attestation certs will be used (via certificate chain)
-        // by subsequent getAttestationRecordFromKeyAlias call to generate the attestation record.
-        KeyPair kp = generateHybridKey(challenge, keyAlias);
-        if (kp == null) {
-            return new ArrayList<>();
-        }
-        return getAttestationRecordFromKeyAlias(keyAlias);
-    }
-
-    @VisibleForTesting
-    KeyPair generateHybridKey(final byte[] challenge, final String keyAlias) {
+            final byte[] challenge,
+            final String callingPackage,
+            TrainingEventLogger trainingEventLogger) {
         try {
-            KeyPairGenerator keyPairGenerator = mInjector.getKeyPairGenerator();
-            keyPairGenerator.initialize(
-                    new KeyGenParameterSpec.Builder(
-                                    /* keystoreAlias= */ keyAlias,
-                                    /* purposes= */ KeyProperties.PURPOSE_SIGN)
-                            .setDigests(KeyProperties.DIGEST_SHA256)
-                            .setAlgorithmParameterSpec(new ECGenParameterSpec("secp256r1"))
-                            .setAttestationChallenge(challenge)
-                            // device properties are not specified when acquiring the challenge
-                            .setDevicePropertiesAttestationIncluded(false)
-                            .setIsStrongBoxBacked(mUseStrongBox)
-                            .build());
-            return keyPairGenerator.generateKeyPair();
+            long startTime = mInjector.getClock().currentTimeMillis();
+            final String keyAlias = getKeyAlias(callingPackage);
+            // Generate the key pair and attestation certificate using the provided challenge.
+            // The key-pair is unused, but the attestation certs will be used (via certificate
+            // chain) by subsequent getAttestationRecordFromKeyAlias call to generate the
+            // attestation record.
+            KeyPair kp = generateHybridKey(challenge, keyAlias);
+            if (kp == null) {
+                LogUtil.e(TAG, "Key pair is empty.");
+                trainingEventLogger.logEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_ERROR);
+                return new ArrayList<>();
+            }
+            List<String> records = getAttestationRecordFromKeyAlias(keyAlias);
+            if (records.isEmpty()) {
+                LogUtil.e(TAG, "Key attestation record is empty.");
+                trainingEventLogger.logEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_ERROR);
+                return records;
+            }
+            trainingEventLogger.logKeyAttestationLatencyEvent(
+                    mInjector.getClock().currentTimeMillis() - startTime);
+            return records;
         } catch (Exception e) {
             LogUtil.e(TAG, e, "Failed to generate hybrid key attestation.");
+            switch (e) {
+                case NoSuchAlgorithmException ex:
+                        trainingEventLogger.logEventKind(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_NO_SUCH_ALGORITHM_EXCEPTION);
+                    break;
+                case NoSuchProviderException ex:
+                        trainingEventLogger.logEventKind(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_NO_SUCH_PROVIDER_EXCEPTION);
+                    break;
+                case IOException ex:
+                        trainingEventLogger.logEventKind(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_IO_EXCEPTION);
+                    break;
+                case KeyStoreException ex:
+                        trainingEventLogger.logEventKind(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_KEYSTORE_EXCEPTION);
+                    break;
+                case CertificateException ex:
+                        trainingEventLogger.logEventKind(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_CERTIFICATE_EXCEPTION);
+                    break;
+                default:
+                        trainingEventLogger.logEventKind(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_ERROR);
+            }
+            return new ArrayList<>();
         }
-        return null;
     }
 
     @VisibleForTesting
-    List<String> getAttestationRecordFromKeyAlias(String keyAlias) {
-        ArrayList<String> attestationRecord = new ArrayList<>();
-        try {
-            KeyStore keyStore = mInjector.getKeyStore();
-            keyStore.load(null);
-            Certificate[] certificateChain = keyStore.getCertificateChain(keyAlias);
-            if (certificateChain == null) {
-                return attestationRecord;
-            }
+    KeyPair generateHybridKey(final byte[] challenge, final String keyAlias)
+            throws InvalidAlgorithmParameterException,
+                    NoSuchAlgorithmException,
+                    NoSuchProviderException {
+        KeyPairGenerator keyPairGenerator = mInjector.getKeyPairGenerator();
+        keyPairGenerator.initialize(
+                new KeyGenParameterSpec.Builder(
+                                /* keystoreAlias= */ keyAlias,
+                                /* purposes= */ KeyProperties.PURPOSE_SIGN)
+                        .setDigests(KeyProperties.DIGEST_SHA256)
+                        .setAlgorithmParameterSpec(new ECGenParameterSpec("secp256r1"))
+                        .setAttestationChallenge(challenge)
+                        // device properties are not specified when acquiring the challenge
+                        .setDevicePropertiesAttestationIncluded(false)
+                        .setIsStrongBoxBacked(mUseStrongBox)
+                        .build());
+        return keyPairGenerator.generateKeyPair();
+    }
 
-            for (Certificate certificate : certificateChain) {
-                attestationRecord.add(
-                        Base64.encodeToString(certificate.getEncoded(), Base64.NO_WRAP));
-            }
+    @VisibleForTesting
+    List<String> getAttestationRecordFromKeyAlias(String keyAlias)
+            throws KeyStoreException, CertificateException, IOException, NoSuchAlgorithmException {
+        ArrayList<String> attestationRecord = new ArrayList<>();
+        KeyStore keyStore = mInjector.getKeyStore();
+        keyStore.load(null);
+        Certificate[] certificateChain = keyStore.getCertificateChain(keyAlias);
+        if (certificateChain == null) {
             return attestationRecord;
-        } catch (Exception e) {
-            LogUtil.e(TAG, e, "Got exception when generating attestation record.");
+        }
+
+        for (Certificate certificate : certificateChain) {
+            attestationRecord.add(Base64.encodeToString(certificate.getEncoded(), Base64.NO_WRAP));
         }
         return attestationRecord;
     }

@@ -56,6 +56,17 @@ filegroup {
 }
 
 filegroup {
+    name: "ondevicepersonalization-flags-constants-sources",
+    srcs: [
+        "src/com/android/ondevicepersonalization/services/FlagsConstants.java",
+    ],
+    path: "src",
+    visibility: [
+        "//packages/modules/OnDevicePersonalization/tests/testutils",
+    ],
+}
+
+filegroup {
     name: "chronicle-sources",
     srcs: [
         "src/com/android/libraries/**/*.kt",
