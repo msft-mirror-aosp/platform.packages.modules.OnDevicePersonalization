@@ -528,6 +528,38 @@ public final class FederatedComputeWorkerTest {
     }
 
     @Test
+    public void testCheckinWithKeyAttestationFails_fails() {
+        setUpExampleStoreService();
+        doReturn(new ArrayList<>())
+                .when(mMockKeyAttestation)
+                .generateAttestationRecord(any(), anyString(), any());
+        // Always return Unauthenticated during checkin. The second request with auth will fail.
+        doReturn(
+                        FluentFuture.from(
+                                immediateFuture(
+                                        CREATE_TASK_ASSIGNMENT_RESPONSE_UNAUTHENTICATED_REJECTION)))
+                .when(mSpyHttpFederatedProtocol)
+                .createTaskAssignment(any());
+
+        // The second auth request will throw exception as http status 401 is not allowed.
+        ExecutionException exp =
+                assertThrows(
+                        ExecutionException.class,
+                        () ->
+                                mSpyWorker
+                                        .startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback)
+                                        .get());
+
+        assertThat(exp.getCause()).isInstanceOf(IllegalStateException.class);
+        assertThat(exp.getCause().getMessage()).contains("Failed to generate attestation record");
+        // verify one issueCheckin call and skip second call because failed to generate key
+        // attestation record.
+        verify(mSpyHttpFederatedProtocol, times(1)).createTaskAssignment(any());
+        mSpyWorker.finish(null, ContributionResult.FAIL, false);
+        verify(mMockJobServiceOnFinishCallback).callJobFinished(eq(false));
+    }
+
+    @Test
     public void testCheckinWithUnAuthRejection_success() throws Exception {
         setUpExampleStoreService();
         doReturn(FluentFuture.from(immediateFuture(null)))

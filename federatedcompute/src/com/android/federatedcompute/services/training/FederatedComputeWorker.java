@@ -358,9 +358,19 @@ public class FederatedComputeWorker {
             CreateTaskAssignmentResponse createTaskAssignmentResponse,
             AuthorizationContext authContext) {
         // Generate attestation record and make 2nd try.
-        authContext.updateAuthState(
-                createTaskAssignmentResponse.getRejectionInfo().getAuthMetadata(),
-                run.mTrainingEventLogger);
+        List<String> attestationRecord =
+                authContext.updateAuthState(
+                        createTaskAssignmentResponse.getRejectionInfo().getAuthMetadata(),
+                        run.mTrainingEventLogger);
+        if (attestationRecord == null || attestationRecord.isEmpty()) {
+            String errorMsg =
+                    String.format(
+                            "Failed to generate attestation record for population name %s "
+                                    + "when task assignment",
+                            run.mTask.populationName());
+            LogUtil.e(TAG, errorMsg);
+            return Futures.immediateFailedFuture(new IllegalStateException(errorMsg));
+        }
         return FluentFuture.from(mHttpFederatedProtocol.createTaskAssignment(authContext))
                 .transformAsync(
                         taskAssignmentOnUnauthenticated -> {
@@ -1183,8 +1193,15 @@ public class FederatedComputeWorker {
                                 return Futures.immediateFuture(null);
                             }
                             if (authContext.isFirstAuthTry() && resp.hasAuthMetadata()) {
-                                authContext.updateAuthState(
-                                        resp.getAuthMetadata(), trainingEventLogger);
+                                List<String> attestationRecord =
+                                        authContext.updateAuthState(
+                                                resp.getAuthMetadata(), trainingEventLogger);
+                                if (attestationRecord == null || attestationRecord.isEmpty()) {
+                                    return Futures.immediateFailedFuture(
+                                            new IllegalStateException(
+                                                    "Failed to generate attestation record when"
+                                                            + " report result"));
+                                }
                                 return reportResultWithAuthentication(
                                         computationResult,
                                         encryptionKey,

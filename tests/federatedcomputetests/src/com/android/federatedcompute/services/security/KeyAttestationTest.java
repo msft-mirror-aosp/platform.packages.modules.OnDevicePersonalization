@@ -25,15 +25,19 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.android.federatedcompute.services.common.TrainingEventLogger;
+import com.android.odp.module.common.Clock;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -73,6 +77,7 @@ public final class KeyAttestationTest {
 
     @Mock private Certificate mMockCert;
     @Captor private ArgumentCaptor<Integer> mEventKindCaptor;
+    @Mock private Clock mMockClock;
 
     @Before
     public void setUp() throws Exception {
@@ -81,6 +86,8 @@ public final class KeyAttestationTest {
                 KeyAttestation.getInstanceForTest(
                         ApplicationProvider.getApplicationContext(), new TestInjector());
         doNothing().when(mTrainingEventLogger).logEventKind(mEventKindCaptor.capture());
+        doNothing().when(mTrainingEventLogger).logKeyAttestationLatencyEvent(anyLong());
+        when(mMockClock.currentTimeMillis()).thenReturn(10L, 20L, 30L);
     }
 
     @Test
@@ -196,6 +203,20 @@ public final class KeyAttestationTest {
         assertThat(record).isEmpty();
     }
 
+    @Test
+    public void testGenerateAttestationRecord_success() throws Exception {
+        doReturn(new KeyPair(null, null)).when(mMockKeyPairGenerator).generateKeyPair();
+        when(mMockKeyStore.getCertificateChain(any())).thenReturn(new Certificate[] {mMockCert});
+        when(mMockCert.getEncoded()).thenReturn(new byte[] {20});
+
+        List<String> record =
+                mKeyAttestation.generateAttestationRecord(
+                        CHALLENGE, CALLING_APP, mTrainingEventLogger);
+
+        verify(mTrainingEventLogger, times(1)).logKeyAttestationLatencyEvent(anyLong());
+        assertThat(record).hasSize(1);
+    }
+
     private class TestInjectorWithNoSuchProviderException extends KeyAttestation.Injector {
         @Override
         KeyPairGenerator getKeyPairGenerator() throws NoSuchProviderException {
@@ -241,6 +262,11 @@ public final class KeyAttestationTest {
         @Override
         KeyPairGenerator getKeyPairGenerator() {
             return mMockKeyPairGenerator;
+        }
+
+        @Override
+        Clock getClock() {
+            return mMockClock;
         }
     }
 }
