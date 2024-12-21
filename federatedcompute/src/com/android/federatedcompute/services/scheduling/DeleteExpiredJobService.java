@@ -63,10 +63,11 @@ public class DeleteExpiredJobService extends JobService {
     }
 
     @VisibleForTesting
-    public DeleteExpiredJobService(Injector injector) {
+    DeleteExpiredJobService(Injector injector) {
         mInjector = injector;
     }
 
+    @VisibleForTesting
     static class Injector {
         ListeningExecutorService getExecutor() {
             return FederatedComputeExecutors.getBackgroundExecutor();

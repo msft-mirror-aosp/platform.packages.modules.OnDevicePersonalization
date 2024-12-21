@@ -18,7 +18,10 @@ package com.android.federatedcompute.services.data;
 
 import android.provider.BaseColumns;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /** Contract for the task history table. Defines the table. */
+@VisibleForTesting
 public class TaskHistoryContract {
     private TaskHistoryContract() {}
 
@@ -36,7 +39,7 @@ public class TaskHistoryContract {
         // The round number that device contribute training result successfully. The round number is
         // returned by federated compute server when assigning task to device.
         public static final String CONTRIBUTION_ROUND = "contribution_round";
-        // The total number that device has participate in the training per task per population.
+        // The total number that device has participated in the training per task per population.
         public static final String TOTAL_PARTICIPATION = "total_participation";
         public static final String CREATE_TASK_HISTORY_TABLE_STATEMENT =
                 "CREATE TABLE IF NOT EXISTS "
