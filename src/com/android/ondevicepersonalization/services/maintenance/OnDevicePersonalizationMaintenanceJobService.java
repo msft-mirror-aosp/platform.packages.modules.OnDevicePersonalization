@@ -17,7 +17,6 @@
 package com.android.ondevicepersonalization.services.maintenance;
 
 import static android.app.job.JobScheduler.RESULT_SUCCESS;
-import static android.content.pm.PackageManager.GET_META_DATA;
 
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON;
 import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_FAILED;
@@ -31,18 +30,15 @@ import android.app.job.JobScheduler;
 import android.app.job.JobService;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 
 import com.android.adservices.shared.spe.JobServiceConstants.JobSchedulingResultCode;
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.errors.AggregatedErrorCodesLogger;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
-import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.statsd.joblogging.OdpJobServiceLogger;
 
@@ -50,7 +46,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.util.ArrayList;
+import java.util.List;
 
 /** JobService to handle the OnDevicePersonalization maintenance */
 public class OnDevicePersonalizationMaintenanceJobService extends JobService {
@@ -109,29 +105,12 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
 
     @VisibleForTesting
     static void cleanupVendorData(Context context) throws Exception {
-        ArrayList<ComponentName> services = new ArrayList<>();
-
-        for (PackageInfo packageInfo : context.getPackageManager().getInstalledPackages(
-                PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
-            String packageName = packageInfo.packageName;
-            if (AppManifestConfigHelper.manifestContainsOdpSettings(
-                    context, packageName)) {
-                if (!PartnerEnrollmentChecker.isIsolatedServiceEnrolled(packageName)) {
-                    sLogger.d(TAG + ": service %s has ODP manifest, but not enrolled",
-                            packageName);
-                    continue;
-                }
-                sLogger.d(TAG + ": service %s has ODP manifest and is enrolled", packageName);
-                String certDigest = PackageUtils.getCertDigest(context, packageName);
-                String serviceClass = AppManifestConfigHelper.getServiceNameFromOdpSettings(
-                        context, packageName);
-                ComponentName service = ComponentName.createRelative(packageName, serviceClass);
-                services.add(service);
-            }
-        }
+        List<ComponentName> services =
+                AppManifestConfigHelper.getOdpServices(context, /* enrolledOnly= */ true);
 
         OnDevicePersonalizationVendorDataDao.deleteVendorTables(context, services);
         deleteEventsAndQueries(context);
+        AggregatedErrorCodesLogger.cleanupErrorData(context);
     }
 
     @Override
@@ -162,15 +141,12 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
 
         mFuture =
                 Futures.submit(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                sLogger.d(TAG + ": Running maintenance job");
-                                try {
-                                    cleanupVendorData(context);
-                                } catch (Exception e) {
-                                    sLogger.e(TAG + ": Failed to cleanup vendorData", e);
-                                }
+                        () -> {
+                            sLogger.d(TAG + ": Running maintenance job");
+                            try {
+                                cleanupVendorData(context);
+                            } catch (Exception e) {
+                                sLogger.e(TAG + ": Failed to cleanup vendorData", e);
                             }
                         },
                         OnDevicePersonalizationExecutors.getBackgroundExecutor());
@@ -182,8 +158,7 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
                     public void onSuccess(Void result) {
                         sLogger.d(TAG + ": Maintenance job completed.");
                         boolean wantsReschedule = false;
-                        OdpJobServiceLogger.getInstance(
-                                        OnDevicePersonalizationMaintenanceJobService.this)
+                        OdpJobServiceLogger.getInstance(context)
                                 .recordJobFinished(
                                         MAINTENANCE_TASK_JOB_ID,
                                         /* isSuccessful= */ true,
@@ -197,8 +172,7 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
                     public void onFailure(Throwable t) {
                         sLogger.e(TAG + ": Failed to handle JobService: " + params.getJobId(), t);
                         boolean wantsReschedule = false;
-                        OdpJobServiceLogger.getInstance(
-                                        OnDevicePersonalizationMaintenanceJobService.this)
+                        OdpJobServiceLogger.getInstance(context)
                                 .recordJobFinished(
                                         MAINTENANCE_TASK_JOB_ID,
                                         /* isSuccessful= */ false,

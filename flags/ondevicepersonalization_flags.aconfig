@@ -4,15 +4,41 @@ container: "com.android.ondevicepersonalization"
 flag {
     name: "on_device_personalization_apis_enabled"
     is_exported: true
-    namespace: "on_device_personalization"
+    namespace: "ondevicepersonalization_aconfig"
     # TODO(b/320156647): Add bug number and description
     bug: "320156647"
     description: "Enter a description per b/320156647"
+    is_fixed_read_only: true
 }
 
 flag {
     name: "fcp_model_version_enabled"
-    namespace: "on_device_personalization"
+    namespace: "ondevicepersonalization_aconfig"
     bug: "335080565"
     description: "Enable model version support for federated compute"
+    is_fixed_read_only: true
+}
+
+flag {
+    name: "data_class_missing_ctors_and_getters_enabled"
+    namespace: "ondevicepersonalization_aconfig"
+    bug: "353356413"
+    description: "Add missing ctors and getters to certain data classes"
+    is_fixed_read_only: true
+}
+
+flag {
+    name: "execute_in_isolated_service_api_enabled"
+    namespace: "ondevicepersonalization_aconfig"
+    bug: "336801193"
+    description: "Enable executeInIsolatedService API"
+    is_fixed_read_only: true
+}
+
+flag {
+    name: "fcp_schedule_with_outcome_receiver_enabled"
+    namespace: "ondevicepersonalization_aconfig"
+    bug: "343848473"
+    description: "Enable the federated compute schedule API that accepts an OutcomeReceiver."
+    is_fixed_read_only: true
 }
