@@ -311,8 +311,10 @@ public class OnDevicePersonalizationManager {
                 wrappedParams.putParcelable(
                         Constants.EXTRA_APP_PARAMS_SERIALIZED,
                         new ByteArrayParceledSlice(PersistableBundleUtils.toByteArray(params)));
+                String appPackageName =
+                        mContext.getPackageManager().getNameForUid(Binder.getCallingUid());
                 odpService.execute(
-                        mContext.getPackageName(),
+                        appPackageName,
                         service,
                         wrappedParams,
                         new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
@@ -462,8 +464,10 @@ public class OnDevicePersonalizationManager {
                         Constants.EXTRA_APP_PARAMS_SERIALIZED,
                         new ByteArrayParceledSlice(
                                 PersistableBundleUtils.toByteArray(request.getAppParams())));
+                String appPackageName =
+                        mContext.getPackageManager().getNameForUid(Binder.getCallingUid());
                 odpService.execute(
-                        mContext.getPackageName(),
+                        appPackageName,
                         request.getService(),
                         wrappedParams,
                         new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),

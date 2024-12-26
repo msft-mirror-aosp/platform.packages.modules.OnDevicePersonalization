@@ -31,6 +31,10 @@
     {
       // Install com.google.android.ondevicepersonalization.apex and run CtsOnDevicePersonalizationConfigTests.
       "name": "CtsOnDevicePersonalizationConfigTests[com.google.android.ondevicepersonalization.apex]"
+    },
+    {
+      // Install com.google.android.ondevicepersonalization.apex and run CtsSandboxOnDevicePersonalizationManagerTests.
+      "name": "CtsSandboxOnDevicePersonalizationManagerTests[com.google.android.ondevicepersonalization.apex]"
     }
   ],
   "presubmit": [
@@ -57,6 +61,9 @@
     },
     {
       "name": "CtsOnDevicePersonalizationConfigTests"
+    },
+    {
+      "name": "CtsSandboxOnDevicePersonalizationManagerTests"
     }
   ],
   "ondevicepersonalization-mainline-presubmit": [
@@ -83,6 +90,9 @@
     },
     {
       "name": "CtsOnDevicePersonalizationConfigTests"
+    },
+    {
+      "name": "CtsSandboxOnDevicePersonalizationManagerTests"
     }
   ]
 }
