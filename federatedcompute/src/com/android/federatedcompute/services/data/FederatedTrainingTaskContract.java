@@ -19,10 +19,10 @@ package com.android.federatedcompute.services.data;
 import android.provider.BaseColumns;
 
 /** The contract class for training tasks. */
-final class FederatedTraningTaskContract {
+final class FederatedTrainingTaskContract {
     public static final String FEDERATED_TRAINING_TASKS_TABLE = "federated_training_tasks";
 
-    private FederatedTraningTaskContract() {}
+    private FederatedTrainingTaskContract() {}
 
     /** Column name for the federated training task table. */
     public static final class FederatedTrainingTaskColumns implements BaseColumns {
