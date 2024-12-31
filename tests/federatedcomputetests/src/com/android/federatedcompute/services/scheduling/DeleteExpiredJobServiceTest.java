@@ -40,7 +40,6 @@ import android.app.job.JobParameters;
 import android.app.job.JobScheduler;
 import android.content.Context;
 import android.database.DatabaseUtils;
-import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -53,6 +52,7 @@ import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.TaskHistory;
+import com.android.federatedcompute.services.data.TaskHistoryContract;
 import com.android.federatedcompute.services.sharedlibrary.spe.FederatedComputeJobScheduler;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
@@ -62,6 +62,7 @@ import com.android.odp.module.common.data.OdpAuthorizationToken;
 import com.android.odp.module.common.data.OdpAuthorizationTokenContract;
 import com.android.odp.module.common.data.OdpAuthorizationTokenDao;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -72,10 +73,12 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
+import java.time.Duration;
 import java.util.UUID;
 
 @MockStatic(FlagsFactory.class)
 public class DeleteExpiredJobServiceTest {
+
     @Rule(order = 0)
     public final ExtendedMockitoRule extendedMockitoRule =
             new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
@@ -83,13 +86,28 @@ public class DeleteExpiredJobServiceTest {
     private static final String TAG = DeleteExpiredJobServiceTest.class.getSimpleName();
     private static final String POPULATION_NAME = "population_name";
     private static final int JOB_ID = 123;
+
+    private static final long TEST_CURRENT_TIME = 400L;
+    public static final long TEST_TTL = 200L;
+
     private static final String TASK_ID = "task_id";
+    private static final Duration THREAD_SLEEP = Duration.ofSeconds(5);
+
+    private static final Context sContext = ApplicationProvider.getApplicationContext();
+    private static final FederatedComputeDbHelper sTestDbHelper =
+            FederatedComputeDbHelper.getInstanceForTest(sContext);
+
+    private static final String TEST_EXPIRED_TOKEN1 = "expired1";
+    private static final String TEST_EXPIRED_TOKEN2 = "expired3";
+    private static final String TEST_UNEXPIRED_TOKEN = "unexpired";
+
+    private static final ImmutableList<String> TEST_OWNER_IDS =
+            ImmutableList.of(TEST_EXPIRED_TOKEN1, TEST_EXPIRED_TOKEN2, TEST_UNEXPIRED_TOKEN);
     private DeleteExpiredJobService mSpyService;
 
     private OdpAuthorizationTokenDao mSpyAuthTokenDao;
     private FederatedTrainingTaskDao mTrainingTaskDao;
 
-    private Context mContext;
     private JobScheduler mJobScheduler;
     @Mock private Clock mClock;
     @Mock private Flags mMockFlag;
@@ -102,28 +120,31 @@ public class DeleteExpiredJobServiceTest {
         // By default, disable SPE.
         when(mMockFlag.getSpePilotJobEnabled()).thenReturn(false);
 
-        mContext = ApplicationProvider.getApplicationContext();
-        when(mClock.currentTimeMillis()).thenReturn(400L);
-        when(mMockFlag.getTaskHistoryTtl()).thenReturn(200L);
+        when(mClock.currentTimeMillis()).thenReturn(TEST_CURRENT_TIME);
+        when(mMockFlag.getTaskHistoryTtl()).thenReturn(TEST_TTL);
+
         LogUtil.i(TAG, "mSpyAuthTokenDao " + mSpyAuthTokenDao);
         mSpyAuthTokenDao =
                 spy(
                         OdpAuthorizationTokenDao.getInstanceForTest(
-                                FederatedComputeDbHelper.getInstanceForTest(mContext)));
-        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mContext);
+                                FederatedComputeDbHelper.getInstanceForTest(sContext)));
+        clearTokenDao(mSpyAuthTokenDao);
+
+        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(sContext);
+        // Force delete any existing
+        mTrainingTaskDao.deleteExpiredTaskHistory(/* deleteTime= */ 0L);
         mSpyService = spy(new DeleteExpiredJobService(new TestInjector()));
 
-        mJobScheduler = mContext.getSystemService(JobScheduler.class);
+        mJobScheduler = sContext.getSystemService(JobScheduler.class);
         mJobScheduler.cancel(FederatedComputeJobInfo.DELETE_EXPIRED_JOB_ID);
         doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
     }
 
     @After
     public void tearDown() {
-        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
+        sTestDbHelper.getWritableDatabase().close();
+        sTestDbHelper.getReadableDatabase().close();
+        sTestDbHelper.close();
     }
 
     @Test
@@ -134,28 +155,27 @@ public class DeleteExpiredJobServiceTest {
 
     @Test
     public void deleteExpiredAuthToken_success() throws Exception {
-        mSpyAuthTokenDao.insertAuthorizationToken(createExpiredAuthToken("expired1"));
-        mSpyAuthTokenDao.insertAuthorizationToken(createExpiredAuthToken("expired2"));
-        mSpyAuthTokenDao.insertAuthorizationToken(createUnexpiredAuthToken("unexpired"));
+        mSpyAuthTokenDao.insertAuthorizationToken(createExpiredAuthToken(TEST_EXPIRED_TOKEN1));
+        mSpyAuthTokenDao.insertAuthorizationToken(createExpiredAuthToken(TEST_EXPIRED_TOKEN2));
+        mSpyAuthTokenDao.insertAuthorizationToken(createUnexpiredAuthToken(TEST_UNEXPIRED_TOKEN));
 
         mSpyService.onStartJob(mock(JobParameters.class));
 
         // TODO(b/326444021): remove thread sleep after use JobServiceCallback.
-        Thread.sleep(5000);
+        Thread.sleep(THREAD_SLEEP.toMillis());
         verify(mSpyService).jobFinished(any(), eq(false));
-        SQLiteDatabase db =
-                FederatedComputeDbHelper.getInstanceForTest(mContext).getReadableDatabase();
         assertThat(
                         DatabaseUtils.queryNumEntries(
-                                db, OdpAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
+                                sTestDbHelper.getReadableDatabase(),
+                                OdpAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
                 .isEqualTo(1);
     }
 
     @Test
     public void deleteExpiredAuthToken_failure() throws Exception {
-        mSpyAuthTokenDao.insertAuthorizationToken(createExpiredAuthToken("expired1"));
-        mSpyAuthTokenDao.insertAuthorizationToken(createExpiredAuthToken("expired2"));
-        mSpyAuthTokenDao.insertAuthorizationToken(createUnexpiredAuthToken("unexpired"));
+        mSpyAuthTokenDao.insertAuthorizationToken(createExpiredAuthToken(TEST_EXPIRED_TOKEN1));
+        mSpyAuthTokenDao.insertAuthorizationToken(createExpiredAuthToken(TEST_EXPIRED_TOKEN2));
+        mSpyAuthTokenDao.insertAuthorizationToken(createUnexpiredAuthToken(TEST_UNEXPIRED_TOKEN));
         doThrow(new SQLiteException("exception"))
                 .when(mSpyAuthTokenDao)
                 .deleteExpiredAuthorizationTokens();
@@ -163,20 +183,27 @@ public class DeleteExpiredJobServiceTest {
         mSpyService.onStartJob(mock(JobParameters.class));
 
         // TODO(b/326444021): remove thread sleep after use JobServiceCallback.
-        Thread.sleep(2000);
+        Thread.sleep(THREAD_SLEEP.toMillis());
         verify(mSpyService).jobFinished(any(), eq(false));
         verify(mSpyAuthTokenDao).deleteExpiredAuthorizationTokens();
-        SQLiteDatabase db =
-                FederatedComputeDbHelper.getInstanceForTest(mContext).getReadableDatabase();
         assertThat(
                         DatabaseUtils.queryNumEntries(
-                                db, OdpAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
+                                sTestDbHelper.getReadableDatabase(),
+                                OdpAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
                 .isEqualTo(3);
     }
 
     @Test
     public void deletedExpiredTaskHistory_success() throws Exception {
-        // record1 is expired because contribution time (100) < current time (400) - ttl (200).
+        // Ensure the task history table is empty prior to the test.
+        assertThat(
+                        DatabaseUtils.queryNumEntries(
+                                sTestDbHelper.getReadableDatabase(),
+                                TaskHistoryContract.TaskHistoryEntry.TABLE_NAME))
+                .isEqualTo(0);
+        // record1 is expired because its contribution time (100) < TEST_CURRENT_TIME (400) -
+        // TEST_TTL (200). The DeleteExpiredJobService should delete it and remove it from the
+        // TrainingTaskDao.
         TaskHistory record1 =
                 new TaskHistory.Builder()
                         .setJobId(JOB_ID)
@@ -195,15 +222,16 @@ public class DeleteExpiredJobServiceTest {
                         .setTotalParticipation(3)
                         .setContributionTime(300)
                         .build();
-        mTrainingTaskDao.updateOrInsertTaskHistory(record1);
-        mTrainingTaskDao.updateOrInsertTaskHistory(record2);
+
+        assertTrue(mTrainingTaskDao.updateOrInsertTaskHistory(record1));
+        assertTrue(mTrainingTaskDao.updateOrInsertTaskHistory(record2));
         assertThat(mTrainingTaskDao.getTaskHistoryList(JOB_ID, POPULATION_NAME, TASK_ID))
                 .containsExactly(record1, record2);
 
         mSpyService.onStartJob(mock(JobParameters.class));
 
         // TODO(b/326444021): remove thread sleep after use JobServiceCallback.
-        Thread.sleep(2000);
+        Thread.sleep(THREAD_SLEEP.toMillis());
         verify(mSpyService).jobFinished(any(), eq(false));
         assertThat(mTrainingTaskDao.getTaskHistoryList(JOB_ID, POPULATION_NAME, TASK_ID))
                 .containsExactly(record2);
@@ -216,7 +244,7 @@ public class DeleteExpiredJobServiceTest {
 
         assertThat(
                         DeleteExpiredJobService.scheduleJobIfNeeded(
-                                mContext, FlagsFactory.getFlags(), /* forceSchedule= */ false))
+                                sContext, FlagsFactory.getFlags(), /* forceSchedule= */ false))
                 .isEqualTo(SCHEDULING_RESULT_CODE_SUCCESSFUL);
 
         assertNotNull(mJobScheduler.getPendingJob(FederatedComputeJobInfo.DELETE_EXPIRED_JOB_ID));
@@ -252,13 +280,22 @@ public class DeleteExpiredJobServiceTest {
 
         assertThat(injector.getExecutor())
                 .isEqualTo(FederatedComputeExecutors.getBackgroundExecutor());
-        assertThat(injector.getODPAuthorizationTokenDao(mContext))
+        assertThat(injector.getODPAuthorizationTokenDao(sContext))
                 .isEqualTo(
                         OdpAuthorizationTokenDao.getInstance(
-                                FederatedComputeDbHelper.getInstance(mContext)));
+                                FederatedComputeDbHelper.getInstance(sContext)));
     }
 
-    private OdpAuthorizationToken createExpiredAuthToken(String ownerId) {
+    private static void clearTokenDao(OdpAuthorizationTokenDao tokenDao) {
+        // Force clear any existing auth tokens before tests
+
+        for (String ownerIdentifier : TEST_OWNER_IDS) {
+            tokenDao.deleteAuthorizationToken(ownerIdentifier);
+        }
+    }
+
+    private static OdpAuthorizationToken createExpiredAuthToken(String ownerId) {
+        // Create an already expired token with expiry time in the past.
         long now = MonotonicClock.getInstance().currentTimeMillis();
         OdpAuthorizationToken token =
                 new OdpAuthorizationToken.Builder()
@@ -270,7 +307,8 @@ public class DeleteExpiredJobServiceTest {
         return token;
     }
 
-    private OdpAuthorizationToken createUnexpiredAuthToken(String ownerId) {
+    private static OdpAuthorizationToken createUnexpiredAuthToken(String ownerId) {
+        // Create an unexpired token with a TTL of 24 hours.
         long now = MonotonicClock.getInstance().currentTimeMillis();
         long ttl = 24 * 60 * 60 * 1000L;
         OdpAuthorizationToken token =
@@ -283,7 +321,7 @@ public class DeleteExpiredJobServiceTest {
         return token;
     }
 
-    class TestInjector extends DeleteExpiredJobService.Injector {
+    private class TestInjector extends DeleteExpiredJobService.Injector {
         @Override
         ListeningExecutorService getExecutor() {
             return MoreExecutors.newDirectExecutorService();
