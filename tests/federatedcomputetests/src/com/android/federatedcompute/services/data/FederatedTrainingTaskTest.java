@@ -16,7 +16,7 @@
 
 package com.android.federatedcompute.services.data;
 
-import static com.android.federatedcompute.services.data.FederatedTraningTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
+import static com.android.federatedcompute.services.data.FederatedTrainingTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -27,7 +27,7 @@ import android.database.sqlite.SQLiteDatabase;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
+import com.android.federatedcompute.services.data.FederatedTrainingTaskContract.FederatedTrainingTaskColumns;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
 import com.android.federatedcompute.services.data.fbs.SchedulingReason;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
