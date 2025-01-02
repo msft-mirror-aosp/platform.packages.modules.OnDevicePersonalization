@@ -25,7 +25,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.JsonReader;
 
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
@@ -59,10 +58,7 @@ import com.google.mobiledatadownload.ClientConfigProto;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,8 +75,7 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
     private IsolatedModelServiceProvider mModelServiceProvider;
     private long mStartServiceTimeMillis;
     private ComponentName mService;
-    private Map<String, VendorData> mProcessedVendorDataMap;
-    private long mProcessedSyncToken;
+    private ParsedFileContents mParsedFileContents;
 
     private final Injector mInjector;
     private final FutureCallback<DownloadCompletedOutputParcel> mCallback;
@@ -110,31 +105,18 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
 
             Uri uri = Objects.requireNonNull(getClientFileUri());
 
-            long syncToken = -1;
-            Map<String, VendorData> vendorDataMap = null;
+            ParsedFileContents fileContents;
 
             SynchronousFileStorage fileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
             try (InputStream in = fileStorage.open(uri, ReadStreamOpener.create())) {
-                try (JsonReader reader = new JsonReader(new InputStreamReader(in))) {
-                    reader.beginObject();
-                    while (reader.hasNext()) {
-                        String name = reader.nextName();
-                        if (name.equals("syncToken")) {
-                            syncToken = reader.nextLong();
-                        } else if (name.equals("contents")) {
-                            vendorDataMap = readContentsArray(reader);
-                        } else {
-                            reader.skipValue();
-                        }
-                    }
-                    reader.endObject();
-                }
+                fileContents = DownloadedFileParser.parseJson(in);
             } catch (IOException ie) {
                 sLogger.e(ie, TAG + mPackageName + " Failed to process downloaded JSON file");
                 onSuccess(null);
                 return false;
             }
 
+            long syncToken = fileContents.getSyncToken();
             if (syncToken == -1 || !validateSyncToken(syncToken)) {
                 sLogger.d(TAG + mPackageName
                         + " downloaded JSON file has invalid syncToken provided");
@@ -142,6 +124,7 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
                 return false;
             }
 
+            var vendorDataMap = fileContents.getVendorDataMap();
             if (vendorDataMap == null || vendorDataMap.isEmpty()) {
                 sLogger.d(TAG + mPackageName + " downloaded JSON file has no content provided");
                 onSuccess(null);
@@ -160,8 +143,7 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
                 return false;
             }
 
-            mProcessedVendorDataMap = vendorDataMap;
-            mProcessedSyncToken = syncToken;
+            mParsedFileContents = fileContents;
 
             return true;
         } catch (Exception e) {
@@ -192,8 +174,8 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
                 new FederatedComputeServiceImpl(getService(), mContext));
 
         Map<String, byte[]> downloadedContent = new HashMap<>();
-        for (String key : mProcessedVendorDataMap.keySet()) {
-            downloadedContent.put(key, mProcessedVendorDataMap.get(key).getData());
+        for (String key : mParsedFileContents.getVendorDataMap().keySet()) {
+            downloadedContent.put(key, mParsedFileContents.getVendorDataMap().get(key).getData());
         }
 
         DataAccessServiceImpl downloadedContentBinder = new DataAccessServiceImpl(
@@ -266,14 +248,15 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
 
                             List<VendorData> filteredList = new ArrayList<>();
                             for (String key : retainedKeys) {
-                                if (mProcessedVendorDataMap.containsKey(key)) {
-                                    filteredList.add(mProcessedVendorDataMap.get(key));
+                                if (mParsedFileContents.getVendorDataMap().containsKey(key)) {
+                                    filteredList.add(
+                                            mParsedFileContents.getVendorDataMap().get(key));
                                 }
                             }
 
                             boolean transactionResult =
                                     mDao.batchUpdateOrInsertVendorDataTransaction(filteredList,
-                                            retainedKeys, mProcessedSyncToken);
+                                            retainedKeys, mParsedFileContents.getSyncToken());
 
                             sLogger.d(TAG + ": filter and store data completed, transaction"
                                     + " successful: "
@@ -314,51 +297,6 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
     @Override
     public void cleanUpServiceParams() {
         mModelServiceProvider.unBindFromModelService();
-    }
-
-    private Map<String, VendorData> readContentsArray(JsonReader reader) throws IOException {
-        Map<String, VendorData> vendorDataMap = new HashMap<>();
-        reader.beginArray();
-        while (reader.hasNext()) {
-            VendorData data = readContent(reader);
-            if (data != null) {
-                vendorDataMap.put(data.getKey(), data);
-            }
-        }
-        reader.endArray();
-
-        return vendorDataMap;
-    }
-
-    private VendorData readContent(JsonReader reader) throws IOException {
-        String key = null;
-        byte[] data = null;
-        String encoding = null;
-        reader.beginObject();
-        while (reader.hasNext()) {
-            String name = reader.nextName();
-            if (name.equals("key")) {
-                key = reader.nextString();
-            } else if (name.equals("data")) {
-                data = reader.nextString().getBytes(StandardCharsets.UTF_8);
-            } else if (name.equals("encoding")) {
-                encoding = reader.nextString();
-            } else {
-                reader.skipValue();
-            }
-        }
-        reader.endObject();
-        if (key == null || data == null) {
-            return null;
-        }
-        if (encoding != null && !encoding.isBlank()) {
-            if (encoding.strip().equalsIgnoreCase("base64")) {
-                data = Base64.getDecoder().decode(data);
-            } else if (!encoding.strip().equalsIgnoreCase("utf8")) {
-                return null;
-            }
-        }
-        return new VendorData.Builder().setKey(key).setData(data).build();
     }
 
     private Uri getClientFileUri() throws Exception {
