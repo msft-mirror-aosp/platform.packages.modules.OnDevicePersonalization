@@ -43,6 +43,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
+import java.util.List;
+
 @MockStatic(ClientErrorLogger.class)
 public final class FederatedTrainingTaskDaoTest {
 
@@ -76,21 +78,24 @@ public final class FederatedTrainingTaskDaoTest {
                     .setTotalParticipation(2)
                     .build();
 
+    private static final Context sTestContext = ApplicationProvider.getApplicationContext();
+
     private FederatedTrainingTaskDao mTrainingTaskDao;
-    private Context mContext;
 
     @Mock private ClientErrorLogger mMockClientErrorLogger;
 
     @Before
     public void setUp() {
-        mContext = ApplicationProvider.getApplicationContext();
-        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mContext);
+        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(sTestContext);
+        mTrainingTaskDao.deleteExpiredTaskHistory(/* deleteTime= */ Long.MAX_VALUE);
+
         when(ClientErrorLogger.getInstance()).thenReturn(mMockClientErrorLogger);
     }
 
     @After
     public void cleanUp() {
-        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
+        FederatedComputeDbHelper dbHelper =
+                FederatedComputeDbHelper.getInstanceForTest(sTestContext);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
@@ -104,16 +109,16 @@ public final class FederatedTrainingTaskDaoTest {
         FederatedTrainingTask task2 =
                 createDefaultFederatedTrainingTask().toBuilder().jobId(jobId2).build();
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task2);
-        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(2);
+        assertThat(getAllTrainingTasks(mTrainingTaskDao)).hasSize(2);
 
         FederatedTrainingTask removedTask = mTrainingTaskDao.findAndRemoveTaskByJobId(JOB_ID);
 
         assertThat(DataTestUtil.isEqualTask(removedTask, task)).isTrue();
-        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(1);
+        assertThat(getAllTrainingTasks(mTrainingTaskDao)).hasSize(1);
     }
 
     @Test
-    public void findAndRemoveTaskByJobId_nonExist() {
+    public void findAndRemoveTaskByJobId_nonExist_returnsNull() {
         FederatedTrainingTask removedTask = mTrainingTaskDao.findAndRemoveTaskByJobId(JOB_ID);
 
         assertThat(removedTask).isNull();
@@ -129,13 +134,13 @@ public final class FederatedTrainingTaskDaoTest {
                         .populationName(POPULATION_NAME + "_2")
                         .build();
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task2);
-        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(2);
+        assertThat(getAllTrainingTasks(mTrainingTaskDao)).hasSize(2);
 
         FederatedTrainingTask removedTask =
                 mTrainingTaskDao.findAndRemoveTaskByPopulationAndJobId(POPULATION_NAME, JOB_ID);
 
         assertThat(DataTestUtil.isEqualTask(removedTask, task)).isTrue();
-        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(1);
+        assertThat(getAllTrainingTasks(mTrainingTaskDao)).hasSize(1);
     }
 
     @Test
@@ -173,13 +178,13 @@ public final class FederatedTrainingTaskDaoTest {
                         .populationName(POPULATION_NAME + "_2")
                         .build();
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task2);
-        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(2);
+        assertThat(getAllTrainingTasks(mTrainingTaskDao)).hasSize(2);
 
         FederatedTrainingTask removedTask =
                 mTrainingTaskDao.findAndRemoveTaskByPopulationName(POPULATION_NAME);
 
         assertThat(DataTestUtil.isEqualTask(removedTask, task)).isTrue();
-        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(1);
+        assertThat(getAllTrainingTasks(mTrainingTaskDao)).hasSize(1);
     }
 
     @Test
@@ -193,14 +198,14 @@ public final class FederatedTrainingTaskDaoTest {
                         .populationName(POPULATION_NAME + "_2")
                         .build();
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task2);
-        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(2);
+        assertThat(getAllTrainingTasks(mTrainingTaskDao)).hasSize(2);
 
         FederatedTrainingTask removedTask =
                 mTrainingTaskDao.findAndRemoveTaskByPopulationNameAndCallingPackage(
                         POPULATION_NAME, PACKAGE_NAME);
 
         assertThat(DataTestUtil.isEqualTask(removedTask, task)).isTrue();
-        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(1);
+        assertThat(getAllTrainingTasks(mTrainingTaskDao)).hasSize(1);
     }
 
     @Test
@@ -242,14 +247,14 @@ public final class FederatedTrainingTaskDaoTest {
                         .ownerIdCertDigest(OWNER_ID_CERT_DIGEST + "_2")
                         .build();
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task4);
-        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(4);
+        assertThat(getAllTrainingTasks(mTrainingTaskDao)).hasSize(4);
 
         FederatedTrainingTask removedTask =
                 mTrainingTaskDao.findAndRemoveTaskByPopulationNameAndOwnerId(
                         POPULATION_NAME, OWNER_PACKAGE, OWNER_CLASS, OWNER_ID_CERT_DIGEST);
 
         assertThat(DataTestUtil.isEqualTask(removedTask, task)).isTrue();
-        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(3);
+        assertThat(getAllTrainingTasks(mTrainingTaskDao)).hasSize(3);
     }
 
     @Test
@@ -349,7 +354,13 @@ public final class FederatedTrainingTaskDaoTest {
         return builder.sizedByteArray();
     }
 
-    private FederatedTrainingTask createDefaultFederatedTrainingTask() {
+    private static List<FederatedTrainingTask> getAllTrainingTasks(
+            FederatedTrainingTaskDao trainingTaskDao) {
+        return trainingTaskDao.getFederatedTrainingTask(
+                /* selection= */ null, /* selectionArgs= */ null);
+    }
+
+    private static FederatedTrainingTask createDefaultFederatedTrainingTask() {
         return FederatedTrainingTask.builder()
                 .appPackageName(PACKAGE_NAME)
                 .jobId(JOB_ID)

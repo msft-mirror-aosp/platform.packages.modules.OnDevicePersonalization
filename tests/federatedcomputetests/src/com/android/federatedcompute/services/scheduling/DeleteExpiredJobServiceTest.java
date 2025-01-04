@@ -131,8 +131,8 @@ public class DeleteExpiredJobServiceTest {
         clearTokenDao(mSpyAuthTokenDao);
 
         mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(sContext);
-        // Force delete any existing
-        mTrainingTaskDao.deleteExpiredTaskHistory(/* deleteTime= */ 0L);
+        // Force delete any existing data in the dao
+        mTrainingTaskDao.deleteExpiredTaskHistory(/* deleteTime= */ Long.MAX_VALUE);
         mSpyService = spy(new DeleteExpiredJobService(new TestInjector()));
 
         mJobScheduler = sContext.getSystemService(JobScheduler.class);
