@@ -45,6 +45,8 @@ android_test {
         "modules-utils-build",
         "modules-utils-preconditions",
         "libprotobuf-java-lite",
+        "common-ondevicepersonalization-protos",
+        "adservices-shared-datastore", // For proto data store.
     ],
     manifest: "AndroidManifest.xml",
     plugins: ["auto_value_plugin"],

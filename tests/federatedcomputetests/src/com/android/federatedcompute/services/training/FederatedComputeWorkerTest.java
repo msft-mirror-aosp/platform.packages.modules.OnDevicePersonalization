@@ -24,6 +24,7 @@ import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICE
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ENCRYPTION_KEY_FETCH_SUCCESS;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_START;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_SUCCESS;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_START;
@@ -73,7 +74,6 @@ import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
-import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
 import com.android.federatedcompute.services.data.TaskHistory;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
 import com.android.federatedcompute.services.data.fbs.SchedulingReason;
@@ -98,6 +98,7 @@ import com.android.federatedcompute.services.training.util.TrainingConditionsChe
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.data.OdpAuthorizationTokenDao;
 import com.android.odp.module.common.encryption.HpkeJniEncrypter;
 import com.android.odp.module.common.encryption.OdpEncryptionKey;
 import com.android.odp.module.common.encryption.OdpEncryptionKeyManager;
@@ -409,8 +410,10 @@ public final class FederatedComputeWorkerTest {
                 .thenReturn(FL_RUNNER_SUCCESS_RESULT);
         doReturn(List.of(ENCRYPTION_KEY))
                 .when(mMockKeyManager)
-                .getOrFetchActiveKeys(anyInt(), anyInt());
-        doReturn(KA_RECORD).when(mMockKeyAttestation).generateAttestationRecord(any(), anyString());
+                .getOrFetchActiveKeys(anyInt(), anyInt(), any());
+        doReturn(KA_RECORD)
+                .when(mMockKeyAttestation)
+                .generateAttestationRecord(any(), anyString(), any());
     }
 
     @After
@@ -525,6 +528,38 @@ public final class FederatedComputeWorkerTest {
     }
 
     @Test
+    public void testCheckinWithKeyAttestationFails_fails() {
+        setUpExampleStoreService();
+        doReturn(new ArrayList<>())
+                .when(mMockKeyAttestation)
+                .generateAttestationRecord(any(), anyString(), any());
+        // Always return Unauthenticated during checkin. The second request with auth will fail.
+        doReturn(
+                        FluentFuture.from(
+                                immediateFuture(
+                                        CREATE_TASK_ASSIGNMENT_RESPONSE_UNAUTHENTICATED_REJECTION)))
+                .when(mSpyHttpFederatedProtocol)
+                .createTaskAssignment(any());
+
+        // The second auth request will throw exception as http status 401 is not allowed.
+        ExecutionException exp =
+                assertThrows(
+                        ExecutionException.class,
+                        () ->
+                                mSpyWorker
+                                        .startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback)
+                                        .get());
+
+        assertThat(exp.getCause()).isInstanceOf(IllegalStateException.class);
+        assertThat(exp.getCause().getMessage()).contains("Failed to generate attestation record");
+        // verify one issueCheckin call and skip second call because failed to generate key
+        // attestation record.
+        verify(mSpyHttpFederatedProtocol, times(1)).createTaskAssignment(any());
+        mSpyWorker.finish(null, ContributionResult.FAIL, false);
+        verify(mMockJobServiceOnFinishCallback).callJobFinished(eq(false));
+    }
+
+    @Test
     public void testCheckinWithUnAuthRejection_success() throws Exception {
         setUpExampleStoreService();
         doReturn(FluentFuture.from(immediateFuture(null)))
@@ -556,7 +591,7 @@ public final class FederatedComputeWorkerTest {
         // Verify first issueCheckin call.
         verify(mSpyHttpFederatedProtocol, times(2)).createTaskAssignment(any());
         // After the first issueCheckin, the FederatedComputeWorker would do the key attestation.
-        verify(mMockKeyAttestation).generateAttestationRecord(eq(CHALLENGE), anyString());
+        verify(mMockKeyAttestation).generateAttestationRecord(eq(CHALLENGE), anyString(), any());
         assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
         verify(mMockJobManager)
                 .onTrainingCompleted(
@@ -672,7 +707,7 @@ public final class FederatedComputeWorkerTest {
         // Verify two reportResult calls.
         verify(mSpyHttpFederatedProtocol, times(2)).reportResult(any(), any(), any());
         // After the first reportResult, the FederatedComputeWorker would do the key attestation.
-        verify(mMockKeyAttestation).generateAttestationRecord(eq(CHALLENGE), anyString());
+        verify(mMockKeyAttestation).generateAttestationRecord(eq(CHALLENGE), anyString(), any());
         assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
         verify(mMockJobManager)
                 .onTrainingCompleted(
@@ -739,7 +774,7 @@ public final class FederatedComputeWorkerTest {
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL), eq(true));
 
         ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
-        verify(mMockTrainingEventLogger, times(9)).logEventKind(captor.capture());
+        verify(mMockTrainingEventLogger, times(10)).logEventKind(captor.capture());
         assertThat(captor.getAllValues())
                 .containsExactlyElementsIn(
                         Arrays.asList(
@@ -751,7 +786,8 @@ public final class FederatedComputeWorkerTest {
                                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_START,
                                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_SUCCESS,
                                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_COMPUTATION_FAILED,
-                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_STARTED));
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_STARTED,
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ENCRYPTION_KEY_FETCH_SUCCESS));
         verify(mMockTrainingEventLogger).logComputationInvalidArgument(any());
     }
 
@@ -1041,6 +1077,10 @@ public final class FederatedComputeWorkerTest {
                         .setContributionRound(9)
                         .setContributionTime(120L)
                         .build());
+        TaskHistory storedHistory =
+                mTrainingTaskDao.getLatestTaskHistory(JOB_ID, POPULATION_NAME, TASK_ID);
+        // verify insert task history success.
+        assertThat(storedHistory.getContributionRound()).isEqualTo(9);
         setUpExampleStoreService();
         setUpIssueCheckin(FL_CHECKIN_RESULT);
         ArgumentCaptor<ComputationResult> captor = ArgumentCaptor.forClass(ComputationResult.class);
@@ -1066,7 +1106,7 @@ public final class FederatedComputeWorkerTest {
                         .setTaskId(TASK_ID)
                         .setPopulationName(POPULATION_NAME)
                         .setContributionRound(1)
-                        .setContributionTime(120L)
+                        .setContributionTime(20L)
                         .build());
         setUpExampleStoreService();
         setUpHttpFederatedProtocol(FL_CHECKIN_RESULT);
@@ -1086,7 +1126,7 @@ public final class FederatedComputeWorkerTest {
         setUpHttpFederatedProtocol(FL_CHECKIN_RESULT);
         doReturn(new ArrayList<OdpEncryptionKey>() {})
                 .when(mMockKeyManager)
-                .getOrFetchActiveKeys(anyInt(), anyInt());
+                .getOrFetchActiveKeys(anyInt(), anyInt(), any());
         setUpReportFailureToServerCallback();
 
         assertThrows(
@@ -1162,13 +1202,19 @@ public final class FederatedComputeWorkerTest {
         }
 
         @Override
-        AuthorizationContext createAuthContext(Context context, String ownerId, String owerCert) {
+        AuthorizationContext createAuthContext(
+                Context context,
+                String ownerId,
+                String owerCert,
+                TrainingEventLogger trainingEventLogger) {
             return new AuthorizationContext(
                     ownerId,
                     owerCert,
-                    ODPAuthorizationTokenDao.getInstanceForTest(mContext),
+                    OdpAuthorizationTokenDao.getInstanceForTest(
+                            FederatedComputeDbHelper.getInstanceForTest(context)),
                     mMockKeyAttestation,
-                    MonotonicClock.getInstance());
+                    MonotonicClock.getInstance(),
+                    mMockTrainingEventLogger);
         }
 
         @Override

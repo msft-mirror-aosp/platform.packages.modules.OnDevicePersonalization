@@ -18,7 +18,7 @@ package com.android.federatedcompute.services.data;
 
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
-import static com.android.federatedcompute.services.data.FederatedTraningTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
+import static com.android.federatedcompute.services.data.FederatedTrainingTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -30,7 +30,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
+import com.android.federatedcompute.services.data.FederatedTrainingTaskContract.FederatedTrainingTaskColumns;
 import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -39,7 +39,9 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.List;
 
-/** DAO for accessing training task table. */
+/**
+ * DAO for accessing table for {@link FederatedTrainingTask} and the table for {@link TaskHistory}.
+ */
 public class FederatedTrainingTaskDao {
 
     private static final String TAG = FederatedTrainingTaskDao.class.getSimpleName();
@@ -66,17 +68,19 @@ public class FederatedTrainingTaskDao {
         return sSingletonInstance;
     }
 
-    /** It's only public to unit test. */
+    /**
+     * Get instance of the {@link FederatedTrainingTaskDao} for use in tests.
+     *
+     * <p>Uses the testing only version of the {@link FederatedComputeDbHelper}.
+     */
     @VisibleForTesting
-    public static FederatedTrainingTaskDao getInstanceForTest(Context context) {
-        synchronized (FederatedTrainingTaskDao.class) {
-            if (sSingletonInstance == null) {
-                FederatedComputeDbHelper dbHelper =
-                        FederatedComputeDbHelper.getInstanceForTest(context);
-                sSingletonInstance = new FederatedTrainingTaskDao(dbHelper);
-            }
-            return sSingletonInstance;
+    public static synchronized FederatedTrainingTaskDao getInstanceForTest(Context context) {
+        if (sSingletonInstance == null) {
+            FederatedComputeDbHelper dbHelper =
+                    FederatedComputeDbHelper.getInstanceForTest(context);
+            sSingletonInstance = new FederatedTrainingTaskDao(dbHelper);
         }
+        return sSingletonInstance;
     }
 
     /** Deletes a training task in FederatedTrainingTask table. */
@@ -401,7 +405,10 @@ public class FederatedTrainingTaskDao {
         return null;
     }
 
-    /** Batch delete expired task history records. */
+    /**
+     * Batch delete expired task history records whose {@code CONTRIBUTION_TIME} is less than the
+     * specified deletion time.
+     */
     public int deleteExpiredTaskHistory(long deleteTime) {
         SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
         if (db == null) {
@@ -415,7 +422,7 @@ public class FederatedTrainingTaskDao {
         return deletedRows;
     }
 
-    private String[] selectionArgs(Number... args) {
+    private static String[] selectionArgs(Number... args) {
         String[] values = new String[args.length];
         for (int i = 0; i < args.length; i++) {
             values[i] = String.valueOf(args[i]);

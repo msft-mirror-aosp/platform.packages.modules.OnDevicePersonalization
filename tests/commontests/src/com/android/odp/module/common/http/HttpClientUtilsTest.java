@@ -20,7 +20,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -170,7 +169,7 @@ public class HttpClientUtilsTest {
                         DEFAULT_GET_REQUEST, mHttpURLConnectionSupplier, false);
 
         assertThat(response.getStatusCode()).isEqualTo(503);
-        assertTrue(response.getHeaders().isEmpty());
+        assertThat(response.getHeaders()).isEmpty();
         assertThat(response.getPayload()).isEqualTo(TEST_FAILURE_MESSAGE.getBytes(UTF_8));
     }
 

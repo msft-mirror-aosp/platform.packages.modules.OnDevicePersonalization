@@ -16,7 +16,7 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 
 import static com.google.common.truth.Truth.assertThat;
 

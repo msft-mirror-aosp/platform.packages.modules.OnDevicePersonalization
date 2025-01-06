@@ -55,31 +55,43 @@ public class StableFlags {
 
     @VisibleForTesting
     StableFlags(Flags flags) {
-        mStableFlagsMap.put(PhFlags.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS,
+        mStableFlagsMap.put(
+                FlagsConstants.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS,
                 flags.getAppRequestFlowDeadlineSeconds());
-        mStableFlagsMap.put(PhFlags.KEY_RENDER_FLOW_DEADLINE_SECONDS,
+        mStableFlagsMap.put(
+                FlagsConstants.KEY_RENDER_FLOW_DEADLINE_SECONDS,
                 flags.getRenderFlowDeadlineSeconds());
-        mStableFlagsMap.put(PhFlags.KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS,
+        mStableFlagsMap.put(
+                FlagsConstants.KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS,
                 flags.getWebTriggerFlowDeadlineSeconds());
-        mStableFlagsMap.put(PhFlags.KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS,
+        mStableFlagsMap.put(
+                FlagsConstants.KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS,
                 flags.getWebViewFlowDeadlineSeconds());
-        mStableFlagsMap.put(PhFlags.KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS,
+        mStableFlagsMap.put(
+                FlagsConstants.KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS,
                 flags.getExampleStoreFlowDeadlineSeconds());
-        mStableFlagsMap.put(PhFlags.KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS,
+        mStableFlagsMap.put(
+                FlagsConstants.KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS,
                 flags.getDownloadFlowDeadlineSeconds());
-        mStableFlagsMap.put(PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
+        mStableFlagsMap.put(
+                FlagsConstants.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
                 flags.isSharedIsolatedProcessFeatureEnabled());
-        mStableFlagsMap.put(PhFlags.KEY_TRUSTED_PARTNER_APPS_LIST,
-                flags.getTrustedPartnerAppsList());
-        mStableFlagsMap.put(PhFlags.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED,
+        mStableFlagsMap.put(
+                FlagsConstants.KEY_TRUSTED_PARTNER_APPS_LIST, flags.getTrustedPartnerAppsList());
+        mStableFlagsMap.put(
+                FlagsConstants.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED,
                 flags.isArtImageLoadingOptimizationEnabled());
-        mStableFlagsMap.put(PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE,
+        mStableFlagsMap.put(
+                FlagsConstants.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE,
                 flags.isPersonalizationStatusOverrideEnabled());
-        mStableFlagsMap.put(PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE,
+        mStableFlagsMap.put(
+                FlagsConstants.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE,
                 flags.getPersonalizationStatusOverrideValue());
-        mStableFlagsMap.put(PhFlags.KEY_USER_CONTROL_CACHE_IN_MILLIS,
+        mStableFlagsMap.put(
+                FlagsConstants.KEY_USER_CONTROL_CACHE_IN_MILLIS,
                 flags.getUserControlCacheInMillis());
-        mStableFlagsMap.put(PhFlags.KEY_PLUGIN_PROCESS_RUNNER_ENABLED,
+        mStableFlagsMap.put(
+                FlagsConstants.KEY_PLUGIN_PROCESS_RUNNER_ENABLED,
                 flags.isPluginProcessRunnerEnabled());
     }
 

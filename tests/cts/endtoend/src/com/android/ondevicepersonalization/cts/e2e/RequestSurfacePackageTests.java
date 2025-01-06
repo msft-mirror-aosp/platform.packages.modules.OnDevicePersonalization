@@ -81,10 +81,13 @@ public class RequestSurfacePackageTests {
 
     private UiDevice mDevice;
 
+    private static final int DELAY_MILLIS = 2000;
+
     @Before
     public void setUp() {
         // Skip the test if it runs on unsupported platforms.
         Assume.assumeTrue(DeviceSupportHelper.isDeviceSupported());
+        Assume.assumeTrue(DeviceSupportHelper.isOdpModuleAvailable());
 
         ShellUtils.runShellCommand(
                 "device_config put on_device_personalization "
@@ -127,6 +130,10 @@ public class RequestSurfacePackageTests {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         SurfacePackageToken token = runExecute(manager);
+
+        Log.i(TAG, "Finished getting token");
+        Thread.sleep(DELAY_MILLIS);
+
         var receiver = new ResultReceiver<SurfacePackage>();
         SurfaceView surfaceView = createSurfaceView();
         manager.requestSurfacePackage(
@@ -140,6 +147,9 @@ public class RequestSurfacePackageTests {
         SurfacePackage surfacePackage = receiver.getResult();
         assertNotNull(surfacePackage);
 
+        Log.i(TAG, "Finished requesting surface package");
+        Thread.sleep(DELAY_MILLIS);
+
         CountDownLatch latch = new CountDownLatch(1);
         new Handler(Looper.getMainLooper()).post(
                 () -> {
@@ -149,6 +159,9 @@ public class RequestSurfacePackageTests {
                     latch.countDown();
                 });
         latch.await();
+
+        Log.i(TAG, "Finished posting surface view");
+        Thread.sleep(DELAY_MILLIS);
 
         for (int i = 0; i < 5; i++) {
             try {

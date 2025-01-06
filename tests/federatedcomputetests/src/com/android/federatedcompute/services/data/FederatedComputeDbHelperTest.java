@@ -20,8 +20,8 @@ import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICE
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_WRITE_EXCEPTION;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doThrow;
-import static com.android.federatedcompute.services.data.FederatedTraningTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
-import static com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE;
+import static com.android.federatedcompute.services.data.FederatedTrainingTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
+import static com.android.odp.module.common.data.OdpAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE;
 import static com.android.odp.module.common.encryption.OdpEncryptionKeyContract.ENCRYPTION_KEY_TABLE;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -44,7 +44,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
-import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
+import com.android.federatedcompute.services.data.FederatedTrainingTaskContract.FederatedTrainingTaskColumns;
 import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;

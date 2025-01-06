@@ -16,7 +16,7 @@
 
 package com.android.federatedcompute.services.data;
 
-import static com.android.federatedcompute.services.data.FederatedTraningTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
+import static com.android.federatedcompute.services.data.FederatedTrainingTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -27,7 +27,7 @@ import android.database.sqlite.SQLiteDatabase;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
+import com.android.federatedcompute.services.data.FederatedTrainingTaskContract.FederatedTrainingTaskColumns;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
 import com.android.federatedcompute.services.data.fbs.SchedulingReason;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
@@ -60,7 +60,7 @@ public final class FederatedTrainingTaskTest {
     private static final int SCHEDULING_REASON = SchedulingReason.SCHEDULING_REASON_NEW_TASK;
     private static final byte[] INTERVAL_OPTIONS = createDefaultTrainingIntervalOptions();
     private static final byte[] TRAINING_CONSTRAINTS = createDefaultTrainingConstraints();
-    public static final int RESCHEDULE_COUNT = 2;
+    private static final int RESCHEDULE_COUNT = 2;
 
     private SQLiteDatabase mDatabase;
     private FederatedComputeDbHelper mDbHelper;
@@ -70,6 +70,9 @@ public final class FederatedTrainingTaskTest {
         Context context = ApplicationProvider.getApplicationContext();
         mDbHelper = FederatedComputeDbHelper.getInstanceForTest(context);
         mDatabase = mDbHelper.getWritableDatabase();
+        // Force delete any rows in the database
+        mDatabase.delete(
+                FEDERATED_TRAINING_TASKS_TABLE, /* whereClause= */ null, /* whereArgs= */ null);
     }
 
     @After
@@ -171,7 +174,7 @@ public final class FederatedTrainingTaskTest {
         return builder.sizedByteArray();
     }
 
-    private FederatedTrainingTask createFederatedTrainingTaskWithAllFields() {
+    private static FederatedTrainingTask createFederatedTrainingTaskWithAllFields() {
         return FederatedTrainingTask.builder()
                 .appPackageName(PACKAGE_NAME)
                 .jobId(JOB_ID)
@@ -192,7 +195,7 @@ public final class FederatedTrainingTaskTest {
                 .build();
     }
 
-    private FederatedTrainingTask createFederatedTrainingTaskWithRequiredFields() {
+    private static FederatedTrainingTask createFederatedTrainingTaskWithRequiredFields() {
         return FederatedTrainingTask.builder()
                 .appPackageName(PACKAGE_NAME)
                 .jobId(JOB_ID)
