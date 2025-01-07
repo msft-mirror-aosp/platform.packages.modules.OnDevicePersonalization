@@ -116,10 +116,11 @@ class SampleWorker implements IsolatedWorker {
             throw createException(appParams);
         }
 
-        mExecutor.submit(() -> handleOnExecute(appParams, receiver));
+        var unused = mExecutor.submit(() -> handleOnExecute(input, appParams, receiver));
     }
 
     private void handleOnExecute(
+            ExecuteInput input,
             PersistableBundle appParams,
             OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
         Log.i(TAG, "handleOnExecute()");
@@ -156,6 +157,8 @@ class SampleWorker implements IsolatedWorker {
                 result = handleScheduleFederatedJob(appParams, /* useLegacyScheduleApi= */ false);
             } else if (op.equals(SampleServiceApi.OPCODE_CANCEL_FEDERATED_JOB)) {
                 result = handleCancelFederatedJob(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_CHECK_PACKAGE_NAME)) {
+                result = handleMatchPackageName(input, appParams);
             }
 
         } catch (Exception e) {
@@ -528,5 +531,17 @@ class SampleWorker implements IsolatedWorker {
                 new FederatedComputeInput.Builder().setPopulationName(populationName).build();
         mFcpScheduler.cancel(input);
         return new ExecuteOutput.Builder().build();
+    }
+
+    private static ExecuteOutput handleMatchPackageName(
+            ExecuteInput input, PersistableBundle appParams) {
+        Log.i(TAG, "handleMatchPackageName()");
+        String expectedPackageName = Objects.requireNonNull(
+                appParams.getString(SampleServiceApi.KEY_EXPECTED_PACKAGE_NAME));
+        if (input.getAppPackageName().equals(expectedPackageName)) {
+            return new ExecuteOutput.Builder().build();
+        } else {
+            return null;
+        }
     }
 }

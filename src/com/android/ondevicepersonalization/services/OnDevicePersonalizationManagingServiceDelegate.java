@@ -34,6 +34,7 @@ import android.content.pm.PackageManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Process;
 import android.os.SystemClock;
 import android.os.Trace;
 
@@ -284,7 +285,8 @@ public class OnDevicePersonalizationManagingServiceDelegate
         return flagEnabled;
     }
 
-    private void enforceCallingPackageBelongsToUid(@NonNull String packageName, int uid) {
+    @VisibleForTesting
+    void enforceCallingPackageBelongsToUid(@NonNull String packageName, int uid) {
         int packageUid;
         PackageManager pm = mContext.getPackageManager();
         try {
@@ -292,10 +294,12 @@ public class OnDevicePersonalizationManagingServiceDelegate
         } catch (PackageManager.NameNotFoundException e) {
             throw new SecurityException(packageName + " not found");
         }
-        if (packageUid != uid) {
+
+        int appUid = Process.isSdkSandboxUid(uid)
+                ? Process.getAppUidForSdkSandboxUid(uid) : uid;
+        if (packageUid != appUid) {
             throw new SecurityException(packageName + " does not belong to uid " + uid);
         }
-        //TODO(b/242792629): Handle requests from the SDK sandbox.
     }
 
     private void enforceEnrollment(@NonNull String callingPackageName,
