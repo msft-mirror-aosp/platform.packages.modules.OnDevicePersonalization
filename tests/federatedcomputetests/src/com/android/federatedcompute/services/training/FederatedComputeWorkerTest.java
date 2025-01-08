@@ -316,7 +316,7 @@ public final class FederatedComputeWorkerTest {
                     .build();
     @Mock TrainingConditionsChecker mTrainingConditionsChecker;
     @Mock FederatedComputeJobManager mMockJobManager;
-    private Context mContext;
+    private final Context mContext = ApplicationProvider.getApplicationContext();
     private FederatedComputeWorker mSpyWorker;
     private HttpFederatedProtocol mSpyHttpFederatedProtocol;
     @Mock private ComputationRunner mMockComputationRunner;
@@ -324,6 +324,8 @@ public final class FederatedComputeWorkerTest {
     @Mock private TrainingEventLogger mMockTrainingEventLogger;
     private ResultCallbackHelper mSpyResultCallbackHelper;
     private ExampleStoreServiceProvider mSpyExampleStoreProvider;
+
+    private FederatedComputeDbHelper mTestDbHelper;
     private FederatedTrainingTaskDao mTrainingTaskDao;
 
     @Mock private OdpEncryptionKeyManager mMockKeyManager;
@@ -367,7 +369,6 @@ public final class FederatedComputeWorkerTest {
 
     @Before
     public void setUp() {
-        mContext = ApplicationProvider.getApplicationContext();
         when(ClientErrorLogger.getInstance()).thenReturn(mMockClientErrorLogger);
         mSpyHttpFederatedProtocol =
                 spy(
@@ -379,7 +380,9 @@ public final class FederatedComputeWorkerTest {
                                 mMockTrainingEventLogger));
         mSpyResultCallbackHelper = spy(new ResultCallbackHelper(mContext));
         mSpyExampleStoreProvider = spy(new ExampleStoreServiceProvider());
-        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mContext);
+
+        mTestDbHelper = FederatedComputeDbHelper.getNonSingletonInstanceForTest(mContext);
+        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mTestDbHelper);
         mSpyWorker =
                 spy(
                         new FederatedComputeWorker(
@@ -418,10 +421,9 @@ public final class FederatedComputeWorkerTest {
 
     @After
     public void tearDown() {
-        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
+        mTestDbHelper.getWritableDatabase().close();
+        mTestDbHelper.getReadableDatabase().close();
+        mTestDbHelper.close();
     }
 
     @Test
@@ -1178,7 +1180,7 @@ public final class FederatedComputeWorkerTest {
         }
     }
 
-    class TestInjector extends FederatedComputeWorker.Injector {
+    private class TestInjector extends FederatedComputeWorker.Injector {
         @Override
         ExampleConsumptionRecorder getExampleConsumptionRecorder() {
             return new ExampleConsumptionRecorder() {
@@ -1205,13 +1207,12 @@ public final class FederatedComputeWorkerTest {
         AuthorizationContext createAuthContext(
                 Context context,
                 String ownerId,
-                String owerCert,
+                String ownerCert,
                 TrainingEventLogger trainingEventLogger) {
             return new AuthorizationContext(
                     ownerId,
-                    owerCert,
-                    OdpAuthorizationTokenDao.getInstanceForTest(
-                            FederatedComputeDbHelper.getInstanceForTest(context)),
+                    ownerCert,
+                    OdpAuthorizationTokenDao.getInstanceForTest(mTestDbHelper),
                     mMockKeyAttestation,
                     MonotonicClock.getInstance(),
                     mMockTrainingEventLogger);

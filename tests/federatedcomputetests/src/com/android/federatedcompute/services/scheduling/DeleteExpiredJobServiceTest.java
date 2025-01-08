@@ -94,8 +94,6 @@ public class DeleteExpiredJobServiceTest {
     private static final Duration THREAD_SLEEP = Duration.ofSeconds(5);
 
     private static final Context sContext = ApplicationProvider.getApplicationContext();
-    private static final FederatedComputeDbHelper sTestDbHelper =
-            FederatedComputeDbHelper.getInstanceForTest(sContext);
 
     private static final String TEST_EXPIRED_TOKEN1 = "expired1";
     private static final String TEST_EXPIRED_TOKEN2 = "expired3";
@@ -106,6 +104,8 @@ public class DeleteExpiredJobServiceTest {
     private DeleteExpiredJobService mSpyService;
 
     private OdpAuthorizationTokenDao mSpyAuthTokenDao;
+
+    private FederatedComputeDbHelper mTestDbHelper;
     private FederatedTrainingTaskDao mTrainingTaskDao;
 
     private JobScheduler mJobScheduler;
@@ -124,13 +124,11 @@ public class DeleteExpiredJobServiceTest {
         when(mMockFlag.getTaskHistoryTtl()).thenReturn(TEST_TTL);
 
         LogUtil.i(TAG, "mSpyAuthTokenDao " + mSpyAuthTokenDao);
-        mSpyAuthTokenDao =
-                spy(
-                        OdpAuthorizationTokenDao.getInstanceForTest(
-                                FederatedComputeDbHelper.getInstanceForTest(sContext)));
+        mTestDbHelper = FederatedComputeDbHelper.getNonSingletonInstanceForTest(sContext);
+        mSpyAuthTokenDao = spy(OdpAuthorizationTokenDao.getInstanceForTest(mTestDbHelper));
         clearTokenDao(mSpyAuthTokenDao);
 
-        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(sContext);
+        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mTestDbHelper);
         // Force delete any existing data in the dao
         mTrainingTaskDao.deleteExpiredTaskHistory(/* deleteTime= */ Long.MAX_VALUE);
         mSpyService = spy(new DeleteExpiredJobService(new TestInjector()));
@@ -142,9 +140,9 @@ public class DeleteExpiredJobServiceTest {
 
     @After
     public void tearDown() {
-        sTestDbHelper.getWritableDatabase().close();
-        sTestDbHelper.getReadableDatabase().close();
-        sTestDbHelper.close();
+        mTestDbHelper.getWritableDatabase().close();
+        mTestDbHelper.getReadableDatabase().close();
+        mTestDbHelper.close();
     }
 
     @Test
@@ -166,7 +164,7 @@ public class DeleteExpiredJobServiceTest {
         verify(mSpyService).jobFinished(any(), eq(false));
         assertThat(
                         DatabaseUtils.queryNumEntries(
-                                sTestDbHelper.getReadableDatabase(),
+                                mTestDbHelper.getReadableDatabase(),
                                 OdpAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
                 .isEqualTo(1);
     }
@@ -188,7 +186,7 @@ public class DeleteExpiredJobServiceTest {
         verify(mSpyAuthTokenDao).deleteExpiredAuthorizationTokens();
         assertThat(
                         DatabaseUtils.queryNumEntries(
-                                sTestDbHelper.getReadableDatabase(),
+                                mTestDbHelper.getReadableDatabase(),
                                 OdpAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
                 .isEqualTo(3);
     }
@@ -198,7 +196,7 @@ public class DeleteExpiredJobServiceTest {
         // Ensure the task history table is empty prior to the test.
         assertThat(
                         DatabaseUtils.queryNumEntries(
-                                sTestDbHelper.getReadableDatabase(),
+                                mTestDbHelper.getReadableDatabase(),
                                 TaskHistoryContract.TaskHistoryEntry.TABLE_NAME))
                 .isEqualTo(0);
         // record1 is expired because its contribution time (100) < TEST_CURRENT_TIME (400) -

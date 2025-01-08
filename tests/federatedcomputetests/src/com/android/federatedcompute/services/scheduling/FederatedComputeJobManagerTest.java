@@ -119,6 +119,9 @@ public final class FederatedComputeJobManagerTest {
             TaskRetry.newBuilder().setDelayMin(5000000).setDelayMax(6000000).build();
     private FederatedComputeJobManager mJobManager;
     private Context mContext;
+
+    private FederatedComputeDbHelper mTestDbHelper;
+
     private FederatedTrainingTaskDao mTrainingTaskDao;
     @Mock private Clock mClock;
     @Mock private Flags mMockFlags;
@@ -146,7 +149,8 @@ public final class FederatedComputeJobManagerTest {
                         .build();
         mJobScheduler = mContext.getSystemService(JobScheduler.class);
         mJobScheduler.cancelAll();
-        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mContext);
+        mTestDbHelper = FederatedComputeDbHelper.getNonSingletonInstanceForTest(mContext);
+        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mTestDbHelper);
         mJobManager =
                 new FederatedComputeJobManager(
                         mContext,
@@ -173,10 +177,9 @@ public final class FederatedComputeJobManagerTest {
 
     @After
     public void tearDown() {
-        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
+        mTestDbHelper.getWritableDatabase().close();
+        mTestDbHelper.getReadableDatabase().close();
+        mTestDbHelper.close();
     }
 
     @Test
