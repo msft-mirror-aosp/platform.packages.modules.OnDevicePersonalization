@@ -43,7 +43,6 @@ import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.time.Duration;
@@ -121,6 +120,7 @@ public final class SandboxOnDevicePersonalizationManagerTest {
                 "am force-stop com.google.android.ondevicepersonalization.services");
         ShellUtils.runShellCommand(
                 "am force-stop com.android.ondevicepersonalization.services");
+        mSandboxedSdk = null;
     }
 
     @Test
@@ -131,8 +131,8 @@ public final class SandboxOnDevicePersonalizationManagerTest {
     }
 
     @Test
-    @Ignore("b/242792629")
     public void matchPackageNameWithinSandbox() {
+        Assume.assumeTrue(SdkLevel.isAtLeastU());
         assertTrue("Unable to load SDK", loadSdk(SDK_NAME));
 
         boolean result = matchPackageNameWithinSandbox(sContext.getPackageName());

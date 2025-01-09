@@ -1,4 +1,10 @@
 {
+  "unknownKey": "unknownValue",
+  "unknownArrayKey" : [1, 2, 3],
+  "unknownObjectKey": {
+    "a": "aa",
+    "b": "bb"
+  },
   "syncToken": 1662134400,
   "contents": [
     { "key": "key1",

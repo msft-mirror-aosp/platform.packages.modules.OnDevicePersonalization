@@ -61,15 +61,18 @@ public class FederatedComputeEncryptionKeyManagerUtilsTest {
 { "keys": [{ "id": "0cc9b4c9-08bd", "key": "BQo+c1Tw6TaQ+VH/b+9PegZOjHuKAFkl8QdmS0IjRj8" """
                     + "} ] }";
 
+    private static final Context sContext = ApplicationProvider.getApplicationContext();
+
     @Mock private HttpClient mMockHttpClient;
 
     @Mock private OdpEncryptionKeyDao mMockEncryptionKeyDao;
 
-    private static final Context sContext = ApplicationProvider.getApplicationContext();
 
     private Clock mClock;
 
     private Flags mMockFlags;
+
+    private FederatedComputeDbHelper mTestDbHelper;
 
     @Before
     public void setUp() {
@@ -78,14 +81,16 @@ public class FederatedComputeEncryptionKeyManagerUtilsTest {
         mMockFlags = Mockito.mock(Flags.class);
         String overrideUrl = "https://real-coordinator/v1alpha/publicKeys";
         doReturn(overrideUrl).when(mMockFlags).getEncryptionKeyFetchUrl();
+
+        mTestDbHelper = FederatedComputeDbHelper.getNonSingletonInstanceForTest(sContext);
+        OdpEncryptionKeyManager.resetForTesting();
     }
 
     @After
     public void tearDown() {
-        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(sContext);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
+        mTestDbHelper.getWritableDatabase().close();
+        mTestDbHelper.getReadableDatabase().close();
+        mTestDbHelper.close();
     }
 
     @Test
@@ -111,7 +116,7 @@ public class FederatedComputeEncryptionKeyManagerUtilsTest {
                         mMockFlags,
                         mMockHttpClient,
                         MoreExecutors.newDirectExecutorService(),
-                        sContext);
+                        mTestDbHelper);
         OdpEncryptionKeyManager secondInstance =
                 FederatedComputeEncryptionKeyManagerUtils.getInstanceForTest(
                         mClock,
@@ -119,12 +124,12 @@ public class FederatedComputeEncryptionKeyManagerUtilsTest {
                         mMockFlags,
                         mMockHttpClient,
                         MoreExecutors.newDirectExecutorService(),
-                        sContext);
+                        mTestDbHelper);
 
         assertThat(instanceUnderTest).isSameInstanceAs(secondInstance);
         assertNotNull(instanceUnderTest);
         assertThat(instanceUnderTest).isInstanceOf(OdpEncryptionKeyManager.class);
         assertThat(instanceUnderTest.getKeyManagerConfigForTesting().getSQLiteOpenHelper())
-                .isSameInstanceAs(FederatedComputeDbHelper.getInstanceForTest(sContext));
+                .isSameInstanceAs(mTestDbHelper);
     }
 }

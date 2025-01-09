@@ -77,9 +77,21 @@ public class FederatedTrainingTaskDao {
     public static synchronized FederatedTrainingTaskDao getInstanceForTest(Context context) {
         if (sSingletonInstance == null) {
             FederatedComputeDbHelper dbHelper =
-                    FederatedComputeDbHelper.getInstanceForTest(context);
+                    FederatedComputeDbHelper.getNonSingletonInstanceForTest(context);
             sSingletonInstance = new FederatedTrainingTaskDao(dbHelper);
         }
+        return sSingletonInstance;
+    }
+
+    /**
+     * Get instance of the {@link FederatedTrainingTaskDao} for use in tests.
+     *
+     * <p>Allows injection of the provided {@link FederatedComputeDbHelper} into the Dao.
+     */
+    @VisibleForTesting
+    public static synchronized FederatedTrainingTaskDao getInstanceForTest(
+            FederatedComputeDbHelper dbHelper) {
+        sSingletonInstance = new FederatedTrainingTaskDao(dbHelper);
         return sSingletonInstance;
     }
 

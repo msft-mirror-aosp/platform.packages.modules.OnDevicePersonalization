@@ -28,6 +28,8 @@
     </target_preparer>
     <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">
         <option name="run-command" value="device_config set_sync_disabled_for_tests persistent" />
+        <option name="run-command" value="device_config put adservices disable_sdk_sandbox false" />
+        <option name="run-command" value="device_config put adservices sdksandbox_enforce_restrictions false" />
         <option name="run-command" value="device_config put on_device_personalization global_kill_switch false" />
         <option name="run-command" value="device_config put on_device_personalization federated_compute_kill_switch false" />
         <option name="run-command" value="device_config put on_device_personalization enable_personalization_status_override true"/>
@@ -35,6 +37,8 @@
         <option name="run-command" value="device_config put on_device_personalization isolated_service_debugging_enabled true"/>
         <option name="run-command" value="setprop log.tag.federatedcompute VERBOSE" />
         <option name="run-command" value="setprop log.tag.ondevicepersonalization VERBOSE" />
+        <option name="teardown-command" value="device_config delete adservices disable_sdk_sandbox" />
+        <option name="teardown-command" value="device_config delete adservices sdksandbox_enforce_restrictions" />
         <option name="teardown-command" value="device_config delete on_device_personalization global_kill_switch" />
         <option name="teardown-command" value="device_config delete on_device_personalization federated_compute_kill_switch" />
         <option name="teardown-command" value="device_config delete on_device_personalization enable_personalization_status_override" />

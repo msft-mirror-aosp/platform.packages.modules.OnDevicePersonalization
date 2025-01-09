@@ -233,6 +233,7 @@ public final class HttpFederatedProtocolTest {
     private ArgumentCaptor<NetworkStats> mNetworkStatsArgumentCaptor =
             ArgumentCaptor.forClass(NetworkStats.class);
 
+    private FederatedComputeDbHelper mTestDbHelper;
     private OdpAuthorizationTokenDao mOdpAuthorizationTokenDao;
 
     private final Clock mClock = MonotonicClock.getInstance();
@@ -244,9 +245,8 @@ public final class HttpFederatedProtocolTest {
     @Before
     public void setUp() throws Exception {
         // Clear any existing data in the token dao.
-        mOdpAuthorizationTokenDao =
-                OdpAuthorizationTokenDao.getInstanceForTest(
-                        FederatedComputeDbHelper.getInstanceForTest(sTestContent));
+        mTestDbHelper = FederatedComputeDbHelper.getNonSingletonInstanceForTest(sTestContent);
+        mOdpAuthorizationTokenDao = OdpAuthorizationTokenDao.getInstanceForTest(mTestDbHelper);
         mOdpAuthorizationTokenDao.deleteAuthorizationToken(OWNER_ID);
 
         mHttpFederatedProtocol =
@@ -272,11 +272,10 @@ public final class HttpFederatedProtocolTest {
 
     @After
     public void cleanUp() {
-        FederatedComputeDbHelper dbHelper =
-                FederatedComputeDbHelper.getInstanceForTest(sTestContent);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
+        mTestDbHelper.getWritableDatabase().close();
+        mTestDbHelper.getReadableDatabase().close();
+        mTestDbHelper.getReadableDatabase().close();
+        mTestDbHelper.close();
     }
 
     @Test

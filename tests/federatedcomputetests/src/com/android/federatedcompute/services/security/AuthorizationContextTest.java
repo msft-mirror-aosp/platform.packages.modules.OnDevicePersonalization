@@ -79,6 +79,7 @@ public class AuthorizationContextTest {
     @Mock private KeyAttestation mMocKeyAttestation;
 
     @Mock private TrainingEventLogger mMockTrainingEventLogger;
+    private FederatedComputeDbHelper mTestDbHelper;
     private OdpAuthorizationTokenDao mAuthTokenDao;
     private Clock mClock;
 
@@ -89,21 +90,19 @@ public class AuthorizationContextTest {
         doReturn(KA_RECORD)
                 .when(mMocKeyAttestation)
                 .generateAttestationRecord(any(), anyString(), any());
-        mAuthTokenDao =
-                spy(
-                        OdpAuthorizationTokenDao.getInstanceForTest(
-                                FederatedComputeDbHelper.getInstanceForTest(mContext)));
         mClock = MonotonicClock.getInstance();
         doNothing().when(mMockTrainingEventLogger).logEventKind(anyInt());
         doNothing().when(mMockTrainingEventLogger).logKeyAttestationLatencyEvent(anyLong());
+
+        mTestDbHelper = FederatedComputeDbHelper.getNonSingletonInstanceForTest(mContext);
+        mAuthTokenDao = spy(OdpAuthorizationTokenDao.getInstanceForTest(mTestDbHelper));
     }
 
     @After
     public void tearDown() throws Exception {
-        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
+        mTestDbHelper.getWritableDatabase().close();
+        mTestDbHelper.getReadableDatabase().close();
+        mTestDbHelper.close();
     }
 
     @Test
