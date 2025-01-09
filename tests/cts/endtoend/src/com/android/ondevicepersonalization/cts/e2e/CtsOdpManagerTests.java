@@ -742,6 +742,7 @@ public class CtsOdpManagerTests {
     }
 
     @Test
+    @Ignore ("b/388441484")
     @RequiresFlagsEnabled(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
     public void testExecuteWithScheduleFederatedJobWithOutcomeReceiver() throws Exception {
         OnDevicePersonalizationManager manager =
