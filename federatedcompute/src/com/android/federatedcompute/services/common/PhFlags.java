@@ -48,14 +48,10 @@ import static com.android.federatedcompute.services.common.FlagsConstants.TRAINI
 import static com.android.federatedcompute.services.common.FlagsConstants.TRANSIENT_ERROR_RETRY_DELAY_JITTER_PERCENT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.TRANSIENT_ERROR_RETRY_DELAY_SECS_CONFIG_NAME;
 
-import android.annotation.NonNull;
 import android.os.SystemProperties;
 import android.provider.DeviceConfig;
 
 import com.android.internal.annotations.VisibleForTesting;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /** A placeholder class for PhFlag. */
 public final class PhFlags implements Flags {
@@ -63,20 +59,11 @@ public final class PhFlags implements Flags {
     // SystemProperty prefix. SystemProperty is for overriding OnDevicePersonalization Configs.
     private static final String SYSTEM_PROPERTY_PREFIX = "debug.ondevicepersonalization.";
 
-    // Flag values here remain stable within a process lifecycle, refresh upon process restart
-    private static final Map<String, Object> sStableFlags = new ConcurrentHashMap<>();
-
     private PhFlags() {
-        setStableFlags();
     }
 
-    // Set group of flags that needs to remain stable together at beginning of a workflow
-    // You can also set one stable flag value at the flag's read time if don't need this guarantee
-    private void setStableFlags() {}
-
     /** Returns the singleton instance of the PhFlags. */
-    @NonNull
-    public static PhFlags getInstance() {
+    static PhFlags getInstance() {
         return sSingleton;
     }
 

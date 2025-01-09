@@ -53,6 +53,7 @@ import android.net.Uri;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.federatedcompute.services.common.Flags;
+import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.NetworkStats;
 import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
@@ -265,7 +266,7 @@ public final class HttpFederatedProtocolTest {
         doNothing().when(mTrainingEventLogger).logTaskAssignmentUnauthorized();
         doNothing().when(mTrainingEventLogger).logTaskAssignmentAuthSucceeded();
         doReturn(true).when(mMocKFlags).isEncryptionEnabled();
-        when(PhFlags.getInstance()).thenReturn(mMocKFlags);
+        when(FlagsFactory.getFlags()).thenReturn(mMocKFlags);
         when(mMocKFlags.getFcpCheckpointFileSizeLimit())
                 .thenReturn(Flags.FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT);
     }

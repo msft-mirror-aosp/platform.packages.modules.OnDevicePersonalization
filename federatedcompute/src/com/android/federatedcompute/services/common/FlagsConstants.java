@@ -16,7 +16,12 @@
 
 package com.android.federatedcompute.services.common;
 
-public class FlagsConstants {
+public final class FlagsConstants {
+
+    private FlagsConstants() {
+        throw new UnsupportedOperationException("Contains static constants only");
+    }
+
     /*
      * Keys for ALL the flags stored in DeviceConfig.
      */
