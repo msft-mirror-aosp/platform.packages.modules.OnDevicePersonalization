@@ -52,7 +52,6 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
-import android.os.Process;
 import android.os.RemoteException;
 import android.view.SurfaceControlViewHost;
 
@@ -62,6 +61,7 @@ import androidx.test.rule.ServiceTestRule;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.odp.module.common.DeviceUtils;
+import com.android.odp.module.common.ProcessWrapper;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
@@ -89,8 +89,10 @@ public class OnDevicePersonalizationManagingServiceTest {
             new ComponentName(
                     ApplicationProvider.getApplicationContext(),
                     "com.test.TestPersonalizationHandler");
-    private static final int UID_CALLER_APP = 1000;
-    private static final int UID_CALLER_SDK = 2000;
+    private static final int UID_CALLER_APP_1 = 1000;
+    private static final int UID_CALLER_APP_2 = 1001;
+    private static final int UID_CALLER_SDK_1 = 2000;
+    private static final int UID_CALLER_SDK_2 = 2001;
 
     @Rule public final ServiceTestRule serviceRule = new ServiceTestRule();
     private final Context mContext = spy(ApplicationProvider.getApplicationContext());
@@ -109,7 +111,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                     .spyStatic(UserDataCollectionJobService.class)
                     .spyStatic(MobileDataDownloadFactory.class)
                     .spyStatic(PartnerEnrollmentChecker.class)
-                    .spyStatic(Process.class)
+                    .spyStatic(ProcessWrapper.class)
                     .setStrictness(Strictness.LENIENT)
                     .build();
 
@@ -670,14 +672,14 @@ public class OnDevicePersonalizationManagingServiceTest {
         setupEnforceCallingPackageBelongsToUid(/* isSdkSandboxUid */ false);
 
         // test that no exceptions are thrown
-        mService.enforceCallingPackageBelongsToUid(mContext.getPackageName(), UID_CALLER_APP);
+        mService.enforceCallingPackageBelongsToUid(mContext.getPackageName(), UID_CALLER_APP_1);
     }
 
     @Test
     public void testEnforceCallingPackageBelongsToUid_AppUidCallWithDifferentAppPackageUid()
             throws Exception {
         setupEnforceCallingPackageBelongsToUid(/* isSdkSandboxUid */ false);
-        int invalidAppCallerUid = UID_CALLER_APP + 1;
+        int invalidAppCallerUid = UID_CALLER_APP_2;
 
         SecurityException e = assertThrows(
                 SecurityException.class,
@@ -698,14 +700,14 @@ public class OnDevicePersonalizationManagingServiceTest {
         setupEnforceCallingPackageBelongsToUid(/* isSdkSandboxUid */ true);
 
         // test that no exceptions are thrown
-        mService.enforceCallingPackageBelongsToUid(mContext.getPackageName(), UID_CALLER_SDK);
+        mService.enforceCallingPackageBelongsToUid(mContext.getPackageName(), UID_CALLER_SDK_1);
     }
 
     @Test
     public void testEnforceCallingPackageBelongsToUid_SdkUidCallWithDifferentAppPackageUid()
             throws Exception {
         setupEnforceCallingPackageBelongsToUid(/* isSdkSandboxUid */ true);
-        int invalidSdkCallerUid = UID_CALLER_SDK + 1;
+        int invalidSdkCallerUid = UID_CALLER_SDK_2;
 
         SecurityException e = assertThrows(
                 SecurityException.class,
@@ -723,12 +725,17 @@ public class OnDevicePersonalizationManagingServiceTest {
             throws PackageManager.NameNotFoundException {
         PackageManager mockPackageManager = mock(PackageManager.class);
         doReturn(mockPackageManager).when(mContext).getPackageManager();
-        doReturn(UID_CALLER_APP)
+        doReturn(UID_CALLER_APP_1)
                 .when(mockPackageManager).getPackageUid(anyString(), anyInt());
         ExtendedMockito.doReturn(isSdkSandboxUid)
-                .when(() -> Process.isSdkSandboxUid(anyInt()));
-        ExtendedMockito.doReturn(UID_CALLER_APP)
-                .when(() -> Process.getAppUidForSdkSandboxUid(UID_CALLER_SDK));
+                .when(() -> ProcessWrapper.isSdkSandboxUid(UID_CALLER_SDK_1));
+        ExtendedMockito.doReturn(UID_CALLER_APP_1)
+                .when(() -> ProcessWrapper.getAppUidForSdkSandboxUid(UID_CALLER_SDK_1));
+
+        ExtendedMockito.doReturn(isSdkSandboxUid)
+                .when(() -> ProcessWrapper.isSdkSandboxUid(UID_CALLER_SDK_2));
+        ExtendedMockito.doReturn(UID_CALLER_APP_2)
+                .when(() -> ProcessWrapper.getAppUidForSdkSandboxUid(UID_CALLER_SDK_2));
     }
 
     private static Bundle createWrappedAppParams() throws Exception {
