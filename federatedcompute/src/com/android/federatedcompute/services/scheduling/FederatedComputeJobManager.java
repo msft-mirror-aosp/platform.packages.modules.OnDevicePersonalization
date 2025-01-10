@@ -33,7 +33,7 @@ import android.federatedcompute.common.TrainingOptions;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Flags;
-import com.android.federatedcompute.services.common.PhFlags;
+import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.TaskHistory;
@@ -98,7 +98,7 @@ public class FederatedComputeJobManager {
                                     FederatedJobIdGenerator.getInstance(),
                                     new JobSchedulerHelper(clock),
                                     clock,
-                                    PhFlags.getInstance());
+                                    FlagsFactory.getFlags());
                 }
             }
         }

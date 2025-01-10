@@ -16,100 +16,54 @@
 
 package com.android.federatedcompute.services.common;
 
-import android.annotation.NonNull;
+import static com.android.federatedcompute.services.common.FlagsConstants.DEFAULT_SCHEDULING_PERIOD_SECS_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
+import static com.android.federatedcompute.services.common.FlagsConstants.ENABLE_ELIGIBILITY_TASK;
+import static com.android.federatedcompute.services.common.FlagsConstants.EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC;
+import static com.android.federatedcompute.services.common.FlagsConstants.EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_CHECKPOINT_FILE_SIZE_LIMIT_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_ENABLE_CLIENT_ERROR_LOGGING;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_ENABLE_ENCRYPTION;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_JOB_SCHEDULING_LOGGING_ENABLED;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_MODULE_JOB_POLICY;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_RECURRENT_RESCHEDULE_LIMIT_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_RESCHEDULE_LIMIT_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_SPE_PILOT_JOB_ENABLED;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL;
+import static com.android.federatedcompute.services.common.FlagsConstants.HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
+import static com.android.federatedcompute.services.common.FlagsConstants.MAX_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.MAX_SCHEDULING_PERIOD_SECS_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.MIN_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.NAMESPACE_ON_DEVICE_PERSONALIZATION;
+import static com.android.federatedcompute.services.common.FlagsConstants.TASK_HISTORY_TTL_MILLIS;
+import static com.android.federatedcompute.services.common.FlagsConstants.TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS;
+import static com.android.federatedcompute.services.common.FlagsConstants.TRAINING_MIN_BATTERY_LEVEL;
+import static com.android.federatedcompute.services.common.FlagsConstants.TRAINING_THERMAL_STATUS_TO_THROTTLE;
+import static com.android.federatedcompute.services.common.FlagsConstants.TRANSIENT_ERROR_RETRY_DELAY_JITTER_PERCENT_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.TRANSIENT_ERROR_RETRY_DELAY_SECS_CONFIG_NAME;
+
 import android.os.SystemProperties;
 import android.provider.DeviceConfig;
 
 import com.android.internal.annotations.VisibleForTesting;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 /** A placeholder class for PhFlag. */
 public final class PhFlags implements Flags {
-    /*
-     * Keys for ALL the flags stored in DeviceConfig.
-     */
-    // Killswitch keys
-    static final String KEY_FEDERATED_COMPUTE_KILL_SWITCH = "federated_compute_kill_switch";
-
+    private static final PhFlags sSingleton = new PhFlags();
     // SystemProperty prefix. SystemProperty is for overriding OnDevicePersonalization Configs.
     private static final String SYSTEM_PROPERTY_PREFIX = "debug.ondevicepersonalization.";
 
-    // OnDevicePersonalization Namespace String from DeviceConfig class
-    static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
-
-    static final String FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL =
-            "fcp_encryption_key_download_url";
-
-    static final String ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH =
-            "enable_background_encryption_key_fetch";
-
-    static final String HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME = "http_request_retry_limit";
-
-    static final String FCP_ENABLE_ENCRYPTION = "fcp_enable_encryption";
-
-    static final String MIN_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION_CONFIG_NAME =
-            "min_scheduling_interval_secs_for_federated_computation";
-
-    static final String MAX_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION_CONFIG_NAME =
-            "max_scheduling_interval_secs_for_federated_computation";
-
-    static final String DEFAULT_SCHEDULING_PERIOD_SECS_CONFIG_NAME =
-            "default_scheduling_period_secs";
-
-    static final String MAX_SCHEDULING_PERIOD_SECS_CONFIG_NAME = "max_scheduling_period_secs";
-
-    static final String TRANSIENT_ERROR_RETRY_DELAY_JITTER_PERCENT_CONFIG_NAME =
-            "transient_error_retry_delay_jitter_percent";
-
-    static final String TRANSIENT_ERROR_RETRY_DELAY_SECS_CONFIG_NAME =
-            "transient_error_retry_delay_secs";
-    static final String TRAINING_MIN_BATTERY_LEVEL = "training_min_battery_level";
-    static final String TRAINING_THERMAL_STATUS_TO_THROTTLE = "training_thermal_to_throttle";
-    static final String ENABLE_ELIGIBILITY_TASK = "enable_eligibility_task";
-    static final String TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS =
-            "training_condition_check_period_throttle_period_mills";
-    static final String TASK_HISTORY_TTL_MILLIS = "task_history_ttl_millis";
-
-    static final String FCP_RESCHEDULE_LIMIT_CONFIG_NAME = "reschedule_limit";
-    static final String FCP_RECURRENT_RESCHEDULE_LIMIT_CONFIG_NAME = "recurrent_reschedule_limit";
-
-    static final String FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME = "memory_size_limit";
-    static final String FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME = "task_limit_per_package";
-    static final String FCP_CHECKPOINT_FILE_SIZE_LIMIT_CONFIG_NAME = "checkpoint_file_size_limit";
-    static final String FCP_ENABLE_CLIENT_ERROR_LOGGING = "fcp_enable_client_error_logging";
-    static final String FCP_ENABLE_BACKGROUND_JOBS_LOGGING = "fcp_enable_background_jobs_logging";
-    static final String FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE =
-            "fcp_background_job_logging_sampling_rate";
-    static final String FCP_JOB_SCHEDULING_LOGGING_ENABLED = "fcp_job_scheduling_logging_enabled";
-
-    static final String FCP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE =
-            "fcp_job_scheduling_logging_sampling_rate";
-    static final String FCP_MODULE_JOB_POLICY = "fcp_module_job_policy";
-    static final String FCP_SPE_PILOT_JOB_ENABLED = "fcp_spe_pilot_job_enabled";
-    static final String EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC =
-            "example_store_service_timeout_sec";
-    static final String FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME = "tf_error_reschedule_seconds";
-    static final String EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC = "example_iterator_next_timeout_sec";
-    static final int FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE = 10;
-
-    private static final PhFlags sSingleton = new PhFlags();
-
-    // Flag values here remain stable within a process lifecycle, refresh upon process restart
-    private static final Map<String, Object> sStableFlags = new ConcurrentHashMap<>();
-
     private PhFlags() {
-        setStableFlags();
     }
 
-    // Set group of flags that needs to remain stable together at beginning of a workflow
-    // You can also set one stable flag value at the flag's read time if don't need this guarantee
-    private void setStableFlags() {}
-
     /** Returns the singleton instance of the PhFlags. */
-    @NonNull
-    public static PhFlags getInstance() {
+    static PhFlags getInstance() {
         return sSingleton;
     }
 

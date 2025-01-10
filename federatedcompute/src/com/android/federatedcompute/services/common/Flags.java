@@ -274,4 +274,7 @@ public interface Flags extends ModuleSharedFlags {
     default int getFcpCheckpointFileSizeLimit() {
         return FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT;
     }
+
+    /** Default value for background job sampling logging rate. */
+    int FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE = 10;
 }
