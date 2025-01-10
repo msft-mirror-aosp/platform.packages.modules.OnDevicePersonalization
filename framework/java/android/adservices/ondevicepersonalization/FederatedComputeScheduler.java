@@ -139,6 +139,7 @@ public class FederatedComputeScheduler {
      *     missing the federated compute server URL or {@link
      *     OnDevicePersonalizationException#ERROR_SCHEDULE_TRAINING_FAILED} when scheduling fails
      *     for other reasons.
+     * @hide
      */
     @WorkerThread
     @FlaggedApi(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)

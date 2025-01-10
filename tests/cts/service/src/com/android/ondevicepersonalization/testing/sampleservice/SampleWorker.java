@@ -21,8 +21,6 @@ import android.adservices.ondevicepersonalization.EventUrlProvider;
 import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.FederatedComputeInput;
-import android.adservices.ondevicepersonalization.FederatedComputeScheduleRequest;
-import android.adservices.ondevicepersonalization.FederatedComputeScheduleResponse;
 import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
 import android.adservices.ondevicepersonalization.InferenceInput;
 import android.adservices.ondevicepersonalization.InferenceOutput;
@@ -54,13 +52,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 class SampleWorker implements IsolatedWorker {
     private static final String TAG = "OdpTestingSampleService";
@@ -485,42 +480,8 @@ class SampleWorker implements IsolatedWorker {
                         .build();
         FederatedComputeScheduler.Params params = new FederatedComputeScheduler.Params(interval);
 
-        if (useLegacyScheduleApi) {
-            mFcpScheduler.schedule(params, input);
-            return new ExecuteOutput.Builder().build();
-        }
-
-        // Use new schedule API with outcome-receiver
-        BlockingQueue<Object> asyncResult = new ArrayBlockingQueue<>(1);
-        final Object emptyValue = new Object();
-        FederatedComputeScheduleRequest request =
-                new FederatedComputeScheduleRequest(params, populationName);
-        mFcpScheduler.schedule(
-                request,
-                new OutcomeReceiver<FederatedComputeScheduleResponse, Exception>() {
-                    @Override
-                    public void onResult(FederatedComputeScheduleResponse result) {
-                        Log.e(TAG, "FCP schedule request successful!");
-                        asyncResult.add(result);
-                    }
-
-                    @Override
-                    public void onError(Exception e) {
-                        Log.e(TAG, "FCP schedule request failed: " + e.getMessage());
-                        asyncResult.add(emptyValue);
-                    }
-                });
-
-        // Wait for outcome receiver callback.
-        Object response = null;
-        try {
-            response = asyncResult.poll(SCHEDULE_CALLBACK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Log.e(TAG, "Timed out waiting for schedule request to succeed!");
-        }
-        return (response == null || response == emptyValue)
-                ? null
-                : new ExecuteOutput.Builder().build();
+        mFcpScheduler.schedule(params, input);
+        return new ExecuteOutput.Builder().build();
     }
 
     private ExecuteOutput handleCancelFederatedJob(PersistableBundle appParams) {
