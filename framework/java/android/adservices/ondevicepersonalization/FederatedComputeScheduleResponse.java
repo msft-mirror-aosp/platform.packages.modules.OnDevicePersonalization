@@ -26,6 +26,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 /**
  * The result returned by {@link FederatedComputeScheduler#schedule(FederatedComputeScheduleRequest,
  * android.os.OutcomeReceiver)} when successful.
+ * @hide
  */
 @DataClass(genEqualsHashCode = true)
 @FlaggedApi(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
