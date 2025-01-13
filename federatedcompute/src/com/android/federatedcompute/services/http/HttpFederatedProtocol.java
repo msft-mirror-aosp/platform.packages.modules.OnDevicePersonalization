@@ -129,7 +129,7 @@ public final class HttpFederatedProtocol {
                 trainingEventLogger);
     }
 
-    /** Checks in with remote server to participant in federated computation. */
+    /** Checks in with remote server to participate in federated computation. */
     public FluentFuture<CreateTaskAssignmentResponse> createTaskAssignment(
             AuthorizationContext authContext) {
         Trace.beginAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
