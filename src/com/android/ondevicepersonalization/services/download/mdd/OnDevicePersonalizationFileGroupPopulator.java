@@ -126,7 +126,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
      */
     public static String createPackageFileGroupName(String packageName, Context context) throws
             PackageManager.NameNotFoundException {
-        return packageName + "_" + PackageUtils.getCertDigest(context, packageName);
+        return "odp" + "_" + packageName + "_" + PackageUtils.getCertDigest(context, packageName);
     }
 
     /**
