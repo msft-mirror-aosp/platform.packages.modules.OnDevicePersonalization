@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.cts.e2e;
 
+import static com.android.ondevicepersonalization.cts.e2e.TestUtils.serializeFloatArray;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static junit.framework.Assert.assertEquals;
@@ -28,7 +30,9 @@ import android.adservices.ondevicepersonalization.RemoteDataImpl;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
+import android.platform.test.annotations.RequiresFlagsEnabled;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
 
 import org.junit.Assume;
@@ -167,6 +171,41 @@ public class InferenceInputTest {
         assertThrows(
                 NullPointerException.class,
                 () -> new InferenceInput.Params.Builder(mRemoteData, null).build());
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
+    public void buildInferenceInput_ctorInputBytes_success() {
+        InferenceInput.Params params =
+                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY)
+                        .setKeyValueStore(mRemoteData)
+                        .setModelKey(MODEL_KEY)
+                        .setModelType(InferenceInput.Params.MODEL_TYPE_EXECUTORCH)
+                        .build();
+        byte[] inputData = serializeFloatArray(new float[] {1.2f, 2.3f});
+        InferenceInput inferenceInput = new InferenceInput.Builder(params, inputData).build();
+
+        assertThat(inferenceInput.getData()).isEqualTo(inputData);
+        assertThat(inferenceInput.getParams().getModelType())
+                .isEqualTo(InferenceInput.Params.MODEL_TYPE_EXECUTORCH);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
+    public void buildInferenceInput_setInputDataBytes_success() {
+        InferenceInput.Params params =
+                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY)
+                        .setKeyValueStore(mRemoteData)
+                        .setModelKey(MODEL_KEY)
+                        .setModelType(InferenceInput.Params.MODEL_TYPE_EXECUTORCH)
+                        .build();
+        byte[] inputData = serializeFloatArray(new float[] {1.2f, 2.3f});
+        InferenceInput inferenceInput =
+                new InferenceInput.Builder(params, inputData).setInputData(inputData).build();
+
+        assertThat(inferenceInput.getData()).isEqualTo(inputData);
+        assertThat(inferenceInput.getParams().getModelType())
+                .isEqualTo(InferenceInput.Params.MODEL_TYPE_EXECUTORCH);
     }
 
     static class TestDataAccessService extends IDataAccessService.Stub {
