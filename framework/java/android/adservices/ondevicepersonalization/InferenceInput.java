@@ -570,6 +570,7 @@ public final class InferenceInput {
          * }</pre>
          *
          * <p>For Executorch model, this field is a serialized EValue array.
+         *
          * @hide
          */
         @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)

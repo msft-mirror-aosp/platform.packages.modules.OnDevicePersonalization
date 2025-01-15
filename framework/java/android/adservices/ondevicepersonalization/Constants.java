@@ -188,6 +188,7 @@ public class Constants {
 
     // Task type for trace event logging. Must match the values in
     // frameworks/proto_logging/stats/atoms/ondevicepersonalization/ondevicepersonalization_extension_atoms.proto
+    public static final int TASK_TYPE_UNKNOWN = 0;
     public static final int TASK_TYPE_EXECUTE = 1;
     public static final int TASK_TYPE_RENDER = 2;
     public static final int TASK_TYPE_DOWNLOAD = 3;
@@ -198,9 +199,9 @@ public class Constants {
 
     // Event type for trace event logging. Must match the values in
     // frameworks/proto_logging/stats/atoms/ondevicepersonalization/ondevicepersonalization_extension_atoms.proto
-    public static final int EVENT_TYPE_UNKNOWN = 1;
-    public static final int EVENT_TYPE_WRITE_REQUEST_LOG = 2;
-    public static final int EVENT_TYPE_WRITE_EVENT_LOG = 3;
+    public static final int EVENT_TYPE_UNKNOWN = 0;
+    public static final int EVENT_TYPE_WRITE_REQUEST_LOG = 1;
+    public static final int EVENT_TYPE_WRITE_EVENT_LOG = 2;
 
     // Status for trace event logging. Must match the values in
     // frameworks/proto_logging/stats/atoms/ondevicepersonalization/ondevicepersonalization_extension_atoms.proto
