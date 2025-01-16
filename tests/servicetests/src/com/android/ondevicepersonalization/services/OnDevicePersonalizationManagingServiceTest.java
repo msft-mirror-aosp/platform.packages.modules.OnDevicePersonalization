@@ -29,7 +29,6 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -71,6 +70,7 @@ import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollment
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
+import com.google.common.util.concurrent.Futures;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -80,6 +80,7 @@ import org.junit.runners.JUnit4;
 import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 
@@ -100,6 +101,7 @@ public class OnDevicePersonalizationManagingServiceTest {
     @Mock private UserPrivacyStatus mUserPrivacyStatus;
     @Mock private MobileDataDownload mMockMdd;
     @Mock private Flags mMockFlags;
+    @Mock private PackageManager mMockPackageManager;
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule =
@@ -108,6 +110,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                     .spyStatic(UserPrivacyStatus.class)
                     .spyStatic(DeviceUtils.class)
                     .spyStatic(OnDevicePersonalizationMaintenanceJobService.class)
+                    .spyStatic(OnDevicePersonalizationBroadcastReceiver.class)
                     .spyStatic(UserDataCollectionJobService.class)
                     .spyStatic(MobileDataDownloadFactory.class)
                     .spyStatic(PartnerEnrollmentChecker.class)
@@ -597,10 +600,16 @@ public class OnDevicePersonalizationManagingServiceTest {
 
     @Test
     public void testWithBoundService() throws TimeoutException {
+        ExtendedMockito.doReturn(Futures.immediateFuture(List.of())).when(
+                () -> OnDevicePersonalizationBroadcastReceiver.restoreOdpJobs(any(), any()));
         Intent serviceIntent =
                 new Intent(mContext, OnDevicePersonalizationManagingServiceImpl.class);
+
         IBinder binder = serviceRule.bindService(serviceIntent);
+
         assertTrue(binder instanceof OnDevicePersonalizationManagingServiceDelegate);
+        ExtendedMockito.verify(() ->
+                OnDevicePersonalizationBroadcastReceiver.restoreOdpJobs(any(), any()));
     }
 
     @Test
@@ -723,10 +732,9 @@ public class OnDevicePersonalizationManagingServiceTest {
 
     private void setupEnforceCallingPackageBelongsToUid(boolean isSdkSandboxUid)
             throws PackageManager.NameNotFoundException {
-        PackageManager mockPackageManager = mock(PackageManager.class);
-        doReturn(mockPackageManager).when(mContext).getPackageManager();
+        doReturn(mMockPackageManager).when(mContext).getPackageManager();
         doReturn(UID_CALLER_APP_1)
-                .when(mockPackageManager).getPackageUid(anyString(), anyInt());
+                .when(mMockPackageManager).getPackageUid(anyString(), anyInt());
         ExtendedMockito.doReturn(isSdkSandboxUid)
                 .when(() -> ProcessWrapper.isSdkSandboxUid(UID_CALLER_SDK_1));
         ExtendedMockito.doReturn(UID_CALLER_APP_1)
