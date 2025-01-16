@@ -94,9 +94,7 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
         return schedulingResult;
     }
 
-    @VisibleForTesting
-    static void deleteEventsAndQueries(
-            Context context) throws Exception {
+    private static void deleteEventsAndQueries(Context context) throws Exception {
         EventsDao eventsDao = EventsDao.getInstance(context);
         // Cleanup event and queries table.
         eventsDao.deleteEventsAndQueries(

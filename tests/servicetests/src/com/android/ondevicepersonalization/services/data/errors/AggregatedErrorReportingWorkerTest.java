@@ -26,7 +26,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -35,8 +38,9 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.odp.module.common.PackageUtils;
+import com.android.odp.module.common.data.ErrorReportingMetadataStore;
 import com.android.odp.module.common.encryption.OdpEncryptionKey;
-import com.android.ondevicepersonalization.services.Flags;
+import com.android.odp.module.common.proto.ErrorReportingMetadata;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 
 import com.google.common.collect.ImmutableList;
@@ -45,6 +49,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
+import com.google.protobuf.Timestamp;
 
 import org.junit.After;
 import org.junit.Before;
@@ -52,6 +57,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.quality.Strictness;
@@ -78,10 +85,17 @@ public class AggregatedErrorReportingWorkerTest {
     private static final ListenableFuture<Boolean> SUCCESSFUL_FUTURE =
             Futures.immediateFuture(true);
 
+    private static final long DEFAULT_REPORTING_INTERVAL_HOURS = 24;
+    private static final ErrorReportingMetadata DEFAULT_UNINITIALIZED_METADATA =
+            ErrorReportingMetadata.getDefaultInstance();
 
     private static final ImmutableList<ComponentName> EMPTY_ODP_SERVICE_LIST = ImmutableList.of();
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
+
+    private final OnDevicePersonalizationAggregatedErrorDataDao mErrorDataDao =
+            OnDevicePersonalizationAggregatedErrorDataDao.getInstance(
+                    mContext, TEST_COMPONENT_NAME, TEST_CERT_DIGEST);
 
     private TestInjector mTestInjector;
 
@@ -90,13 +104,10 @@ public class AggregatedErrorReportingWorkerTest {
     private TestReportingProtocol mTestReportingProtocol;
     private AggregatedErrorReportingWorker mInstanceUnderTest;
 
-    @Mock private Flags mMockFlags;
-
     @Mock private OdpEncryptionKey mMockEncryptionKey;
+    @Mock private ErrorReportingMetadataStore mMockMetadataStore;
 
-    private final OnDevicePersonalizationAggregatedErrorDataDao mErrorDataDao =
-            OnDevicePersonalizationAggregatedErrorDataDao.getInstance(
-                    mContext, TEST_COMPONENT_NAME, TEST_CERT_DIGEST);
+    @Captor ArgumentCaptor<ErrorReportingMetadata> mMetadataArgumentCaptor;
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule =
@@ -108,10 +119,24 @@ public class AggregatedErrorReportingWorkerTest {
 
         // Setup package utils to return the test cert digest
         doReturn(TEST_CERT_DIGEST).when(() -> PackageUtils.getCertDigest(mContext, TEST_PACKAGE));
+        // By default, there is no metadata from previous run
+        doReturn(Futures.immediateFuture(DEFAULT_UNINITIALIZED_METADATA))
+                .when(mMockMetadataStore)
+                .get();
+        doReturn(
+                        Futures.immediateFuture(
+                                DEFAULT_UNINITIALIZED_METADATA.toBuilder()
+                                        .setLastSuccessfulUpload(
+                                                Timestamp.newBuilder()
+                                                        .setSeconds(DateTimeUtils.epochSecondsUtc())
+                                                        .build())))
+                .when(mMockMetadataStore)
+                .set(mMetadataArgumentCaptor.capture());
         mDayIndexUtc = DateTimeUtils.dayIndexUtc();
-        // Inject mock flags and a test ReportingProtocol object
+
+        // Inject a test ReportingProtocol object and a mock metadata store.
         mTestReportingProtocol = new TestReportingProtocol();
-        mTestInjector = new TestInjector(mTestReportingProtocol, mMockFlags);
+        mTestInjector = new TestInjector(mTestReportingProtocol, mMockMetadataStore);
         mInstanceUnderTest = AggregatedErrorReportingWorker.createWorker(mTestInjector);
     }
 
@@ -155,6 +180,7 @@ public class AggregatedErrorReportingWorkerTest {
         doReturn(TEST_ODP_SERVICE_LIST)
                 .when(() -> AppManifestConfigHelper.getOdpServices(mContext, true));
         mErrorDataDao.addExceptionCount(TEST_ISOLATED_SERVICE_ERROR_CODE, 1);
+        long startSecondsUtc = DateTimeUtils.epochSecondsUtc();
 
         ListenableFuture<Void> returnedFuture =
                 mInstanceUnderTest.reportAggregateErrorsHelper(mContext, mMockEncryptionKey);
@@ -165,6 +191,50 @@ public class AggregatedErrorReportingWorkerTest {
         assertEquals(getExpectedErrorData(mDayIndexUtc), mTestInjector.mErrorData.get(0));
         assertEquals(1, mTestReportingProtocol.mCallCount.get());
         assertThat(mTestReportingProtocol.mOdpEncryptionKey).isSameInstanceAs(mMockEncryptionKey);
+        // Assert that the metadata store has been updated with a recent timestamp.
+        assertThat(mMetadataArgumentCaptor.getAllValues()).hasSize(1);
+        assertThat(mMetadataArgumentCaptor.getValue().getLastSuccessfulUpload().getSeconds())
+                .isAtLeast(startSecondsUtc);
+    }
+
+    @Test
+    public void reportAggregateErrors_withErrorData_beforeIntervalRequirement_noOp() {
+        // When odp services are installed and there is error data present in the tables,
+        // but the interval requirements are not met, expect there to be no interaction with the
+        // test reporting object and a single interaction with the metadata store to get the
+        // current last reported time stamp.
+        doReturn(TEST_ODP_SERVICE_LIST)
+                .when(() -> AppManifestConfigHelper.getOdpServices(mContext, true));
+        mErrorDataDao.addExceptionCount(TEST_ISOLATED_SERVICE_ERROR_CODE, 1);
+        Timestamp currentTimeStamp =
+                Timestamp.newBuilder().setSeconds(DateTimeUtils.epochSecondsUtc()).build();
+        ErrorReportingMetadata newMetadata =
+                DEFAULT_UNINITIALIZED_METADATA.toBuilder()
+                        .setLastSuccessfulUpload(currentTimeStamp)
+                        .build();
+        doReturn(Futures.immediateFuture(newMetadata)).when(mMockMetadataStore).get();
+
+        ListenableFuture<Void> returnedFuture =
+                mInstanceUnderTest.reportAggregateErrors(mContext, mMockEncryptionKey);
+
+        assertTrue(returnedFuture.isDone());
+        assertEquals(0, mTestInjector.mCallCount.get());
+        assertEquals(0, mTestReportingProtocol.mCallCount.get());
+        verify(mMockMetadataStore, times(0)).set(any());
+        verify(mMockMetadataStore, times(1)).get();
+    }
+
+    @Test
+    public void isReportingIntervalSatisfied_uninitialized_returnsTrue() throws Exception {
+        doReturn(Futures.immediateFuture(DEFAULT_UNINITIALIZED_METADATA))
+                .when(mMockMetadataStore)
+                .get();
+
+        ListenableFuture<Boolean> returnedFuture =
+                mInstanceUnderTest.isReportingIntervalSatisfied(mContext);
+
+        assertTrue(returnedFuture.isDone());
+        assertThat(returnedFuture.get()).isTrue();
     }
 
     @Test
@@ -227,15 +297,18 @@ public class AggregatedErrorReportingWorkerTest {
 
     private static final class TestInjector extends AggregatedErrorReportingWorker.Injector {
         private final ReportingProtocol mTestProtocol;
-        private final Flags mFlags;
+
+        private final ErrorReportingMetadataStore mStore;
 
         private String mRequestUri;
         private ImmutableList<ErrorData> mErrorData;
         private final AtomicInteger mCallCount = new AtomicInteger(0);
 
-        TestInjector(ReportingProtocol testProtocol, Flags flags) {
+        TestInjector(
+                ReportingProtocol testProtocol,
+                ErrorReportingMetadataStore errorReportingMetadataStore) {
             this.mTestProtocol = testProtocol;
-            this.mFlags = flags;
+            this.mStore = errorReportingMetadataStore;
         }
 
         @Override
@@ -251,11 +324,6 @@ public class AggregatedErrorReportingWorkerTest {
         }
 
         @Override
-        Flags getFlags() {
-            return mFlags;
-        }
-
-        @Override
         ReportingProtocol getAggregatedErrorReportingProtocol(
                 ImmutableList<ErrorData> errorData, String requestBaseUri, Context context) {
             mCallCount.incrementAndGet();
@@ -267,6 +335,16 @@ public class AggregatedErrorReportingWorkerTest {
         @Override
         String getServerUrl(Context context, String packageName) {
             return TEST_SERVER_URL;
+        }
+
+        @Override
+        long getErrorReportingIntervalHours() {
+            return DEFAULT_REPORTING_INTERVAL_HOURS;
+        }
+
+        @Override
+        ErrorReportingMetadataStore getMetadataStore(Context context) {
+            return mStore;
         }
     }
 }

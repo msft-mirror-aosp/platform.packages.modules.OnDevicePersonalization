@@ -200,8 +200,7 @@ class AggregatedErrorReportingProtocol implements ReportingProtocol {
         }
     }
 
-    @VisibleForTesting
-    ListenableFuture<OdpHttpResponse> uploadExceptionData(
+    private ListenableFuture<OdpHttpResponse> uploadExceptionData(
             OdpHttpResponse response, @Nullable OdpEncryptionKey encryptionKey) {
         try {
             validateHttpResponseStatus(/* stage= */ "reportRequest", response);
