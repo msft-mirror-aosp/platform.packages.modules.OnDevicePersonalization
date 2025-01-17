@@ -19,6 +19,8 @@ package com.android.federatedcompute.services.training;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_COMPLETED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ERROR_EXAMPLE_ITERATOR;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_NOT_ELIGIBLE_MIN_SEPARATION;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_NOT_ELIGIBLE_MIN_EXAMPLE;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_ERROR;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_START;
@@ -76,6 +78,8 @@ public class EligibilityDecider {
             ExampleSelector exampleSelector) {
         boolean eligible = true;
         ExampleStats exampleStats = new ExampleStats();
+        EligibilityPolicyEvalSpec.PolicyTypeCase policyTypeCase =
+                EligibilityPolicyEvalSpec.PolicyTypeCase.MIN_SEP_POLICY;
         trainingEventLogger.logEventKind(
                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED);
         EligibilityResult.Builder result = new EligibilityResult.Builder();
@@ -111,6 +115,7 @@ public class EligibilityDecider {
             // Device has to meet all eligibility policies in order to execute task.
             if (!eligible) {
                 result.setEligible(false);
+                policyTypeCase = policyEvalSpec.getPolicyTypeCase();
                 break;
             }
         }
@@ -130,6 +135,15 @@ public class EligibilityDecider {
         // If device is not eligible, we should unbind from ExampleStore if needed.
         if (eligibilityResult.getExampleStoreIterator() != null) {
             mExampleStoreServiceProvider.unbindFromExampleStoreService();
+        }
+
+        if (policyTypeCase == EligibilityPolicyEvalSpec.PolicyTypeCase.MIN_SEP_POLICY) {
+            trainingEventLogger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_NOT_ELIGIBLE_MIN_SEPARATION);
+        } else if (policyTypeCase
+                == EligibilityPolicyEvalSpec.PolicyTypeCase.DATA_AVAILABILITY_POLICY) {
+            trainingEventLogger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_NOT_ELIGIBLE_MIN_EXAMPLE);
         }
         return new EligibilityResult.Builder().setEligible(false).build();
     }
