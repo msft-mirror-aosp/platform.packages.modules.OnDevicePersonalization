@@ -16,8 +16,11 @@
 
 package com.android.ondevicepersonalization.services.reset;
 
-import static android.app.job.JobScheduler.RESULT_FAILURE;
+import static android.app.job.JobScheduler.RESULT_SUCCESS;
 
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_FAILED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SKIPPED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SUCCESSFUL;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
 
 import android.app.job.JobInfo;
@@ -27,6 +30,7 @@ import android.app.job.JobService;
 import android.content.ComponentName;
 import android.content.Context;
 
+import com.android.adservices.shared.spe.JobServiceConstants;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
@@ -48,13 +52,19 @@ public class ResetDataJobService extends JobService {
     private ListenableFuture<Void> mFuture;
 
     /** Schedule the Reset job. */
-    public static int schedule() {
+    @JobServiceConstants.JobSchedulingResultCode
+    public static int schedule(boolean forceSchedule) {
         Flags flags = FlagsFactory.getFlags();
         Context context = OnDevicePersonalizationApplication.getAppContext();
         JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
-        if (jobScheduler.getPendingJob(RESET_DATA_JOB_ID) != null) {
+        if (jobScheduler == null) {
+            sLogger.e(TAG, "Failed to get job scheduler from system service.");
+            return SCHEDULING_RESULT_CODE_FAILED;
+        }
+
+        if (!forceSchedule && jobScheduler.getPendingJob(RESET_DATA_JOB_ID) != null) {
             sLogger.d(TAG + ": Job is already scheduled. Doing nothing,");
-            return RESULT_FAILURE;
+            return SCHEDULING_RESULT_CODE_SKIPPED;
         }
 
         ComponentName service = new ComponentName(context, ResetDataJobService.class);
@@ -65,7 +75,9 @@ public class ResetDataJobService extends JobService {
                 .setPersisted(true)
                 .build();
 
-        return jobScheduler.schedule(jobInfo);
+        int schedulingResult = jobScheduler.schedule(jobInfo);
+        return RESULT_SUCCESS == schedulingResult ? SCHEDULING_RESULT_CODE_SUCCESSFUL
+                : SCHEDULING_RESULT_CODE_FAILED;
     }
 
     @Override
@@ -73,6 +85,15 @@ public class ResetDataJobService extends JobService {
         sLogger.d(TAG + ": onStartJob()");
         OdpJobServiceLogger.getInstance(this).recordOnStartJob(
                 RESET_DATA_JOB_ID);
+
+        // Reschedule jobs with SPE if it's enabled. Note scheduled jobs by this
+        // ResetDataJobService will be cancelled for the same job ID.
+        if (FlagsFactory.getFlags().getSpeOnResetDataJobEnabled()) {
+            sLogger.d(
+                    "SPE is enabled. Reschedule ResetDataJobService with ResetDataJob.");
+            ResetDataJob.schedule(/* context */ this);
+            return false;
+        }
 
         mFuture = Futures.submit(new Runnable() {
             @Override
