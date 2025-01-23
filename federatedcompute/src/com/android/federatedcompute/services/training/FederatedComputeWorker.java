@@ -196,6 +196,7 @@ class FederatedComputeWorker {
     }
 
     /** Starts a training run with the given job-Id. */
+    @VisibleForTesting
     ListenableFuture<FLRunnerResult> startTrainingRun(
             int jobId, FederatedJobService.OnJobFinishedCallback callback) {
         LogUtil.d(TAG, "startTrainingRun() %d", jobId);
