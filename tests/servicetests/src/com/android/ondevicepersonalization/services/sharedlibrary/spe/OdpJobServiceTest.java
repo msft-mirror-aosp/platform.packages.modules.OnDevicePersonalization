@@ -20,6 +20,7 @@ import static com.android.adservices.shared.spe.JobServiceConstants.SKIP_REASON_
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doAnswer;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doNothing;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
 
@@ -162,7 +163,7 @@ public final class OdpJobServiceTest {
         assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
                 MAINTENANCE_TASK_JOB_ID,
                 /* jobName */ "OnDevicePersonalizationMaintenanceJob",
-                () -> mMockFlags.getSpePilotJobEnabled());
+                mMockFlags::getSpePilotJobEnabled);
     }
 
     @Test
@@ -170,7 +171,15 @@ public final class OdpJobServiceTest {
         assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
                 RESET_DATA_JOB_ID,
                 /* jobName */ "ResetDataJob",
-                () -> mMockFlags.getSpeOnResetDataJobEnabled());
+                mMockFlags::getSpeOnResetDataJobEnabled);
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_aggregateErrorDataReportingJobDisabled() {
+        assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
+                AGGREGATE_ERROR_DATA_REPORTING_JOB_ID,
+                /* jobName */ "AggregateErrorDataReportingJob",
+                mMockFlags::getSpeOnAggregateErrorDataReportingJobEnabled);
     }
 
     private void assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
@@ -191,7 +200,7 @@ public final class OdpJobServiceTest {
         assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
                 invalidJobId,
                 /* jobName */ "OnDevicePersonalizationMaintenanceJob",
-                () -> mMockFlags.getSpePilotJobEnabled());
+                mMockFlags::getSpePilotJobEnabled);
     }
 
     @Test
@@ -201,7 +210,17 @@ public final class OdpJobServiceTest {
         assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
                 invalidJobId,
                 /* jobName */ "ResetDataJob",
-                () -> mMockFlags.getSpeOnResetDataJobEnabled());
+                mMockFlags::getSpeOnResetDataJobEnabled);
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_aggregateErrorJobEnabled_notConfiguredJobId() {
+        int invalidJobId = -1;
+
+        assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
+                invalidJobId,
+                /* jobName */ "AggregateErrorDataReportingJob",
+                mMockFlags::getSpeOnAggregateErrorDataReportingJobEnabled);
     }
 
     private void assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
@@ -220,7 +239,7 @@ public final class OdpJobServiceTest {
         assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(
                 MAINTENANCE_TASK_JOB_ID,
                 /* jobName */ "OnDevicePersonalizationMaintenanceJob",
-                () -> mMockFlags.getSpePilotJobEnabled());
+                mMockFlags::getSpePilotJobEnabled);
     }
 
     @Test
@@ -228,7 +247,15 @@ public final class OdpJobServiceTest {
         assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(
                 RESET_DATA_JOB_ID,
                 /* jobName */ "ResetDataJob",
-                () -> mMockFlags.getSpeOnResetDataJobEnabled());
+                mMockFlags::getSpeOnResetDataJobEnabled);
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_aggregateErrorDataReportingJobEnabled() {
+        assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(
+                AGGREGATE_ERROR_DATA_REPORTING_JOB_ID,
+                /* jobName */ "AggregateErrorDataReportingJob",
+                mMockFlags::getSpeOnAggregateErrorDataReportingJobEnabled);
     }
 
     private void assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(

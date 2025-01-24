@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.sharedlibrary.spe;
 
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
 
@@ -32,6 +33,8 @@ import com.android.adservices.shared.spe.logging.JobServiceLogger;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.data.errors.AggregateErrorDataReportingJob;
+import com.android.ondevicepersonalization.services.data.errors.AggregateErrorDataReportingService;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 import com.android.ondevicepersonalization.services.reset.ResetDataJob;
@@ -53,6 +56,7 @@ import java.util.concurrent.Executors;
 
 /** Unit tests for {@link OdpJobServiceFactory}. */
 @MockStatic(OnDevicePersonalizationMaintenanceJobService.class)
+@MockStatic(AggregateErrorDataReportingService.class)
 @MockStatic(ResetDataJobService.class)
 public final class OdpJobServiceFactoryTest {
     @Rule(order = 0)
@@ -108,6 +112,13 @@ public final class OdpJobServiceFactoryTest {
     }
 
     @Test
+    public void testGetJobInstance_aggregateErrorDataReportingJob() {
+        expect.withMessage("getJobWorkerInstance() for AggregateErrorDataReportingJob")
+                .that(mFactory.getJobWorkerInstance(AGGREGATE_ERROR_DATA_REPORTING_JOB_ID))
+                .isInstanceOf(AggregateErrorDataReportingJob.class);
+    }
+
+    @Test
     public void testGetJobInstance_resetDataJob() {
         expect.withMessage("getJobWorkerInstance() for ResetDataJob")
                 .that(mFactory.getJobWorkerInstance(RESET_DATA_JOB_ID))
@@ -130,6 +141,13 @@ public final class OdpJobServiceFactoryTest {
                 () ->
                         OnDevicePersonalizationMaintenanceJobService.schedule(
                                 sContext, forceSchedule));
+    }
+
+    @Test
+    public void testRescheduleJobWithLegacyMethod_aggregateErrorDataReportingService() {
+        mFactory.rescheduleJobWithLegacyMethod(sContext, AGGREGATE_ERROR_DATA_REPORTING_JOB_ID);
+        verify(() -> AggregateErrorDataReportingService
+                .scheduleIfNeeded(sContext, /* forceSchedule */ true));
     }
 
     @Test

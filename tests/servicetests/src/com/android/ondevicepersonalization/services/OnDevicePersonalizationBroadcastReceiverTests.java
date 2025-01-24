@@ -45,6 +45,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.odp.module.common.DeviceUtils;
+import com.android.ondevicepersonalization.services.data.errors.AggregateErrorDataReportingJob;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
 
@@ -95,6 +96,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
             new ExtendedMockitoRule.Builder(this)
                     .spyStatic(FlagsFactory.class)
                     .spyStatic(DeviceUtils.class)
+                    .spyStatic(AggregateErrorDataReportingJob.class)
                     .spyStatic(OnDevicePersonalizationMaintenanceJob.class)
                     .setStrictness(Strictness.LENIENT)
                     .build();
@@ -106,6 +108,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
         // By default, disable SPE and aggregate error reporting.
         when(mMockFlags.getSpePilotJobEnabled()).thenReturn(false);
+        when(mMockFlags.getSpeOnAggregateErrorDataReportingJobEnabled()).thenReturn(false);
         when(mMockFlags.getAggregatedErrorReportingEnabled()).thenReturn(false);
 
         ExtendedMockito.doReturn(true).when(() -> DeviceUtils.isOdpSupported(any()));
@@ -124,6 +127,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
         mReceiverUnderTest.onReceive(mContext, BOOT_COMPLETED_INTENT);
 
         verify(() -> OnDevicePersonalizationMaintenanceJob.schedule(mContext));
+        verify(() -> AggregateErrorDataReportingJob.schedule(mContext));
         assertAllJobsScheduled();
     }
 
@@ -134,6 +138,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
         mReceiverUnderTest.onReceive(mContext, BOOT_COMPLETED_INTENT);
 
         verify(() -> OnDevicePersonalizationMaintenanceJob.schedule(mContext), never());
+        verify(() -> AggregateErrorDataReportingJob.schedule(mContext), never());
         assertNoJobsScheduled();
     }
 
@@ -144,6 +149,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
         mReceiverUnderTest.onReceive(mContext, BOOT_COMPLETED_INTENT);
 
         verify(() -> OnDevicePersonalizationMaintenanceJob.schedule(mContext), never());
+        verify(() -> AggregateErrorDataReportingJob.schedule(mContext), never());
         assertNoJobsScheduled();
     }
 
@@ -152,6 +158,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
         mReceiverUnderTest.onReceive(mContext, new Intent(Intent.ACTION_DIAL_EMERGENCY));
 
         verify(() -> OnDevicePersonalizationMaintenanceJob.schedule(mContext), never());
+        verify(() -> AggregateErrorDataReportingJob.schedule(mContext), never());
         assertNoJobsScheduled();
     }
 
