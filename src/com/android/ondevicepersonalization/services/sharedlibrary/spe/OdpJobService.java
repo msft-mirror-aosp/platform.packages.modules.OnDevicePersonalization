@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.sharedlibrary.spe;
 
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
 
@@ -71,6 +72,8 @@ public final class OdpJobService extends AbstractJobService {
         Flags flags = FlagsFactory.getFlags();
 
         switch (jobId) {
+            case AGGREGATE_ERROR_DATA_REPORTING_JOB_ID:
+                return !flags.getSpeOnAggregateErrorDataReportingJobEnabled();
             case MAINTENANCE_TASK_JOB_ID:
                 return !flags.getSpePilotJobEnabled();
             case RESET_DATA_JOB_ID:
