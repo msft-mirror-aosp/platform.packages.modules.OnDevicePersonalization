@@ -23,6 +23,7 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -182,6 +183,14 @@ public final class OdpJobServiceTest {
                 mMockFlags::getSpeOnAggregateErrorDataReportingJobEnabled);
     }
 
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_userDataCollectionJobDisabled() {
+        assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
+                USER_DATA_COLLECTION_ID,
+                /* jobName */ "UserDataCollectionJob",
+                mMockFlags::getSpeOnUserDataCollectionJobEnabled);
+    }
+
     private void assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
             int jobId, String jobName, Supplier<Boolean> speJobEnabledFlagSupplier) {
         when(speJobEnabledFlagSupplier.get()).thenReturn(false);
@@ -223,6 +232,16 @@ public final class OdpJobServiceTest {
                 mMockFlags::getSpeOnAggregateErrorDataReportingJobEnabled);
     }
 
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_dataCollectionJobEnabled_notConfiguredJobId() {
+        int invalidJobId = -1;
+
+        assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
+                invalidJobId,
+                /* jobName */ "UserDataCollectionJob",
+                mMockFlags::getSpeOnUserDataCollectionJobEnabled);
+    }
+
     private void assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
             int jobId, String jobName, Supplier<Boolean> speJobEnabledFlagSupplier) {
         when(speJobEnabledFlagSupplier.get()).thenReturn(true);
@@ -256,6 +275,14 @@ public final class OdpJobServiceTest {
                 AGGREGATE_ERROR_DATA_REPORTING_JOB_ID,
                 /* jobName */ "AggregateErrorDataReportingJob",
                 mMockFlags::getSpeOnAggregateErrorDataReportingJobEnabled);
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_userDataCollectionJobEnabled() {
+        assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(
+                USER_DATA_COLLECTION_ID,
+                /* jobName */ "UserDataCollectionJob",
+                mMockFlags::getSpeOnUserDataCollectionJobEnabled);
     }
 
     private void assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(

@@ -16,6 +16,18 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import static android.app.job.JobScheduler.RESULT_FAILURE;
+import static android.app.job.JobScheduler.RESULT_SUCCESS;
+
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_FAILED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SKIPPED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SUCCESSFUL;
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
+import static com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID;
+
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -24,23 +36,24 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.app.job.JobInfo;
 import android.app.job.JobParameters;
 import android.app.job.JobScheduler;
 import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
+import com.android.ondevicepersonalization.services.sharedlibrary.spe.OdpJobScheduler;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -77,6 +90,7 @@ public class UserDataCollectionJobServiceTest {
         mService = spy(new UserDataCollectionJobService(new TestInjector()));
         doNothing().when(mService).jobFinished(any(), anyBoolean());
         when(mMockFlags.getGlobalKillSwitch()).thenReturn(false);
+        when(mMockFlags.getSpeOnUserDataCollectionJobEnabled()).thenReturn(false);
     }
 
     @After
@@ -95,8 +109,8 @@ public class UserDataCollectionJobServiceTest {
     @Test
     public void onStartJobTest() throws Exception {
         doReturn(mContext.getPackageManager()).when(mService).getPackageManager();
-        ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(false).when(mUserPrivacyStatus)
+        doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+        doReturn(false).when(mUserPrivacyStatus)
                 .isProtectedAudienceAndMeasurementBothDisabled();
 
         boolean result = mService.onStartJob(mock(JobParameters.class));
@@ -109,7 +123,7 @@ public class UserDataCollectionJobServiceTest {
     public void onStartJobTestKillSwitchEnabled() {
         when(mMockFlags.getGlobalKillSwitch()).thenReturn(true);
         doReturn(mJobScheduler).when(mService).getSystemService(JobScheduler.class);
-        mService.schedule(mContext);
+        mService.schedule(mContext, /* forceSchedule */ false);
         assertNotNull(
                 mJobScheduler.getPendingJob(OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID));
 
@@ -122,11 +136,102 @@ public class UserDataCollectionJobServiceTest {
     }
 
     @Test
+    @MockStatic(OdpJobScheduler.class)
+    @MockStatic(FlagsFactory.class)
+    public void onStartJobTestSpeEnabled() {
+        // Enable SPE on UserDataCollectionJob & UserDataCollectionJobService
+        doReturn(mMockFlags).when(FlagsFactory::getFlags);
+        when(mMockFlags.getSpeOnUserDataCollectionJobEnabled()).thenReturn(true);
+
+        // Mock OdpJobScheduler to not actually schedule the job.
+        OdpJobScheduler mockedScheduler = mock(OdpJobScheduler.class);
+        doReturn(mockedScheduler).when(() -> OdpJobScheduler.getInstance(any()));
+
+        assertThat(mService.onStartJob(mock(JobParameters.class))).isFalse();
+
+        // Verify SPE scheduler has rescheduled the job.
+        verify(mockedScheduler).schedule(any(), any());
+    }
+
+    @Test
+    public void testSchedule_scheduleSuccessful_resultCodeSuccess() {
+        Context spyContext = getSpyContext();
+        JobScheduler mockJobScheduler = mock(JobScheduler.class);
+        doReturn(mockJobScheduler).when(spyContext).getSystemService(JobScheduler.class);
+        doReturn(/* jobInfo */ null).when(mockJobScheduler).getPendingJob(USER_DATA_COLLECTION_ID);
+
+        // Schedule successful
+        doReturn(RESULT_SUCCESS).when(mockJobScheduler).schedule(any());
+
+        int resultCode = mService.schedule(spyContext, /* forceSchedule */ false);
+
+        assertThat(resultCode).isEqualTo(SCHEDULING_RESULT_CODE_SUCCESSFUL);
+    }
+
+    @Test
+    public void testSchedule_scheduleFailure_resultCodeFailed() {
+        Context spyContext = getSpyContext();
+        JobScheduler mockJobScheduler = mock(JobScheduler.class);
+        doReturn(mockJobScheduler).when(spyContext).getSystemService(JobScheduler.class);
+        doReturn(/* jobInfo */ null).when(mockJobScheduler).getPendingJob(USER_DATA_COLLECTION_ID);
+
+        // Schedule failure
+        doReturn(RESULT_FAILURE).when(mockJobScheduler).schedule(any());
+
+        int resultCode = mService.schedule(spyContext, /* forceSchedule */ false);
+
+        assertThat(resultCode).isEqualTo(SCHEDULING_RESULT_CODE_FAILED);
+    }
+
+    @Test
+    public void testSchedule_pendingJobForceSchedule_resultCodeSuccess() {
+        Context spyContext = getSpyContext();
+        JobScheduler mockJobScheduler = mock(JobScheduler.class);
+        doReturn(mockJobScheduler).when(spyContext).getSystemService(JobScheduler.class);
+
+        // Pending job
+        doReturn(mock(JobInfo.class)).when(mockJobScheduler)
+                .getPendingJob(USER_DATA_COLLECTION_ID);
+        doReturn(RESULT_SUCCESS).when(mockJobScheduler).schedule(any());
+
+        int resultCode = mService.schedule(spyContext, /* forceSchedule */ true);
+
+        assertThat(resultCode).isEqualTo(SCHEDULING_RESULT_CODE_SUCCESSFUL);
+    }
+
+    @Test
+    public void testSchedule_nullJobScheduler_resultCodeFailed() {
+        Context spyContext = getSpyContext();
+
+        // Null scheduler
+        doReturn(/* jobScheduler */ null).when(spyContext).getSystemService(JobScheduler.class);
+
+        int resultCode = mService.schedule(spyContext, /* forceSchedule */ false);
+
+        assertThat(resultCode).isEqualTo(SCHEDULING_RESULT_CODE_FAILED);
+    }
+
+    @Test
+    public void testSchedule_pendingJob_resultCodeSkipped() {
+        Context spyContext = getSpyContext();
+        JobScheduler mockJobScheduler = mock(JobScheduler.class);
+        doReturn(mockJobScheduler).when(spyContext).getSystemService(JobScheduler.class);
+
+        // Pending job
+        doReturn(/* jobInfo */ mock(JobInfo.class)).when(mockJobScheduler)
+                .getPendingJob(USER_DATA_COLLECTION_ID);
+
+        int resultCode = mService.schedule(spyContext, /* forceSchedule */ false);
+
+        assertThat(resultCode).isEqualTo(SCHEDULING_RESULT_CODE_SKIPPED);
+    }
+
+    @Test
     public void onStartJobTestUserControlRevoked() throws Exception {
         mUserDataCollector.updateUserData(RawUserData.getInstance());
         assertTrue(mUserDataCollector.isInitialized());
-        ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(true).when(mUserPrivacyStatus)
+        doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+        doReturn(true).when(mUserPrivacyStatus)
                 .isProtectedAudienceAndMeasurementBothDisabled();
 
         boolean result = mService.onStartJob(mock(JobParameters.class));
@@ -140,6 +245,10 @@ public class UserDataCollectionJobServiceTest {
     @Test
     public void onStopJobTest() {
         assertTrue(mService.onStopJob(mock(JobParameters.class)));
+    }
+
+    private Context getSpyContext() {
+        return spy(ApplicationProvider.getApplicationContext());
     }
 
     private class TestInjector extends UserDataCollectionJobService.Injector {

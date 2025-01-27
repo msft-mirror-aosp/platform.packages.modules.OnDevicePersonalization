@@ -16,10 +16,13 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
-import static android.app.job.JobScheduler.RESULT_FAILURE;
+import static android.app.job.JobScheduler.RESULT_SUCCESS;
 
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_PERSONALIZATION_NOT_ENABLED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_FAILED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SKIPPED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SUCCESSFUL;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID;
 
 import android.app.job.JobInfo;
@@ -29,6 +32,7 @@ import android.app.job.JobService;
 import android.content.ComponentName;
 import android.content.Context;
 
+import com.android.adservices.shared.spe.JobServiceConstants;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
@@ -73,11 +77,16 @@ public class UserDataCollectionJobService extends JobService {
     }
 
     /** Schedules a unique instance of UserDataCollectionJobService to be run. */
-    public static int schedule(Context context) {
+    @JobServiceConstants.JobSchedulingResultCode
+    public static int schedule(Context context, boolean forceSchedule) {
         JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
-        if (jobScheduler.getPendingJob(USER_DATA_COLLECTION_ID) != null) {
+        if (jobScheduler == null) {
+            sLogger.e(TAG, "Failed to get job scheduler from system service.");
+            return SCHEDULING_RESULT_CODE_FAILED;
+        }
+        if (!forceSchedule && jobScheduler.getPendingJob(USER_DATA_COLLECTION_ID) != null) {
             sLogger.d(TAG + ": Job is already scheduled. Doing nothing,");
-            return RESULT_FAILURE;
+            return SCHEDULING_RESULT_CODE_SKIPPED;
         }
         ComponentName serviceComponent =
                 new ComponentName(context, UserDataCollectionJobService.class);
@@ -92,7 +101,9 @@ public class UserDataCollectionJobService extends JobService {
         // persist this job across boots
         builder.setPersisted(true);
 
-        return jobScheduler.schedule(builder.build());
+        int schedulingResult = jobScheduler.schedule(builder.build());
+        return RESULT_SUCCESS == schedulingResult ? SCHEDULING_RESULT_CODE_SUCCESSFUL
+                : SCHEDULING_RESULT_CODE_FAILED;
     }
 
     @Override
@@ -104,6 +115,15 @@ public class UserDataCollectionJobService extends JobService {
             return cancelAndFinishJob(
                     params,
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON);
+        }
+        // Reschedule jobs with SPE if it's enabled. Note scheduled jobs by this
+        // UserDataCollectionJobService will be cancelled for the same job ID.
+        if (mInjector.getFlags().getSpeOnUserDataCollectionJobEnabled()) {
+            sLogger.i(
+                    "SPE is enabled. Reschedule UserDataCollectionJobService with"
+                            + " UserDataCollectionJob.");
+            UserDataCollectionJob.schedule(/* context */ this);
+            return false;
         }
         runPrivacyStatusChecksInBackground(params);
         return true;

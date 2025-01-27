@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -138,7 +139,8 @@ public class OnDevicePersonalizationManagingServiceTest {
                         () ->
                                 OnDevicePersonalizationMaintenanceJobService.schedule(
                                         any(), anyBoolean()));
-        ExtendedMockito.doReturn(1).when(() -> UserDataCollectionJobService.schedule(any()));
+        ExtendedMockito.doReturn(1)
+                .when(() -> UserDataCollectionJobService.schedule(any(), eq(false)));
         ExtendedMockito.doReturn(mMockMdd).when(() -> MobileDataDownloadFactory.getMdd(any()));
         doReturn(immediateVoidFuture()).when(mMockMdd).schedulePeriodicBackgroundTasks();
         ExtendedMockito.doReturn(true)
@@ -623,7 +625,8 @@ public class OnDevicePersonalizationManagingServiceTest {
         assertTrue(binder instanceof OnDevicePersonalizationManagingServiceDelegate);
         ExtendedMockito.verify(
                 () -> OnDevicePersonalizationMaintenanceJobService.schedule(any(), anyBoolean()));
-        ExtendedMockito.verify(() -> UserDataCollectionJobService.schedule(any()), times(1));
+        ExtendedMockito.verify(() ->
+                UserDataCollectionJobService.schedule(any(), eq(false)), times(1));
         verify(mMockMdd).schedulePeriodicBackgroundTasks();
     }
 
