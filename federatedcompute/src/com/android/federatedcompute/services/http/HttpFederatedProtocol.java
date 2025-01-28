@@ -29,6 +29,7 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_UNAUTHORIZED_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
 import static com.android.odp.module.common.FileUtils.createTempFile;
+import static com.android.odp.module.common.FileUtils.deleteFileIfExist;
 import static com.android.odp.module.common.FileUtils.readFileAsByteArray;
 import static com.android.odp.module.common.FileUtils.writeToFile;
 import static com.android.odp.module.common.http.HttpClientUtils.GZIP_ENCODING_HDR;
@@ -375,16 +376,17 @@ public final class HttpFederatedProtocol {
 
         // Process downloaded checkpoint resource.
         String payloadFileName = checkpointDataResponse.getPayloadFileName();
+        String checkpointFile = payloadFileName;
         long checkpointFileSize = checkpointDataResponse.getDownloadedPayloadSize();
         if (checkpointDataResponse.isResponseCompressed()) {
-            String checkpointFile = createTempFile("input", ".ckp");
+            checkpointFile = createTempFile("input", ".ckp");
             checkpointFileSize =
                     writeToFile(
                             checkpointFile,
                             new GZIPInputStream(
                                     new BufferedInputStream(new FileInputStream(payloadFileName))));
+            deleteFileIfExist(payloadFileName);
             LogUtil.d(TAG, "Uncompressed checkpoint data file size: %d", checkpointFileSize);
-            payloadFileName = checkpointFile;
         }
         if (checkpointFileSize > FlagsFactory.getFlags().getFcpCheckpointFileSizeLimit()) {
             LogUtil.e(
@@ -399,7 +401,7 @@ public final class HttpFederatedProtocol {
 
         mTrainingEventLogger.logCheckinFinished(networkStats);
         Trace.endAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
-        return new CheckinResult(payloadFileName, clientOnlyPlan, taskAssignment);
+        return new CheckinResult(checkpointFile, clientOnlyPlan, taskAssignment);
     }
 
     private ListenableFuture<OdpHttpResponse> performReportResult(
