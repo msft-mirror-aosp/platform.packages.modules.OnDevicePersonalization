@@ -33,6 +33,7 @@ import static com.android.federatedcompute.services.common.FlagsConstants.FCP_RE
 import static com.android.federatedcompute.services.common.FlagsConstants.FCP_RESCHEDULE_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.FCP_SPE_PILOT_JOB_ENABLED;
 import static com.android.federatedcompute.services.common.FlagsConstants.FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_TEMP_FILE_TTL_IN_MILLIS_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL;
 import static com.android.federatedcompute.services.common.FlagsConstants.HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME;
@@ -326,5 +327,13 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ FCP_CHECKPOINT_FILE_SIZE_LIMIT_CONFIG_NAME,
                 /* defaultValue= */ FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT);
+    }
+
+    @Override
+    public long getTempFileTtlMillis() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_TEMP_FILE_TTL_IN_MILLIS_NAME,
+                /* defaultValue= */ DEFAULT_TEMP_FILE_TTL_MILLIS);
     }
 }

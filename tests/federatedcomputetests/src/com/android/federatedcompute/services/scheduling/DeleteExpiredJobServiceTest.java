@@ -18,6 +18,7 @@ package com.android.federatedcompute.services.scheduling;
 
 import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SUCCESSFUL;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
+import static com.android.odp.module.common.FileUtils.createTempFile;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -73,7 +74,9 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
+import java.io.File;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.UUID;
 
 @MockStatic(FlagsFactory.class)
@@ -111,9 +114,11 @@ public class DeleteExpiredJobServiceTest {
     private JobScheduler mJobScheduler;
     @Mock private Clock mClock;
     @Mock private Flags mMockFlag;
+    private Context mContext;
 
     @Before
     public void setUp() throws Exception {
+        mContext = ApplicationProvider.getApplicationContext();
         doReturn(mMockFlag).when(FlagsFactory::getFlags);
         when(mMockFlag.getGlobalKillSwitch()).thenReturn(false);
 
@@ -284,6 +289,53 @@ public class DeleteExpiredJobServiceTest {
                                 FederatedComputeDbHelper.getInstance(sContext)));
     }
 
+    @Test
+    public void deleteCacheDirectory_success() throws Exception {
+        when(mMockFlag.getTempFileTtlMillis()).thenReturn(0L);
+        createTempFile("input", ".ckp");
+        createTempFile("output", ".ckp");
+        // Verify cache directory has created files.
+        long matchFileCount =
+                Arrays.stream(mContext.getCacheDir().listFiles())
+                        .filter(f -> mSpyService.isFileMatched(f.getName()))
+                        .count();
+        assertThat(matchFileCount).isEqualTo(2);
+
+        mSpyService.onStartJob(mock(JobParameters.class));
+
+        Thread.sleep(THREAD_SLEEP.toMillis());
+        verify(mSpyService).jobFinished(any(), eq(false));
+
+        // Verify cache directory is empty after deletion job.
+        File[] files = mContext.getCacheDir().listFiles();
+        matchFileCount =
+                Arrays.stream(mContext.getCacheDir().listFiles())
+                        .filter(f -> mSpyService.isFileMatched(f.getName()))
+                        .count();
+        assertThat(matchFileCount).isEqualTo(0);
+    }
+
+    @Test
+    public void deleteCacheDirectory_fileNotMatch() throws Exception {
+        when(mMockFlag.getTempFileTtlMillis()).thenReturn(0L);
+        createTempFile("metadata", ".ckp");
+        assertThat(mContext.getCacheDir().listFiles()).isNotEmpty();
+
+        mSpyService.onStartJob(mock(JobParameters.class));
+
+        Thread.sleep(THREAD_SLEEP.toMillis());
+        verify(mSpyService).jobFinished(any(), eq(false));
+
+        // Verify cache directory is empty after deletion job.
+        File[] files = mContext.getCacheDir().listFiles();
+        long matchFileCount =
+                Arrays.stream(mContext.getCacheDir().listFiles())
+                        .filter(f -> mSpyService.isFileMatched(f.getName()))
+                        .count();
+        assertThat(files.length).isAtLeast(1);
+        assertThat(matchFileCount).isEqualTo(0);
+    }
+
     private static void clearTokenDao(OdpAuthorizationTokenDao tokenDao) {
         // Force clear any existing auth tokens before tests
 
@@ -336,6 +388,11 @@ public class DeleteExpiredJobServiceTest {
         }
 
         @Override
+        File getCacheDir(Context context) {
+            return mContext.getCacheDir();
+        }
+
+        @Override
         Clock getClock() {
             return mClock;
         }
@@ -343,6 +400,11 @@ public class DeleteExpiredJobServiceTest {
         @Override
         Flags getFlags() {
             return mMockFlag;
+        }
+
+        @Override
+        long getMinimumTempFileTtlMillis() {
+            return 0;
         }
     }
 }
