@@ -84,4 +84,5 @@ public final class FlagsConstants {
             "example_store_service_timeout_sec";
     static final String FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME = "tf_error_reschedule_seconds";
     static final String EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC = "example_iterator_next_timeout_sec";
+    static final String FCP_TEMP_FILE_TTL_IN_MILLIS_NAME = "FcpFeatures__temp_file_ttl_in_millis";
 }

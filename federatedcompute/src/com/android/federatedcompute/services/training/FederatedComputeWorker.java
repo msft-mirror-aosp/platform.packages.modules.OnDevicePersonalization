@@ -43,6 +43,7 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_STARTED;
 import static com.android.odp.module.common.FileUtils.createTempFile;
 import static com.android.odp.module.common.FileUtils.createTempFileDescriptor;
+import static com.android.odp.module.common.FileUtils.deleteFileIfExist;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -531,6 +532,7 @@ class FederatedComputeWorker {
     @NonNull
     private ListenableFuture<FLRunnerResult> doFederatedComputation(
             TrainingRun run, CheckinResult checkinResult, EligibilityResult eligibilityResult) {
+        run.mInputModelFile = checkinResult.getInputCheckpointFile();
         // 3. Fetch Active keys to encrypt the computation result.
         List<OdpEncryptionKey> activeKeys =
                 mEncryptionKeyManager.getOrFetchActiveKeys(
@@ -814,6 +816,7 @@ class FederatedComputeWorker {
                 runToFinish.mFuture.cancel(true);
             }
         }
+        cleanUpTempFiles(runToFinish);
 
         performFinishRoutines(
                 runToFinish.mCallback,
@@ -826,13 +829,15 @@ class FederatedComputeWorker {
 
     /** To clean up active run for subsequent executions. */
     void cleanUpActiveRun() {
+        TrainingRun runToFinish;
         synchronized (mLock) {
             if (mActiveRun == null) {
                 return;
             }
-
+            runToFinish = mActiveRun;
             mActiveRun = null;
         }
+        cleanUpTempFiles(runToFinish);
     }
 
     private void performFinishRoutines(
@@ -868,6 +873,18 @@ class FederatedComputeWorker {
                 taskRetry,
                 contributionResult,
                 enableFailuresTracking);
+    }
+
+    private void cleanUpTempFiles(TrainingRun run) {
+        var unused =
+                mInjector
+                        .getBgExecutor()
+                        .submit(
+                                () -> {
+                                    deleteFileIfExist(run.mInputModelFile);
+                                    deleteFileIfExist(run.mPlanFile);
+                                    deleteFileIfExist(run.mOutputModelFile);
+                                });
     }
 
     private void unBindServicesIfNecessary(TrainingRun runToFinish) {
@@ -940,6 +957,7 @@ class FederatedComputeWorker {
             // Write ClientOnlyPlan to file and pass ParcelFileDescriptor to isolated process to
             // avoid TransactionTooLargeException through IPC.
             String clientOnlyPlanFile = createTempFile(CLIENT_ONLY_PLAN_FILE_NAME, ".pb");
+            run.mPlanFile = clientOnlyPlanFile;
             FileUtils.writeToFile(clientOnlyPlanFile, clientPlan.toByteArray());
             ParcelFileDescriptor clientPlanFd =
                     createTempFileDescriptor(
@@ -1110,6 +1128,8 @@ class FederatedComputeWorker {
             CheckinResult checkinResult, TrainingRun run, IExampleStoreIterator iterator) {
         ClientOnlyPlan clientPlan = checkinResult.getPlanData();
         String outputCheckpointFile = createTempFile("output", ".ckp");
+        run.mOutputModelFile = outputCheckpointFile;
+
         run.mTrainingEventLogger.logEventKind(
                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED);
 
@@ -1291,6 +1311,23 @@ class FederatedComputeWorker {
         @Nullable private IExampleStoreService mExampleStoreService = null;
 
         private FederatedJobService.OnJobFinishedCallback mCallback;
+
+        /**
+         * The file path of download initial checkpoint file. It's a temp file created under cache
+         * directory.
+         */
+        private String mInputModelFile = null;
+
+        /**
+         * The file path of downloaded plan file. It's a temp file created under cache directory.
+         */
+        private String mPlanFile = null;
+
+        /**
+         * The file path of new model checkpoint file. It's a temp file created under cache
+         * directory.
+         */
+        private String mOutputModelFile = null;
 
         private TrainingRun(
                 int jobId,

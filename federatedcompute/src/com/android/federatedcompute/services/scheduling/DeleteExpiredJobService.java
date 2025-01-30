@@ -48,13 +48,25 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
+import java.io.File;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class DeleteExpiredJobService extends JobService {
 
     private static final String TAG = DeleteExpiredJobService.class.getSimpleName();
 
     private static final int DELETE_EXPIRED_JOB_ID = FederatedComputeJobInfo.DELETE_EXPIRED_JOB_ID;
+    // Regex for "federated_client_only_plan" files
+    private static final Pattern FEDERATED_PLAN_PATTERN =
+            Pattern.compile("federated_client_only_plan\\d+\\.pb");
+
+    // Regex for input checkpoint files
+    private static final Pattern INPUT_MODEL_PATTERN = Pattern.compile("input\\d+\\.(ckp|tmp)");
+
+    // Regex for output checkpoint files
+    private static final Pattern OUTPUT_MODEL_PATTERN = Pattern.compile("output\\d+\\.ckp");
 
     private final Injector mInjector;
 
@@ -69,6 +81,8 @@ public class DeleteExpiredJobService extends JobService {
 
     @VisibleForTesting
     static class Injector {
+        private static final long MIN_TTL_MILLIS = 1000 * 60 * 10; // 10 mins
+
         ListeningExecutorService getExecutor() {
             return FederatedComputeExecutors.getBackgroundExecutor();
         }
@@ -82,12 +96,20 @@ public class DeleteExpiredJobService extends JobService {
             return FederatedTrainingTaskDao.getInstance(context);
         }
 
+        File getCacheDir(Context context) {
+            return context.getCacheDir();
+        }
+
         Clock getClock() {
             return MonotonicClock.getInstance();
         }
 
         Flags getFlags() {
             return FlagsFactory.getFlags();
+        }
+
+        long getMinimumTempFileTtlMillis() {
+            return MIN_TTL_MILLIS;
         }
     }
 
@@ -138,8 +160,13 @@ public class DeleteExpiredJobService extends JobService {
                                     .deleteExpiredTaskHistory(deleteTime);
                         },
                         mInjector.getExecutor());
+        ListenableFuture<Integer> deleteCacheDirFuture =
+                Futures.submit(() -> deleteCacheEntries(this), mInjector.getExecutor());
         ListenableFuture<List<Integer>> futuresList =
-                Futures.allAsList(deleteExpiredAuthTokenFuture, deleteExpiredTaskHistoryFuture);
+                Futures.allAsList(
+                        deleteExpiredAuthTokenFuture,
+                        deleteExpiredTaskHistoryFuture,
+                        deleteCacheDirFuture);
         Futures.addCallback(
                 futuresList,
                 new FutureCallback<List<Integer>>() {
@@ -169,6 +196,44 @@ public class DeleteExpiredJobService extends JobService {
                 },
                 FederatedComputeExecutors.getLightweightExecutor());
         return true;
+    }
+
+    private int deleteCacheEntries(Context context) {
+        File[] cacheFiles = mInjector.getCacheDir(context).listFiles();
+        int deleteCount = 0;
+        for (File file : cacheFiles) {
+            // Only clean up model related files.
+            if (!isFileMatched(file.getName())) {
+                continue;
+            }
+
+            long age = System.currentTimeMillis() - file.lastModified();
+            if (age
+                    > Math.max(
+                            mInjector.getFlags().getTempFileTtlMillis(),
+                            mInjector.getMinimumTempFileTtlMillis())) {
+                deleteCount++;
+                file.delete();
+            }
+        }
+        return deleteCount;
+    }
+
+    @VisibleForTesting
+    boolean isFileMatched(String fileName) {
+        Matcher planMatcher = FEDERATED_PLAN_PATTERN.matcher(fileName);
+        if (planMatcher.matches()) {
+            return true;
+        }
+        Matcher inputMatcher = INPUT_MODEL_PATTERN.matcher(fileName);
+        if (inputMatcher.matches()) {
+            return true;
+        }
+        Matcher outputMatcher = OUTPUT_MODEL_PATTERN.matcher(fileName);
+        if (outputMatcher.matches()) {
+            return true;
+        }
+        return false;
     }
 
     @Override

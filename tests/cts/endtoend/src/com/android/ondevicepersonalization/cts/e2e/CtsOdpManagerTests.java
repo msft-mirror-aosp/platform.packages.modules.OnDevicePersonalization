@@ -69,7 +69,7 @@ public class CtsOdpManagerTests {
             "com.android.ondevicepersonalization.testing.sampleservice";
     private static final String SERVICE_CLASS =
             "com.android.ondevicepersonalization.testing.sampleservice.SampleService";
-    private static final int LARGE_BLOB_SIZE = 10485760;
+    private static final int LARGE_BLOB_SIZE = 30000000;
     private static final int DELAY_MILLIS = 2000;
 
     private static final String TEST_POPULATION_NAME = "criteo_app_test_task";

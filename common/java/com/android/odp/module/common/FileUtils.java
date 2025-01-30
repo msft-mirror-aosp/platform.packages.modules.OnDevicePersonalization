@@ -74,6 +74,15 @@ public class FileUtils {
         }
     }
 
+    /** Delete the provided file if it exists. */
+    public static boolean deleteFileIfExist(String fileName) {
+        if (fileName == null || fileName.trim().isEmpty()) {
+            return true;
+        }
+        File fileToDelete = new File(fileName);
+        return fileToDelete.delete();
+    }
+
     /** Read the input file content to a byte array. */
     public static byte[] readFileAsByteArray(String filePath) throws IOException {
         File file = new File(filePath);
