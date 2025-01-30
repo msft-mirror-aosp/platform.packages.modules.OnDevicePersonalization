@@ -52,8 +52,6 @@ public class FederatedComputeScheduler {
         mDataAccessService = dataService;
     }
 
-    // TODO(b/300461799): add federated compute server document.
-    // TODO(b/269665435): add sample code snippet.
     /**
      * Schedules a federated compute job. In {@link IsolatedService#onRequest}, the app can call
      * {@link IsolatedService#getFederatedComputeScheduler} to pass the scheduler when constructing
@@ -61,7 +59,9 @@ public class FederatedComputeScheduler {
      *
      * @param params parameters related to job scheduling.
      * @param input the configuration of the federated computation. It should be consistent with the
-     *     federated compute server setup.
+     *     federated compute server setup as described in <a
+     *     href="https://developers.google.com/privacy-sandbox/protections/on-device-personalization/federated-compute-server">
+     *     Federated Compute Server documentation. </a>.
      */
     @WorkerThread
     public void schedule(@NonNull Params params, @NonNull FederatedComputeInput input) {

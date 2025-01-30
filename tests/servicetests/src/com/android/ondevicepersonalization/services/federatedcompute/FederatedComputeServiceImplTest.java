@@ -80,6 +80,7 @@ public class FederatedComputeServiceImplTest {
                     .build();
 
     private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
+    public static final int TEST_TIMEOUT_MILLIS = 1000;
     private final Context mApplicationContext = ApplicationProvider.getApplicationContext();
     ArgumentCaptor<OutcomeReceiver<Object, Exception>> mCallbackCapture;
     ArgumentCaptor<ScheduleFederatedComputeRequest> mRequestCapture;
@@ -133,7 +134,7 @@ public class FederatedComputeServiceImplTest {
         mServiceProxy.schedule(TEST_OPTIONS, new TestCallback());
         mCallbackCapture.getValue().onResult(null);
         var request = mRequestCapture.getValue();
-        mLatch.await(1000, TimeUnit.MILLISECONDS);
+        mLatch.await(TEST_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
 
         assertEquals(FC_SERVER_URL, request.getTrainingOptions().getServerAddress());
         assertEquals(TEST_POPULATION_NAME, request.getTrainingOptions().getPopulationName());
@@ -147,7 +148,7 @@ public class FederatedComputeServiceImplTest {
                 .when(mUserPrivacyStatus).isMeasurementEnabled();
 
         mServiceProxy.schedule(TEST_OPTIONS, new TestCallback());
-        mLatch.await(1000, TimeUnit.MILLISECONDS);
+        mLatch.await(TEST_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
 
         assertFalse(mOnSuccessCalled);
     }
@@ -164,7 +165,7 @@ public class FederatedComputeServiceImplTest {
         mServiceProxy.schedule(TEST_OPTIONS, new TestCallback());
         mCallbackCapture.getValue().onResult(null);
         var request = mRequestCapture.getValue();
-        mLatch.await(1000, TimeUnit.MILLISECONDS);
+        mLatch.await(TEST_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
 
         assertEquals(overrideUrl, request.getTrainingOptions().getServerAddress());
         assertEquals(TEST_POPULATION_NAME, request.getTrainingOptions().getPopulationName());
@@ -175,7 +176,7 @@ public class FederatedComputeServiceImplTest {
     public void testScheduleErr() throws Exception {
         mServiceProxy.schedule(TEST_OPTIONS, new TestCallback());
         mCallbackCapture.getValue().onError(new Exception());
-        mLatch.await(1000, TimeUnit.MILLISECONDS);
+        mLatch.await(TEST_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
 
         assertTrue(mOnErrorCalled);
         assertEquals(ClientConstants.STATUS_INTERNAL_ERROR, mErrorCode);
@@ -193,7 +194,7 @@ public class FederatedComputeServiceImplTest {
 
         mServiceProxy.cancel(TEST_POPULATION_NAME, new TestCallback());
         mCallbackCapture.getValue().onResult(null);
-        mLatch.await(1000, TimeUnit.MILLISECONDS);
+        mLatch.await(TEST_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
 
         assertTrue(mOnSuccessCalled);
     }
@@ -201,7 +202,7 @@ public class FederatedComputeServiceImplTest {
     @Test
     public void testCancelNoPopulation() throws Exception {
         mServiceProxy.cancel(TEST_POPULATION_NAME, new TestCallback());
-        mLatch.await(1000, TimeUnit.MILLISECONDS);
+        mLatch.await(TEST_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
 
         verify(mMockManager, times(0)).cancel(any(), any(), any(), any());
         assertTrue(mOnSuccessCalled);
@@ -219,7 +220,7 @@ public class FederatedComputeServiceImplTest {
 
         mServiceProxy.cancel(TEST_POPULATION_NAME, new TestCallback());
         mCallbackCapture.getValue().onError(new Exception());
-        mLatch.await(1000, TimeUnit.MILLISECONDS);
+        mLatch.await(TEST_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
 
         assertTrue(mOnErrorCalled);
         assertEquals(ClientConstants.STATUS_INTERNAL_ERROR, mErrorCode);
