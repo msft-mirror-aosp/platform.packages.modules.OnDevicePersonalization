@@ -44,12 +44,14 @@ import java.io.IOException;
 import java.util.Objects;
 
 /**
- * A class that exports methods that plugin code in the isolated process can use to schedule
+ * A class that exports methods that adopter code in the isolated process can use to schedule/cancel
  * federatedCompute jobs.
+ *
+ * <p>See {@link android.adservices.ondevicepersonalization.FederatedComputeScheduler#schedule}
  */
 public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
-    private static final String TAG = "FederatedComputeServiceImpl";
+    private static final String TAG = FederatedComputeServiceImpl.class.getSimpleName();
 
     @NonNull private final Context mApplicationContext;
     @NonNull private final ComponentName mCallingService;
@@ -57,8 +59,13 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
 
     @NonNull private final FederatedComputeManager mFederatedComputeManager;
 
-    @VisibleForTesting
     public FederatedComputeServiceImpl(
+            @NonNull ComponentName service, @NonNull Context applicationContext) {
+        this(service, applicationContext, new Injector());
+    }
+
+    @VisibleForTesting
+    FederatedComputeServiceImpl(
             @NonNull ComponentName service,
             @NonNull Context applicationContext,
             @NonNull Injector injector) {
@@ -67,11 +74,6 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
         this.mInjector = Objects.requireNonNull(injector);
         this.mFederatedComputeManager =
                 Objects.requireNonNull(injector.getFederatedComputeManager(mApplicationContext));
-    }
-
-    public FederatedComputeServiceImpl(
-            @NonNull ComponentName service, @NonNull Context applicationContext) {
-        this(service, applicationContext, new Injector());
     }
 
     @Override
