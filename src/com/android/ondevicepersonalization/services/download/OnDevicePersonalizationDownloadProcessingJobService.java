@@ -16,9 +16,12 @@
 
 package com.android.ondevicepersonalization.services.download;
 
-import static android.app.job.JobScheduler.RESULT_FAILURE;
+import static android.app.job.JobScheduler.RESULT_SUCCESS;
 
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_FAILED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SKIPPED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SUCCESSFUL;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID;
 
 import android.app.job.JobInfo;
@@ -28,6 +31,7 @@ import android.app.job.JobService;
 import android.content.ComponentName;
 import android.content.Context;
 
+import com.android.adservices.shared.spe.JobServiceConstants;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
@@ -54,12 +58,17 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
     /**
      * Schedules a unique instance of OnDevicePersonalizationDownloadProcessingJobService to be run.
      */
-    public static int schedule(Context context) {
+    @JobServiceConstants.JobSchedulingResultCode
+    public static int schedule(Context context, boolean forceSchedule) {
         JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
-        if (jobScheduler.getPendingJob(
-                DOWNLOAD_PROCESSING_TASK_JOB_ID) != null) {
+        if (jobScheduler == null) {
+            sLogger.e(TAG, "Failed to get job scheduler from system service.");
+            return SCHEDULING_RESULT_CODE_FAILED;
+        }
+
+        if (!forceSchedule && jobScheduler.getPendingJob(DOWNLOAD_PROCESSING_TASK_JOB_ID) != null) {
             sLogger.d(TAG + ": Job is already scheduled. Doing nothing,");
-            return RESULT_FAILURE;
+            return SCHEDULING_RESULT_CODE_SKIPPED;
         }
         ComponentName serviceComponent = new ComponentName(context,
                 OnDevicePersonalizationDownloadProcessingJobService.class);
@@ -73,7 +82,9 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
         builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_NONE);
         builder.setPersisted(true);
 
-        return jobScheduler.schedule(builder.build());
+        int schedulingResult = jobScheduler.schedule(builder.build());
+        return RESULT_SUCCESS == schedulingResult ? SCHEDULING_RESULT_CODE_SUCCESSFUL
+                : SCHEDULING_RESULT_CODE_FAILED;
     }
 
     @Override
@@ -87,6 +98,16 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON);
             jobFinished(params, /* wantsReschedule = */ false);
             return true;
+        }
+
+        // Reschedule jobs with SPE if it's enabled. Note scheduled jobs by this
+        // OnDevicePersonalizationDownloadProcessingJobService will be cancelled for the same job ID
+        if (FlagsFactory.getFlags().getSpeOnOdpDownloadProcessingJobEnabled()) {
+            sLogger.d(
+                    "SPE is enabled. Reschedule OnDevicePersonalizationDownloadProcessingJobService"
+                            + " with OnDevicePersonalizationDownloadProcessingJob.");
+            OnDevicePersonalizationDownloadProcessingJob.schedule(/* context */ this);
+            return false;
         }
 
         OnDevicePersonalizationExecutors.getHighPriorityBackgroundExecutor().execute(() -> {
