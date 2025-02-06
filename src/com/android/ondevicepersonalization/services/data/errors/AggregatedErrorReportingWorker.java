@@ -39,9 +39,11 @@ import android.content.pm.PackageManager;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.PackageUtils;
+import com.android.odp.module.common.data.ErrorReportingMetadataProtoDataStore;
+import com.android.odp.module.common.data.ErrorReportingMetadataStore;
 import com.android.odp.module.common.encryption.OdpEncryptionKey;
+import com.android.odp.module.common.proto.ErrorReportingMetadata;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
@@ -52,6 +54,8 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.protobuf.Timestamp;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,6 +77,7 @@ class AggregatedErrorReportingWorker {
     private final Injector mInjector;
 
     /** Helper class to allow injection of mocks/test-objects in test. */
+    @VisibleForTesting
     static class Injector {
         ListeningExecutorService getLightweightExecutor() {
             return OnDevicePersonalizationExecutors.getLightweightExecutor();
@@ -80,10 +85,6 @@ class AggregatedErrorReportingWorker {
 
         ListeningExecutorService getBackgroundExecutor() {
             return OnDevicePersonalizationExecutors.getBackgroundExecutor();
-        }
-
-        Flags getFlags() {
-            return FlagsFactory.getFlags();
         }
 
         ReportingProtocol getAggregatedErrorReportingProtocol(
@@ -94,6 +95,15 @@ class AggregatedErrorReportingWorker {
 
         String getServerUrl(Context context, String packageName) {
             return AggregatedErrorReportingWorker.getFcRemoteServerUrl(context, packageName);
+        }
+
+        long getErrorReportingIntervalHours() {
+            return FlagsFactory.getFlags().getAggregatedErrorReportingIntervalInHours();
+        }
+
+        ErrorReportingMetadataStore getMetadataStore(Context context) {
+            return ErrorReportingMetadataProtoDataStore.getInstance(
+                    context, getBackgroundExecutor());
         }
     }
 
@@ -113,7 +123,7 @@ class AggregatedErrorReportingWorker {
 
     @VisibleForTesting
     static void resetForTesting() {
-        sOnGoingReporting.set(false);
+        cleanup();
     }
 
     /**
@@ -132,15 +142,74 @@ class AggregatedErrorReportingWorker {
                     new IllegalStateException("Duplicate report request"));
         }
 
-        sLogger.d(TAG + ": beginning aggregate error reporting.");
-        return Futures.submitAsync(
-                () -> reportAggregateErrorsHelper(context, encryptionKey),
+        ListenableFuture<Boolean> checkIntervalFuture = isReportingIntervalSatisfied(context);
+
+        return Futures.transformAsync(
+                checkIntervalFuture,
+                intervalSatisfied -> {
+                    if (intervalSatisfied) {
+                        return reportAggregateErrorsHelper(context, encryptionKey);
+                    } else {
+                        sLogger.d(
+                                TAG
+                                        + ": skipping aggregate error reporting due to reporting"
+                                        + " interval.");
+                        return Futures.immediateVoidFuture();
+                    }
+                },
                 mInjector.getBackgroundExecutor());
+    }
+
+    @VisibleForTesting
+    ListenableFuture<Boolean> isReportingIntervalSatisfied(Context context) {
+        ErrorReportingMetadataStore store = mInjector.getMetadataStore(context);
+        ListenableFuture<ErrorReportingMetadata> existingMetadataFuture = store.get();
+
+        return Futures.transform(
+                existingMetadataFuture,
+                existingData ->
+                        isReportingIntervalSatisfied(
+                                existingData, mInjector.getErrorReportingIntervalHours()),
+                mInjector.getLightweightExecutor());
+    }
+
+    private static boolean isReportingIntervalSatisfied(
+            ErrorReportingMetadata existingData, long reportingIntervalHours) {
+        if (ErrorReportingMetadataProtoDataStore.isErrorReportingMetadataUninitialized(
+                existingData)) {
+            sLogger.d(TAG, "No existing error reporting metadata found");
+            return true;
+        }
+
+        long lastUpload = existingData.getLastSuccessfulUpload().getSeconds();
+        long currentTimeSeconds = DateTimeUtils.epochSecondsUtc();
+        if (currentTimeSeconds >= lastUpload + reportingIntervalHours * 3600) {
+            return true;
+        } else {
+            sLogger.d(TAG, "Reporting interval not satisfied, skipping reporting");
+            return false;
+        }
+    }
+
+    @VisibleForTesting
+    ListenableFuture<Boolean> updateLastReportedTime(Context context) {
+        ErrorReportingMetadataStore store = mInjector.getMetadataStore(context);
+        Timestamp currentTime =
+                Timestamp.newBuilder().setSeconds(DateTimeUtils.epochSecondsUtc()).build();
+        sLogger.d(TAG + ": updating the error reporting metadata with current time " + currentTime);
+        ErrorReportingMetadata newMetadata =
+                ErrorReportingMetadata.newBuilder().setLastSuccessfulUpload(currentTime).build();
+
+        // Use the direct executor since simple transform
+        return Futures.transform(
+                store.set(newMetadata), result -> true, MoreExecutors.directExecutor());
     }
 
     @VisibleForTesting
     ListenableFuture<Void> reportAggregateErrorsHelper(
             Context context, @Nullable OdpEncryptionKey encryptionKey) {
+        sLogger.d(TAG + ": beginning aggregate error reporting.");
+
         try {
             List<ComponentName> odpServices =
                     AppManifestConfigHelper.getOdpServices(context, /* enrolledOnly= */ true);
@@ -151,6 +220,7 @@ class AggregatedErrorReportingWorker {
             }
 
             List<ListenableFuture<Boolean>> futureList = new ArrayList<>();
+            futureList.add(updateLastReportedTime(context));
             for (ComponentName componentName : odpServices) {
                 String certDigest = getCertDigest(context, componentName.getPackageName());
                 if (certDigest.isEmpty()) {
@@ -244,8 +314,7 @@ class AggregatedErrorReportingWorker {
         }
     }
 
-    @VisibleForTesting
-    static void cleanup() {
+    private static void cleanup() {
         // Helper method to clean-up at the end of reporting.
         sOnGoingReporting.set(false);
     }

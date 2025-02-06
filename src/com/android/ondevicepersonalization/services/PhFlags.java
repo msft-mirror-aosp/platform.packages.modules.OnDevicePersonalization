@@ -56,6 +56,11 @@ import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_RE
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_RESET_DATA_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_RESET_DATA_DELAY_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_TRUSTED_PARTNER_APPS_LIST;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_USER_CONTROL_CACHE_IN_MILLIS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
@@ -296,6 +301,50 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_ODP_SPE_PILOT_JOB_ENABLED,
                 /* defaultValue= */ DEFAULT_SPE_PILOT_JOB_ENABLED);
+    }
+
+    @Override
+    public boolean getSpeOnAggregateErrorDataReportingJobEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */
+                KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB,
+                /* defaultValue= */
+                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB);
+    }
+
+    @Override
+    public boolean getSpeOnMddJobEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB,
+                /* defaultValue= */ DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB);
+    }
+
+    @Override
+    public boolean getSpeOnOdpDownloadProcessingJobEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB,
+                /* defaultValue= */
+                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB);
+    }
+
+    @Override
+    public boolean getSpeOnResetDataJobEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB,
+                /* defaultValue= */ DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB);
+    }
+
+    @Override
+    public boolean getSpeOnUserDataCollectionJobEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB,
+                /* defaultValue= */
+                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB);
     }
 
     @Override

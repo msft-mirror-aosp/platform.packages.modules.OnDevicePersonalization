@@ -17,8 +17,8 @@
 package com.android.federatedcompute.services.common;
 
 import static com.android.federatedcompute.services.common.Flags.USE_BACKGROUND_ENCRYPTION_KEY_FETCH;
-import static com.android.federatedcompute.services.common.PhFlags.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
-import static com.android.federatedcompute.services.common.PhFlags.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
+import static com.android.federatedcompute.services.common.FlagsConstants.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
+import static com.android.federatedcompute.services.common.FlagsConstants.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
 
 import android.provider.DeviceConfig;
 

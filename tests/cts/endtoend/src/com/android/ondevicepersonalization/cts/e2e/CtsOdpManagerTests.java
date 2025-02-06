@@ -69,7 +69,7 @@ public class CtsOdpManagerTests {
             "com.android.ondevicepersonalization.testing.sampleservice";
     private static final String SERVICE_CLASS =
             "com.android.ondevicepersonalization.testing.sampleservice.SampleService";
-    private static final int LARGE_BLOB_SIZE = 10485760;
+    private static final int LARGE_BLOB_SIZE = 30000000;
     private static final int DELAY_MILLIS = 2000;
 
     private static final String TEST_POPULATION_NAME = "criteo_app_test_task";
@@ -107,6 +107,10 @@ public class CtsOdpManagerTests {
                         + "output_data_allow_list "
                         + mContext.getPackageName()
                         + ";com.android.ondevicepersonalization.testing.sampleservice");
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "Odp__enable_is_feature_enabled "
+                        + true);
     }
 
     @After
@@ -120,6 +124,10 @@ public class CtsOdpManagerTests {
         ShellUtils.runShellCommand(
                 "am force-stop com.google.android.ondevicepersonalization.services");
         ShellUtils.runShellCommand("am force-stop com.android.ondevicepersonalization.services");
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "Odp__enable_is_feature_enabled "
+                        + "null");
     }
 
     @Test
@@ -742,6 +750,7 @@ public class CtsOdpManagerTests {
     }
 
     @Test
+    @Ignore ("b/388441484")
     @RequiresFlagsEnabled(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
     public void testExecuteWithScheduleFederatedJobWithOutcomeReceiver() throws Exception {
         OnDevicePersonalizationManager manager =
@@ -1487,6 +1496,69 @@ public class CtsOdpManagerTests {
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
         assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
+    public void testQueryFeatureAvailableApi() throws Exception {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<Integer>();
+
+        manager.queryFeatureAvailability("featureName",
+                Executors.newSingleThreadExecutor(),
+                receiver);
+
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
+    public void testQueryFeatureAvailableApiThrowsIfFeatureNameMissing() throws Exception {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<Integer>();
+
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                        manager.queryFeatureAvailability(null,
+                                Executors.newSingleThreadExecutor(),
+                                receiver));
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
+    public void testQueryFeatureAvailableApiThrowsIfExecutorMissing() throws Exception {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<Integer>();
+
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                        manager.queryFeatureAvailability("featureName",
+                                null,
+                                receiver));
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
+    public void testQueryFeatureAvailableApiThrowsIfReceiverMissing() throws Exception {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<Integer>();
+
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                        manager.queryFeatureAvailability("featureName",
+                                Executors.newSingleThreadExecutor(),
+                                null));
     }
 
     private static PersistableBundle getScheduleFCJobParams(boolean useLegacyApi) {

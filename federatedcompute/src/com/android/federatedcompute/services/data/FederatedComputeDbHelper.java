@@ -128,8 +128,22 @@ public class FederatedComputeDbHelper extends OdpSQLiteOpenHelper {
     }
 
     /**
+     * Returns an instance of the FederatedComputeDbHelper given a context. The db is created in
+     * memory and this method is for use in tests only.
+     *
+     * <p>Returns a new object on every call.
+     */
+    @VisibleForTesting
+    public static FederatedComputeDbHelper getNonSingletonInstanceForTest(Context context) {
+        // Use null database name to make it in-memory
+        return getNonSingletonInstanceForTest(context, /* dbName= */ null);
+    }
+
+    /**
      * Returns an instance of the FederatedComputeDbHelper given a context and database name. This
      * is used for testing only.
+     *
+     * <p>Returns a new object on every call.
      */
     @VisibleForTesting
     public static FederatedComputeDbHelper getNonSingletonInstanceForTest(

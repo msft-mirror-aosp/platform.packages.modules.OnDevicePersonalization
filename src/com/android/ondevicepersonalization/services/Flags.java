@@ -92,6 +92,39 @@ public interface Flags extends ModuleSharedFlags {
     /** Default value for SPE to be enabled for the pilot background jobs. */
     @FeatureFlag boolean DEFAULT_SPE_PILOT_JOB_ENABLED = false;
 
+    /**
+     * Default enablement for applying SPE (Scheduling Policy Engine) to {@code
+     * AggregateErrorDataReportingService}
+     */
+    @FeatureFlag boolean
+            DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB = false;
+
+    /**
+     * Default enablement for applying SPE (Scheduling Policy Engine) to {@code
+     * MddJobService}
+     */
+    @FeatureFlag boolean DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB = false;
+
+    /**
+     * Default enablement for applying SPE (Scheduling Policy Engine) to {@code
+     * OnDevicePersonalizationDownloadProcessingJobService}.
+     */
+    @FeatureFlag boolean DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB =
+            false;
+
+    /**
+     * Default enablement for applying SPE (Scheduling Policy Engine) to {@code
+     * ResetDataJobService}.
+     */
+    @FeatureFlag boolean DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB = false;
+
+    /**
+     * Default enablement for applying SPE (Scheduling Policy Engine) to {@code
+     * UserDataCollectionJobService}.
+     */
+    @FeatureFlag boolean DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB =
+            false;
+
     /** Default value for isolated service debugging flag. */
     boolean DEFAULT_ISOLATED_SERVICE_DEBUGGING_ENABLED = false;
 
@@ -242,6 +275,46 @@ public interface Flags extends ModuleSharedFlags {
 
     default boolean getSpePilotJobEnabled() {
         return DEFAULT_SPE_PILOT_JOB_ENABLED;
+    }
+
+    /**
+     * Returns the default enablement of applying SPE (Scheduling Policy Engine) to {@code
+     * AggregateErrorDataReportingService}
+     */
+    default boolean getSpeOnAggregateErrorDataReportingJobEnabled() {
+        return DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB;
+    }
+
+    /**
+     * Returns the default enablement of applying SPE (Scheduling Policy Engine) to {@code
+     * MddJobService}
+     */
+    default boolean getSpeOnMddJobEnabled() {
+        return DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB;
+    }
+
+    /**
+     * Returns the default enablement of applying SPE (Scheduling Policy Engine) to {@code
+     * OnDevicePersonalizationDownloadProcessingJobService}.
+     */
+    default boolean getSpeOnOdpDownloadProcessingJobEnabled() {
+        return DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB;
+    }
+
+    /**
+     * Returns the default enablement of applying SPE (Scheduling Policy Engine) to {@code
+     * ResetDataJobService}.
+     */
+    default boolean getSpeOnResetDataJobEnabled() {
+        return DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB;
+    }
+
+    /**
+     * Returns the default enablement of applying SPE (Scheduling Policy Engine) to {@code
+     * UserDataCollectionJobService}.
+     */
+    default boolean getSpeOnUserDataCollectionJobEnabled() {
+        return DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB;
     }
 
     default boolean getEnableClientErrorLogging() {

@@ -16,12 +16,16 @@
 
 package com.android.ondevicepersonalization.cts.e2e;
 
+import static com.android.ondevicepersonalization.cts.e2e.TestUtils.serializeFloatArray;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static junit.framework.Assert.assertEquals;
 
 import android.adservices.ondevicepersonalization.InferenceOutput;
+import android.platform.test.annotations.RequiresFlagsEnabled;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
 
 import org.junit.Assume;
@@ -58,5 +62,14 @@ public class InferenceOutputTest {
         float[] value = (float[]) data.get(0);
 
         assertThat(value).isEqualTo(expected);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
+    public void build_dataBytes_success() {
+        byte[] data = serializeFloatArray(new float[] {1.2f, 2.3f});
+        InferenceOutput output = new InferenceOutput.Builder().setData(data).build();
+
+        assertThat(output.getData()).isEqualTo(data);
     }
 }

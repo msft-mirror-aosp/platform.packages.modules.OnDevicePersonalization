@@ -21,6 +21,7 @@ import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_EN
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ISOLATED_SERVICE_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_SPE_PILOT_JOB_ENABLED;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_OUTPUT_DATA_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
@@ -127,6 +128,15 @@ public class PhFlagsTestUtil {
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 KEY_ODP_SPE_PILOT_JOB_ENABLED,
+                Boolean.toString(enabled),
+                /* makeDefault */ false);
+    }
+
+    /** Sets if SPE is enabled for {@code ResetDataJob}. */
+    public static void setSpeOnResetDataJobEnabled(boolean enabled) {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB,
                 Boolean.toString(enabled),
                 /* makeDefault */ false);
     }

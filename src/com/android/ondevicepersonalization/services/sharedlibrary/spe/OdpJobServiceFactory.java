@@ -16,8 +16,11 @@
 
 package com.android.ondevicepersonalization.services.sharedlibrary.spe;
 
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.JOB_ID_TO_NAME_MAP;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID;
 
 import android.content.Context;
 
@@ -33,8 +36,14 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.errors.AggregateErrorDataReportingJob;
+import com.android.ondevicepersonalization.services.data.errors.AggregateErrorDataReportingService;
+import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJob;
+import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
+import com.android.ondevicepersonalization.services.reset.ResetDataJob;
+import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
 import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientErrorLogger;
 import com.android.ondevicepersonalization.services.statsd.joblogging.OdpJobServiceLogger;
 import com.android.ondevicepersonalization.services.statsd.joblogging.OdpStatsdJobServiceLogger;
@@ -131,8 +140,14 @@ public final class OdpJobServiceFactory implements JobServiceFactory {
     public JobWorker getJobWorkerInstance(int jobId) {
         try {
             switch (jobId) {
+                case AGGREGATE_ERROR_DATA_REPORTING_JOB_ID:
+                    return new AggregateErrorDataReportingJob();
                 case MAINTENANCE_TASK_JOB_ID:
                     return new OnDevicePersonalizationMaintenanceJob();
+                case RESET_DATA_JOB_ID:
+                    return new ResetDataJob();
+                case USER_DATA_COLLECTION_ID:
+                    return new UserDataCollectionJob();
                 default:
                     throw new RuntimeException(
                             "The job is not configured for the instance creation.");
@@ -175,8 +190,17 @@ public final class OdpJobServiceFactory implements JobServiceFactory {
 
         try {
             switch (jobId) {
+                case AGGREGATE_ERROR_DATA_REPORTING_JOB_ID:
+                    AggregateErrorDataReportingService.scheduleIfNeeded(context, forceSchedule);
+                    return;
                 case MAINTENANCE_TASK_JOB_ID:
                     OnDevicePersonalizationMaintenanceJobService.schedule(context, forceSchedule);
+                    return;
+                case RESET_DATA_JOB_ID:
+                    ResetDataJobService.schedule(forceSchedule);
+                    return;
+                case USER_DATA_COLLECTION_ID:
+                    UserDataCollectionJobService.schedule(context, forceSchedule);
                     return;
                 default:
                     throw new RuntimeException(

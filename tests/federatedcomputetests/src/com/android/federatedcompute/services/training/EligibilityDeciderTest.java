@@ -18,9 +18,13 @@ package com.android.federatedcompute.services.training;
 
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_COMPLETED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ERROR_EXAMPLE_ITERATOR;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_NOT_ELIGIBLE_MIN_SEPARATION;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_NOT_ELIGIBLE_MIN_EXAMPLE;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_START;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_SUCCESS;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_ERROR;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_START;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_SUCCESS;
 
@@ -108,7 +112,8 @@ public class EligibilityDeciderTest {
                                     .build())
                     .build();
 
-    private Context mContext;
+    private final Context mContext = ApplicationProvider.getApplicationContext();
+    private FederatedComputeDbHelper mTestDbHelper;
     private FederatedTrainingTaskDao mTrainingTaskDao;
     private EligibilityDecider mEligibilityDecider;
 
@@ -121,17 +126,16 @@ public class EligibilityDeciderTest {
 
     @Before
     public void setUp() {
-        mContext = ApplicationProvider.getApplicationContext();
-        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mContext);
+        mTestDbHelper = FederatedComputeDbHelper.getNonSingletonInstanceForTest(mContext);
+        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mTestDbHelper);
         mEligibilityDecider = new EligibilityDecider(mTrainingTaskDao, mSpyExampleStoreProvider);
     }
 
     @After
     public void tearDown() {
-        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
+        mTestDbHelper.getWritableDatabase().close();
+        mTestDbHelper.getReadableDatabase().close();
+        mTestDbHelper.close();
     }
 
     @Test
@@ -217,10 +221,12 @@ public class EligibilityDeciderTest {
                         EXAMPLE_SELECTOR);
 
         assertFalse(result.isEligible());
-        verify(mMockTrainingEventLogger)
-                .logEventKind(
-                        eq(
-                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED));
+        ArgumentCaptor<Integer> eventKindCaptor = ArgumentCaptor.forClass(Integer.class);
+        verify(mMockTrainingEventLogger, times(2)).logEventKind(eventKindCaptor.capture());
+        assertThat(eventKindCaptor.getAllValues())
+                .containsAtLeast(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_NOT_ELIGIBLE_MIN_SEPARATION);
     }
 
     @Test
@@ -289,10 +295,12 @@ public class EligibilityDeciderTest {
                         EXAMPLE_SELECTOR);
 
         assertFalse(result.isEligible());
-        verify(mMockTrainingEventLogger)
-                .logEventKind(
-                        eq(
-                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED));
+        ArgumentCaptor<Integer> eventKindCaptor = ArgumentCaptor.forClass(Integer.class);
+        verify(mMockTrainingEventLogger, times(2)).logEventKind(eventKindCaptor.capture());
+        assertThat(eventKindCaptor.getAllValues())
+                .containsAtLeast(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_NOT_ELIGIBLE_MIN_SEPARATION);
     }
 
     @Test
@@ -311,10 +319,17 @@ public class EligibilityDeciderTest {
                         EXAMPLE_SELECTOR);
 
         assertFalse(result.isEligible());
-        verify(mMockTrainingEventLogger)
-                .logEventKind(
-                        eq(
-                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED));
+        ArgumentCaptor<Integer> eventKindCaptor = ArgumentCaptor.forClass(Integer.class);
+        verify(mMockTrainingEventLogger, times(7)).logEventKind(eventKindCaptor.capture());
+        assertThat(eventKindCaptor.getAllValues())
+                .containsExactly(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_START,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_SUCCESS,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_START,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_ERROR,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ERROR_EXAMPLE_ITERATOR,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_NOT_ELIGIBLE_MIN_EXAMPLE);
         verify(mSpyExampleStoreProvider).unbindFromExampleStoreService();
     }
 
@@ -335,10 +350,17 @@ public class EligibilityDeciderTest {
 
         assertFalse(result.isEligible());
         verify(mSpyExampleStoreProvider).unbindFromExampleStoreService();
-        verify(mMockTrainingEventLogger)
-                .logEventKind(
-                        eq(
-                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED));
+        ArgumentCaptor<Integer> eventKindCaptor = ArgumentCaptor.forClass(Integer.class);
+        verify(mMockTrainingEventLogger, times(7)).logEventKind(eventKindCaptor.capture());
+        assertThat(eventKindCaptor.getAllValues())
+                .containsExactly(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_START,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_SUCCESS,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_START,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_ERROR,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ERROR_EXAMPLE_ITERATOR,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_NOT_ELIGIBLE_MIN_EXAMPLE);
     }
 
     @Test
@@ -417,6 +439,16 @@ public class EligibilityDeciderTest {
         assertFalse(result.isEligible());
         assertThat(result.getExampleStoreIterator()).isNull();
         verify(mSpyExampleStoreProvider).unbindFromExampleStoreService();
+        ArgumentCaptor<Integer> eventKindCaptor = ArgumentCaptor.forClass(Integer.class);
+        verify(mMockTrainingEventLogger, times(6)).logEventKind(eventKindCaptor.capture());
+        assertThat(eventKindCaptor.getAllValues())
+                .containsExactly(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_START,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_BIND_SUCCESS,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_START,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_EXAMPLE_STORE_START_QUERY_SUCCESS,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_NOT_ELIGIBLE_MIN_SEPARATION);
     }
 
     private void setUpExampleStoreService(TestExampleStoreService exampleStoreService) {

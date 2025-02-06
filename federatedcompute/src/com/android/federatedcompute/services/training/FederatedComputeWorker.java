@@ -43,6 +43,7 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_STARTED;
 import static com.android.odp.module.common.FileUtils.createTempFile;
 import static com.android.odp.module.common.FileUtils.createTempFileDescriptor;
+import static com.android.odp.module.common.FileUtils.deleteFileIfExist;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -122,8 +123,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** The worker to execute federated computation jobs. */
-public class FederatedComputeWorker {
+/**
+ * The worker to execute federated computation jobs.
+ *
+ * <p>Used by the {@link FederatedJobService} to start/cancel training runs.
+ */
+class FederatedComputeWorker {
     private static final String TAG = FederatedComputeWorker.class.getSimpleName();
     private static final int NUM_ACTIVE_KEYS_TO_CHOOSE_FROM = 5;
     private static volatile FederatedComputeWorker sWorker;
@@ -137,15 +142,17 @@ public class FederatedComputeWorker {
     private final ComputationRunner mComputationRunner;
     private final ResultCallbackHelper mResultCallbackHelper;
     @NonNull private final Injector mInjector;
+    private final ExampleStoreServiceProvider mExampleStoreServiceProvider;
+
+    private final OdpEncryptionKeyManager mEncryptionKeyManager;
 
     @GuardedBy("mLock")
     @Nullable
     private TrainingRun mActiveRun = null;
 
     private HttpFederatedProtocol mHttpFederatedProtocol;
-    private final ExampleStoreServiceProvider mExampleStoreServiceProvider;
+
     private AbstractServiceBinder<IIsolatedTrainingService> mIsolatedTrainingServiceBinder;
-    private final OdpEncryptionKeyManager mEncryptionKeyManager;
 
     @VisibleForTesting
     FederatedComputeWorker(
@@ -169,7 +176,7 @@ public class FederatedComputeWorker {
 
     /** Gets an instance of {@link FederatedComputeWorker}. */
     @NonNull
-    public static FederatedComputeWorker getInstance(Context context) {
+    static FederatedComputeWorker getInstance(Context context) {
         if (sWorker == null) {
             synchronized (FederatedComputeWorker.class) {
                 if (sWorker == null) {
@@ -189,8 +196,9 @@ public class FederatedComputeWorker {
         return sWorker;
     }
 
-    /** Starts a training run with the given job Id. */
-    public ListenableFuture<FLRunnerResult> startTrainingRun(
+    /** Starts a training run with the given job-Id. */
+    @VisibleForTesting
+    ListenableFuture<FLRunnerResult> startTrainingRun(
             int jobId, FederatedJobService.OnJobFinishedCallback callback) {
         LogUtil.d(TAG, "startTrainingRun() %d", jobId);
         TrainingEventLogger trainingEventLogger = mInjector.getTrainingEventLogger();
@@ -312,13 +320,11 @@ public class FederatedComputeWorker {
             AuthorizationContext authContext =
                     mInjector.createAuthContext(
                             mContext,
-                            ComponentName.createRelative(
-                                            run.mTask.ownerPackageName(),
-                                            run.mTask.ownerClassName())
-                                    .flattenToString(),
+                            getOwnerPackageName(run),
                             run.mTask.ownerIdCertDigest(),
                             run.mTrainingEventLogger);
-            return FluentFuture.from(mHttpFederatedProtocol.createTaskAssignment(authContext))
+            return mHttpFederatedProtocol
+                    .createTaskAssignment(authContext)
                     .transformAsync(
                             taskAssignmentResponse -> {
                                 if (taskAssignmentResponse.hasRejectionInfo()) {
@@ -371,16 +377,20 @@ public class FederatedComputeWorker {
             LogUtil.e(TAG, errorMsg);
             return Futures.immediateFailedFuture(new IllegalStateException(errorMsg));
         }
-        return FluentFuture.from(mHttpFederatedProtocol.createTaskAssignment(authContext))
+        return mHttpFederatedProtocol
+                .createTaskAssignment(authContext)
                 .transformAsync(
                         taskAssignmentOnUnauthenticated -> {
                             if (taskAssignmentOnUnauthenticated.hasRejectionInfo()) {
                                 // This function is called only when the device received
                                 // 401 (unauthenticated). Only retry rejection is allowed.
                                 LogUtil.d(
-                                        TAG, "job %d was rejected during check in, reason %s",
-                                        run.mTask.jobId(), taskAssignmentOnUnauthenticated
-                                            .getRejectionInfo().getReason());
+                                        TAG,
+                                        "job %d was rejected during check in, reason %s",
+                                        run.mTask.jobId(),
+                                        taskAssignmentOnUnauthenticated
+                                                .getRejectionInfo()
+                                                .getReason());
                                 if (taskAssignmentOnUnauthenticated
                                         .getRejectionInfo()
                                         .hasRetryWindow()) {
@@ -440,18 +450,15 @@ public class FederatedComputeWorker {
             if (!eligibleResult.isEligible()) {
                 reportFailureResultToServer(
                         new ComputationResult(
-                                null,
+                                /* outputCheckpointFile= */ null,
                                 FLRunnerResult.newBuilder()
                                         .setContributionResult(ContributionResult.FAIL)
                                         .setErrorStatus(FLRunnerResult.ErrorStatus.NOT_ELIGIBLE)
                                         .build(),
-                                null),
-                        AuthorizationContext.create(
+                                /* exampleConsumptionList= */ null),
+                        mInjector.createAuthContext(
                                 mContext,
-                                ComponentName.createRelative(
-                                                run.mTask.ownerPackageName(),
-                                                run.mTask.ownerClassName())
-                                        .flattenToString(),
+                                getOwnerPackageName(run),
                                 run.mTask.ownerIdCertDigest(),
                                 run.mTrainingEventLogger),
                         run.mTrainingEventLogger);
@@ -525,6 +532,7 @@ public class FederatedComputeWorker {
     @NonNull
     private ListenableFuture<FLRunnerResult> doFederatedComputation(
             TrainingRun run, CheckinResult checkinResult, EligibilityResult eligibilityResult) {
+        run.mInputModelFile = checkinResult.getInputCheckpointFile();
         // 3. Fetch Active keys to encrypt the computation result.
         List<OdpEncryptionKey> activeKeys =
                 mEncryptionKeyManager.getOrFetchActiveKeys(
@@ -573,19 +581,14 @@ public class FederatedComputeWorker {
         ListenableFuture<ComputationResult> computationResultAndCallbackFuture =
                 CallbackToFutureAdapter.getFuture(
                         completer -> {
-                            String ownerId =
-                                    ComponentName.createRelative(
-                                                    run.mTask.ownerPackageName(),
-                                                    run.mTask.ownerClassName())
-                                            .flattenToString();
                             Futures.addCallback(
                                     computationResultFuture,
                                     new ReportFailureToServerCallback(run.mTrainingEventLogger)
                                             .getServerFailureReportCallback(
                                                     completer,
-                                                    AuthorizationContext.create(
+                                                    mInjector.createAuthContext(
                                                             mContext,
-                                                            ownerId,
+                                                            getOwnerPackageName(run),
                                                             run.mTask.ownerIdCertDigest(),
                                                             run.mTrainingEventLogger)),
                                     getLightweightExecutor());
@@ -597,17 +600,12 @@ public class FederatedComputeWorker {
                 Futures.transformAsync(
                         computationResultAndCallbackFuture,
                         result -> {
-                            String ownerId =
-                                    ComponentName.createRelative(
-                                                    run.mTask.ownerPackageName(),
-                                                    run.mTask.ownerClassName())
-                                            .flattenToString();
                             return reportResultWithAuthentication(
                                     result,
                                     encryptionKey,
                                     mInjector.createAuthContext(
                                             mContext,
-                                            ownerId,
+                                            getOwnerPackageName(run),
                                             run.mTask.ownerIdCertDigest(),
                                             run.mTrainingEventLogger),
                                     run.mTrainingEventLogger);
@@ -691,16 +689,16 @@ public class FederatedComputeWorker {
             runnerResultBuilder.setErrorStatus(failureStatus);
         }
         ComputationResult failedComputationResult =
-                new ComputationResult(null, runnerResultBuilder.build(), null);
+                new ComputationResult(
+                        /* outputCheckpointFile= */ null,
+                        runnerResultBuilder.build(),
+                        /* exampleConsumptionList= */ null);
         try {
             reportFailureResultToServer(
                     failedComputationResult,
-                    AuthorizationContext.create(
+                    mInjector.createAuthContext(
                             mContext,
-                            ComponentName.createRelative(
-                                            run.mTask.ownerPackageName(),
-                                            run.mTask.ownerClassName())
-                                    .flattenToString(),
+                            getOwnerPackageName(run),
                             run.mTask.ownerIdCertDigest(),
                             run.mTrainingEventLogger),
                     run.mTrainingEventLogger);
@@ -769,7 +767,7 @@ public class FederatedComputeWorker {
      * Completes the running job , schedule recurrent job, and unbind from ExampleStoreService and
      * ResultHandlingService etc.
      */
-    public void finish(FLRunnerResult flRunnerResult) {
+    void finish(FLRunnerResult flRunnerResult) {
         TaskRetry taskRetry = null;
         ContributionResult contributionResult = ContributionResult.UNSPECIFIED;
         if (flRunnerResult != null) {
@@ -790,14 +788,12 @@ public class FederatedComputeWorker {
     }
 
     /** Log that training run failed with exception. */
-    public void logTrainEventFinishedWithException() {
+    void logTrainEventFinishedWithException() {
         synchronized (mLock) {
-            if (mActiveRun == null) {
+            if (mActiveRun == null || mActiveRun.mTrainingEventLogger == null) {
                 return;
             }
-            if (mActiveRun.mTrainingEventLogger == null) {
-                return;
-            }
+
             mActiveRun.mTrainingEventLogger.logEventKind(
                     FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_WITH_EXCEPTION);
         }
@@ -807,8 +803,7 @@ public class FederatedComputeWorker {
      * Cancel the current running job, schedule recurrent job, unbind from ExampleStoreService and
      * ResultHandlingService etc.
      */
-    public void finish(
-            TaskRetry taskRetry, ContributionResult contributionResult, boolean cancelFuture) {
+    void finish(TaskRetry taskRetry, ContributionResult contributionResult, boolean cancelFuture) {
         TrainingRun runToFinish;
         synchronized (mLock) {
             if (mActiveRun == null) {
@@ -821,6 +816,7 @@ public class FederatedComputeWorker {
                 runToFinish.mFuture.cancel(true);
             }
         }
+        cleanUpTempFiles(runToFinish);
 
         performFinishRoutines(
                 runToFinish.mCallback,
@@ -832,14 +828,16 @@ public class FederatedComputeWorker {
     }
 
     /** To clean up active run for subsequent executions. */
-    public void cleanUpActiveRun() {
+    void cleanUpActiveRun() {
+        TrainingRun runToFinish;
         synchronized (mLock) {
             if (mActiveRun == null) {
                 return;
             }
-
+            runToFinish = mActiveRun;
             mActiveRun = null;
         }
+        cleanUpTempFiles(runToFinish);
     }
 
     private void performFinishRoutines(
@@ -875,6 +873,18 @@ public class FederatedComputeWorker {
                 taskRetry,
                 contributionResult,
                 enableFailuresTracking);
+    }
+
+    private void cleanUpTempFiles(TrainingRun run) {
+        var unused =
+                mInjector
+                        .getBgExecutor()
+                        .submit(
+                                () -> {
+                                    deleteFileIfExist(run.mInputModelFile);
+                                    deleteFileIfExist(run.mPlanFile);
+                                    deleteFileIfExist(run.mOutputModelFile);
+                                });
     }
 
     private void unBindServicesIfNecessary(TrainingRun runToFinish) {
@@ -947,6 +957,7 @@ public class FederatedComputeWorker {
             // Write ClientOnlyPlan to file and pass ParcelFileDescriptor to isolated process to
             // avoid TransactionTooLargeException through IPC.
             String clientOnlyPlanFile = createTempFile(CLIENT_ONLY_PLAN_FILE_NAME, ".pb");
+            run.mPlanFile = clientOnlyPlanFile;
             FileUtils.writeToFile(clientOnlyPlanFile, clientPlan.toByteArray());
             ParcelFileDescriptor clientPlanFd =
                     createTempFileDescriptor(
@@ -1117,6 +1128,8 @@ public class FederatedComputeWorker {
             CheckinResult checkinResult, TrainingRun run, IExampleStoreIterator iterator) {
         ClientOnlyPlan clientPlan = checkinResult.getPlanData();
         String outputCheckpointFile = createTempFile("output", ".ckp");
+        run.mOutputModelFile = outputCheckpointFile;
+
         run.mTrainingEventLogger.logEventKind(
                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED);
 
@@ -1299,6 +1312,23 @@ public class FederatedComputeWorker {
 
         private FederatedJobService.OnJobFinishedCallback mCallback;
 
+        /**
+         * The file path of download initial checkpoint file. It's a temp file created under cache
+         * directory.
+         */
+        private String mInputModelFile = null;
+
+        /**
+         * The file path of downloaded plan file. It's a temp file created under cache directory.
+         */
+        private String mPlanFile = null;
+
+        /**
+         * The file path of new model checkpoint file. It's a temp file created under cache
+         * directory.
+         */
+        private String mOutputModelFile = null;
+
         private TrainingRun(
                 int jobId,
                 FederatedTrainingTask task,
@@ -1364,6 +1394,14 @@ public class FederatedComputeWorker {
             ComputationResult result,
             AuthorizationContext authContext,
             TrainingEventLogger trainingEventLogger) {
-        var unused = reportResultWithAuthentication(result, null, authContext, trainingEventLogger);
+        var unused =
+                reportResultWithAuthentication(
+                        result, /* encryptionKey= */ null, authContext, trainingEventLogger);
+    }
+
+    private static String getOwnerPackageName(TrainingRun run) {
+        return ComponentName.createRelative(
+                        run.mTask.ownerPackageName(), run.mTask.ownerClassName())
+                .flattenToString();
     }
 }

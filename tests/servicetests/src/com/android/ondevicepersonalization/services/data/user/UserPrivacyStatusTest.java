@@ -24,10 +24,10 @@ import static android.adservices.ondevicepersonalization.Constants.STATUS_METHOD
 import static android.adservices.ondevicepersonalization.Constants.STATUS_NULL_ADSERVICES_COMMON_MANAGER;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_REMOTE_EXCEPTION;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_TIMEOUT;
-import static android.app.job.JobScheduler.RESULT_SUCCESS;
 
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_REMOTE_EXCEPTION;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP;
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.doNothing;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
@@ -44,7 +44,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
@@ -55,7 +54,7 @@ import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.StableFlags;
-import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
+import com.android.ondevicepersonalization.services.reset.ResetDataJob;
 import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientErrorLogger;
 import com.android.ondevicepersonalization.services.util.DebugUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
@@ -117,7 +116,7 @@ public final class UserPrivacyStatusTest {
             .mockStatic(DebugUtils.class)
             .mockStatic(FlagsFactory.class)
             .mockStatic(StatsUtils.class)
-            .spyStatic(ResetDataJobService.class)
+            .spyStatic(ResetDataJob.class)
             .spyStatic(StableFlags.class)
             .setStrictness(Strictness.LENIENT)
             .build();
@@ -126,7 +125,7 @@ public final class UserPrivacyStatusTest {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        ExtendedMockito.doNothing().when(() -> StatsUtils.writeServiceRequestMetrics(
+        doNothing().when(() -> StatsUtils.writeServiceRequestMetrics(
                 anyInt(), anyString(), any(), any(), anyInt(), anyLong()));
         ExtendedMockito.doReturn(false).when(
                 () -> StableFlags.get(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE));
@@ -135,7 +134,7 @@ public final class UserPrivacyStatusTest {
         ExtendedMockito.doReturn(CACHE_TIMEOUT_MILLIS).when(
                 () -> StableFlags.get(KEY_USER_CONTROL_CACHE_IN_MILLIS));
         mUserPrivacyStatus = new UserPrivacyStatus(mCommonStatesWrapper, mTestClock);
-        doReturn(RESULT_SUCCESS).when(ResetDataJobService::schedule);
+        doNothing().when(() -> ResetDataJob.schedule(any()));
         when(ClientErrorLogger.getInstance()).thenReturn(mMockClientErrorLogger);
     }
 
@@ -152,7 +151,7 @@ public final class UserPrivacyStatusTest {
         assertTrue(mUserPrivacyStatus.isUserControlCacheValid());
         assertTrue(mUserPrivacyStatus.isProtectedAudienceEnabled());
         assertTrue(mUserPrivacyStatus.isMeasurementEnabled());
-        verify(ResetDataJobService::schedule, times(0));
+        ExtendedMockito.verify(() -> ResetDataJob.schedule(any()), times(0));
     }
 
     @Test
@@ -163,7 +162,7 @@ public final class UserPrivacyStatusTest {
         assertTrue(mUserPrivacyStatus.isUserControlCacheValid());
         assertFalse(mUserPrivacyStatus.isProtectedAudienceEnabled());
         assertFalse(mUserPrivacyStatus.isMeasurementEnabled());
-        verify(ResetDataJobService::schedule);
+        ExtendedMockito.verify(() -> ResetDataJob.schedule(any()));
     }
 
     @Test
@@ -173,7 +172,7 @@ public final class UserPrivacyStatusTest {
         assertTrue(mUserPrivacyStatus.isUserControlCacheValid());
         assertTrue(mUserPrivacyStatus.isProtectedAudienceEnabled());
         assertTrue(mUserPrivacyStatus.isMeasurementEnabled());
-        verify(ResetDataJobService::schedule);
+        ExtendedMockito.verify(() -> ResetDataJob.schedule(any()));
     }
 
     @Test
@@ -234,6 +233,7 @@ public final class UserPrivacyStatusTest {
         assertFalse(mUserPrivacyStatus.isProtectedAudienceAndMeasurementBothDisabled());
         assertTrue(mUserPrivacyStatus.isMeasurementEnabled());
         assertTrue(mUserPrivacyStatus.isProtectedAudienceEnabled());
+        ExtendedMockito.verify(() -> ResetDataJob.schedule(any()));
     }
 
     @Test

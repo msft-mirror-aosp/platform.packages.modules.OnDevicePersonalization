@@ -97,12 +97,11 @@ public class FederatedComputeEncryptionKeyManagerUtils {
             Flags flags,
             HttpClient client,
             ListeningExecutorService executor,
-            Context context) {
+            FederatedComputeDbHelper dbHelper) {
         return OdpEncryptionKeyManager.getInstanceForTesting(
                 clock,
                 encryptionKeyDao,
-                new FlagKeyManagerConfig(
-                        flags, FederatedComputeDbHelper.getInstanceForTest(context)),
+                new FlagKeyManagerConfig(flags, dbHelper),
                 client,
                 executor);
     }

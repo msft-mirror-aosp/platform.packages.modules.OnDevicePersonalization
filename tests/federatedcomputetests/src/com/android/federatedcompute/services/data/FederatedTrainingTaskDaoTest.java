@@ -80,13 +80,15 @@ public final class FederatedTrainingTaskDaoTest {
 
     private static final Context sTestContext = ApplicationProvider.getApplicationContext();
 
+    private FederatedComputeDbHelper mTestDbHelper;
     private FederatedTrainingTaskDao mTrainingTaskDao;
 
     @Mock private ClientErrorLogger mMockClientErrorLogger;
 
     @Before
     public void setUp() {
-        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(sTestContext);
+        mTestDbHelper = FederatedComputeDbHelper.getNonSingletonInstanceForTest(sTestContext);
+        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mTestDbHelper);
         mTrainingTaskDao.deleteExpiredTaskHistory(/* deleteTime= */ Long.MAX_VALUE);
 
         when(ClientErrorLogger.getInstance()).thenReturn(mMockClientErrorLogger);
@@ -94,11 +96,9 @@ public final class FederatedTrainingTaskDaoTest {
 
     @After
     public void cleanUp() {
-        FederatedComputeDbHelper dbHelper =
-                FederatedComputeDbHelper.getInstanceForTest(sTestContext);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
+        mTestDbHelper.getWritableDatabase().close();
+        mTestDbHelper.getReadableDatabase().close();
+        mTestDbHelper.close();
     }
 
     @Test

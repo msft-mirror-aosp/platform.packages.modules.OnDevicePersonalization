@@ -36,6 +36,9 @@ public class FederatedComputeEncryptionKeyDaoUtilsTest {
 
     private static final Context sContext = ApplicationProvider.getApplicationContext();
 
+    private final FederatedComputeDbHelper mTestDbHelper =
+            FederatedComputeDbHelper.getNonSingletonInstanceForTest(sContext);
+
     @Test
     public void testGetInstance() {
         OdpEncryptionKeyDao instanceUnderTest =
@@ -51,9 +54,9 @@ public class FederatedComputeEncryptionKeyDaoUtilsTest {
     @Test
     public void testGetInstanceForTest() {
         OdpEncryptionKeyDao instanceUnderTest =
-                FederatedComputeEncryptionKeyDaoUtils.getInstanceForTest(sContext);
+                FederatedComputeEncryptionKeyDaoUtils.getInstanceForTest(sContext, mTestDbHelper);
         OdpEncryptionKeyDao secondInstance =
-                FederatedComputeEncryptionKeyDaoUtils.getInstanceForTest(sContext);
+                FederatedComputeEncryptionKeyDaoUtils.getInstanceForTest(sContext, mTestDbHelper);
 
         assertThat(instanceUnderTest).isSameInstanceAs(secondInstance);
         assertNotNull(instanceUnderTest);
@@ -62,9 +65,8 @@ public class FederatedComputeEncryptionKeyDaoUtilsTest {
 
     @After
     public void cleanUp() throws Exception {
-        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(sContext);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
+        mTestDbHelper.getWritableDatabase().close();
+        mTestDbHelper.getReadableDatabase().close();
+        mTestDbHelper.close();
     }
 }

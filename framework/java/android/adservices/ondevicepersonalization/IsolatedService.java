@@ -178,8 +178,8 @@ public abstract class IsolatedService extends Service {
 
     /**
      * Returns an {@link FederatedComputeScheduler} for the current request. The {@link
-     * FederatedComputeScheduler} can be used to schedule and cancel federated computation jobs.
-     * The federated computation includes federated learning and federated analytic jobs.
+     * FederatedComputeScheduler} can be used to schedule and cancel federated computation jobs. The
+     * federated computation includes federated learning and federated analytics jobs.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
      * @return An {@link FederatedComputeScheduler} that returns a federated computation job

@@ -32,6 +32,7 @@ public class SampleServiceApi {
     public static final String KEY_EXPECTED_LOG_DATA_KEY = "expected_log_key";
     public static final String KEY_EXPECTED_LOG_DATA_VALUE = "expected_log_value";
     public static final String KEY_POPULATION_NAME = "value_population_name";
+    public static final String KEY_EXPECTED_PACKAGE_NAME = "expected_package_name";
 
     // Values of opcodes.
     public static final String OPCODE_RENDER_AND_LOG = "render_and_log";
@@ -45,6 +46,7 @@ public class SampleServiceApi {
     public static final String OPCODE_READ_REMOTE_DATA = "read_remote_data";
     public static final String OPCODE_READ_USER_DATA = "read_user_data";
     public static final String OPCODE_READ_LOG = "read_log";
+    public static final String OPCODE_CHECK_PACKAGE_NAME = "check_package_name";
 
     // Code for the legacy FCP schedule API.
     public static final String OPCODE_SCHEDULE_FEDERATED_JOB = "schedule_federated_job";

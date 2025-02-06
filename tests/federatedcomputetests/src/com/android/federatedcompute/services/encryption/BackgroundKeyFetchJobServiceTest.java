@@ -94,6 +94,8 @@ public class BackgroundKeyFetchJobServiceTest {
 
     private TestInjector mInjector;
 
+    private FederatedComputeDbHelper mTestDbHelper;
+
     @Mock
     private EventLogger mMockEventLogger;
 
@@ -103,9 +105,12 @@ public class BackgroundKeyFetchJobServiceTest {
         PhFlagsTestUtil.disableGlobalKillSwitch();
         PhFlagsTestUtil.enableScheduleBackgroundKeyFetchJob();
         MockitoAnnotations.initMocks(this);
+
         mContext = ApplicationProvider.getApplicationContext();
         mInjector = new TestInjector();
-        mEncryptionDao = FederatedComputeEncryptionKeyDaoUtils.getInstance(mContext);
+        mTestDbHelper = FederatedComputeDbHelper.getNonSingletonInstanceForTest(mContext);
+        mEncryptionDao =
+                FederatedComputeEncryptionKeyDaoUtils.getInstanceForTest(mContext, mTestDbHelper);
         mHttpClient = new HttpClient(/* retryLimit= */ 3, MoreExecutors.newDirectExecutorService());
         mSpyService = spy(new BackgroundKeyFetchJobService(new TestInjector()));
         doReturn(mSpyService).when(mSpyService).getApplicationContext();
@@ -120,7 +125,7 @@ public class BackgroundKeyFetchJobServiceTest {
                                 FlagsFactory.getFlags(),
                                 mHttpClient,
                                 MoreExecutors.newDirectExecutorService(),
-                                mContext));
+                                mTestDbHelper));
         mStaticMockSession =
                 ExtendedMockito.mockitoSession()
                         .initMocks(this)
@@ -134,10 +139,9 @@ public class BackgroundKeyFetchJobServiceTest {
             mStaticMockSession.finishMocking();
         }
 
-        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
+        mTestDbHelper.getWritableDatabase().close();
+        mTestDbHelper.getReadableDatabase().close();
+        mTestDbHelper.close();
     }
 
     @Test

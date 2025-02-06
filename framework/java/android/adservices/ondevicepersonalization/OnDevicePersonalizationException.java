@@ -17,6 +17,7 @@
 package android.adservices.ondevicepersonalization;
 import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
+import android.annotation.Nullable;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
 
@@ -119,28 +120,28 @@ public class OnDevicePersonalizationException extends Exception {
 
     private final @ErrorCode int mErrorCode;
 
-    /** @hide */
+    @FlaggedApi(Flags.FLAG_UNHIDDEN_ON_DEVICE_PERSONALIZATION_EXCEPTION_ENABLED)
     public OnDevicePersonalizationException(@ErrorCode int errorCode) {
         mErrorCode = errorCode;
     }
 
-    /** @hide */
+    @FlaggedApi(Flags.FLAG_UNHIDDEN_ON_DEVICE_PERSONALIZATION_EXCEPTION_ENABLED)
     public OnDevicePersonalizationException(
-            @ErrorCode int errorCode, String message) {
+            @ErrorCode int errorCode, @Nullable String message) {
         super(message);
         mErrorCode = errorCode;
     }
 
-    /** @hide */
+    @FlaggedApi(Flags.FLAG_UNHIDDEN_ON_DEVICE_PERSONALIZATION_EXCEPTION_ENABLED)
     public OnDevicePersonalizationException(
-            @ErrorCode int errorCode, Throwable cause) {
+            @ErrorCode int errorCode, @Nullable Throwable cause) {
         super(cause);
         mErrorCode = errorCode;
     }
 
-    /** @hide */
+    @FlaggedApi(Flags.FLAG_UNHIDDEN_ON_DEVICE_PERSONALIZATION_EXCEPTION_ENABLED)
     public OnDevicePersonalizationException(
-            @ErrorCode int errorCode, String message, Throwable cause) {
+            @ErrorCode int errorCode, @Nullable String message, @Nullable Throwable cause) {
         super(message, cause);
         mErrorCode = errorCode;
     }

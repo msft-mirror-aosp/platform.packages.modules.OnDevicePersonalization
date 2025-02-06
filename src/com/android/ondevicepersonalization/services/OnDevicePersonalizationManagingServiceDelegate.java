@@ -39,6 +39,7 @@ import android.os.Trace;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.DeviceUtils;
+import com.android.odp.module.common.ProcessWrapper;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlowOrchestrator;
@@ -284,7 +285,8 @@ public class OnDevicePersonalizationManagingServiceDelegate
         return flagEnabled;
     }
 
-    private void enforceCallingPackageBelongsToUid(@NonNull String packageName, int uid) {
+    @VisibleForTesting
+    void enforceCallingPackageBelongsToUid(@NonNull String packageName, int uid) {
         int packageUid;
         PackageManager pm = mContext.getPackageManager();
         try {
@@ -292,10 +294,12 @@ public class OnDevicePersonalizationManagingServiceDelegate
         } catch (PackageManager.NameNotFoundException e) {
             throw new SecurityException(packageName + " not found");
         }
-        if (packageUid != uid) {
+
+        int appUid = ProcessWrapper.isSdkSandboxUid(uid)
+                ? ProcessWrapper.getAppUidForSdkSandboxUid(uid) : uid;
+        if (packageUid != appUid) {
             throw new SecurityException(packageName + " does not belong to uid " + uid);
         }
-        //TODO(b/242792629): Handle requests from the SDK sandbox.
     }
 
     private void enforceEnrollment(@NonNull String callingPackageName,

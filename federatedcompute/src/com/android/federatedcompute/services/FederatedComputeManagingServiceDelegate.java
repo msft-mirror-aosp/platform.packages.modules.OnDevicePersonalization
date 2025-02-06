@@ -46,7 +46,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.util.Objects;
 
 /** Implementation of {@link IFederatedComputeService}. */
-public class FederatedComputeManagingServiceDelegate extends IFederatedComputeService.Stub {
+class FederatedComputeManagingServiceDelegate extends IFederatedComputeService.Stub {
     private static final String TAG = "FcpServiceDelegate";
     @NonNull private final Context mContext;
     private final FederatedComputeStatsdLogger mFcStatsdLogger;
@@ -61,13 +61,13 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
 
     @NonNull private final Injector mInjector;
 
-    public FederatedComputeManagingServiceDelegate(
+    FederatedComputeManagingServiceDelegate(
             @NonNull Context context, FederatedComputeStatsdLogger federatedComputeStatsdLogger) {
         this(context, new Injector(), federatedComputeStatsdLogger, MonotonicClock.getInstance());
     }
 
     @VisibleForTesting
-    public FederatedComputeManagingServiceDelegate(
+    FederatedComputeManagingServiceDelegate(
             @NonNull Context context,
             @NonNull Injector injector,
             FederatedComputeStatsdLogger federatedComputeStatsdLogger,
@@ -75,7 +75,7 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
         mContext = Objects.requireNonNull(context);
         mInjector = Objects.requireNonNull(injector);
         mClock = clock;
-        this.mFcStatsdLogger = federatedComputeStatsdLogger;
+        mFcStatsdLogger = federatedComputeStatsdLogger;
     }
 
     @Override
@@ -83,28 +83,21 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
             String callingPackageName,
             TrainingOptions trainingOptions,
             IFederatedComputeCallback callback) {
-        // Use FederatedCompute instead of caller permission to read experiment flags. It requires
-        // READ_DEVICE_CONFIG permission.
         try {
-            long origId = Binder.clearCallingIdentity();
-            if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
-                ApiCallStats.Builder apiCallStatsBuilder = new ApiCallStats.Builder()
-                        .setApiName(FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE)
-                        .setResponseCode(STATUS_KILL_SWITCH_ENABLED);
-                if (trainingOptions.getOwnerComponentName() != null) {
-                    apiCallStatsBuilder.setSdkPackageName(
-                            trainingOptions.getOwnerComponentName().getPackageName());
-                } else {
-                    apiCallStatsBuilder.setSdkPackageName("");
-                }
-                mFcStatsdLogger.logApiCallStats(apiCallStatsBuilder.build());
-                sendResult(callback, STATUS_KILL_SWITCH_ENABLED);
-                return;
-            }
-            Binder.restoreCallingIdentity(origId);
-
             Objects.requireNonNull(callingPackageName);
             Objects.requireNonNull(callback);
+
+            String sdkPackageName =
+                    trainingOptions.getOwnerComponentName() == null
+                            ? ""
+                            : trainingOptions.getOwnerComponentName().getPackageName();
+            if (isKillSwitchEnabled(
+                    sdkPackageName,
+                    FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE,
+                    callback,
+                    mFcStatsdLogger)) {
+                return;
+            }
 
             final long startServiceTime = mClock.elapsedRealtime();
             FederatedComputeJobManager jobManager = mInjector.getJobManager(mContext);
@@ -121,23 +114,13 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
                                     LogUtil.e(TAG, e, "Got exception for schedule()");
                                 } finally {
                                     sendResult(callback, resultCode);
-                                    int serviceLatency =
-                                            (int) (mClock.elapsedRealtime() - startServiceTime);
-                                    ApiCallStats.Builder apiCallStatsBuilder =
-                                            new ApiCallStats.Builder()
-                                                    .setApiName(
-                                                            FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE)
-                                                    .setLatencyMillis(serviceLatency)
-                                                    .setResponseCode(resultCode);
-                                    if (trainingOptions.getOwnerComponentName() != null) {
-                                        apiCallStatsBuilder.setSdkPackageName(
-                                                trainingOptions
-                                                        .getOwnerComponentName()
-                                                        .getPackageName());
-                                    } else {
-                                        apiCallStatsBuilder.setSdkPackageName("");
-                                    }
-                                    mFcStatsdLogger.logApiCallStats(apiCallStatsBuilder.build());
+                                    logServiceLatency(
+                                            startServiceTime,
+                                            FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE,
+                                            resultCode,
+                                            sdkPackageName,
+                                            mFcStatsdLogger,
+                                            mClock);
                                 }
                             });
         } catch (NullPointerException | IllegalArgumentException ex) {
@@ -154,26 +137,18 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
             ComponentName ownerComponent,
             String populationName,
             IFederatedComputeCallback callback) {
-        // Use FederatedCompute instead of caller permission to read experiment flags. It requires
-        // READ_DEVICE_CONFIG permission.
         try {
             Objects.requireNonNull(ownerComponent);
-            long origId = Binder.clearCallingIdentity();
-            if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
-                mFcStatsdLogger.logApiCallStats(
-                        new ApiCallStats.Builder()
-                                .setApiName(FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL)
-                                .setResponseCode(STATUS_KILL_SWITCH_ENABLED)
-                                .setSdkPackageName(ownerComponent.getPackageName())
-                                .build());
-                sendResult(callback, STATUS_KILL_SWITCH_ENABLED);
-                return;
-            }
-            Binder.restoreCallingIdentity(origId);
-
-
             Objects.requireNonNull(callback);
             Objects.requireNonNull(populationName);
+
+            if (isKillSwitchEnabled(
+                    ownerComponent.getPackageName(),
+                    FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL,
+                    callback,
+                    mFcStatsdLogger)) {
+                return;
+            }
 
             final long startServiceTime = mClock.elapsedRealtime();
             FederatedComputeJobManager jobManager = mInjector.getJobManager(mContext);
@@ -190,23 +165,19 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
                                     LogUtil.e(
                                             TAG,
                                             e,
-                                            "Got exception when call Cancel population: %s, "
+                                            "Got exception when calling cancel for population: %s, "
                                                     + "owner: %s",
                                             populationName,
                                             ownerComponent.flattenToString());
                                 } finally {
                                     sendResult(callback, resultCode);
-                                    int serviceLatency =
-                                            (int) (mClock.elapsedRealtime() - startServiceTime);
-                                    mFcStatsdLogger.logApiCallStats(
-                                            new ApiCallStats.Builder()
-                                                    .setApiName(
-                                                            FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL)
-                                                    .setLatencyMillis(serviceLatency)
-                                                    .setResponseCode(resultCode)
-                                                    .setSdkPackageName(
-                                                            ownerComponent.getPackageName())
-                                                    .build());
+                                    logServiceLatency(
+                                            startServiceTime,
+                                            FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL,
+                                            resultCode,
+                                            ownerComponent.getPackageName(),
+                                            mFcStatsdLogger,
+                                            mClock);
                                 }
                             });
         } catch (NullPointerException | IllegalArgumentException ex) {
@@ -218,7 +189,54 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
         }
     }
 
-    private void sendResult(@NonNull IFederatedComputeCallback callback, int resultCode) {
+    /** Helper method that logs service latency for the given api. */
+    private static void logServiceLatency(
+            long startServiceTime,
+            int apiName,
+            int resultCode,
+            String sdkPackageName,
+            FederatedComputeStatsdLogger fcStatsdLogger,
+            Clock clock) {
+        int serviceLatency = (int) (clock.elapsedRealtime() - startServiceTime);
+        fcStatsdLogger.logApiCallStats(
+                new ApiCallStats.Builder()
+                        .setApiName(apiName)
+                        .setLatencyMillis(serviceLatency)
+                        .setResponseCode(resultCode)
+                        .setSdkPackageName(sdkPackageName)
+                        .build());
+    }
+
+    /**
+     * Helper method that checks if the kill switch is enabled, returns true/false accordingly.
+     *
+     * <p>Should be called on the calling binder thread.
+     */
+    private static boolean isKillSwitchEnabled(
+            String sdkPackageName,
+            int apiName,
+            @NonNull IFederatedComputeCallback callback,
+            FederatedComputeStatsdLogger fcStatsdLogger) {
+        // Use FederatedCompute instead of caller permission to read experiment flags. It requires
+        // READ_DEVICE_CONFIG permission.
+        long origId = Binder.clearCallingIdentity();
+        boolean killSwitchEnabled = false;
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            ApiCallStats.Builder apiCallStatsBuilder =
+                    new ApiCallStats.Builder()
+                            .setApiName(apiName)
+                            .setResponseCode(STATUS_KILL_SWITCH_ENABLED)
+                            .setSdkPackageName(sdkPackageName);
+
+            fcStatsdLogger.logApiCallStats(apiCallStatsBuilder.build());
+            sendResult(callback, STATUS_KILL_SWITCH_ENABLED);
+            killSwitchEnabled = true;
+        }
+        Binder.restoreCallingIdentity(origId);
+        return killSwitchEnabled;
+    }
+
+    private static void sendResult(@NonNull IFederatedComputeCallback callback, int resultCode) {
         try {
             if (resultCode == STATUS_SUCCESS) {
                 callback.onSuccess();

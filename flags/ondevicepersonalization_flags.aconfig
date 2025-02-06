@@ -64,3 +64,12 @@ flag {
     is_fixed_read_only: true
     is_exported: true
 }
+
+flag {
+    name: "unhidden_on_device_personalization_exception_enabled"
+    namespace: "ondevicepersonalization_aconfig"
+    bug: "379743390"
+    description: "Enable unhidden of OnDevicePersonalizationException."
+    is_fixed_read_only: true
+    is_exported: true
+}

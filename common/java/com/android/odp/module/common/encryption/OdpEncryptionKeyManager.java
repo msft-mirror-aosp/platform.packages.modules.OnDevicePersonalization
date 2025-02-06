@@ -116,7 +116,7 @@ public class OdpEncryptionKeyManager {
     }
 
     @VisibleForTesting
-    static synchronized void resetForTesting() {
+    public static synchronized void resetForTesting() {
         sBackgroundKeyManager = null;
     }
 

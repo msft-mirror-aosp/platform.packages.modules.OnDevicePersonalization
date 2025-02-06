@@ -53,6 +53,7 @@ import android.net.Uri;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.federatedcompute.services.common.Flags;
+import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.NetworkStats;
 import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
@@ -233,6 +234,7 @@ public final class HttpFederatedProtocolTest {
     private ArgumentCaptor<NetworkStats> mNetworkStatsArgumentCaptor =
             ArgumentCaptor.forClass(NetworkStats.class);
 
+    private FederatedComputeDbHelper mTestDbHelper;
     private OdpAuthorizationTokenDao mOdpAuthorizationTokenDao;
 
     private final Clock mClock = MonotonicClock.getInstance();
@@ -244,9 +246,8 @@ public final class HttpFederatedProtocolTest {
     @Before
     public void setUp() throws Exception {
         // Clear any existing data in the token dao.
-        mOdpAuthorizationTokenDao =
-                OdpAuthorizationTokenDao.getInstanceForTest(
-                        FederatedComputeDbHelper.getInstanceForTest(sTestContent));
+        mTestDbHelper = FederatedComputeDbHelper.getNonSingletonInstanceForTest(sTestContent);
+        mOdpAuthorizationTokenDao = OdpAuthorizationTokenDao.getInstanceForTest(mTestDbHelper);
         mOdpAuthorizationTokenDao.deleteAuthorizationToken(OWNER_ID);
 
         mHttpFederatedProtocol =
@@ -265,18 +266,17 @@ public final class HttpFederatedProtocolTest {
         doNothing().when(mTrainingEventLogger).logTaskAssignmentUnauthorized();
         doNothing().when(mTrainingEventLogger).logTaskAssignmentAuthSucceeded();
         doReturn(true).when(mMocKFlags).isEncryptionEnabled();
-        when(PhFlags.getInstance()).thenReturn(mMocKFlags);
+        when(FlagsFactory.getFlags()).thenReturn(mMocKFlags);
         when(mMocKFlags.getFcpCheckpointFileSizeLimit())
                 .thenReturn(Flags.FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT);
     }
 
     @After
     public void cleanUp() {
-        FederatedComputeDbHelper dbHelper =
-                FederatedComputeDbHelper.getInstanceForTest(sTestContent);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
+        mTestDbHelper.getWritableDatabase().close();
+        mTestDbHelper.getReadableDatabase().close();
+        mTestDbHelper.getReadableDatabase().close();
+        mTestDbHelper.close();
     }
 
     @Test

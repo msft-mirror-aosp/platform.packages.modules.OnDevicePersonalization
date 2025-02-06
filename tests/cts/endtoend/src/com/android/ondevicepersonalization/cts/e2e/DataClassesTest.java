@@ -35,6 +35,7 @@ import android.adservices.ondevicepersonalization.FederatedComputeScheduleRespon
 import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
 import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams;
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationException;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
@@ -60,6 +61,7 @@ import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
 
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -212,6 +214,7 @@ public class DataClassesTest {
     }
 
     @Test
+    @Ignore ("b/388441484")
     @RequiresFlagsEnabled(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
     public void testFederatedComputeSchedulerRequest() {
         // Test for Data classes associated with FederatedComputeScheduler's schedule API.
@@ -235,6 +238,7 @@ public class DataClassesTest {
     }
 
     @Test
+    @Ignore ("b/388441484")
     @RequiresFlagsEnabled(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
     public void testFederatedComputeSchedulerResponse() {
         // Test for Data classes associated with FederatedComputeScheduler's schedule API.
@@ -475,5 +479,28 @@ public class DataClassesTest {
         assertEquals(1, data.getEventLogRecords().get(0).getType());
         assertThat(data.getOutputData()).isNull();
         assertThat(data.getBestValue()).isEqualTo(100);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_UNHIDDEN_ON_DEVICE_PERSONALIZATION_EXCEPTION_ENABLED)
+    public void testOnDevicePersonalizationException() {
+        OnDevicePersonalizationException odpException1 = new OnDevicePersonalizationException(1);
+        assertEquals(1, odpException1.getErrorCode());
+
+        OnDevicePersonalizationException odpException2 =
+                new OnDevicePersonalizationException(2, "odpException");
+        assertEquals(2, odpException2.getErrorCode());
+        assertEquals("odpException", odpException2.getMessage());
+
+        OnDevicePersonalizationException odpException3 =
+                new OnDevicePersonalizationException(3, new Throwable("exception"));
+        assertEquals(3, odpException3.getErrorCode());
+        assertEquals("exception", odpException3.getCause().getMessage());
+
+        OnDevicePersonalizationException odpException4 =
+                new OnDevicePersonalizationException(4, "odpException", new Throwable("exception"));
+        assertEquals(4, odpException4.getErrorCode());
+        assertEquals("odpException", odpException4.getMessage());
+        assertEquals("exception", odpException4.getCause().getMessage());
     }
 }

@@ -47,8 +47,8 @@ public class FederatedComputeEncryptionKeyDaoUtils {
      * <p>Public for use in unit tests.
      */
     @VisibleForTesting
-    public static OdpEncryptionKeyDao getInstanceForTest(Context context) {
-        return OdpEncryptionKeyDao.getInstance(
-                context, FederatedComputeDbHelper.getInstanceForTest(context));
+    public static OdpEncryptionKeyDao getInstanceForTest(
+            Context context, FederatedComputeDbHelper federatedComputeDbHelper) {
+        return OdpEncryptionKeyDao.getInstance(context, federatedComputeDbHelper);
     }
 }

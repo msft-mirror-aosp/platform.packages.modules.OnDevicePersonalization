@@ -16,7 +16,10 @@
 
 package com.android.ondevicepersonalization.services.sharedlibrary.spe;
 
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID;
 
 import android.app.job.JobParameters;
 
@@ -69,10 +72,17 @@ public final class OdpJobService extends AbstractJobService {
     boolean shouldRescheduleWithLegacyMethod(int jobId) {
         Flags flags = FlagsFactory.getFlags();
 
-        if (jobId == MAINTENANCE_TASK_JOB_ID && !flags.getSpePilotJobEnabled()) {
-            return true;
+        switch (jobId) {
+            case AGGREGATE_ERROR_DATA_REPORTING_JOB_ID:
+                return !flags.getSpeOnAggregateErrorDataReportingJobEnabled();
+            case MAINTENANCE_TASK_JOB_ID:
+                return !flags.getSpePilotJobEnabled();
+            case RESET_DATA_JOB_ID:
+                return !flags.getSpeOnResetDataJobEnabled();
+            case USER_DATA_COLLECTION_ID:
+                return !flags.getSpeOnUserDataCollectionJobEnabled();
+            default:
+                return false;
         }
-
-        return false;
     }
 }

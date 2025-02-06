@@ -274,4 +274,17 @@ public interface Flags extends ModuleSharedFlags {
     default int getFcpCheckpointFileSizeLimit() {
         return FCP_DEFAULT_CHECKPOINT_FILE_SIZE_LIMIT;
     }
+
+    /** Default value for background job sampling logging rate. */
+    int FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE = 10;
+
+    /**
+     * Default value for temp file retention. Ideally temp file should be cleaned up after usage.
+     * It's a safe guard job to clean up orphan temp files.
+     */
+    long DEFAULT_TEMP_FILE_TTL_MILLIS = 2 * 60 * 60 * 1000; // 2 hours
+
+    default long getTempFileTtlMillis() {
+        return DEFAULT_TEMP_FILE_TTL_MILLIS;
+    }
 }

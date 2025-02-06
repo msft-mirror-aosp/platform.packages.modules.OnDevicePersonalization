@@ -61,17 +61,16 @@ public class OdpAuthorizationTokenDao {
         return sSingletonInstance;
     }
 
-    /** Return a test instance with in-memory database. It is for test only. */
+    /**
+     * Return a test instance of the {@link OdpAuthorizationTokenDao} that uses the provided db
+     * helper instance. It is for use in tests only.
+     *
+     * <p>Returns a new instance everytime unlike the regular {@link #getInstance} method.
+     */
     @VisibleForTesting
-    public static OdpAuthorizationTokenDao getInstanceForTest(OdpSQLiteOpenHelper dbHelper) {
-        if (sSingletonInstance == null) {
-            synchronized (OdpAuthorizationTokenDao.class) {
-                if (sSingletonInstance == null) {
-                    sSingletonInstance =
-                            new OdpAuthorizationTokenDao(dbHelper, MonotonicClock.getInstance());
-                }
-            }
-        }
+    public static synchronized OdpAuthorizationTokenDao getInstanceForTest(
+            OdpSQLiteOpenHelper dbHelper) {
+        sSingletonInstance = new OdpAuthorizationTokenDao(dbHelper, MonotonicClock.getInstance());
         return sSingletonInstance;
     }
 

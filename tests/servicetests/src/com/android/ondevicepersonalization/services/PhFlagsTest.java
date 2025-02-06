@@ -35,10 +35,15 @@ import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ENCRYPT
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ENCRYPTION_KEY_URL;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_IS_FEATURE_ENABLED_API_ENABLED;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_MODULE_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_OUTPUT_DATA_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SPE_PILOT_JOB_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_TRUSTED_PARTNER_APPS_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DOWNLOAD_FLOW_DEADLINE_SECONDS;
@@ -83,6 +88,11 @@ import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_PE
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_PLUGIN_PROCESS_RUNNER_ENABLED;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_RENDER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_TRUSTED_PARTNER_APPS_LIST;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS;
@@ -101,6 +111,8 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.util.function.Supplier;
 
 /** Unit tests for {@link com.android.ondevicepersonalization.services.PhFlags} */
 @RunWith(AndroidJUnit4.class)
@@ -597,20 +609,56 @@ public class PhFlagsTest {
 
     @Test
     public void testGetSpePilotJobEnabled() {
-        // read a stable flag value and verify it's equal to the default value.
-        boolean stableValue = FlagsFactory.getFlags().getSpePilotJobEnabled();
-        assertThat(stableValue).isEqualTo(DEFAULT_SPE_PILOT_JOB_ENABLED);
-
-        // override the value in device config.
-        boolean overrideEnabled = !stableValue;
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+        assertSpeFeatureFlags(
+                () -> FlagsFactory.getFlags().getSpePilotJobEnabled(),
                 KEY_ODP_SPE_PILOT_JOB_ENABLED,
-                Boolean.toString(overrideEnabled),
-                /* makeDefault= */ false);
+                DEFAULT_SPE_PILOT_JOB_ENABLED
+        );
+    }
 
-        // the flag value remains stable
-        assertThat(FlagsFactory.getFlags().getSpePilotJobEnabled()).isEqualTo(overrideEnabled);
+    @Test
+    public void testGetSpeOnAggregateErrorDataReportingJobEnabled() {
+        assertSpeFeatureFlags(
+                () -> FlagsFactory.getFlags().getSpeOnAggregateErrorDataReportingJobEnabled(),
+                KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB,
+                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB
+        );
+    }
+
+    @Test
+    public void testGetSpeOnMddJobEnabled() {
+        assertSpeFeatureFlags(
+                () -> FlagsFactory.getFlags().getSpeOnMddJobEnabled(),
+                KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB,
+                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB
+        );
+    }
+
+    @Test
+    public void testGetSpeOnOdpDownloadProcessingJobEnabled() {
+        assertSpeFeatureFlags(
+                () -> FlagsFactory.getFlags().getSpeOnOdpDownloadProcessingJobEnabled(),
+                KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB,
+                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB
+        );
+    }
+
+    @Test
+    public void testGetSpeOnResetDataJobEnabled() {
+        assertSpeFeatureFlags(
+                () -> FlagsFactory.getFlags().getSpeOnResetDataJobEnabled(),
+                KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB,
+                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB
+        );
+    }
+
+    @Test
+    public void testGetSpeOnUserDataCollectionJobEnabled() {
+        assertSpeFeatureFlags(
+                () -> FlagsFactory.getFlags().getSpeOnUserDataCollectionJobEnabled(),
+                KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB,
+                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB
+        );
     }
 
     @Test
@@ -903,5 +951,25 @@ public class PhFlagsTest {
                 /* makeDefault= */ false);
 
         assertThat(FlagsFactory.getFlags().isFeatureEnabledApiEnabled()).isEqualTo(overrideEnabled);
+    }
+
+    private void assertSpeFeatureFlags(
+            Supplier<Boolean> flagSupplier, String flagName, boolean defaultValue) {
+        // Test override value
+        boolean overrideValue = !defaultValue;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                flagName,
+                Boolean.toString(overrideValue),
+                /* makeDefault */ false);
+        assertThat(flagSupplier.get()).isEqualTo(overrideValue);
+
+        // Test default value
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                flagName,
+                Boolean.toString(defaultValue),
+                /* makeDefault */ false);
+        assertThat(flagSupplier.get()).isEqualTo(defaultValue);
     }
 }

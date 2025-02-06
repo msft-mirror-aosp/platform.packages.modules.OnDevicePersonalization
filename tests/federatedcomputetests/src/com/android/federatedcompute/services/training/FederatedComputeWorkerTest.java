@@ -209,17 +209,6 @@ public final class FederatedComputeWorkerTest {
                     .setExampleSelector(
                             ExampleSelector.newBuilder().setCollectionUri(COLLECTION_URI).build())
                     .build();
-    private static final CheckinResult FL_CHECKIN_RESULT =
-            new CheckinResult(
-                    createTempFile("input", ".ckp"),
-                    TrainingTestUtil.createFakeFederatedLearningClientPlan(),
-                    TASK_ASSIGNMENT);
-
-    private static final CheckinResult FA_CHECKIN_RESULT =
-            new CheckinResult(
-                    createTempFile("input", ".ckp"),
-                    TrainingTestUtil.createFederatedAnalyticClientPlan(),
-                    TASK_ASSIGNMENT);
     public static final RejectionInfo RETRY_REJECTION_INFO =
             RejectionInfo.newBuilder()
                     .setRetryWindow(
@@ -316,7 +305,7 @@ public final class FederatedComputeWorkerTest {
                     .build();
     @Mock TrainingConditionsChecker mTrainingConditionsChecker;
     @Mock FederatedComputeJobManager mMockJobManager;
-    private Context mContext;
+    private final Context mContext = ApplicationProvider.getApplicationContext();
     private FederatedComputeWorker mSpyWorker;
     private HttpFederatedProtocol mSpyHttpFederatedProtocol;
     @Mock private ComputationRunner mMockComputationRunner;
@@ -324,6 +313,8 @@ public final class FederatedComputeWorkerTest {
     @Mock private TrainingEventLogger mMockTrainingEventLogger;
     private ResultCallbackHelper mSpyResultCallbackHelper;
     private ExampleStoreServiceProvider mSpyExampleStoreProvider;
+
+    private FederatedComputeDbHelper mTestDbHelper;
     private FederatedTrainingTaskDao mTrainingTaskDao;
 
     @Mock private OdpEncryptionKeyManager mMockKeyManager;
@@ -367,7 +358,6 @@ public final class FederatedComputeWorkerTest {
 
     @Before
     public void setUp() {
-        mContext = ApplicationProvider.getApplicationContext();
         when(ClientErrorLogger.getInstance()).thenReturn(mMockClientErrorLogger);
         mSpyHttpFederatedProtocol =
                 spy(
@@ -379,7 +369,9 @@ public final class FederatedComputeWorkerTest {
                                 mMockTrainingEventLogger));
         mSpyResultCallbackHelper = spy(new ResultCallbackHelper(mContext));
         mSpyExampleStoreProvider = spy(new ExampleStoreServiceProvider());
-        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mContext);
+
+        mTestDbHelper = FederatedComputeDbHelper.getNonSingletonInstanceForTest(mContext);
+        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mTestDbHelper);
         mSpyWorker =
                 spy(
                         new FederatedComputeWorker(
@@ -418,10 +410,9 @@ public final class FederatedComputeWorkerTest {
 
     @After
     public void tearDown() {
-        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
+        mTestDbHelper.getWritableDatabase().close();
+        mTestDbHelper.getReadableDatabase().close();
+        mTestDbHelper.close();
     }
 
     @Test
@@ -565,7 +556,7 @@ public final class FederatedComputeWorkerTest {
         doReturn(FluentFuture.from(immediateFuture(null)))
                 .when(mSpyHttpFederatedProtocol)
                 .reportResult(any(), any(), any());
-        doReturn(immediateFuture(FL_CHECKIN_RESULT))
+        doReturn(immediateFuture(createFLCheckinResult()))
                 .when(mSpyHttpFederatedProtocol)
                 .downloadTaskAssignment(any());
         // When allowing unauthenticated, return 401 UNAUTHENTICATED rejection info and return
@@ -607,7 +598,7 @@ public final class FederatedComputeWorkerTest {
     @Test
     public void testReportResultWithRejection() throws Exception {
         setUpExampleStoreService();
-        setUpIssueCheckin(FA_CHECKIN_RESULT);
+        setUpIssueCheckin(createFACheckinResult());
         doReturn(FluentFuture.from(immediateFuture(RETRY_REJECTION_INFO)))
                 .when(mSpyHttpFederatedProtocol)
                 .reportResult(any(), any(), any());
@@ -641,7 +632,7 @@ public final class FederatedComputeWorkerTest {
     @Test
     public void testReportResultFails_throwsException() throws Exception {
         setUpExampleStoreService();
-        setUpIssueCheckin(FA_CHECKIN_RESULT);
+        setUpIssueCheckin(createFACheckinResult());
         doReturn(
                         FluentFuture.from(
                                 immediateFailedFuture(
@@ -665,7 +656,7 @@ public final class FederatedComputeWorkerTest {
     @Test
     public void testReportResultUnauthenticated_throws() throws Exception {
         setUpExampleStoreService();
-        setUpIssueCheckin(FA_CHECKIN_RESULT);
+        setUpIssueCheckin(createFACheckinResult());
         doReturn(FluentFuture.from(immediateFuture(UNAUTHENTICATED_REJECTION_INFO)))
                 .when(mSpyHttpFederatedProtocol)
                 .reportResult(any(), any(), any());
@@ -689,7 +680,7 @@ public final class FederatedComputeWorkerTest {
     @Test
     public void testReportResultWithUnAuthRejection_success() throws Exception {
         setUpExampleStoreService();
-        setUpIssueCheckin(FL_CHECKIN_RESULT);
+        setUpIssueCheckin(createFLCheckinResult());
         // Return 401 UNAUTHENTICATED rejection info and then return successful checkin result.
         doReturn(FluentFuture.from(immediateFuture(UNAUTHENTICATED_REJECTION_INFO)))
                 .doReturn(FluentFuture.from(immediateFuture(null)))
@@ -724,7 +715,7 @@ public final class FederatedComputeWorkerTest {
     public void testBindToExampleStoreFails_throwsException() throws Exception {
         ArgumentCaptor<ComputationResult> computationResultCaptor =
                 ArgumentCaptor.forClass(ComputationResult.class);
-        setUpHttpFederatedProtocol(FL_CHECKIN_RESULT);
+        setUpHttpFederatedProtocol(createFLCheckinResult());
         // Mock failure bind to ExampleStoreService.
         doReturn(null).when(mSpyExampleStoreProvider).getExampleStoreService(anyString(), any());
 
@@ -749,7 +740,7 @@ public final class FederatedComputeWorkerTest {
     @Test
     public void testRunFAComputationReturnsFailResult() throws Exception {
         setUpExampleStoreService();
-        setUpHttpFederatedProtocol(FA_CHECKIN_RESULT);
+        setUpHttpFederatedProtocol(createFACheckinResult());
 
         // Mock return failed runner result from native fcp client.
         when(mMockComputationRunner.runTaskWithNativeRunner(
@@ -794,7 +785,7 @@ public final class FederatedComputeWorkerTest {
     @Test
     public void testRunFAComputationThrows() throws Exception {
         setUpExampleStoreService();
-        setUpHttpFederatedProtocol(FA_CHECKIN_RESULT);
+        setUpHttpFederatedProtocol(createFACheckinResult());
         //        setUpReportFailureToServerCallback();
         doReturn(FluentFuture.from(immediateFuture(null)))
                 .when(mSpyHttpFederatedProtocol)
@@ -834,7 +825,7 @@ public final class FederatedComputeWorkerTest {
     @Test
     public void testPublishToResultHandlingServiceFails_returnsSuccess() throws Exception {
         setUpExampleStoreService();
-        setUpHttpFederatedProtocol(FA_CHECKIN_RESULT);
+        setUpHttpFederatedProtocol(createFACheckinResult());
 
         // Mock publish to ResultHandlingService fails which is best effort and should not affect
         // final result.
@@ -861,7 +852,7 @@ public final class FederatedComputeWorkerTest {
     public void testPublishToResultHandlingServiceThrowsException_returnsSuccess()
             throws Exception {
         setUpExampleStoreService();
-        setUpHttpFederatedProtocol(FA_CHECKIN_RESULT);
+        setUpHttpFederatedProtocol(createFACheckinResult());
 
         // Mock publish to ResultHandlingService throws exception which is best effort and should
         // not affect final result.
@@ -899,7 +890,7 @@ public final class FederatedComputeWorkerTest {
     @Test
     public void testRunFAComputation_returnsSuccess() throws Exception {
         setUpExampleStoreService();
-        setUpHttpFederatedProtocol(FA_CHECKIN_RESULT);
+        setUpHttpFederatedProtocol(createFACheckinResult());
 
         FLRunnerResult result =
                 mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get();
@@ -913,7 +904,7 @@ public final class FederatedComputeWorkerTest {
 
     @Test
     public void testBindToIsolatedTrainingServiceFail_returnsFail() throws Exception {
-        setUpHttpFederatedProtocol(FL_CHECKIN_RESULT);
+        setUpHttpFederatedProtocol(createFLCheckinResult());
         setUpExampleStoreService();
 
         // Mock failure bind to IsolatedTrainingService.
@@ -991,7 +982,7 @@ public final class FederatedComputeWorkerTest {
     @Test
     public void testRunFLComputation_returnsSuccess() throws Exception {
         setUpExampleStoreService();
-        setUpHttpFederatedProtocol(FL_CHECKIN_RESULT);
+        setUpHttpFederatedProtocol(createFLCheckinResult());
 
         // Mock bind to IsolatedTrainingService.
         doReturn(new FakeIsolatedTrainingService()).when(mSpyWorker).getIsolatedTrainingService();
@@ -1082,7 +1073,7 @@ public final class FederatedComputeWorkerTest {
         // verify insert task history success.
         assertThat(storedHistory.getContributionRound()).isEqualTo(9);
         setUpExampleStoreService();
-        setUpIssueCheckin(FL_CHECKIN_RESULT);
+        setUpIssueCheckin(createFLCheckinResult());
         ArgumentCaptor<ComputationResult> captor = ArgumentCaptor.forClass(ComputationResult.class);
         doReturn(FluentFuture.from(immediateFuture(null)))
                 .when(mSpyHttpFederatedProtocol)
@@ -1109,7 +1100,7 @@ public final class FederatedComputeWorkerTest {
                         .setContributionTime(20L)
                         .build());
         setUpExampleStoreService();
-        setUpHttpFederatedProtocol(FL_CHECKIN_RESULT);
+        setUpHttpFederatedProtocol(createFLCheckinResult());
 
         // Mock bind to IsolatedTrainingService.
         doReturn(new FakeIsolatedTrainingService()).when(mSpyWorker).getIsolatedTrainingService();
@@ -1123,7 +1114,7 @@ public final class FederatedComputeWorkerTest {
 
     @Test
     public void testRunFLComputation_noKey_throws() throws Exception {
-        setUpHttpFederatedProtocol(FL_CHECKIN_RESULT);
+        setUpHttpFederatedProtocol(createFLCheckinResult());
         doReturn(new ArrayList<OdpEncryptionKey>() {})
                 .when(mMockKeyManager)
                 .getOrFetchActiveKeys(anyInt(), anyInt(), any());
@@ -1164,6 +1155,20 @@ public final class FederatedComputeWorkerTest {
         doNothing().when(mSpyWorker).reportFailureResultToServer(any(), any(), any());
     }
 
+    private CheckinResult createFLCheckinResult() {
+        return new CheckinResult(
+                createTempFile("input", ".ckp"),
+                TrainingTestUtil.createFakeFederatedLearningClientPlan(),
+                TASK_ASSIGNMENT);
+    }
+
+    private CheckinResult createFACheckinResult() {
+        return new CheckinResult(
+                createTempFile("input", ".ckp"),
+                TrainingTestUtil.createFederatedAnalyticClientPlan(),
+                TASK_ASSIGNMENT);
+    }
+
     private static class TestExampleStoreService extends IExampleStoreService.Stub {
         @Override
         public void startQuery(Bundle params, IExampleStoreCallback callback)
@@ -1178,7 +1183,7 @@ public final class FederatedComputeWorkerTest {
         }
     }
 
-    class TestInjector extends FederatedComputeWorker.Injector {
+    private class TestInjector extends FederatedComputeWorker.Injector {
         @Override
         ExampleConsumptionRecorder getExampleConsumptionRecorder() {
             return new ExampleConsumptionRecorder() {
@@ -1205,13 +1210,12 @@ public final class FederatedComputeWorkerTest {
         AuthorizationContext createAuthContext(
                 Context context,
                 String ownerId,
-                String owerCert,
+                String ownerCert,
                 TrainingEventLogger trainingEventLogger) {
             return new AuthorizationContext(
                     ownerId,
-                    owerCert,
-                    OdpAuthorizationTokenDao.getInstanceForTest(
-                            FederatedComputeDbHelper.getInstanceForTest(context)),
+                    ownerCert,
+                    OdpAuthorizationTokenDao.getInstanceForTest(mTestDbHelper),
                     mMockKeyAttestation,
                     MonotonicClock.getInstance(),
                     mMockTrainingEventLogger);

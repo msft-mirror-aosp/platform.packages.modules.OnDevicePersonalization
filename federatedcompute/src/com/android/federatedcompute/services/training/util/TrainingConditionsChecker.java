@@ -25,7 +25,7 @@ import android.os.StatFs;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.BatteryInfo;
 import com.android.federatedcompute.services.common.Flags;
-import com.android.federatedcompute.services.common.PhFlags;
+import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.Clock;
@@ -78,7 +78,7 @@ public class TrainingConditionsChecker {
         if (sSingletonInstance == null) {
             synchronized (TrainingConditionsChecker.class) {
                 if (sSingletonInstance == null) {
-                    Flags flags = PhFlags.getInstance();
+                    Flags flags = FlagsFactory.getFlags();
                     sSingletonInstance =
                             new TrainingConditionsChecker(
                                     new BatteryInfo(context.getApplicationContext(), flags),

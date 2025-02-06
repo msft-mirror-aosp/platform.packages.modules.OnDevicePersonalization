@@ -18,6 +18,7 @@ package com.android.federatedcompute.services.scheduling;
 
 import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SUCCESSFUL;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
+import static com.android.odp.module.common.FileUtils.createTempFile;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -73,7 +74,9 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
+import java.io.File;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.UUID;
 
 @MockStatic(FlagsFactory.class)
@@ -94,8 +97,6 @@ public class DeleteExpiredJobServiceTest {
     private static final Duration THREAD_SLEEP = Duration.ofSeconds(5);
 
     private static final Context sContext = ApplicationProvider.getApplicationContext();
-    private static final FederatedComputeDbHelper sTestDbHelper =
-            FederatedComputeDbHelper.getInstanceForTest(sContext);
 
     private static final String TEST_EXPIRED_TOKEN1 = "expired1";
     private static final String TEST_EXPIRED_TOKEN2 = "expired3";
@@ -106,14 +107,18 @@ public class DeleteExpiredJobServiceTest {
     private DeleteExpiredJobService mSpyService;
 
     private OdpAuthorizationTokenDao mSpyAuthTokenDao;
+
+    private FederatedComputeDbHelper mTestDbHelper;
     private FederatedTrainingTaskDao mTrainingTaskDao;
 
     private JobScheduler mJobScheduler;
     @Mock private Clock mClock;
     @Mock private Flags mMockFlag;
+    private Context mContext;
 
     @Before
     public void setUp() throws Exception {
+        mContext = ApplicationProvider.getApplicationContext();
         doReturn(mMockFlag).when(FlagsFactory::getFlags);
         when(mMockFlag.getGlobalKillSwitch()).thenReturn(false);
 
@@ -124,13 +129,11 @@ public class DeleteExpiredJobServiceTest {
         when(mMockFlag.getTaskHistoryTtl()).thenReturn(TEST_TTL);
 
         LogUtil.i(TAG, "mSpyAuthTokenDao " + mSpyAuthTokenDao);
-        mSpyAuthTokenDao =
-                spy(
-                        OdpAuthorizationTokenDao.getInstanceForTest(
-                                FederatedComputeDbHelper.getInstanceForTest(sContext)));
+        mTestDbHelper = FederatedComputeDbHelper.getNonSingletonInstanceForTest(sContext);
+        mSpyAuthTokenDao = spy(OdpAuthorizationTokenDao.getInstanceForTest(mTestDbHelper));
         clearTokenDao(mSpyAuthTokenDao);
 
-        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(sContext);
+        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mTestDbHelper);
         // Force delete any existing data in the dao
         mTrainingTaskDao.deleteExpiredTaskHistory(/* deleteTime= */ Long.MAX_VALUE);
         mSpyService = spy(new DeleteExpiredJobService(new TestInjector()));
@@ -142,9 +145,9 @@ public class DeleteExpiredJobServiceTest {
 
     @After
     public void tearDown() {
-        sTestDbHelper.getWritableDatabase().close();
-        sTestDbHelper.getReadableDatabase().close();
-        sTestDbHelper.close();
+        mTestDbHelper.getWritableDatabase().close();
+        mTestDbHelper.getReadableDatabase().close();
+        mTestDbHelper.close();
     }
 
     @Test
@@ -166,7 +169,7 @@ public class DeleteExpiredJobServiceTest {
         verify(mSpyService).jobFinished(any(), eq(false));
         assertThat(
                         DatabaseUtils.queryNumEntries(
-                                sTestDbHelper.getReadableDatabase(),
+                                mTestDbHelper.getReadableDatabase(),
                                 OdpAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
                 .isEqualTo(1);
     }
@@ -188,7 +191,7 @@ public class DeleteExpiredJobServiceTest {
         verify(mSpyAuthTokenDao).deleteExpiredAuthorizationTokens();
         assertThat(
                         DatabaseUtils.queryNumEntries(
-                                sTestDbHelper.getReadableDatabase(),
+                                mTestDbHelper.getReadableDatabase(),
                                 OdpAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
                 .isEqualTo(3);
     }
@@ -198,7 +201,7 @@ public class DeleteExpiredJobServiceTest {
         // Ensure the task history table is empty prior to the test.
         assertThat(
                         DatabaseUtils.queryNumEntries(
-                                sTestDbHelper.getReadableDatabase(),
+                                mTestDbHelper.getReadableDatabase(),
                                 TaskHistoryContract.TaskHistoryEntry.TABLE_NAME))
                 .isEqualTo(0);
         // record1 is expired because its contribution time (100) < TEST_CURRENT_TIME (400) -
@@ -286,6 +289,53 @@ public class DeleteExpiredJobServiceTest {
                                 FederatedComputeDbHelper.getInstance(sContext)));
     }
 
+    @Test
+    public void deleteCacheDirectory_success() throws Exception {
+        when(mMockFlag.getTempFileTtlMillis()).thenReturn(0L);
+        createTempFile("input", ".ckp");
+        createTempFile("output", ".ckp");
+        // Verify cache directory has created files.
+        long matchFileCount =
+                Arrays.stream(mContext.getCacheDir().listFiles())
+                        .filter(f -> mSpyService.isFileMatched(f.getName()))
+                        .count();
+        assertThat(matchFileCount).isEqualTo(2);
+
+        mSpyService.onStartJob(mock(JobParameters.class));
+
+        Thread.sleep(THREAD_SLEEP.toMillis());
+        verify(mSpyService).jobFinished(any(), eq(false));
+
+        // Verify cache directory is empty after deletion job.
+        File[] files = mContext.getCacheDir().listFiles();
+        matchFileCount =
+                Arrays.stream(mContext.getCacheDir().listFiles())
+                        .filter(f -> mSpyService.isFileMatched(f.getName()))
+                        .count();
+        assertThat(matchFileCount).isEqualTo(0);
+    }
+
+    @Test
+    public void deleteCacheDirectory_fileNotMatch() throws Exception {
+        when(mMockFlag.getTempFileTtlMillis()).thenReturn(0L);
+        createTempFile("metadata", ".ckp");
+        assertThat(mContext.getCacheDir().listFiles()).isNotEmpty();
+
+        mSpyService.onStartJob(mock(JobParameters.class));
+
+        Thread.sleep(THREAD_SLEEP.toMillis());
+        verify(mSpyService).jobFinished(any(), eq(false));
+
+        // Verify cache directory is empty after deletion job.
+        File[] files = mContext.getCacheDir().listFiles();
+        long matchFileCount =
+                Arrays.stream(mContext.getCacheDir().listFiles())
+                        .filter(f -> mSpyService.isFileMatched(f.getName()))
+                        .count();
+        assertThat(files.length).isAtLeast(1);
+        assertThat(matchFileCount).isEqualTo(0);
+    }
+
     private static void clearTokenDao(OdpAuthorizationTokenDao tokenDao) {
         // Force clear any existing auth tokens before tests
 
@@ -338,6 +388,11 @@ public class DeleteExpiredJobServiceTest {
         }
 
         @Override
+        File getCacheDir(Context context) {
+            return mContext.getCacheDir();
+        }
+
+        @Override
         Clock getClock() {
             return mClock;
         }
@@ -345,6 +400,11 @@ public class DeleteExpiredJobServiceTest {
         @Override
         Flags getFlags() {
             return mMockFlag;
+        }
+
+        @Override
+        long getMinimumTempFileTtlMillis() {
+            return 0;
         }
     }
 }

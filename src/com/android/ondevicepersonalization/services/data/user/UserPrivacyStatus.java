@@ -39,7 +39,7 @@ import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.StableFlags;
-import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
+import com.android.ondevicepersonalization.services.reset.ResetDataJob;
 import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientErrorLogger;
 import com.android.ondevicepersonalization.services.util.DebugUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
@@ -251,7 +251,7 @@ public final class UserPrivacyStatus {
 
     private void handleResetIfNeeded() {
         if (isMeasurementReset() || isProtectedAudienceReset()) {
-            ResetDataJobService.schedule();
+            ResetDataJob.schedule(OnDevicePersonalizationApplication.getAppContext());
         }
     }
 
