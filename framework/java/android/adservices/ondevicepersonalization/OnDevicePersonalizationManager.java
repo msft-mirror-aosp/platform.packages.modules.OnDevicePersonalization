@@ -100,20 +100,14 @@ public class OnDevicePersonalizationManager {
     @Retention(SOURCE)
     @IntDef({FEATURE_ENABLED, FEATURE_DISABLED, FEATURE_UNSUPPORTED})
     public @interface FeatureStatus {}
-    /** Indicates that a feature is present and enabled on the device.
-     * @hide
-     */
+    /** Indicates that a feature is present and enabled on the device.  */
     @FlaggedApi(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public static final int FEATURE_ENABLED = 0;
-    /** Indicates that a feature is present but disabled on the device.
-     * @hide
-     */
+    /** Indicates that a feature is present but disabled on the device.  */
     @FlaggedApi(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public static final int FEATURE_DISABLED = 1;
 
-    /** Indicates that a feature is not supported on the device.
-     * @hide
-     */
+    /** Indicates that a feature is not supported on the device. */
     @FlaggedApi(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public static final int FEATURE_UNSUPPORTED = 2;
 
@@ -654,7 +648,6 @@ public class OnDevicePersonalizationManager {
      * @param receiver this either returns a value of {@code FeatureStatus}
      *                 on success or {@link Exception} on failure.  The exception type is
      *                 {@link IllegalStateException} if the service is not available.
-     * @hide
      */
     @FlaggedApi(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public void queryFeatureAvailability(

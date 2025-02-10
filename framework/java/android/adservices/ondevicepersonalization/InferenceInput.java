@@ -112,9 +112,7 @@ public final class InferenceInput {
         /** The model is a tensorflow lite model. */
         public static final int MODEL_TYPE_TENSORFLOW_LITE = 1;
 
-        /** The model is an executorch model.
-         * @hide
-         */
+        /** The model is an executorch model. */
         @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
         public static final int MODEL_TYPE_EXECUTORCH = 2;
 
@@ -381,7 +379,6 @@ public final class InferenceInput {
      * }</pre>
      *
      * <p>For Executorch model, this field is a serialized EValue array.
-     * @hide
      */
     @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
     public @NonNull byte[] getData() {
@@ -540,7 +537,6 @@ public final class InferenceInput {
          *
          * @param params configuration that controls runtime interpreter behavior.
          * @param inputData byte array that holds serialized input data.
-         * @hide
          */
         @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
         public Builder(@NonNull Params params, @NonNull byte[] inputData) {
@@ -570,8 +566,6 @@ public final class InferenceInput {
          * }</pre>
          *
          * <p>For Executorch model, this field is a serialized EValue array.
-         *
-         * @hide
          */
         @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
         public @NonNull Builder setInputData(@NonNull byte[] value) {

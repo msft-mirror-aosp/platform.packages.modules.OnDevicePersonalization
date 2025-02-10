@@ -19,6 +19,7 @@ package android.adservices.ondevicepersonalization;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeCallback;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
+import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.WorkerThread;
@@ -30,6 +31,7 @@ import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -132,6 +134,7 @@ public class FederatedComputeScheduler {
      * the {@link IsolatedWorker}.
      *
      * @param federatedComputeScheduleRequest input parameters related to job scheduling.
+     * @param executor the {@link Executor} on which to invoke the callback.
      * @param outcomeReceiver This either returns a {@link FederatedComputeScheduleResponse} on
      *     success, or {@link Exception} on failure. The exception type is {@link
      *     OnDevicePersonalizationException} with error code {@link
@@ -139,21 +142,23 @@ public class FederatedComputeScheduler {
      *     missing the federated compute server URL or {@link
      *     OnDevicePersonalizationException#ERROR_SCHEDULE_TRAINING_FAILED} when scheduling fails
      *     for other reasons.
-     * @hide
      */
     @WorkerThread
     @FlaggedApi(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
     public void schedule(
             @NonNull FederatedComputeScheduleRequest federatedComputeScheduleRequest,
+            @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<FederatedComputeScheduleResponse, Exception> outcomeReceiver) {
         if (mFcService == null) {
             logApiCallStats(
                     Constants.API_NAME_FEDERATED_COMPUTE_SCHEDULE,
                     0,
                     Constants.STATUS_INTERNAL_ERROR);
-            outcomeReceiver.onError(
-                    new IllegalStateException(
-                            "FederatedComputeScheduler not available for this instance."));
+            executor.execute(
+                    () -> {
+                        outcomeReceiver.onError(new IllegalStateException(
+                                "FederatedComputeScheduler not available for this instance."));
+                    });
         }
 
         final long startTimeMillis = System.currentTimeMillis();
@@ -176,9 +181,12 @@ public class FederatedComputeScheduler {
                                     Constants.API_NAME_FEDERATED_COMPUTE_SCHEDULE,
                                     System.currentTimeMillis() - startTimeMillis,
                                     Constants.STATUS_SUCCESS);
-                            outcomeReceiver.onResult(
-                                    new FederatedComputeScheduleResponse(
-                                            federatedComputeScheduleRequest));
+                            executor.execute(
+                                    () -> {
+                                        outcomeReceiver.onResult(
+                                                new FederatedComputeScheduleResponse(
+                                                        federatedComputeScheduleRequest));
+                                    });
                         }
 
                         @Override
@@ -187,9 +195,12 @@ public class FederatedComputeScheduler {
                                     Constants.API_NAME_FEDERATED_COMPUTE_SCHEDULE,
                                     System.currentTimeMillis() - startTimeMillis,
                                     errorCode);
-                            outcomeReceiver.onError(
-                                    new OnDevicePersonalizationException(
-                                            translateErrorCode(errorCode)));
+                            executor.execute(
+                                    () -> {
+                                        outcomeReceiver.onError(
+                                                new OnDevicePersonalizationException(
+                                                        translateErrorCode(errorCode)));
+                                    });
                         }
                     });
         } catch (RemoteException e) {
@@ -198,7 +209,10 @@ public class FederatedComputeScheduler {
                     Constants.API_NAME_FEDERATED_COMPUTE_SCHEDULE,
                     System.currentTimeMillis() - startTimeMillis,
                     Constants.STATUS_REMOTE_EXCEPTION);
-            outcomeReceiver.onError(e);
+            executor.execute(
+                    () -> {
+                        outcomeReceiver.onError(e);
+                    });
         }
     }
 
