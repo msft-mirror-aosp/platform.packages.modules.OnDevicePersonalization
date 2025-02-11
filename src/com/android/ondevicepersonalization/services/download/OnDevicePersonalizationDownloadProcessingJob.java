@@ -32,7 +32,6 @@ import com.android.adservices.shared.spe.scheduling.BackoffPolicy;
 import com.android.adservices.shared.spe.scheduling.JobSpec;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
@@ -95,7 +94,7 @@ public final class OnDevicePersonalizationDownloadProcessingJob implements JobWo
                     // Manually trigger MDD garbage collection after finishing processing all
                     // downloads.
                     MobileDataDownload mdd = MobileDataDownloadFactory.getMdd(context);
-                    mdd.collectGarbage();
+                    var unused = mdd.collectGarbage();
 
                     return allSuccess ? ExecutionResult.SUCCESS
                             : ExecutionResult.FAILURE_WITHOUT_RETRY;
@@ -144,8 +143,6 @@ public final class OnDevicePersonalizationDownloadProcessingJob implements JobWo
 
     @VisibleForTesting
     static JobSpec createDefaultJobSpec() {
-        Flags flags = FlagsFactory.getFlags();
-
         JobPolicy jobPolicy =
                 JobPolicy.newBuilder()
                         .setJobId(DOWNLOAD_PROCESSING_TASK_JOB_ID)
