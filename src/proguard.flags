@@ -1,4 +1,7 @@
--keep class com.android.ondevicepersonalization.services.process.OnDevicePersonalizationPlugin
+# TODO(b/373579455): Evaluate if <init> needs to be kept.
+-keep class com.android.ondevicepersonalization.services.process.OnDevicePersonalizationPlugin {
+    void <init>();
+}
 
 -keep class org.apache.velocity.runtime.** {
     <init>(...);
