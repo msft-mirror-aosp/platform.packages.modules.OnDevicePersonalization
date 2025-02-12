@@ -21,6 +21,7 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.doAnswer;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doNothing;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID;
@@ -191,6 +192,14 @@ public final class OdpJobServiceTest {
                 mMockFlags::getSpeOnUserDataCollectionJobEnabled);
     }
 
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_odpDownloadProcessingJobDisabled() {
+        assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
+                DOWNLOAD_PROCESSING_TASK_JOB_ID,
+                /* jobName */ "OnDevicePersonalizationDownloadProcessingJob",
+                mMockFlags::getSpeOnOdpDownloadProcessingJobEnabled);
+    }
+
     private void assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
             int jobId, String jobName, Supplier<Boolean> speJobEnabledFlagSupplier) {
         when(speJobEnabledFlagSupplier.get()).thenReturn(false);
@@ -242,6 +251,16 @@ public final class OdpJobServiceTest {
                 mMockFlags::getSpeOnUserDataCollectionJobEnabled);
     }
 
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_downloadProcessEnabled_notConfiguredJobId() {
+        int invalidJobId = -1;
+
+        assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
+                invalidJobId,
+                /* jobName */ "OnDevicePersonalizationDownloadProcessingJob",
+                mMockFlags::getSpeOnOdpDownloadProcessingJobEnabled);
+    }
+
     private void assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
             int jobId, String jobName, Supplier<Boolean> speJobEnabledFlagSupplier) {
         when(speJobEnabledFlagSupplier.get()).thenReturn(true);
@@ -283,6 +302,14 @@ public final class OdpJobServiceTest {
                 USER_DATA_COLLECTION_ID,
                 /* jobName */ "UserDataCollectionJob",
                 mMockFlags::getSpeOnUserDataCollectionJobEnabled);
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_odpDownloadProcessingJobEnabled() {
+        assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(
+                DOWNLOAD_PROCESSING_TASK_JOB_ID,
+                /* jobName */ "OnDevicePersonalizationDownloadProcessingJob",
+                mMockFlags::getSpeOnOdpDownloadProcessingJobEnabled);
     }
 
     private void assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(

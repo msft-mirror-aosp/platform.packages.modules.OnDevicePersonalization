@@ -16,8 +16,11 @@
 
 package com.android.ondevicepersonalization.services.download;
 
-import static android.app.job.JobScheduler.RESULT_FAILURE;
-import static android.app.job.JobScheduler.RESULT_SUCCESS;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SKIPPED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SUCCESSFUL;
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
+
+import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -27,7 +30,6 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -39,14 +41,15 @@ import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
+import com.android.ondevicepersonalization.services.sharedlibrary.spe.OdpJobScheduler;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -66,8 +69,13 @@ public class OnDevicePersonalizationDownloadProcessingJobServiceTests {
 
     static class TestFlags implements Flags {
         boolean mGlobalKillSwitch = false;
+        boolean mSpeOnOdpDownloadProcessingJobEnabled = false;
         @Override public boolean getGlobalKillSwitch() {
             return mGlobalKillSwitch;
+        }
+
+        @Override public boolean getSpeOnOdpDownloadProcessingJobEnabled() {
+            return mSpeOnOdpDownloadProcessingJobEnabled;
         }
     }
 
@@ -85,7 +93,9 @@ public class OnDevicePersonalizationDownloadProcessingJobServiceTests {
     @Before
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
-        ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
+        doReturn(mSpyFlags).when(FlagsFactory::getFlags);
+        mSpyFlags.mGlobalKillSwitch = false;
+        mSpyFlags.mSpeOnOdpDownloadProcessingJobEnabled = false;
         // Use direct executor to keep all work sequential for the tests
         ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
         MobileDataDownloadFactory.getMdd(mContext, executorService, executorService);
@@ -113,9 +123,9 @@ public class OnDevicePersonalizationDownloadProcessingJobServiceTests {
                 })
                 .when(mSpyService).jobFinished(any(), anyBoolean());
         doReturn(mContext.getPackageManager()).when(mSpyService).getPackageManager();
-        ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
+        doReturn(MoreExecutors.newDirectExecutorService()).when(
                 OnDevicePersonalizationExecutors::getBackgroundExecutor);
-        ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
+        doReturn(MoreExecutors.newDirectExecutorService()).when(
                 OnDevicePersonalizationExecutors::getLightweightExecutor);
 
         boolean result = mSpyService.onStartJob(mock(JobParameters.class));
@@ -136,19 +146,36 @@ public class OnDevicePersonalizationDownloadProcessingJobServiceTests {
     }
 
     @Test
+    @MockStatic(OdpJobScheduler.class)
+    @MockStatic(FlagsFactory.class)
+    public void onStartJobTestSpeEnabled() {
+        mSpyFlags.mSpeOnOdpDownloadProcessingJobEnabled = true;
+
+        // Mock OdpJobScheduler to not actually schedule the job.
+        OdpJobScheduler mockedScheduler = mock(OdpJobScheduler.class);
+        doReturn(mockedScheduler).when(() -> OdpJobScheduler.getInstance(any()));
+
+        assertThat(mSpyService.onStartJob(mock(JobParameters.class))).isFalse();
+
+        // Verify SPE scheduler has rescheduled the job.
+        verify(mockedScheduler).schedule(any(), any());
+    }
+
+    @Test
     public void onStopJobTest() {
         assertTrue(mSpyService.onStopJob(mock(JobParameters.class)));
     }
 
-
     @Test
     public void testSuccessfulScheduling() {
         JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
-        assertEquals(RESULT_SUCCESS,
-                OnDevicePersonalizationDownloadProcessingJobService.schedule(mContext));
+        assertEquals(SCHEDULING_RESULT_CODE_SUCCESSFUL,
+                OnDevicePersonalizationDownloadProcessingJobService
+                        .schedule(mContext, /* forceSchedule */ false));
         assertTrue(jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID) != null);
-        assertEquals(RESULT_FAILURE,
-                OnDevicePersonalizationDownloadProcessingJobService.schedule(mContext));
+        assertEquals(SCHEDULING_RESULT_CODE_SKIPPED,
+                OnDevicePersonalizationDownloadProcessingJobService
+                        .schedule(mContext, /* forceSchedule */ false));
     }
 }

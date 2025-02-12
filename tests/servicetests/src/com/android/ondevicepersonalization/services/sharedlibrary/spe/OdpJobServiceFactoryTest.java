@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.sharedlibrary.spe;
 
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID;
@@ -38,6 +39,8 @@ import com.android.ondevicepersonalization.services.data.errors.AggregateErrorDa
 import com.android.ondevicepersonalization.services.data.errors.AggregateErrorDataReportingService;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJob;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
+import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJob;
+import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 import com.android.ondevicepersonalization.services.reset.ResetDataJob;
@@ -58,6 +61,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 /** Unit tests for {@link OdpJobServiceFactory}. */
+@MockStatic(OnDevicePersonalizationDownloadProcessingJobService.class)
 @MockStatic(OnDevicePersonalizationMaintenanceJobService.class)
 @MockStatic(AggregateErrorDataReportingService.class)
 @MockStatic(ResetDataJobService.class)
@@ -137,6 +141,14 @@ public final class OdpJobServiceFactoryTest {
     }
 
     @Test
+    public void testGetJobInstance_odpDownloadProcessingJob() {
+        expect.withMessage(
+                "getJobWorkerInstance() for OnDevicePersonalizationDownloadProcessingJob")
+                .that(mFactory.getJobWorkerInstance(DOWNLOAD_PROCESSING_TASK_JOB_ID))
+                .isInstanceOf(OnDevicePersonalizationDownloadProcessingJob.class);
+    }
+
+    @Test
     public void testRescheduleJobWithLegacyMethod_notConfiguredJob() {
         int notConfiguredJobId = -1;
 
@@ -171,6 +183,13 @@ public final class OdpJobServiceFactoryTest {
     public void testRescheduleJobWithLegacyMethod_userDataCollectionJobService() {
         mFactory.rescheduleJobWithLegacyMethod(sContext, USER_DATA_COLLECTION_ID);
         verify(() -> UserDataCollectionJobService.schedule(sContext, /* forceSchedule */ true));
+    }
+
+    @Test
+    public void testRescheduleJobWithLegacyMethod_odpDownloadProcessingJobService() {
+        mFactory.rescheduleJobWithLegacyMethod(sContext, DOWNLOAD_PROCESSING_TASK_JOB_ID);
+        verify(() -> OnDevicePersonalizationDownloadProcessingJobService
+                .schedule(sContext, /* forceSchedule */ true));
     }
 
     @Test

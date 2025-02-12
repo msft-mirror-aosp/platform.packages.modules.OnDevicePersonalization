@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.download.mdd;
 
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.download.mdd.MddTaskScheduler.MDD_TASK_TAG_KEY;
@@ -31,9 +32,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.app.job.JobInfo;
@@ -50,6 +51,7 @@ import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJob;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -76,6 +78,7 @@ public class MddJobServiceTest {
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
             .spyStatic(UserPrivacyStatus.class)
+            .spyStatic(OnDevicePersonalizationDownloadProcessingJob.class)
             .spyStatic(OnDevicePersonalizationExecutors.class)
             .setStrictness(Strictness.LENIENT)
             .build();
@@ -132,6 +135,7 @@ public class MddJobServiceTest {
         Thread.sleep(5000);
         verify(mSpyService, times(1)).jobFinished(any(), eq(false));
         verify(mMockJobScheduler, times(1)).schedule(any());
+        verify(() -> OnDevicePersonalizationDownloadProcessingJob.schedule(any()));
     }
 
     @Test
@@ -161,6 +165,7 @@ public class MddJobServiceTest {
         assertTrue(result);
         verify(mSpyService, times(1)).jobFinished(any(), eq(false));
         verify(mMockJobScheduler, times(0)).schedule(any());
+        verify(() -> OnDevicePersonalizationDownloadProcessingJob.schedule(any()), never());
         assertTrue(mJobScheduler.getPendingJob(MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID) == null);
     }
 
@@ -194,6 +199,7 @@ public class MddJobServiceTest {
         Thread.sleep(2000);
         verify(mSpyService, times(1)).jobFinished(any(), eq(false));
         verify(mMockJobScheduler, times(0)).schedule(any());
+        verify(() -> OnDevicePersonalizationDownloadProcessingJob.schedule(any()), never());
     }
 
     @Test

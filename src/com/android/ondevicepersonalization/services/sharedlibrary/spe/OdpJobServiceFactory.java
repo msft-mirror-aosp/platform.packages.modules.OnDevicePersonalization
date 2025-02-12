@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.sharedlibrary.spe;
 
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.JOB_ID_TO_NAME_MAP;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
@@ -40,6 +41,8 @@ import com.android.ondevicepersonalization.services.data.errors.AggregateErrorDa
 import com.android.ondevicepersonalization.services.data.errors.AggregateErrorDataReportingService;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJob;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
+import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJob;
+import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 import com.android.ondevicepersonalization.services.reset.ResetDataJob;
@@ -142,6 +145,8 @@ public final class OdpJobServiceFactory implements JobServiceFactory {
             switch (jobId) {
                 case AGGREGATE_ERROR_DATA_REPORTING_JOB_ID:
                     return new AggregateErrorDataReportingJob();
+                case DOWNLOAD_PROCESSING_TASK_JOB_ID:
+                    return new OnDevicePersonalizationDownloadProcessingJob();
                 case MAINTENANCE_TASK_JOB_ID:
                     return new OnDevicePersonalizationMaintenanceJob();
                 case RESET_DATA_JOB_ID:
@@ -192,6 +197,10 @@ public final class OdpJobServiceFactory implements JobServiceFactory {
             switch (jobId) {
                 case AGGREGATE_ERROR_DATA_REPORTING_JOB_ID:
                     AggregateErrorDataReportingService.scheduleIfNeeded(context, forceSchedule);
+                    return;
+                case DOWNLOAD_PROCESSING_TASK_JOB_ID:
+                    OnDevicePersonalizationDownloadProcessingJobService
+                            .schedule(context, forceSchedule);
                     return;
                 case MAINTENANCE_TASK_JOB_ID:
                     OnDevicePersonalizationMaintenanceJobService.schedule(context, forceSchedule);

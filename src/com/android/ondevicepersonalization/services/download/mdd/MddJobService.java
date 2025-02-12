@@ -33,7 +33,7 @@ import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
-import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService;
+import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJob;
 import com.android.ondevicepersonalization.services.statsd.joblogging.OdpJobServiceLogger;
 
 import com.google.android.libraries.mobiledatadownload.tracing.PropagatedFutures;
@@ -129,7 +129,7 @@ public class MddJobService extends JobService {
     private void handleSuccess(int jobId, JobParameters params) {
         sLogger.d(TAG + ": MddJobService.MddHandleTask succeeded!");
         if (WIFI_CHARGING_PERIODIC_TASK.equals(mMddTaskTag)) {
-            OnDevicePersonalizationDownloadProcessingJobService.schedule(this);
+            OnDevicePersonalizationDownloadProcessingJob.schedule(/* context */ this);
         }
         recordJobFinished(jobId, true);
         jobFinished(params, false);
@@ -151,7 +151,7 @@ public class MddJobService extends JobService {
     public boolean onStopJob(JobParameters params) {
         // Attempt to process any data downloaded before the worker was stopped.
         if (WIFI_CHARGING_PERIODIC_TASK.equals(mMddTaskTag)) {
-            OnDevicePersonalizationDownloadProcessingJobService.schedule(this);
+            OnDevicePersonalizationDownloadProcessingJob.schedule(/* context */ this);
         }
         // Reschedule the job since it ended before finishing
         boolean wantsReschedule = true;
