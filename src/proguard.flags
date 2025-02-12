@@ -1,4 +1,7 @@
--keep class com.android.ondevicepersonalization.services.process.OnDevicePersonalizationPlugin
+# TODO(b/373579455): Evaluate if <init> needs to be kept.
+-keep class com.android.ondevicepersonalization.services.process.OnDevicePersonalizationPlugin {
+    void <init>();
+}
 
 -keep class org.apache.velocity.runtime.** {
     <init>(...);
@@ -6,15 +9,4 @@
 
 -keep class org.apache.velocity.util.introspection.** {
     <init>(...);
-}
-
-# Stop proguard from stripping away code used by tensorflow JNI library.
--keepclassmembers class org.tensorflow.lite.NativeInterpreterWrapper {
-    private long inferenceDurationNanoseconds;
-}
-
--keep class org.tensorflow.lite.annotations.UsedByReflection
--keep @org.tensorflow.lite.annotations.UsedByReflection class *
--keepclassmembers class * {
-    @org.tensorflow.lite.annotations.UsedByReflection *;
 }
