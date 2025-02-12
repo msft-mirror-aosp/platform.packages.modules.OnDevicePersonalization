@@ -37,6 +37,8 @@ import androidx.test.filters.SmallTest;
 
 import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
+import com.google.common.util.concurrent.MoreExecutors;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -90,7 +92,8 @@ public class FederatedComputeSchedulerTest {
     public void testSchedule_withOutcomeReceiver_success() throws Exception {
         var receiver = new ResultReceiver();
 
-        mFederatedComputeScheduler.schedule(TEST_SCHEDULE_INPUT, receiver);
+        mFederatedComputeScheduler.schedule(
+                TEST_SCHEDULE_INPUT, MoreExecutors.directExecutor(), receiver);
 
         assertNotNull(receiver.getResult());
         assertTrue(receiver.isSuccess());
@@ -105,7 +108,8 @@ public class FederatedComputeSchedulerTest {
                 new FederatedComputeScheduleRequest(TEST_SCHEDULER_PARAMS, ERROR_POPULATION_NAME);
         var receiver = new ResultReceiver();
 
-        mFederatedComputeScheduler.schedule(scheduleInput, receiver);
+        mFederatedComputeScheduler.schedule(
+                scheduleInput, MoreExecutors.directExecutor(), receiver);
 
         assertNull(receiver.getResult());
         assertTrue(receiver.isError());
@@ -125,7 +129,8 @@ public class FederatedComputeSchedulerTest {
                         TEST_SCHEDULER_PARAMS, INVALID_MANIFEST_ERROR_POPULATION_NAME);
         var receiver = new ResultReceiver();
 
-        mFederatedComputeScheduler.schedule(scheduleInput, receiver);
+        mFederatedComputeScheduler.schedule(
+                scheduleInput, MoreExecutors.directExecutor(), receiver);
 
         assertNull(receiver.getResult());
         assertTrue(receiver.isError());
