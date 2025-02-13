@@ -20,12 +20,17 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import android.content.Context;
+import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -41,6 +46,8 @@ import com.android.ondevicepersonalization.services.data.user.UserDataCollection
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
 import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJob;
 import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService;
+import com.android.ondevicepersonalization.services.download.mdd.MddJob;
+import com.android.ondevicepersonalization.services.download.mdd.MddTaskScheduler;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 import com.android.ondevicepersonalization.services.reset.ResetDataJob;
@@ -66,6 +73,7 @@ import java.util.concurrent.Executors;
 @MockStatic(AggregateErrorDataReportingService.class)
 @MockStatic(ResetDataJobService.class)
 @MockStatic(UserDataCollectionJobService.class)
+@MockStatic(MddTaskScheduler.class)
 public final class OdpJobServiceFactoryTest {
     @Rule(order = 0)
     public final ExtendedMockitoRule extendedMockitoRule =
@@ -107,7 +115,7 @@ public final class OdpJobServiceFactoryTest {
 
     @Test
     public void testGetJobInstance_notConfiguredJob() {
-        int notConfiguredJobId = 1000;
+        int notConfiguredJobId = -1;
 
         assertThat(mFactory.getJobWorkerInstance(notConfiguredJobId)).isNull();
     }
@@ -149,17 +157,51 @@ public final class OdpJobServiceFactoryTest {
     }
 
     @Test
+    public void testGetJobInstance_mddJob_cellularChargingPeriodicJobId() {
+        expect.withMessage(
+                "getJobWorkerInstance() for MddJob cellular charging periodic")
+                .that(mFactory.getJobWorkerInstance(MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID))
+                .isInstanceOf(MddJob.class);
+    }
+
+    @Test
+    public void testGetJobInstance_mddJob_chargingPeriodicJobId() {
+        expect.withMessage(
+                "getJobWorkerInstance() for MddJob charging periodic")
+                .that(mFactory.getJobWorkerInstance(MDD_CHARGING_PERIODIC_TASK_JOB_ID))
+                .isInstanceOf(MddJob.class);
+    }
+
+    @Test
+    public void testGetJobInstance_mddJob_maintenancePeriodicJobId() {
+        expect.withMessage(
+                "getJobWorkerInstance() for MddJob maintenance periodic")
+                .that(mFactory.getJobWorkerInstance(MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID))
+                .isInstanceOf(MddJob.class);
+    }
+
+    @Test
+    public void testGetJobInstance_mddJob_wifiChargingPeriodicJobId() {
+        expect.withMessage(
+                "getJobWorkerInstance() for MddJob wifi charging periodic")
+                .that(mFactory.getJobWorkerInstance(MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID))
+                .isInstanceOf(MddJob.class);
+    }
+
+    @Test
     public void testRescheduleJobWithLegacyMethod_notConfiguredJob() {
         int notConfiguredJobId = -1;
 
-        mFactory.rescheduleJobWithLegacyMethod(sContext, notConfiguredJobId);
+        mFactory.rescheduleJobWithLegacyMethod(
+                sContext, notConfiguredJobId, /* extras */ null);
     }
 
     @Test
     public void testRescheduleJobWithLegacyMethod_onDevicePersonalizationMaintenanceJobService() {
         boolean forceSchedule = true;
 
-        mFactory.rescheduleJobWithLegacyMethod(sContext, MAINTENANCE_TASK_JOB_ID);
+        mFactory.rescheduleJobWithLegacyMethod(
+                sContext, MAINTENANCE_TASK_JOB_ID, /* extras */ null);
         verify(
                 () ->
                         OnDevicePersonalizationMaintenanceJobService.schedule(
@@ -168,28 +210,68 @@ public final class OdpJobServiceFactoryTest {
 
     @Test
     public void testRescheduleJobWithLegacyMethod_aggregateErrorDataReportingService() {
-        mFactory.rescheduleJobWithLegacyMethod(sContext, AGGREGATE_ERROR_DATA_REPORTING_JOB_ID);
+        mFactory.rescheduleJobWithLegacyMethod(
+                sContext, AGGREGATE_ERROR_DATA_REPORTING_JOB_ID, /* extras */ null);
         verify(() -> AggregateErrorDataReportingService
                 .scheduleIfNeeded(sContext, /* forceSchedule */ true));
     }
 
     @Test
     public void testRescheduleJobWithLegacyMethod_resetDataJobService() {
-        mFactory.rescheduleJobWithLegacyMethod(sContext, RESET_DATA_JOB_ID);
+        mFactory.rescheduleJobWithLegacyMethod(
+                sContext, RESET_DATA_JOB_ID, /* extras */ null);
         verify(() -> ResetDataJobService.schedule(/* forceSchedule */ true));
     }
 
     @Test
     public void testRescheduleJobWithLegacyMethod_userDataCollectionJobService() {
-        mFactory.rescheduleJobWithLegacyMethod(sContext, USER_DATA_COLLECTION_ID);
+        mFactory.rescheduleJobWithLegacyMethod(
+                sContext, USER_DATA_COLLECTION_ID, /* extras */ null);
         verify(() -> UserDataCollectionJobService.schedule(sContext, /* forceSchedule */ true));
     }
 
     @Test
     public void testRescheduleJobWithLegacyMethod_odpDownloadProcessingJobService() {
-        mFactory.rescheduleJobWithLegacyMethod(sContext, DOWNLOAD_PROCESSING_TASK_JOB_ID);
+        mFactory.rescheduleJobWithLegacyMethod(
+                sContext, DOWNLOAD_PROCESSING_TASK_JOB_ID, /* extras */ null);
         verify(() -> OnDevicePersonalizationDownloadProcessingJobService
                 .schedule(sContext, /* forceSchedule */ true));
+    }
+
+    @Test
+    public void testRescheduleJobWithLegacyMethod_mddJobService_cellularChargingPeriodicJobId() {
+        PersistableBundle extras = createExtras();
+        mFactory.rescheduleJobWithLegacyMethod(
+                sContext, MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID, extras);
+        verify(() -> MddTaskScheduler
+                .scheduleWithLegacy(sContext, extras, /* forceSchedule */ true));
+    }
+
+    @Test
+    public void testRescheduleJobWithLegacyMethod_mddJobService_chargingPeriodicJobId() {
+        PersistableBundle extras = createExtras();
+        mFactory.rescheduleJobWithLegacyMethod(
+                sContext, MDD_CHARGING_PERIODIC_TASK_JOB_ID, extras);
+        verify(() -> MddTaskScheduler
+                .scheduleWithLegacy(sContext, extras, /* forceSchedule */ true));
+    }
+
+    @Test
+    public void testRescheduleJobWithLegacyMethod_mddJobService_maintenancePeriodicJobId() {
+        PersistableBundle extras = createExtras();
+        mFactory.rescheduleJobWithLegacyMethod(
+                sContext, MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID, extras);
+        verify(() -> MddTaskScheduler
+                .scheduleWithLegacy(sContext, extras, /* forceSchedule */ true));
+    }
+
+    @Test
+    public void testRescheduleJobWithLegacyMethod_mddJobService_wifiChargingPeriodicJobId() {
+        PersistableBundle extras = createExtras();
+        mFactory.rescheduleJobWithLegacyMethod(
+                sContext, MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID, extras);
+        verify(() -> MddTaskScheduler
+                .scheduleWithLegacy(sContext, extras, /* forceSchedule */ true));
     }
 
     @Test
@@ -225,5 +307,9 @@ public final class OdpJobServiceFactoryTest {
     @Test
     public void testGetFlags() {
         assertThat(mFactory.getFlags()).isSameInstanceAs(mMockFlags);
+    }
+
+    private PersistableBundle createExtras() {
+        return new PersistableBundle();
     }
 }

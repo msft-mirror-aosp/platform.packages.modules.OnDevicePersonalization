@@ -23,6 +23,10 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID;
 
@@ -143,7 +147,8 @@ public final class OdpJobServiceTest {
                             return null;
                         })
                 .when(mMockJobServiceFactory)
-                .rescheduleJobWithLegacyMethod(mSpyOdpJobService, jobId);
+                .rescheduleJobWithLegacyMethod(
+                        mSpyOdpJobService, jobId, /* extras */ null);
 
         // Disable SPE and the job should be rescheduled by the legacy scheduling method.
         doReturn(true).when(mSpyOdpJobService).shouldRescheduleWithLegacyMethod(jobId);
@@ -198,6 +203,38 @@ public final class OdpJobServiceTest {
                 DOWNLOAD_PROCESSING_TASK_JOB_ID,
                 /* jobName */ "OnDevicePersonalizationDownloadProcessingJob",
                 mMockFlags::getSpeOnOdpDownloadProcessingJobEnabled);
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_mddJobCellularChargingPeriodicDisabled() {
+        assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
+                MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID,
+                /* jobName */ "MddJob#cellularChargingPeriodic",
+                mMockFlags::getSpeOnMddJobEnabled);
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_mddJobChargingPeriodicDisabled() {
+        assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
+                MDD_CHARGING_PERIODIC_TASK_JOB_ID,
+                /* jobName */ "MddJob#chargingPeriodic",
+                mMockFlags::getSpeOnMddJobEnabled);
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_mddJobMaintenancePeriodicDisabled() {
+        assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
+                MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID,
+                /* jobName */ "MddJob#maintenancePeriodic",
+                mMockFlags::getSpeOnMddJobEnabled);
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_mddJobWifiChargingPeriodicDisabled() {
+        assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
+                MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID,
+                /* jobName */ "MddJob#wifiChargingPeriodic",
+                mMockFlags::getSpeOnMddJobEnabled);
     }
 
     private void assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
@@ -261,6 +298,16 @@ public final class OdpJobServiceTest {
                 mMockFlags::getSpeOnOdpDownloadProcessingJobEnabled);
     }
 
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_mddJobEnabled_notConfiguredJobId() {
+        int invalidJobId = -1;
+
+        assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
+                invalidJobId,
+                /* jobName */ "MddJob",
+                mMockFlags::getSpeOnMddJobEnabled);
+    }
+
     private void assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
             int jobId, String jobName, Supplier<Boolean> speJobEnabledFlagSupplier) {
         when(speJobEnabledFlagSupplier.get()).thenReturn(true);
@@ -310,6 +357,38 @@ public final class OdpJobServiceTest {
                 DOWNLOAD_PROCESSING_TASK_JOB_ID,
                 /* jobName */ "OnDevicePersonalizationDownloadProcessingJob",
                 mMockFlags::getSpeOnOdpDownloadProcessingJobEnabled);
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_mddJobCellularChargingPeriodicEnabled() {
+        assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(
+                MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID,
+                /* jobName */ "MddJob#cellularChargingPeriodic",
+                mMockFlags::getSpeOnMddJobEnabled);
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_mddJobChargingPeriodicEnabled() {
+        assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(
+                MDD_CHARGING_PERIODIC_TASK_JOB_ID,
+                /* jobName */ "MddJob#chargingPeriodic",
+                mMockFlags::getSpeOnMddJobEnabled);
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_mddJobMaintenancePeriodicEnabled() {
+        assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(
+                MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID,
+                /* jobName */ "MddJob#maintenancePeriodic",
+                mMockFlags::getSpeOnMddJobEnabled);
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_mddJobWifiChargingPeriodicEnabled() {
+        assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(
+                MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID,
+                /* jobName */ "MddJob#wifiChargingPeriodic",
+                mMockFlags::getSpeOnMddJobEnabled);
     }
 
     private void assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(

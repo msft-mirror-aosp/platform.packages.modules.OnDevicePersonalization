@@ -20,10 +20,20 @@ import static com.android.ondevicepersonalization.services.OnDevicePersonalizati
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.JOB_ID_TO_NAME_MAP;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID;
 
+import static com.google.android.libraries.mobiledatadownload.TaskScheduler.CELLULAR_CHARGING_PERIODIC_TASK;
+import static com.google.android.libraries.mobiledatadownload.TaskScheduler.CHARGING_PERIODIC_TASK;
+import static com.google.android.libraries.mobiledatadownload.TaskScheduler.MAINTENANCE_PERIODIC_TASK;
+import static com.google.android.libraries.mobiledatadownload.TaskScheduler.WIFI_CHARGING_PERIODIC_TASK;
+
 import android.content.Context;
+import android.os.PersistableBundle;
 
 import com.android.adservices.shared.proto.ModuleJobPolicy;
 import com.android.adservices.shared.spe.framework.JobServiceFactory;
@@ -43,6 +53,8 @@ import com.android.ondevicepersonalization.services.data.user.UserDataCollection
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
 import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJob;
 import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService;
+import com.android.ondevicepersonalization.services.download.mdd.MddJob;
+import com.android.ondevicepersonalization.services.download.mdd.MddTaskScheduler;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 import com.android.ondevicepersonalization.services.reset.ResetDataJob;
@@ -149,6 +161,14 @@ public final class OdpJobServiceFactory implements JobServiceFactory {
                     return new OnDevicePersonalizationDownloadProcessingJob();
                 case MAINTENANCE_TASK_JOB_ID:
                     return new OnDevicePersonalizationMaintenanceJob();
+                case MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID:
+                    return new MddJob(CELLULAR_CHARGING_PERIODIC_TASK);
+                case MDD_CHARGING_PERIODIC_TASK_JOB_ID:
+                    return new MddJob(CHARGING_PERIODIC_TASK);
+                case MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID:
+                    return new MddJob(MAINTENANCE_PERIODIC_TASK);
+                case MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID:
+                    return new MddJob(WIFI_CHARGING_PERIODIC_TASK);
                 case RESET_DATA_JOB_ID:
                     return new ResetDataJob();
                 case USER_DATA_COLLECTION_ID:
@@ -186,8 +206,11 @@ public final class OdpJobServiceFactory implements JobServiceFactory {
      * SPE framework).
      *
      * @param jobId the unique job ID for the background job to reschedule.
+     * @param extras holds the extras which were passed when constructing the job in case of any,
+     *               this is optional for most jobs.
      */
-    public void rescheduleJobWithLegacyMethod(Context context, int jobId) {
+    public void rescheduleJobWithLegacyMethod(
+            Context context, int jobId, PersistableBundle extras) {
         // The legacy job generally only checks some constraints of the job, instead of the entire
         // JobInfo including service name as SPE. Therefore, it needs to force-schedule the job
         // because the constraint should remain the same for legacy job and SPE.
@@ -204,6 +227,12 @@ public final class OdpJobServiceFactory implements JobServiceFactory {
                     return;
                 case MAINTENANCE_TASK_JOB_ID:
                     OnDevicePersonalizationMaintenanceJobService.schedule(context, forceSchedule);
+                    return;
+                case MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID:
+                case MDD_CHARGING_PERIODIC_TASK_JOB_ID:
+                case MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID:
+                case MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID:
+                    MddTaskScheduler.scheduleWithLegacy(context, extras, forceSchedule);
                     return;
                 case RESET_DATA_JOB_ID:
                     ResetDataJobService.schedule(forceSchedule);
