@@ -96,7 +96,6 @@ public final class InferenceOutput {
      * https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
      *
      * <p>For ExecuTorch model, this field is a serialized EValue array.
-     * @hide
      */
     @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
     @DataClass.Generated.Member
@@ -183,7 +182,6 @@ public final class InferenceOutput {
          * https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi#parameters_9
          *
          * <p>For ExecuTorch model, this field is a serialized EValue array.
-         * @hide
          */
         @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
         @DataClass.Generated.Member

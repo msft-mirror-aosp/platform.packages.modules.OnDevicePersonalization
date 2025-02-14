@@ -26,8 +26,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
  * The input for {@link FederatedComputeScheduler#schedule(FederatedComputeScheduleRequest,
- * android.os.OutcomeReceiver)}.
- * @hide
+ * java.util.concurrent.Executor, android.os.OutcomeReceiver)}.
  */
 @DataClass(genEqualsHashCode = true)
 @FlaggedApi(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
