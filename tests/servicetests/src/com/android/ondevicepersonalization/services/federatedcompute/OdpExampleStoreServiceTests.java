@@ -97,6 +97,7 @@ public class OdpExampleStoreServiceTests {
     private static final String TEST_COLLECTION_URI = "CollectionUri";
     private static final int LATCH_LONG_TIMEOUT_MILLIS = 10000;
     private static final int LATCH_SHORT_TIMEOUT_MILLIS = 1000;
+    private static final int CONCURRENT_MOCK_WAIT_TIMEOUT_MILLIS = 200;
 
     @Mock Context mMockContext;
     @InjectMocks OdpExampleStoreService mService;
@@ -455,11 +456,12 @@ public class OdpExampleStoreServiceTests {
     }
 
     @After
-    public void cleanup() {
+    public void cleanup() throws Exception {
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstanceForTest(APPLICATION_CONTEXT);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
+        Thread.sleep(CONCURRENT_MOCK_WAIT_TIMEOUT_MILLIS);
     }
 }
