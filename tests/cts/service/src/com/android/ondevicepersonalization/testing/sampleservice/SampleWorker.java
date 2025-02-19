@@ -373,6 +373,7 @@ class SampleWorker implements IsolatedWorker {
             byte[] actualValue = mLocalData.get(key);
             success = Arrays.equals(expectedValue, actualValue);
         } else {
+            // No value in the app params indicates that the key should not exist in local data.
             success = mLocalData.get(key) == null;
         }
 
@@ -383,7 +384,7 @@ class SampleWorker implements IsolatedWorker {
         }
     }
 
-    private ExecuteOutput handleCheckValueLength(PersistableBundle appParams) {
+    private static ExecuteOutput handleCheckValueLength(PersistableBundle appParams) {
         Log.i(TAG, "handleCheckValueLength()");
         String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
         byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
@@ -396,7 +397,7 @@ class SampleWorker implements IsolatedWorker {
         }
     }
 
-    private byte[] expandByteArray(byte[] input, int count) {
+    private static byte[] expandByteArray(byte[] input, int count) {
         byte[] output = new byte[input.length * count];
         for (int i = 0; i < count; ++i) {
             System.arraycopy(input, 0, output, i * input.length, input.length);
@@ -404,7 +405,7 @@ class SampleWorker implements IsolatedWorker {
         return output;
     }
 
-    private RuntimeException createException(PersistableBundle appParams) {
+    private static RuntimeException createException(PersistableBundle appParams) {
         try {
             String exceptionClass =
                     appParams.getString(
@@ -417,7 +418,7 @@ class SampleWorker implements IsolatedWorker {
         }
     }
 
-    private void putObject(ContentValues cv, String key, Object value) {
+    private static void putObject(ContentValues cv, String key, Object value) {
         if (value instanceof String) {
             cv.put(key, (String) value);
         } else if (value instanceof Double) {

@@ -37,8 +37,7 @@ import java.util.concurrent.BlockingQueue;
 public class LocalDataImpl implements MutableKeyValueStore {
     private static final String TAG = "LocalDataImpl";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
-    @NonNull
-    IDataAccessService mDataAccessService;
+    @NonNull private final IDataAccessService mDataAccessService;
 
     /** @hide */
     public LocalDataImpl(@NonNull IDataAccessService binder) {
@@ -152,6 +151,7 @@ public class LocalDataImpl implements MutableKeyValueStore {
     }
 
     private CallbackResult handleAsyncRequest(int op, Bundle params) {
+        // Blocks on the calling thread and waits for the response from the data access service.
         try {
             BlockingQueue<CallbackResult> asyncResult = new ArrayBlockingQueue<>(1);
             mDataAccessService.onRequest(
@@ -160,12 +160,12 @@ public class LocalDataImpl implements MutableKeyValueStore {
                     new IDataAccessServiceCallback.Stub() {
                         @Override
                         public void onSuccess(@NonNull Bundle result) {
-                            asyncResult.add(new CallbackResult(result, 0));
+                            asyncResult.add(new CallbackResult(result, /* errorCode= */ 0));
                         }
 
                         @Override
                         public void onError(int errorCode) {
-                            asyncResult.add(new CallbackResult(null, errorCode));
+                            asyncResult.add(new CallbackResult(/* result= */ null, errorCode));
                         }
                     });
             return asyncResult.take();
@@ -176,10 +176,10 @@ public class LocalDataImpl implements MutableKeyValueStore {
     }
 
     private static class CallbackResult {
-        final Bundle mResult;
-        final int mErrorCode;
+        private final Bundle mResult;
+        private final int mErrorCode;
 
-        CallbackResult(Bundle result, int errorCode) {
+        private CallbackResult(Bundle result, int errorCode) {
             mResult = result;
             mErrorCode = errorCode;
         }
