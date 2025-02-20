@@ -31,6 +31,41 @@ public class FileUtils {
     private FileUtils() {}
 
     /**
+     * Delete all files from the directory that match the provided {@code key}, except the version
+     * corresponding to the provided timestamp.
+     *
+     * <p>If you want to delete all files including the latest version, provide a negative value for
+     * the timestamp.
+     *
+     * @param key the key for which we want to delete corresponding files
+     * @param dir the directory in which to look for the files to delete
+     * @param latestTimeStamp the timestamp corresponding to the latest version, this will be
+     *     skipped for deletion.
+     */
+    public static void cleanUpFilesDir(String key, File dir, long latestTimeStamp) {
+        if (!dir.isDirectory()) {
+            sLogger.w(TAG + " :File is not a directory: " + dir.getName());
+            return;
+        }
+
+        for (File f : dir.listFiles()) {
+            try {
+                long timestamp = getTimeStamp(f);
+                String fKey = getKeyName(f);
+
+                boolean isLatest = latestTimeStamp > 0 && latestTimeStamp == timestamp;
+                if (fKey.equals(key) && !isLatest) {
+                    f.delete();
+                }
+            } catch (Exception e) {
+                // Delete any files that do not match expected format.
+                sLogger.w(TAG + " :Failed to parse file: " + f.getName(), e);
+                f.delete();
+            }
+        }
+    }
+
+    /**
      * Deletes all files from the directory that no longer
      * exist in the given keySet or are not the most recent version.
      */
@@ -41,21 +76,22 @@ public class FileUtils {
         if (dir.isDirectory()) {
             for (File f : dir.listFiles()) {
                 try {
-                    String[] fileNameList = f.getName().split("_");
-                    long timestamp = Long.parseLong(fileNameList[1]);
-                    String fKey = fileNameList[0];
+                    long timestamp = getTimeStamp(f);
+                    String fKey = getKeyName(f);
 
                     // Key no longer exists in DB. Mark for deletion
                     if (!keySet.contains(fKey)) {
                         filesToDelete.add(f);
                     }
 
-                    // If duplicate key, mark oldest key for deletion
+                    // If duplicate key, mark the oldest key for deletion
                     if (filesSeen.containsKey(fKey)) {
                         File existingFile = filesSeen.get(fKey);
-                        if (timestamp < Long.parseLong(existingFile.getName().split("_")[1])) {
+                        if (timestamp < getTimeStamp(existingFile)) {
+                            // This file is the other older one, mark for deletion.
                             filesToDelete.add(f);
                         } else {
+                            // The previously seen file is the older one so mark for deletion.
                             filesToDelete.add(existingFile);
                             filesSeen.put(fKey, f);
                         }
@@ -72,6 +108,16 @@ public class FileUtils {
         for (File f : filesToDelete) {
             f.delete();
         }
+    }
+
+    private static String getKeyName(File file) {
+        String[] fileNameList = file.getName().split("_");
+        return fileNameList[0];
+    }
+
+    private static long getTimeStamp(File file) {
+        String[] fileNameList = file.getName().split("_");
+        return Long.parseLong(fileNameList[1]);
     }
 
     /**

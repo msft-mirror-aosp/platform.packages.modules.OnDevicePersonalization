@@ -20,6 +20,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.ComponentName;
@@ -37,13 +38,15 @@ import org.junit.runners.JUnit4;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Set;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationLocalDataDaoTest {
     private static final ComponentName TEST_OWNER = new ComponentName("ownerPkg", "ownerCls");
     private static final String TEST_CERT_DIGEST = "certDigest";
+    private static final byte[] LARGE_TEST_DATA = new byte[111111];
+    private static final byte[] SMALL_TEST_DATA = new byte[10];
+
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationLocalDataDao mLocalDao;
 
@@ -73,58 +76,110 @@ public class OnDevicePersonalizationLocalDataDaoTest {
         assertEquals(0, mVendorDao.getSyncToken());
     }
 
+    @Test
+    public void testDeleteLocalDataRow_largeData_fileDeleted() {
+        mLocalDao.createTable();
+        File dir =
+                new File(
+                        OnDevicePersonalizationLocalDataDao.getFileDir(
+                                OnDevicePersonalizationLocalDataDao.getTableName(
+                                        TEST_OWNER, TEST_CERT_DIGEST),
+                                mContext.getFilesDir()));
+        assertTrue(dir.isDirectory());
+        String testKey = "largeKey";
+        LocalData largeLocalData =
+                new LocalData.Builder().setKey(testKey).setData(LARGE_TEST_DATA).build();
+        boolean insertResult = mLocalDao.updateOrInsertLocalData(largeLocalData);
+        assertEquals(1, dir.listFiles().length);
+        assertTrue(insertResult);
+        assertArrayEquals(LARGE_TEST_DATA, mLocalDao.readSingleLocalDataRow(testKey));
+
+        boolean deleteResult = mLocalDao.deleteLocalDataRow(testKey);
+
+        assertNull(mLocalDao.readSingleLocalDataRow(testKey));
+        assertTrue(deleteResult);
+        assertEquals(0, dir.listFiles().length);
+    }
+
+    @Test
+    public void testUpdateOrInsertLocalData_largeData_fileDeleted() {
+        mLocalDao.createTable();
+        File dir =
+                new File(
+                        OnDevicePersonalizationLocalDataDao.getFileDir(
+                                OnDevicePersonalizationLocalDataDao.getTableName(
+                                        TEST_OWNER, TEST_CERT_DIGEST),
+                                mContext.getFilesDir()));
+        assertTrue(dir.isDirectory());
+        String testKey = "largeKey";
+        LocalData largeLocalData =
+                new LocalData.Builder().setKey(testKey).setData(LARGE_TEST_DATA).build();
+        boolean insertResult = mLocalDao.updateOrInsertLocalData(largeLocalData);
+        assertEquals(1, dir.listFiles().length);
+        assertTrue(insertResult);
+        assertArrayEquals(LARGE_TEST_DATA, mLocalDao.readSingleLocalDataRow(testKey));
+
+        // Updating the key with a new value, should lead to the old value and associated file
+        // being deleted.
+        LocalData newLocalData =
+                new LocalData.Builder().setKey(testKey).setData(SMALL_TEST_DATA).build();
+        boolean updateResult = mLocalDao.updateOrInsertLocalData(newLocalData);
+
+        assertArrayEquals(SMALL_TEST_DATA, mLocalDao.readSingleLocalDataRow(testKey));
+        assertTrue(updateResult);
+        assertEquals(0, dir.listFiles().length);
+    }
+
     private void basicDaoOperations() {
         File dir = new File(OnDevicePersonalizationLocalDataDao.getFileDir(
                 OnDevicePersonalizationLocalDataDao.getTableName(TEST_OWNER, TEST_CERT_DIGEST),
                 mContext.getFilesDir()));
         assertTrue(dir.isDirectory());
 
-        byte[] data = new byte[10];
-        LocalData localData = new LocalData.Builder().setKey("key").setData(data).build();
+        LocalData localData =
+                new LocalData.Builder().setKey("key").setData(SMALL_TEST_DATA).build();
         boolean insertResult = mLocalDao.updateOrInsertLocalData(localData);
         assertTrue(insertResult);
-        LocalData localData2 = new LocalData.Builder().setKey("large").setData(
-                new byte[111111]).build();
+        LocalData localData2 =
+                new LocalData.Builder().setKey("large").setData(LARGE_TEST_DATA).build();
         boolean insertResult2 = mLocalDao.updateOrInsertLocalData(localData2);
         assertTrue(insertResult2);
-        assertArrayEquals(data, mLocalDao.readSingleLocalDataRow("key"));
-        assertArrayEquals(new byte[111111], mLocalDao.readSingleLocalDataRow("large"));
+        assertArrayEquals(SMALL_TEST_DATA, mLocalDao.readSingleLocalDataRow("key"));
+        assertArrayEquals(LARGE_TEST_DATA, mLocalDao.readSingleLocalDataRow("large"));
         assertEquals(1, dir.listFiles().length);
 
-        assertEquals(null, mLocalDao.readSingleLocalDataRow("nonExistentKey"));
+        assertNull(mLocalDao.readSingleLocalDataRow("nonExistentKey"));
         assertFalse(mLocalDao.deleteLocalDataRow("nonExistentKey"));
         assertTrue(mLocalDao.deleteLocalDataRow("key"));
-        assertEquals(null, mLocalDao.readSingleLocalDataRow("key"));
+        assertNull(mLocalDao.readSingleLocalDataRow("key"));
     }
 
     @Test
     public void testReadAllLocalDataKeys() {
         mVendorDao.batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), new ArrayList<>(),
                 System.currentTimeMillis());
+        LocalData localData =
+                new LocalData.Builder().setKey("key").setData(SMALL_TEST_DATA).build();
+        mLocalDao.updateOrInsertLocalData(localData);
+        localData = new LocalData.Builder().setKey("key2").setData(SMALL_TEST_DATA).build();
+        mLocalDao.updateOrInsertLocalData(localData);
 
-        byte[] data = new byte[10];
-        LocalData localData = new LocalData.Builder().setKey("key").setData(data).build();
-        mLocalDao.updateOrInsertLocalData(localData);
-        localData = new LocalData.Builder().setKey("key2").setData(data).build();
-        mLocalDao.updateOrInsertLocalData(localData);
         Set<String> keys = mLocalDao.readAllLocalDataKeys();
-        Set<String> expectedKeys = new HashSet<>();
-        expectedKeys.add("key");
-        expectedKeys.add("key2");
-        assertEquals(expectedKeys, keys);
+
+        assertEquals(Set.of("key", "key2"), keys);
     }
 
     @Test
     public void testInsertUncreatedTable() {
-        byte[] data = new byte[10];
-        LocalData localData = new LocalData.Builder().setKey("key").setData(data).build();
+        LocalData localData =
+                new LocalData.Builder().setKey("key").setData(SMALL_TEST_DATA).build();
         boolean insertResult = mLocalDao.updateOrInsertLocalData(localData);
         assertFalse(insertResult);
     }
 
     @Test
     public void testReadUncreatedTable() {
-        assertEquals(null, mLocalDao.readSingleLocalDataRow("key"));
+        assertNull(mLocalDao.readSingleLocalDataRow("key"));
     }
 
     @Test
