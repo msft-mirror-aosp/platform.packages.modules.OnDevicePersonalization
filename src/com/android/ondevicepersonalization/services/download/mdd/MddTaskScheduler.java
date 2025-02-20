@@ -46,7 +46,7 @@ public class MddTaskScheduler implements TaskScheduler {
         this.mContext = context;
     }
 
-    static int getMddTaskJobId(String mddTag) {
+    private static int getMddTaskJobId(String mddTag) {
         switch (mddTag) {
             case MAINTENANCE_PERIODIC_TASK:
                 return MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID;
