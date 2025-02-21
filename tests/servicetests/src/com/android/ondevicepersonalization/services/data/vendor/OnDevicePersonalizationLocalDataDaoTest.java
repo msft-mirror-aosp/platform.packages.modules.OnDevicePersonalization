@@ -46,6 +46,7 @@ public class OnDevicePersonalizationLocalDataDaoTest {
     private static final String TEST_CERT_DIGEST = "certDigest";
     private static final byte[] LARGE_TEST_DATA = new byte[111111];
     private static final byte[] SMALL_TEST_DATA = new byte[10];
+    private static final int TEST_DELAY_MILLIS = 2000;
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationLocalDataDao mLocalDao;
@@ -102,7 +103,7 @@ public class OnDevicePersonalizationLocalDataDaoTest {
     }
 
     @Test
-    public void testUpdateOrInsertLocalData_largeData_fileDeleted() {
+    public void testUpdateOrInsertLocalData_largeData_fileDeleted() throws Exception {
         mLocalDao.createTable();
         File dir =
                 new File(
@@ -118,6 +119,8 @@ public class OnDevicePersonalizationLocalDataDaoTest {
         assertEquals(1, dir.listFiles().length);
         assertTrue(insertResult);
         assertArrayEquals(LARGE_TEST_DATA, mLocalDao.readSingleLocalDataRow(testKey));
+        // Add a sleep to ensure the subsequent updateOrInsert call generates a new timestamp.
+        Thread.sleep(TEST_DELAY_MILLIS);
 
         // Updating the key with a new value, should lead to the old value and associated file
         // being deleted.
@@ -125,6 +128,8 @@ public class OnDevicePersonalizationLocalDataDaoTest {
                 new LocalData.Builder().setKey(testKey).setData(SMALL_TEST_DATA).build();
         boolean updateResult = mLocalDao.updateOrInsertLocalData(newLocalData);
 
+        // Add a sleep before update/delete to allow any pending file system operations.
+        Thread.sleep(TEST_DELAY_MILLIS);
         assertArrayEquals(SMALL_TEST_DATA, mLocalDao.readSingleLocalDataRow(testKey));
         assertTrue(updateResult);
         assertEquals(0, dir.listFiles().length);
