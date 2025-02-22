@@ -219,7 +219,6 @@ public final class OnDevicePersonalizationMaintenanceJobTest {
                 JobPolicy.newBuilder()
                         .setJobId(MAINTENANCE_TASK_JOB_ID)
                         .setBatteryType(BATTERY_TYPE_REQUIRE_NOT_LOW)
-                        .setRequireStorageNotLow(true)
                         .setPeriodicJobParams(
                                 JobPolicy.PeriodicJobParams.newBuilder()
                                         .setPeriodicIntervalMs(PERIOD_MILLIS)

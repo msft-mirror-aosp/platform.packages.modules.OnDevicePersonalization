@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.download.mdd;
 
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID;
@@ -24,16 +25,16 @@ import static com.android.ondevicepersonalization.services.download.mdd.MddTaskS
 import static com.google.android.libraries.mobiledatadownload.TaskScheduler.WIFI_CHARGING_PERIODIC_TASK;
 
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
@@ -46,12 +47,12 @@ import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJob;
+import com.android.ondevicepersonalization.services.statsd.joblogging.OdpJobServiceLogger;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -66,6 +67,7 @@ import org.mockito.quality.Strictness;
 
 @RunWith(JUnit4.class)
 public class MddJobServiceTest {
+    private static final int TIMEOUT_MILLIS = 5000;
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
     private JobScheduler mMockJobScheduler;
@@ -74,11 +76,14 @@ public class MddJobServiceTest {
 
     @Mock
     private Flags mMockFlags;
+    @Mock
+    private OdpJobServiceLogger mMockOdpJobServiceLogger;
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .mockStatic(OnDevicePersonalizationDownloadProcessingJob.class)
+            .mockStatic(OdpJobServiceLogger.class)
             .spyStatic(UserPrivacyStatus.class)
-            .spyStatic(OnDevicePersonalizationDownloadProcessingJob.class)
             .spyStatic(OnDevicePersonalizationExecutors.class)
             .setStrictness(Strictness.LENIENT)
             .build();
@@ -109,6 +114,8 @@ public class MddJobServiceTest {
         doReturn(null).when(mMockJobScheduler).getPendingJob(DOWNLOAD_PROCESSING_TASK_JOB_ID);
         doReturn(0).when(mMockJobScheduler).schedule(any());
         doReturn(mContext.getPackageName()).when(mSpyService).getPackageName();
+        doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+        doReturn(mMockOdpJobServiceLogger).when(() -> OdpJobServiceLogger.getInstance(any()));
     }
 
     @Test
@@ -119,22 +126,19 @@ public class MddJobServiceTest {
 
     @Test
     public void onStartJobTest() throws Exception {
-        ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
+        doReturn(MoreExecutors.newDirectExecutorService()).when(
                 OnDevicePersonalizationExecutors::getBackgroundExecutor);
-        ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(false).when(mUserPrivacyStatus)
+        doReturn(false).when(mUserPrivacyStatus)
                 .isProtectedAudienceAndMeasurementBothDisabled();
 
-        JobParameters jobParameters = mock(JobParameters.class);
+        JobParameters jobParameters = createDefaultMockJobParameters();
         PersistableBundle extras = new PersistableBundle();
         extras.putString(MDD_TASK_TAG_KEY, WIFI_CHARGING_PERIODIC_TASK);
         doReturn(extras).when(jobParameters).getExtras();
 
         boolean result = mSpyService.onStartJob(jobParameters);
         assertTrue(result);
-        Thread.sleep(5000);
-        verify(mSpyService, times(1)).jobFinished(any(), eq(false));
-        verify(mMockJobScheduler, times(1)).schedule(any());
+        verify(mSpyService, timeout(TIMEOUT_MILLIS)).jobFinished(any(), eq(false));
         verify(() -> OnDevicePersonalizationDownloadProcessingJob.schedule(any()));
     }
 
@@ -159,7 +163,7 @@ public class MddJobServiceTest {
         assertTrue(mJobScheduler.getPendingJob(MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID) != null);
         doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
         doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
-        JobParameters jobParameters = mock(JobParameters.class);
+        JobParameters jobParameters = createDefaultMockJobParameters();
         doReturn(extras).when(jobParameters).getExtras();
         boolean result = mSpyService.onStartJob(jobParameters);
         assertTrue(result);
@@ -171,8 +175,7 @@ public class MddJobServiceTest {
 
     @Test
     public void onStartJobTestUserControlRevoked() throws Exception {
-        ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(true).when(mUserPrivacyStatus)
+        doReturn(true).when(mUserPrivacyStatus)
                 .isProtectedAudienceAndMeasurementBothDisabled();
         JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
         PersistableBundle extras = new PersistableBundle();
@@ -192,51 +195,63 @@ public class MddJobServiceTest {
         assertTrue(mJobScheduler.getPendingJob(MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID) != null);
         doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
         doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
-        JobParameters jobParameters = mock(JobParameters.class);
+        JobParameters jobParameters = createDefaultMockJobParameters();
         doReturn(extras).when(jobParameters).getExtras();
         boolean result = mSpyService.onStartJob(jobParameters);
         assertTrue(result);
-        Thread.sleep(2000);
-        verify(mSpyService, times(1)).jobFinished(any(), eq(false));
-        verify(mMockJobScheduler, times(0)).schedule(any());
+        verify(mSpyService, timeout(TIMEOUT_MILLIS)).jobFinished(any(), eq(false));
+        verify(mMockJobScheduler, never()).schedule(any());
         verify(() -> OnDevicePersonalizationDownloadProcessingJob.schedule(any()), never());
     }
 
     @Test
-    public void onStartJobNoTaskTagTest() {
+    public void onStartJob_withNoTaskTagTest_logJobFailure() {
+        doReturn(false).when(mUserPrivacyStatus).isProtectedAudienceAndMeasurementBothDisabled();
 
-        assertThrows(IllegalArgumentException.class,
-                () -> mSpyService.onStartJob(mock(JobParameters.class)));
-        verify(mSpyService, times(0)).jobFinished(any(), eq(false));
+        mSpyService.onStartJob(createDefaultMockJobParameters());
+
+        verify(mSpyService, timeout(TIMEOUT_MILLIS)).jobFinished(any(), eq(false));
         verify(mMockJobScheduler, times(0)).schedule(any());
+        verify(mMockOdpJobServiceLogger).recordJobFinished(
+                anyInt(),
+                /* isSuccessful */ eq(false),
+                anyBoolean());
     }
 
     @Test
     public void onStartJobFailHandleTaskTest() throws Exception {
-        ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(false).when(mUserPrivacyStatus)
+        doReturn(false).when(mUserPrivacyStatus)
                 .isProtectedAudienceAndMeasurementBothDisabled();
 
-        JobParameters jobParameters = mock(JobParameters.class);
+        JobParameters jobParameters = createDefaultMockJobParameters();
         PersistableBundle extras = new PersistableBundle();
         extras.putString(MDD_TASK_TAG_KEY, "INVALID_TASK_TAG_KEY");
         doReturn(extras).when(jobParameters).getExtras();
 
         boolean result = mSpyService.onStartJob(jobParameters);
         assertTrue(result);
-        Thread.sleep(2000);
-        verify(mSpyService, times(1)).jobFinished(any(), eq(false));
+        verify(mSpyService, timeout(TIMEOUT_MILLIS)).jobFinished(any(), eq(false));
         verify(mMockJobScheduler, times(0)).schedule(any());
     }
 
     @Test
     public void onStopJobTest() {
-        JobParameters jobParameters = mock(JobParameters.class);
+        JobParameters jobParameters = createDefaultMockJobParameters();
         PersistableBundle extras = new PersistableBundle();
         extras.putString(MDD_TASK_TAG_KEY, WIFI_CHARGING_PERIODIC_TASK);
         doReturn(extras).when(jobParameters).getExtras();
 
         assertTrue(mSpyService.onStopJob(jobParameters));
         verify(mMockJobScheduler, times(0)).schedule(any());
+    }
+
+    private JobParameters createDefaultMockJobParameters() {
+        return createMockJobParameters(MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID);
+    }
+
+    private JobParameters createMockJobParameters(int jobId) {
+        JobParameters mockJobParameters = mock(JobParameters.class);
+        when(mockJobParameters.getJobId()).thenReturn(jobId);
+        return mockJobParameters;
     }
 }
