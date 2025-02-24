@@ -19,6 +19,10 @@ package com.android.ondevicepersonalization.services.sharedlibrary.spe;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID;
 
@@ -56,7 +60,7 @@ public final class OdpJobService extends AbstractJobService {
                     jobId);
 
             OdpJobServiceFactory factory = (OdpJobServiceFactory) getJobServiceFactory();
-            factory.rescheduleJobWithLegacyMethod(this, jobId);
+            factory.rescheduleJobWithLegacyMethod(this, jobId, params.getExtras());
 
             return false;
         }
@@ -80,6 +84,11 @@ public final class OdpJobService extends AbstractJobService {
                 return !flags.getSpeOnOdpDownloadProcessingJobEnabled();
             case MAINTENANCE_TASK_JOB_ID:
                 return !flags.getSpePilotJobEnabled();
+            case MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID:
+            case MDD_CHARGING_PERIODIC_TASK_JOB_ID:
+            case MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID:
+            case MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID:
+                return !flags.getSpeOnMddJobEnabled();
             case RESET_DATA_JOB_ID:
                 return !flags.getSpeOnResetDataJobEnabled();
             case USER_DATA_COLLECTION_ID:
