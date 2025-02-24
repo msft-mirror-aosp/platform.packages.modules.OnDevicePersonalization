@@ -226,15 +226,21 @@ public final class OnDevicePersonalizationMaintenanceJobTest {
                         .setIsPersisted(true)
                         .build();
 
-        BackoffPolicy backoffPolicy =
-                new BackoffPolicy.Builder().setShouldRetryOnExecutionStop(true).build();
-
         assertWithMessage("createDefaultJobSpec() for OnDevicePersonalizationMaintenanceJob")
                 .that(OnDevicePersonalizationMaintenanceJob.createDefaultJobSpec())
                 .isEqualTo(
                         new JobSpec.Builder(expectedJobPolicy)
-                                .setBackoffPolicy(backoffPolicy)
                                 .build());
+    }
+
+    @Test
+    public void testGetBackoffPolicy() {
+        BackoffPolicy expectedBackoffPolicy =
+                new BackoffPolicy.Builder().setShouldRetryOnExecutionStop(true).build();
+
+        assertWithMessage("getBackoffPolicy() for OnDevicePersonalizationMaintenanceJob")
+                .that(new OnDevicePersonalizationMaintenanceJob().getBackoffPolicy())
+                .isEqualTo(expectedBackoffPolicy);
     }
 
     @Test
