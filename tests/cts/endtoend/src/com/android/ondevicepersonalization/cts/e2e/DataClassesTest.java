@@ -61,7 +61,6 @@ import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
 
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -214,7 +213,6 @@ public class DataClassesTest {
     }
 
     @Test
-    @Ignore ("b/388441484")
     @RequiresFlagsEnabled(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
     public void testFederatedComputeSchedulerRequest() {
         // Test for Data classes associated with FederatedComputeScheduler's schedule API.
@@ -238,7 +236,6 @@ public class DataClassesTest {
     }
 
     @Test
-    @Ignore ("b/388441484")
     @RequiresFlagsEnabled(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
     public void testFederatedComputeSchedulerResponse() {
         // Test for Data classes associated with FederatedComputeScheduler's schedule API.
