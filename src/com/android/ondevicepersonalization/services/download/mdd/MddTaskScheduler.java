@@ -188,6 +188,7 @@ public class MddTaskScheduler implements TaskScheduler {
                         .setRequiresCharging(false)
                         .setRequiresBatteryNotLow(true)
                         .setPeriodic(1000 * periodSeconds) // JobScheduler uses Milliseconds.
+                        .setRequiresStorageNotLow(requireStorageNotLow(mddTaskTag))
                         // persist this job across boots
                         .setPersisted(true)
                         .setRequiredNetworkType(getNetworkConstraints(networkState))
@@ -216,6 +217,7 @@ public class MddTaskScheduler implements TaskScheduler {
                                         .setPeriodicIntervalMs(1000 * periodSeconds)
                                         .build())
                         .setNetworkType(getNetworkType(networkState))
+                        .setRequireStorageNotLow(requireStorageNotLow(mddTaskTag))
                         .setIsPersisted(true)
                         .build();
 
@@ -271,5 +273,10 @@ public class MddTaskScheduler implements TaskScheduler {
                     mddTaskTag);
             return 0;
         }
+    }
+
+    private static boolean requireStorageNotLow(String mddTaskTag) {
+        return WIFI_CHARGING_PERIODIC_TASK.equals(mddTaskTag)
+                || CELLULAR_CHARGING_PERIODIC_TASK.equals(mddTaskTag);
     }
 }

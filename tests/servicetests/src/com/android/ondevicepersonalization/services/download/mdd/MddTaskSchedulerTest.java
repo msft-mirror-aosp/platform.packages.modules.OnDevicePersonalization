@@ -234,7 +234,8 @@ public final class MddTaskSchedulerTest {
     @Test
     public void testCreateJobSpec_maintenancePeriodicJob() {
         JobPolicy jobPolicy =
-                createJobPolicy(MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID, NETWORK_TYPE_UNMETERED);
+                createJobPolicy(MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID, NETWORK_TYPE_UNMETERED,
+                        /* requireStorageNotLow= */ false);
         JobSpec expectedJobSpec = new JobSpec.Builder(jobPolicy).setExtras(createMddExtras(
                 MAINTENANCE_PERIODIC_TASK,
                 DEFAULT_PERIOD_SECONDS,
@@ -252,7 +253,8 @@ public final class MddTaskSchedulerTest {
     @Test
     public void testCreateJobSpec_chargingPeriodicJob() {
         JobPolicy jobPolicy =
-                createJobPolicy(MDD_CHARGING_PERIODIC_TASK_JOB_ID, NETWORK_TYPE_UNMETERED);
+                createJobPolicy(MDD_CHARGING_PERIODIC_TASK_JOB_ID, NETWORK_TYPE_UNMETERED,
+                        /* requireStorageNotLow= */ false);
         JobSpec expectedJobSpec = new JobSpec.Builder(jobPolicy).setExtras(createMddExtras(
                 CHARGING_PERIODIC_TASK,
                 DEFAULT_PERIOD_SECONDS,
@@ -270,7 +272,8 @@ public final class MddTaskSchedulerTest {
     @Test
     public void testCreateJobSpec_cellularChargingPeriodicJob() {
         JobPolicy jobPolicy =
-                createJobPolicy(MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID, NETWORK_TYPE_ANY);
+                createJobPolicy(MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID, NETWORK_TYPE_ANY,
+                        /* requireStorageNotLow= */ true);
         JobSpec expectedJobSpec = new JobSpec.Builder(jobPolicy).setExtras(createMddExtras(
                 CELLULAR_CHARGING_PERIODIC_TASK,
                 DEFAULT_PERIOD_SECONDS,
@@ -288,7 +291,8 @@ public final class MddTaskSchedulerTest {
     @Test
     public void testCreateJobSpec_wifiPeriodicJob() {
         JobPolicy jobPolicy =
-                createJobPolicy(MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID, NETWORK_TYPE_ANY);
+                createJobPolicy(MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID, NETWORK_TYPE_ANY,
+                        /* requireStorageNotLow= */ true);
         JobSpec expectedJobSpec = new JobSpec.Builder(jobPolicy).setExtras(createMddExtras(
                 WIFI_CHARGING_PERIODIC_TASK,
                 DEFAULT_PERIOD_SECONDS,
@@ -303,7 +307,8 @@ public final class MddTaskSchedulerTest {
                 .isEqualTo(expectedJobSpec);
     }
 
-    private JobPolicy createJobPolicy(int jobId, NetworkType networkType) {
+    private JobPolicy createJobPolicy(int jobId, NetworkType networkType,
+                                      boolean requireStorageNotLow) {
         return JobPolicy.newBuilder()
                 .setJobId(jobId)
                 .setRequireDeviceIdle(true)
@@ -313,6 +318,7 @@ public final class MddTaskSchedulerTest {
                                 .setPeriodicIntervalMs(DEFAULT_PERIOD_SECONDS * 1000)
                                 .build())
                 .setNetworkType(networkType)
+                .setRequireStorageNotLow(requireStorageNotLow)
                 .setIsPersisted(true)
                 .build();
     }
