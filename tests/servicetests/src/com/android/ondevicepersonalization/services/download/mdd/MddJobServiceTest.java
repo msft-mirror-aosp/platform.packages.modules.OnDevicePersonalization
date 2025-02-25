@@ -23,6 +23,7 @@ import static com.android.ondevicepersonalization.services.OnDevicePersonalizati
 import static com.android.ondevicepersonalization.services.download.mdd.MddTaskScheduler.MDD_TASK_TAG_KEY;
 
 import static com.google.android.libraries.mobiledatadownload.TaskScheduler.WIFI_CHARGING_PERIODIC_TASK;
+import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -48,10 +49,12 @@ import android.os.PersistableBundle;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJob;
+import com.android.ondevicepersonalization.services.sharedlibrary.spe.OdpJobScheduler;
 import com.android.ondevicepersonalization.services.statsd.joblogging.OdpJobServiceLogger;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -103,6 +106,8 @@ public class MddJobServiceTest {
     @Before
     public void setup() throws Exception {
         when(mMockFlags.getGlobalKillSwitch()).thenReturn(false);
+        when(mMockFlags.getSpeOnMddJobEnabled()).thenReturn(false);
+
         mUserPrivacyStatus = spy(UserPrivacyStatus.getInstance());
         ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
         MobileDataDownloadFactory.getMdd(mContext, executorService, executorService);
@@ -233,6 +238,24 @@ public class MddJobServiceTest {
         verify(mSpyService, timeout(TIMEOUT_MILLIS)).jobFinished(any(), eq(false));
         verify(mMockJobScheduler, times(0)).schedule(any());
     }
+
+    @Test
+    @MockStatic(OdpJobScheduler.class)
+    @MockStatic(MddTaskScheduler.class)
+    public void onStartJobTestSpeEnabled() {
+        when(mMockFlags.getSpeOnMddJobEnabled()).thenReturn(true);
+
+        // Mock OdpJobScheduler to not actually schedule the job.
+        OdpJobScheduler mockedScheduler = mock(OdpJobScheduler.class);
+        doReturn(mockedScheduler).when(() -> OdpJobScheduler.getInstance(any()));
+
+        assertThat(mSpyService.onStartJob(mock(JobParameters.class))).isFalse();
+
+        // Verify mdd task scheduler has been called.
+        verify(() -> MddTaskScheduler.schedule(any(), any()));
+        verify(mMockJobScheduler, never()).schedule(any());
+    }
+
 
     @Test
     public void onStopJobTest() {
