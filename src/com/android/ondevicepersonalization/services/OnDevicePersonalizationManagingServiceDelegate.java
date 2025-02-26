@@ -23,6 +23,7 @@ import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
 import android.adservices.ondevicepersonalization.ExecuteOptionsParcel;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IIsFeatureEnabledCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -211,6 +212,33 @@ public class OnDevicePersonalizationManagingServiceDelegate
     }
 
     @Override
+    public void isFeatureEnabled(
+            @NonNull String featureName,
+            @NonNull CallerMetadata metadata,
+            @NonNull IIsFeatureEnabledCallback callback) {
+        if (getGlobalKillSwitch()) {
+            throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+
+        if (!DeviceUtils.isOdpSupported(mContext)) {
+            throw new IllegalStateException("Device not supported.");
+        }
+
+        if (!getOdpIsFeatureEnabledFlagEnabled()) {
+            throw new IllegalStateException("isFeatureEnabled flag is not enabled.");
+        }
+
+        long serviceEntryTimeMillis = SystemClock.elapsedRealtime();
+        Trace.beginSection("OdpManagingServiceDelegate#IsFeatureEnabled");
+
+        FeatureStatusManager.getFeatureStatusAndSendResult(featureName,
+                serviceEntryTimeMillis,
+                callback);
+
+        Trace.endSection();
+    }
+
+    @Override
     public void logApiCallStats(
             String sdkPackageName, int apiName, long latencyMillis, long rpcCallLatencyMillis,
             long rpcReturnLatencyMillis, int responseCode) {
@@ -247,6 +275,13 @@ public class OnDevicePersonalizationManagingServiceDelegate
         boolean globalKillSwitch = mInjector.getFlags().getGlobalKillSwitch();
         Binder.restoreCallingIdentity(origId);
         return globalKillSwitch;
+    }
+
+    private boolean getOdpIsFeatureEnabledFlagEnabled() {
+        long origId = Binder.clearCallingIdentity();
+        boolean flagEnabled = mInjector.getFlags().isFeatureEnabledApiEnabled();
+        Binder.restoreCallingIdentity(origId);
+        return flagEnabled;
     }
 
     private void enforceCallingPackageBelongsToUid(@NonNull String packageName, int uid) {

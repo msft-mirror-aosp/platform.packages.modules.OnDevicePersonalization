@@ -24,7 +24,6 @@ import static com.android.federatedcompute.services.common.FederatedComputeExecu
 import static com.android.federatedcompute.services.common.TrainingEventLogger.getTaskIdForLogging;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.FCP_OWNER_ID_DIGEST;
-import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_OR_UNAUTHENTICATED_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_UNAUTHORIZED_STATUS;
@@ -32,10 +31,11 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEM
 import static com.android.odp.module.common.FileUtils.createTempFile;
 import static com.android.odp.module.common.FileUtils.readFileAsByteArray;
 import static com.android.odp.module.common.FileUtils.writeToFile;
-import static com.android.odp.module.common.HttpClientUtils.compressWithGzip;
-import static com.android.odp.module.common.HttpClientUtils.getTotalReceivedBytes;
-import static com.android.odp.module.common.HttpClientUtils.getTotalSentBytes;
-import static com.android.odp.module.common.HttpClientUtils.uncompressWithGzip;
+import static com.android.odp.module.common.http.HttpClientUtils.GZIP_ENCODING_HDR;
+import static com.android.odp.module.common.http.HttpClientUtils.compressWithGzip;
+import static com.android.odp.module.common.http.HttpClientUtils.getTotalReceivedBytes;
+import static com.android.odp.module.common.http.HttpClientUtils.getTotalSentBytes;
+import static com.android.odp.module.common.http.HttpClientUtils.uncompressWithGzip;
 
 import android.os.Trace;
 import android.util.Base64;
@@ -44,15 +44,15 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.NetworkStats;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
-import com.android.federatedcompute.services.encryption.Encrypter;
 import com.android.federatedcompute.services.http.HttpClientUtil.FederatedComputePayloadDataContract;
 import com.android.federatedcompute.services.security.AuthorizationContext;
 import com.android.federatedcompute.services.training.util.ComputationResult;
-import com.android.odp.module.common.HttpClient;
-import com.android.odp.module.common.HttpClientUtils;
-import com.android.odp.module.common.OdpHttpRequest;
-import com.android.odp.module.common.OdpHttpResponse;
+import com.android.odp.module.common.encryption.Encrypter;
+import com.android.odp.module.common.encryption.OdpEncryptionKey;
+import com.android.odp.module.common.http.HttpClient;
+import com.android.odp.module.common.http.HttpClientUtils;
+import com.android.odp.module.common.http.OdpHttpRequest;
+import com.android.odp.module.common.http.OdpHttpResponse;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -64,13 +64,13 @@ import com.google.internal.federatedcompute.v1.ClientVersion;
 import com.google.internal.federatedcompute.v1.RejectionInfo;
 import com.google.internal.federatedcompute.v1.Resource;
 import com.google.internal.federatedcompute.v1.ResourceCompressionFormat;
-import com.google.internal.federatedcompute.v1.UploadInstruction;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentRequest;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentResponse;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultRequest;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultRequest.Result;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultResponse;
 import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
+import com.google.ondevicepersonalization.federatedcompute.proto.UploadInstruction;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.json.JSONObject;
@@ -171,7 +171,7 @@ public final class HttpFederatedProtocol {
     /** Helper functions to report and upload result. */
     public FluentFuture<RejectionInfo> reportResult(
             ComputationResult computationResult,
-            FederatedComputeEncryptionKey encryptionKey,
+            OdpEncryptionKey encryptionKey,
             AuthorizationContext authContext) {
         Trace.beginAsyncSection(TRACE_HTTP_REPORT_RESULT, 0);
         NetworkStats reportResultStats = new NetworkStats();
@@ -446,7 +446,7 @@ public final class HttpFederatedProtocol {
     private ListenableFuture<OdpHttpResponse> processReportResultResponseAndUploadResult(
             ReportResultResponse reportResultResponse,
             ComputationResult computationResult,
-            FederatedComputeEncryptionKey encryptionKey,
+            OdpEncryptionKey encryptionKey,
             NetworkStats networkStats) {
         try {
             Preconditions.checkArgument(
@@ -487,8 +487,8 @@ public final class HttpFederatedProtocol {
         }
     }
 
-    private byte[] createEncryptedRequestBody(
-            String filePath, FederatedComputeEncryptionKey encryptionKey) throws Exception {
+    private byte[] createEncryptedRequestBody(String filePath, OdpEncryptionKey encryptionKey)
+            throws Exception {
         byte[] fileOutputBytes = readFileAsByteArray(filePath);
         if (!FlagsFactory.getFlags().isEncryptionEnabled()) {
             // encryption not enabled, upload the file contents directly

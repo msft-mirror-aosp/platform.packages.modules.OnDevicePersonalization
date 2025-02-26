@@ -18,6 +18,7 @@ package com.android.federatedcompute.services.statsd;
 
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.EXAMPLE_ITERATOR_NEXT_LATENCY_REPORTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_API_CALLED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRACE_EVENT_REPORTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED;
 
 import com.android.federatedcompute.services.stats.FederatedComputeStatsLog;
@@ -61,6 +62,17 @@ public class FederatedComputeStatsdLogger {
                     apiCallStats.getLatencyMillis(),
                     apiCallStats.getResponseCode(),
                     apiCallStats.getSdkPackageName());
+        }
+    }
+
+    /** Log trace event stats. */
+    public void logTraceEventStats(TraceEventStats traceEventStats) {
+        if (mRateLimiter.tryAcquire()) {
+            FederatedComputeStatsLog.write(
+                    FEDERATED_COMPUTE_TRACE_EVENT_REPORTED,
+                    traceEventStats.getEventType(),
+                    traceEventStats.getStatus(),
+                    traceEventStats.getLatencyMillis());
         }
     }
 

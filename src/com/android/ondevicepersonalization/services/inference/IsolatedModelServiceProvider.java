@@ -16,7 +16,7 @@
 
 package com.android.ondevicepersonalization.services.inference;
 
-import static com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner.TRUSTED_PARTNER_APPS_SIP;
+import static com.android.ondevicepersonalization.services.process.IsolatedServiceBindingRunner.TRUSTED_PARTNER_APPS_SIP;
 
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.content.Context;

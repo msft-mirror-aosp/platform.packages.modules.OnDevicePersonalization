@@ -23,6 +23,8 @@ import com.android.adservices.shared.common.flags.ConfigFlag;
 import com.android.adservices.shared.common.flags.FeatureFlag;
 import com.android.adservices.shared.common.flags.ModuleSharedFlags;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * OnDevicePersonalization Feature Flags interface. This Flags interface hold the default values
  * of flags. The default values in this class must match with the default values in PH since we
@@ -98,6 +100,9 @@ public interface Flags extends ModuleSharedFlags {
 
     /** Default deadline for data reset. */
     int DEFAULT_RESET_DATA_DEADLINE_SECONDS = 30 * 60 * 60; // 30 hours
+
+    /** Default value for the plugin runner flag. */
+    boolean DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED = false;
 
     String DEFAULT_CALLER_APP_ALLOW_LIST =
             "android.ondevicepersonalization,"
@@ -286,7 +291,7 @@ public interface Flags extends ModuleSharedFlags {
     }
 
     String DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH =
-            "debugreporting/v1/exceptions:report-exceptions";
+            "/debugreporting/v1/exceptions:report-exceptions";
 
     /**
      * URL suffix that the reporting job will use to send adopters daily aggregated counts of {@link
@@ -318,6 +323,53 @@ public interface Flags extends ModuleSharedFlags {
      */
     default int getAggregatedErrorReportingIntervalInHours() {
         return DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
+    }
+
+    boolean DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD = false;
+
+    /**
+     * Whether to disable encryption for aggregated error data reporting.
+     *
+     * <p>Only {@code true} for testing etc.
+     */
+    default boolean getAllowUnencryptedAggregatedErrorReportingPayload() {
+        return DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD;
+    }
+
+    String DEFAULT_ENCRYPTION_KEY_URL = "https://fake-coordinator/v1alpha/publicKeys";
+
+    /**
+     * The URL from which to fetch encryption keys.
+     *
+     * <p>Currently encryption keys are only used for aggregate error reporting encryption.
+     *
+     * @return Url to fetch encryption key for ODP.
+     */
+    default String getEncryptionKeyFetchUrl() {
+        return DEFAULT_ENCRYPTION_KEY_URL;
+    }
+
+    long DEFAULT_ENCRYPTION_KEY_MAX_AGE_SECONDS = TimeUnit.DAYS.toSeconds(/* duration= */ 14);
+
+    /**
+     * @return default max age in seconds for ODP encryption keys.
+     */
+    default long getEncryptionKeyMaxAgeSeconds() {
+        return DEFAULT_ENCRYPTION_KEY_MAX_AGE_SECONDS;
+    }
+
+    int DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_TIMEOUT_SECONDS = 30;
+
+    /** Timeout for http reporting of aggregated error data. */
+    default int getAggregatedErrorReportingHttpTimeoutSeconds() {
+        return DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_TIMEOUT_SECONDS;
+    }
+
+    int DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_RETRY_LIMIT = 3;
+
+    /** Timeout for http reporting of aggregated error data. */
+    default int getAggregatedErrorReportingHttpRetryLimit() {
+        return DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_RETRY_LIMIT;
     }
 
     /**
@@ -355,5 +407,15 @@ public interface Flags extends ModuleSharedFlags {
 
     default String getLogIsolatedServiceErrorCodeNonAggregatedAllowlist() {
         return DEFAULT_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST;
+    }
+
+    default boolean isPluginProcessRunnerEnabled() {
+        return DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED;
+    }
+
+    boolean DEFAULT_IS_FEATURE_ENABLED_API_ENABLED = false;
+
+    default boolean isFeatureEnabledApiEnabled() {
+        return DEFAULT_IS_FEATURE_ENABLED_API_ENABLED;
     }
 }
