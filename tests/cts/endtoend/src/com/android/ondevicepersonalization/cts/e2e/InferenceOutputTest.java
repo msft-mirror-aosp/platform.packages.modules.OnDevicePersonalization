@@ -16,18 +16,28 @@
 
 package com.android.ondevicepersonalization.cts.e2e;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.InferenceOutput;
 
+import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
+
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 public class InferenceOutputTest {
+    @Before
+    public void setUp() {
+        Assume.assumeTrue(DeviceSupportHelper.isDeviceSupported());
+        Assume.assumeTrue(DeviceSupportHelper.isOdpModuleAvailable());
+    }
+
     @Test
     public void build_success() {
         HashMap<Integer, Object> outputData = new HashMap<>();
@@ -47,6 +57,6 @@ public class InferenceOutputTest {
         Map<Integer, Object> data = output.getDataOutputs();
         float[] value = (float[]) data.get(0);
 
-        assertTrue(Arrays.equals(value, expected));
+        assertThat(value).isEqualTo(expected);
     }
 }
