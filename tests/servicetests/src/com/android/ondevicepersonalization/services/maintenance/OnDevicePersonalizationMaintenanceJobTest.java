@@ -219,7 +219,6 @@ public final class OnDevicePersonalizationMaintenanceJobTest {
                 JobPolicy.newBuilder()
                         .setJobId(MAINTENANCE_TASK_JOB_ID)
                         .setBatteryType(BATTERY_TYPE_REQUIRE_NOT_LOW)
-                        .setRequireStorageNotLow(true)
                         .setPeriodicJobParams(
                                 JobPolicy.PeriodicJobParams.newBuilder()
                                         .setPeriodicIntervalMs(PERIOD_MILLIS)
@@ -227,15 +226,21 @@ public final class OnDevicePersonalizationMaintenanceJobTest {
                         .setIsPersisted(true)
                         .build();
 
-        BackoffPolicy backoffPolicy =
-                new BackoffPolicy.Builder().setShouldRetryOnExecutionStop(true).build();
-
         assertWithMessage("createDefaultJobSpec() for OnDevicePersonalizationMaintenanceJob")
                 .that(OnDevicePersonalizationMaintenanceJob.createDefaultJobSpec())
                 .isEqualTo(
                         new JobSpec.Builder(expectedJobPolicy)
-                                .setBackoffPolicy(backoffPolicy)
                                 .build());
+    }
+
+    @Test
+    public void testGetBackoffPolicy() {
+        BackoffPolicy expectedBackoffPolicy =
+                new BackoffPolicy.Builder().setShouldRetryOnExecutionStop(true).build();
+
+        assertWithMessage("getBackoffPolicy() for OnDevicePersonalizationMaintenanceJob")
+                .that(new OnDevicePersonalizationMaintenanceJob().getBackoffPolicy())
+                .isEqualTo(expectedBackoffPolicy);
     }
 
     @Test

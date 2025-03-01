@@ -20,6 +20,7 @@ import static android.federatedcompute.common.ClientConstants.EXAMPLE_STORE_ACTI
 import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESULT;
 import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN;
 
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.doNothing;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -28,6 +29,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
@@ -61,6 +66,7 @@ import com.android.ondevicepersonalization.services.data.OnDevicePersonalization
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
 
 import org.junit.After;
@@ -91,6 +97,7 @@ public class OdpExampleStoreServiceTests {
     private static final String TEST_COLLECTION_URI = "CollectionUri";
     private static final int LATCH_LONG_TIMEOUT_MILLIS = 10000;
     private static final int LATCH_SHORT_TIMEOUT_MILLIS = 1000;
+    private static final int CONCURRENT_MOCK_WAIT_TIMEOUT_MILLIS = 200;
 
     @Mock Context mMockContext;
     @InjectMocks OdpExampleStoreService mService;
@@ -110,6 +117,7 @@ public class OdpExampleStoreServiceTests {
             new ExtendedMockitoRule.Builder(this)
                     .spyStatic(UserPrivacyStatus.class)
                     .mockStatic(FlagsFactory.class)
+                    .mockStatic(StatsUtils.class)
                     .spyStatic(StableFlags.class)
                     .spyStatic(MonotonicClock.class)
                     .setStrictness(Strictness.LENIENT)
@@ -130,6 +138,10 @@ public class OdpExampleStoreServiceTests {
     @Before
     public void setUp() throws Exception {
         assumeTrue(DeviceSupportHelper.isDeviceSupported());
+        doNothing().when(() -> StatsUtils.writeServiceRequestMetrics(
+                anyInt(), anyString(), any(), any(), anyInt(), anyLong()));
+        doNothing().when(() -> StatsUtils.writeServiceRequestMetrics(
+                anyInt(), anyInt()));
         initMocks(this);
         when(mMockContext.getApplicationContext()).thenReturn(APPLICATION_CONTEXT);
         ExtendedMockito.doReturn(mMockUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
@@ -444,11 +456,12 @@ public class OdpExampleStoreServiceTests {
     }
 
     @After
-    public void cleanup() {
+    public void cleanup() throws Exception {
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstanceForTest(APPLICATION_CONTEXT);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
+        Thread.sleep(CONCURRENT_MOCK_WAIT_TIMEOUT_MILLIS);
     }
 }

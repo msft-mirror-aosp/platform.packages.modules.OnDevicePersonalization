@@ -80,7 +80,7 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
     private final Injector mInjector;
     private final FutureCallback<DownloadCompletedOutputParcel> mCallback;
 
-    static class Injector {
+    private static class Injector {
         Clock getClock() {
             return MonotonicClock.getInstance();
         }
@@ -138,7 +138,12 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
             // If existingToken is greaterThan or equal to the new token, skip as there is
             // no new data. Mark success to upstream caller for reporting purpose
             if (existingSyncToken >= syncToken) {
-                sLogger.d(TAG + ": syncToken is not newer than existing token.");
+                sLogger.d(
+                        TAG
+                                + ": new syncToken value "
+                                + syncToken
+                                + " is not newer than existing token value "
+                                + existingSyncToken);
                 onSuccess(null);
                 return false;
             }

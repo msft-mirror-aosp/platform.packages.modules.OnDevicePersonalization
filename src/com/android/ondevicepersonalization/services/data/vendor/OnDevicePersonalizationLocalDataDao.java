@@ -243,9 +243,13 @@ public class OnDevicePersonalizationLocalDataDao {
             } else {
                 values.put(LocalDataContract.LocalDataEntry.DATA, localData.getData());
             }
-            // TODO: Cleanup file on replace instead of waiting for maintenance job.
-            return db.insertWithOnConflict(mTableName, null,
-                    values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
+            if (db.insertWithOnConflict(mTableName, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+                    != -1) {
+                // Insertion successful, delete any potential older versions of the file that may
+                // have been created.
+                FileUtils.cleanUpFilesDir(localData.getKey(), new File(mFileDir), timeMillis);
+                return true;
+            }
         } catch (SQLiteException | IOException e) {
             sLogger.e(TAG + ": Failed to update or insert local data", e);
             // Attempt to delete file if something failed
@@ -267,7 +271,11 @@ public class OnDevicePersonalizationLocalDataDao {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             String whereClause = LocalDataContract.LocalDataEntry.KEY + " = ?";
             String[] selectionArgs = {key};
-            return db.delete(mTableName, whereClause, selectionArgs) == 1;
+            if (db.delete(mTableName, whereClause, selectionArgs) == 1) {
+                // Deletion was successful, delete any files associated with this key
+                FileUtils.cleanUpFilesDir(key, new File(mFileDir), /* latestTimeStamp= */ -1);
+                return true;
+            }
         } catch (SQLiteException e) {
             sLogger.e(TAG + ": Failed to delete row from local data", e);
         }

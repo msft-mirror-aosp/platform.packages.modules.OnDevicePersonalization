@@ -97,6 +97,7 @@ public class JobSchedulerHelper {
                         (task.earliestNextRunTime() - nowMillis) > 0
                                 ? (task.earliestNextRunTime() - nowMillis)
                                 : 0)
+                .setRequiresStorageNotLow(true)
                 .setPersisted(true);
 
         jobInfo.setRequiredNetworkType(

@@ -68,6 +68,7 @@ import java.util.Objects;
 public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "DataAccessServiceImpl";
+
     @NonNull
     private final Context mApplicationContext;
     @NonNull
@@ -104,7 +105,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     }
 
     @VisibleForTesting
-    public DataAccessServiceImpl(
+    DataAccessServiceImpl(
             @NonNull ComponentName service,
             @NonNull Context applicationContext,
             Map<String, byte[]> remoteData,
@@ -149,10 +150,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     /** Handle a request from the isolated process. */
     @Override
     public void onRequest(
-            int operation,
-            @NonNull Bundle params,
-            @NonNull IDataAccessServiceCallback callback
-    ) {
+            int operation, @NonNull Bundle params, @NonNull IDataAccessServiceCallback callback) {
         sLogger.d(TAG + ": onRequest: op=" + operation + " params: " + params.toString());
         switch (operation) {
             case Constants.DATA_ACCESS_OP_REMOTE_DATA_LOOKUP:
@@ -482,16 +480,15 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         try {
             byte[] modelData = null;
             switch (modelId.getTableId()) {
-                case ModelId.TABLE_ID_REMOTE_DATA:
-                    modelData = mVendorDataDao.readSingleVendorDataRow(modelId.getKey());
-                    break;
-                case ModelId.TABLE_ID_LOCAL_DATA:
-                    modelData = mLocalDataDao.readSingleLocalDataRow(modelId.getKey());
-                    break;
-                default:
+                case ModelId.TABLE_ID_REMOTE_DATA ->
+                        modelData = mVendorDataDao.readSingleVendorDataRow(modelId.getKey());
+                case ModelId.TABLE_ID_LOCAL_DATA ->
+                        modelData = mLocalDataDao.readSingleLocalDataRow(modelId.getKey());
+                default -> {
                     sLogger.e(TAG + "Unsupported model table Id %d", modelId.getTableId());
                     sendError(callback, Constants.STATUS_MODEL_TABLE_ID_INVALID);
                     return;
+                }
             }
 
             if (modelData == null) {
@@ -514,9 +511,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         }
     }
 
-    private void sendResult(
-            @NonNull Bundle result,
-            @NonNull IDataAccessServiceCallback callback) {
+    private static void sendResult(
+            @NonNull Bundle result, @NonNull IDataAccessServiceCallback callback) {
         try {
             callback.onSuccess(result);
         } catch (RemoteException e) {
@@ -524,7 +520,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         }
     }
 
-    private void sendError(@NonNull IDataAccessServiceCallback callback, int errorCode) {
+    private static void sendError(@NonNull IDataAccessServiceCallback callback, int errorCode) {
         try {
             callback.onError(errorCode);
         } catch (RemoteException e) {
@@ -543,22 +539,18 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         }
 
         OnDevicePersonalizationVendorDataDao getVendorDataDao(
-                Context context, ComponentName service, String certDigest
-        ) {
+                Context context, ComponentName service, String certDigest) {
             return OnDevicePersonalizationVendorDataDao.getInstance(context,
                     service, certDigest);
         }
 
         OnDevicePersonalizationLocalDataDao getLocalDataDao(
-                Context context, ComponentName service, String certDigest
-        ) {
+                Context context, ComponentName service, String certDigest) {
             return OnDevicePersonalizationLocalDataDao.getInstance(context,
                     service, certDigest);
         }
 
-        EventsDao getEventsDao(
-                Context context
-        ) {
+        EventsDao getEventsDao(Context context) {
             return EventsDao.getInstance(context);
         }
 
