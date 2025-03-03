@@ -29,7 +29,7 @@ import android.os.IBinder;
  * The abstract base class that client apps hosting their own Example Stores must implement.
  *
  * <p>The FederatedCompute will call into client apps' implementations to fetch data to use during
- * the training of new models or get the aggregation analytic result. Apps must add a {@code
+ * the training of new models or get the federated analytics result. Apps must add a {@code
  * <service>} entry to their manifest so that the FederatedCompute can bind to their implementation,
  * like so:
  *
