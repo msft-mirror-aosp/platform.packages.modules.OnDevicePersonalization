@@ -76,7 +76,6 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
         // Constraints.
         builder.setRequiresDeviceIdle(true);
         builder.setRequiresBatteryNotLow(true);
-        builder.setRequiresStorageNotLow(true);
         builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_NONE);
         builder.setPeriodic(1000 * PERIOD_SECONDS); // JobScheduler uses Milliseconds.
         // persist this job across boots

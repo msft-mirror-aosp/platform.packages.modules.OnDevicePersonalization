@@ -73,6 +73,7 @@ public class CtsOdpManagerTests {
     private static final int DELAY_MILLIS = 2000;
 
     private static final String TEST_POPULATION_NAME = "criteo_app_test_task";
+    private static final String TEST_WRITE_DATA = Base64.encodeToString(new byte[] {'A'}, 0);
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
@@ -344,8 +345,7 @@ public class CtsOdpManagerTests {
         PersistableBundle appParams = new PersistableBundle();
         appParams.putString(
                 SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RETURN_OUTPUT_DATA);
-        appParams.putString(
-                SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(new byte[] {'A'}, 0));
+        appParams.putString(SampleServiceApi.KEY_BASE64_VALUE, TEST_WRITE_DATA);
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                 appParams,
@@ -501,74 +501,19 @@ public class CtsOdpManagerTests {
         assertNotNull(manager);
 
         // Write 1 byte.
-        {
-            var receiver = new ResultReceiver<ExecuteResult>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            appParams.putString(
-                    SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(new byte[] {'A'}, 0));
-            manager.execute(
-                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
-                    appParams,
-                    Executors.newSingleThreadExecutor(),
-                    receiver);
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
-
+        writeLocalData(manager, tableKey, /* writeLargeData= */ false);
         Thread.sleep(DELAY_MILLIS);
 
         // Read and check whether value matches written value.
-        {
-            var receiver = new ResultReceiver<ExecuteResult>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            appParams.putString(
-                    SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(new byte[] {'A'}, 0));
-            manager.execute(
-                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
-                    appParams,
-                    Executors.newSingleThreadExecutor(),
-                    receiver);
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
-
+        readExpectedLocalData(manager, tableKey, TEST_WRITE_DATA, /* expectLargeData= */ false);
         Thread.sleep(DELAY_MILLIS);
 
         // Remove.
-        {
-            var receiver = new ResultReceiver<ExecuteResult>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            manager.execute(
-                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
-                    appParams,
-                    Executors.newSingleThreadExecutor(),
-                    receiver);
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
-
+        removeLocalData(manager, tableKey);
         Thread.sleep(DELAY_MILLIS);
 
         // Read and check whether value was removed.
-        {
-            var receiver = new ResultReceiver<ExecuteResult>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            manager.execute(
-                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
-                    appParams,
-                    Executors.newSingleThreadExecutor(),
-                    receiver);
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
+        checkExpectedMissingLocalData(manager, tableKey);
     }
 
     @Test
@@ -578,77 +523,20 @@ public class CtsOdpManagerTests {
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
 
-        // Write 10MB.
-        {
-            var receiver = new ResultReceiver<ExecuteResult>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            appParams.putString(
-                    SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(new byte[] {'A'}, 0));
-            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, LARGE_BLOB_SIZE);
-            manager.execute(
-                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
-                    appParams,
-                    Executors.newSingleThreadExecutor(),
-                    receiver);
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
-
+        // Write 30MB.
+        writeLocalData(manager, tableKey, /* writeLargeData= */ true);
         Thread.sleep(DELAY_MILLIS);
 
         // Read and check whether value matches written value.
-        {
-            var receiver = new ResultReceiver<ExecuteResult>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            appParams.putString(
-                    SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(new byte[] {'A'}, 0));
-            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, LARGE_BLOB_SIZE);
-            manager.execute(
-                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
-                    appParams,
-                    Executors.newSingleThreadExecutor(),
-                    receiver);
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
-
+        readExpectedLocalData(manager, tableKey, TEST_WRITE_DATA, /* expectLargeData= */ true);
         Thread.sleep(DELAY_MILLIS);
 
         // Remove.
-        {
-            var receiver = new ResultReceiver<ExecuteResult>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            manager.execute(
-                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
-                    appParams,
-                    Executors.newSingleThreadExecutor(),
-                    receiver);
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
-
+        removeLocalData(manager, tableKey);
         Thread.sleep(DELAY_MILLIS);
 
         // Read and check whether value was removed.
-        {
-            var receiver = new ResultReceiver<ExecuteResult>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            manager.execute(
-                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
-                    appParams,
-                    Executors.newSingleThreadExecutor(),
-                    receiver);
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
+        checkExpectedMissingLocalData(manager, tableKey);
     }
 
     @Test
@@ -750,7 +638,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @Ignore ("b/388441484")
     @RequiresFlagsEnabled(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
     public void testExecuteWithScheduleFederatedJobWithOutcomeReceiver() throws Exception {
         OnDevicePersonalizationManager manager =
@@ -777,7 +664,7 @@ public class CtsOdpManagerTests {
         PersistableBundle appParams = new PersistableBundle();
         appParams.putString(
                 SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_CANCEL_FEDERATED_JOB);
-        appParams.putString(SampleServiceApi.KEY_POPULATION_NAME, "criteo_app_test_task");
+        appParams.putString(SampleServiceApi.KEY_POPULATION_NAME, TEST_POPULATION_NAME);
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                 appParams,
@@ -1177,93 +1064,23 @@ public class CtsOdpManagerTests {
         assertNotNull(manager);
 
         // Write 1 byte.
-        {
-            var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            appParams.putString(
-                    SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(new byte[] {'A'}, 0));
-            ExecuteInIsolatedServiceRequest request =
-                    new ExecuteInIsolatedServiceRequest.Builder(
-                                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS))
-                            .setAppParams(appParams)
-                            .build();
-
-            manager.executeInIsolatedService(
-                    request, Executors.newSingleThreadExecutor(), receiver);
-
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
-
+        writeLocalDataNewExecuteApi(manager, tableKey, /* writeLargeData= */ false);
         // Add delay between writing and read from db to reduce flakiness.
         Thread.sleep(DELAY_MILLIS);
 
         // Read and check whether value matches written value.
-        {
-            var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            appParams.putString(
-                    SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(new byte[] {'A'}, 0));
-            ExecuteInIsolatedServiceRequest request =
-                    new ExecuteInIsolatedServiceRequest.Builder(
-                                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS))
-                            .setAppParams(appParams)
-                            .build();
-
-            manager.executeInIsolatedService(
-                    request, Executors.newSingleThreadExecutor(), receiver);
-
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
-
+        readExpectedLocalDataNewExecuteApi(
+                manager, tableKey, TEST_WRITE_DATA, /* expectLargeData= */ false);
         // Add delay between writing and read from db to reduce flakiness.
         Thread.sleep(DELAY_MILLIS);
 
         // Remove.
-        {
-            var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            ExecuteInIsolatedServiceRequest request =
-                    new ExecuteInIsolatedServiceRequest.Builder(
-                                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS))
-                            .setAppParams(appParams)
-                            .build();
-
-            manager.executeInIsolatedService(
-                    request, Executors.newSingleThreadExecutor(), receiver);
-
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
-
+        removeLocalDataNewExecuteApi(manager, tableKey);
         // Add delay between writing and read from db to reduce flakiness.
         Thread.sleep(DELAY_MILLIS);
 
         // Read and check whether value was removed.
-        {
-            var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            ExecuteInIsolatedServiceRequest request =
-                    new ExecuteInIsolatedServiceRequest.Builder(
-                                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS))
-                            .setAppParams(appParams)
-                            .build();
-
-            manager.executeInIsolatedService(
-                    request, Executors.newSingleThreadExecutor(), receiver);
-
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
+        checkExpectedMissingLocalDataNewExecuteApi(manager, tableKey);
     }
 
     @Test
@@ -1275,96 +1092,23 @@ public class CtsOdpManagerTests {
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
 
-        // Write 10MB.
-        {
-            var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            appParams.putString(
-                    SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(new byte[] {'A'}, 0));
-            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, LARGE_BLOB_SIZE);
-            ExecuteInIsolatedServiceRequest request =
-                    new ExecuteInIsolatedServiceRequest.Builder(
-                                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS))
-                            .setAppParams(appParams)
-                            .build();
-
-            manager.executeInIsolatedService(
-                    request, Executors.newSingleThreadExecutor(), receiver);
-
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
-
+        // Write 30MB.
+        writeLocalDataNewExecuteApi(manager, tableKey, /* writeLargeData= */ true);
         // Add delay between writing and read from db to reduce flakiness.
         Thread.sleep(DELAY_MILLIS);
 
         // Read and check whether value matches written value.
-        {
-            var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            appParams.putString(
-                    SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(new byte[] {'A'}, 0));
-            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, LARGE_BLOB_SIZE);
-            ExecuteInIsolatedServiceRequest request =
-                    new ExecuteInIsolatedServiceRequest.Builder(
-                                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS))
-                            .setAppParams(appParams)
-                            .build();
-
-            manager.executeInIsolatedService(
-                    request, Executors.newSingleThreadExecutor(), receiver);
-
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
-
+        readExpectedLocalDataNewExecuteApi(
+                manager, tableKey, TEST_WRITE_DATA, /* expectLargeData= */ true);
         // Add delay between writing and read from db to reduce flakiness.
         Thread.sleep(DELAY_MILLIS);
 
         // Remove.
-        {
-            var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            ExecuteInIsolatedServiceRequest request =
-                    new ExecuteInIsolatedServiceRequest.Builder(
-                                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS))
-                            .setAppParams(appParams)
-                            .build();
-
-            manager.executeInIsolatedService(
-                    request, Executors.newSingleThreadExecutor(), receiver);
-
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
-
+        removeLocalDataNewExecuteApi(manager, tableKey);
         // Add delay between writing and read from db to reduce flakiness.
         Thread.sleep(DELAY_MILLIS);
 
-        // Read and check whether value was removed.
-        {
-            var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
-            PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(
-                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
-            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
-            ExecuteInIsolatedServiceRequest request =
-                    new ExecuteInIsolatedServiceRequest.Builder(
-                                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS))
-                            .setAppParams(appParams)
-                            .build();
-
-            manager.executeInIsolatedService(
-                    request, Executors.newSingleThreadExecutor(), receiver);
-
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        }
+        checkExpectedMissingLocalDataNewExecuteApi(manager, tableKey);
     }
 
     @Test
@@ -1487,7 +1231,7 @@ public class CtsOdpManagerTests {
         PersistableBundle appParams = new PersistableBundle();
         appParams.putString(
                 SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_CANCEL_FEDERATED_JOB);
-        appParams.putString(SampleServiceApi.KEY_POPULATION_NAME, "criteo_app_test_task");
+        appParams.putString(SampleServiceApi.KEY_POPULATION_NAME, TEST_POPULATION_NAME);
         ExecuteInIsolatedServiceRequest request =
                 new ExecuteInIsolatedServiceRequest.Builder(
                                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS))
@@ -1570,5 +1314,201 @@ public class CtsOdpManagerTests {
                         : SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB_V2);
         appParams.putString(SampleServiceApi.KEY_POPULATION_NAME, TEST_POPULATION_NAME);
         return appParams;
+    }
+
+    /**
+     * Sends a request to the sample service to write to local data using {@code TEST_WRITE_DATA}. *
+     *
+     * <p>Uses the legacy {@code execute} API.
+     */
+    private static void writeLocalData(
+            OnDevicePersonalizationManager manager, String tableKey, boolean writeLargeData)
+            throws InterruptedException {
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
+        appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+        appParams.putString(SampleServiceApi.KEY_BASE64_VALUE, TEST_WRITE_DATA);
+
+        if (writeLargeData) {
+            // Set repeat count to inform sample service to write a large blob of data.
+            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, LARGE_BLOB_SIZE);
+        }
+
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+    }
+
+    /**
+     * Sends a request to the sample service to write to local data using {@code TEST_WRITE_DATA}
+     *
+     * <p>Uses the new {@code executeInIsolatedService} API.
+     */
+    private static void writeLocalDataNewExecuteApi(
+            OnDevicePersonalizationManager manager, String tableKey, boolean writeLargeData)
+            throws InterruptedException {
+        var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
+        appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+        appParams.putString(SampleServiceApi.KEY_BASE64_VALUE, TEST_WRITE_DATA);
+
+        if (writeLargeData) {
+            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, LARGE_BLOB_SIZE);
+        }
+        ExecuteInIsolatedServiceRequest request =
+                new ExecuteInIsolatedServiceRequest.Builder(
+                                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS))
+                        .setAppParams(appParams)
+                        .build();
+
+        manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
+
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+    }
+
+    /**
+     * Sends a request to the sample service to confirm that the given key does not exist in local
+     * data.
+     *
+     * <p>Uses the legacy {@code execute} API.
+     */
+    private static void checkExpectedMissingLocalData(
+            OnDevicePersonalizationManager manager, String tableKey) throws InterruptedException {
+        // Check to ensure that the given key is missing in the local data
+        readExpectedLocalData(
+                manager, tableKey, /* expectedDataValue= */ "", /* expectLargeData= */ false);
+    }
+
+    /**
+     * Sends a request to the sample service to confirm that the given key does not exist in local
+     * data.
+     *
+     * <p>Uses the new {@code executeInIsolatedProcess} API.
+     */
+    private static void checkExpectedMissingLocalDataNewExecuteApi(
+            OnDevicePersonalizationManager manager, String tableKey) throws InterruptedException {
+        readExpectedLocalDataNewExecuteApi(
+                manager, tableKey, /* expectedDataValue= */ "", /* expectLargeData= */ false);
+    }
+
+    /**
+     * Sends a request to the sample service to confirm that the given key has a matching value in
+     * the local data table.
+     *
+     * <p>Uses the new {@code executeInIsolatedProcess} API.
+     */
+    private static void readExpectedLocalDataNewExecuteApi(
+            OnDevicePersonalizationManager manager,
+            String tableKey,
+            String expectedDataValue,
+            boolean expectLargeData)
+            throws InterruptedException {
+        var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
+        appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+        if (!expectedDataValue.isEmpty()) {
+            // If expected data value is empty, and we do not include it in the bundle to the
+            // SampleService, it will check to ensure that the key does not exist in local data.
+            appParams.putString(SampleServiceApi.KEY_BASE64_VALUE, expectedDataValue);
+        }
+
+        if (expectLargeData) {
+            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, LARGE_BLOB_SIZE);
+        }
+
+        ExecuteInIsolatedServiceRequest request =
+                new ExecuteInIsolatedServiceRequest.Builder(
+                                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS))
+                        .setAppParams(appParams)
+                        .build();
+
+        manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
+
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+    }
+
+    /**
+     * Sends a request to the sample service to confirm that the given key has a matching value in
+     * the local data table.
+     *
+     * <p>Uses the legacy {@code execute} API.
+     */
+    private static void readExpectedLocalData(
+            OnDevicePersonalizationManager manager,
+            String tableKey,
+            String expectedDataValue,
+            boolean expectLargeData)
+            throws InterruptedException {
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
+        appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+        if (!expectedDataValue.isEmpty()) {
+            appParams.putString(SampleServiceApi.KEY_BASE64_VALUE, expectedDataValue);
+        }
+
+        if (expectLargeData) {
+            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, LARGE_BLOB_SIZE);
+        }
+
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+    }
+
+    /**
+     * Sends a request to the sample service to remove the given key from the local data table.
+     *
+     * <p>Uses the legacy {@code execute} API.
+     */
+    private static void removeLocalData(OnDevicePersonalizationManager manager, String tableKey)
+            throws InterruptedException {
+        // Remove local data associated with the given tableKey and assert that the execute
+        // call is successful. Uses the legacy execute API.
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
+        appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+    }
+
+    /**
+     * Sends a request to the sample service to remove the given key from the local data table.
+     *
+     * <p>Uses the new {@code executeInIsolatedProcess} API.
+     */
+    private static void removeLocalDataNewExecuteApi(
+            OnDevicePersonalizationManager manager, String tableKey) throws InterruptedException {
+        // Remove local data associated with the given tableKey and assert that the execute
+        // call is successful. Uses the new execute API.
+        var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
+        appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+        ExecuteInIsolatedServiceRequest request =
+                new ExecuteInIsolatedServiceRequest.Builder(
+                                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS))
+                        .setAppParams(appParams)
+                        .build();
+
+        manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
+
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
     }
 }

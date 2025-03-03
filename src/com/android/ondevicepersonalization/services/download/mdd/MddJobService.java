@@ -18,14 +18,13 @@ package com.android.ondevicepersonalization.services.download.mdd;
 
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_PERSONALIZATION_NOT_ENABLED;
-import static com.android.ondevicepersonalization.services.download.mdd.MddTaskScheduler.MDD_TASK_TAG_KEY;
+import static com.android.ondevicepersonalization.services.download.mdd.MddTaskScheduler.getMddTaskTag;
 
 import static com.google.android.libraries.mobiledatadownload.TaskScheduler.WIFI_CHARGING_PERIODIC_TASK;
 
 import android.app.job.JobParameters;
 import android.app.job.JobScheduler;
 import android.app.job.JobService;
-import android.os.PersistableBundle;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
@@ -48,8 +47,6 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 public class MddJobService extends JobService {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "MddJobService";
-
-    private String mMddTaskTag;
 
     private final Injector mInjector;
 
@@ -75,12 +72,20 @@ public class MddJobService extends JobService {
     @Override
     public boolean onStartJob(JobParameters params) {
         sLogger.d(TAG + ": onStartJob()");
-        OdpJobServiceLogger.getInstance(this).recordOnStartJob(getMddTaskJobId(params));
+        OdpJobServiceLogger.getInstance(this).recordOnStartJob(params.getJobId());
 
         if (mInjector.getFlags().getGlobalKillSwitch()) {
             sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
             return cancelAndFinishJob(params,
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON);
+        }
+
+        // Reschedule jobs with SPE if it's enabled.
+        // Note: scheduled jobs by this MddJobService will be cancelled for the same job ID
+        if (mInjector.getFlags().getSpeOnMddJobEnabled()) {
+            sLogger.d("SPE is enabled. Reschedule MddJobService with MddJob.");
+            MddTaskScheduler.schedule(/* context */ this, params.getExtras());
+            return false;
         }
 
         // Run privacy status checks in the background
@@ -89,23 +94,20 @@ public class MddJobService extends JobService {
     }
 
     private void runPrivacyStatusChecksInBackgroundAndExecute(final JobParameters params) {
-        int jobId = getMddTaskJobId(params);
         OnDevicePersonalizationExecutors.getHighPriorityBackgroundExecutor().execute(() -> {
             if (UserPrivacyStatus.getInstance().isProtectedAudienceAndMeasurementBothDisabled()) {
                 // User control is revoked; handle this case
                 sLogger.d(TAG + ": User control is not given for all ODP services.");
                 OdpJobServiceLogger.getInstance(MddJobService.this)
-                        .recordJobSkipped(jobId,
+                        .recordJobSkipped(params.getJobId(),
                                 AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_PERSONALIZATION_NOT_ENABLED);
                 jobFinished(params, false);
             } else {
                 // User control is given; handle the MDD task
-                mMddTaskTag = getMddTaskTag(params);
-
                 ListenableFuture<Void> handleTaskFuture =
                         PropagatedFutures.submitAsync(
                                 () -> MobileDataDownloadFactory.getMdd(this)
-                                        .handleTask(mMddTaskTag),
+                                        .handleTask(getMddTaskTag(params.getExtras())),
                                 mInjector.getBackgroundExecutor());
 
                 Futures.addCallback(
@@ -113,12 +115,12 @@ public class MddJobService extends JobService {
                         new FutureCallback<Void>() {
                             @Override
                             public void onSuccess(Void result) {
-                                handleSuccess(jobId, params);
+                                handleSuccess(params);
                             }
 
                             @Override
                             public void onFailure(Throwable t) {
-                                handleFailure(jobId, params, t);
+                                handleFailure(params, t);
                             }
                         },
                         mInjector.getBackgroundExecutor());
@@ -126,18 +128,18 @@ public class MddJobService extends JobService {
         });
     }
 
-    private void handleSuccess(int jobId, JobParameters params) {
+    private void handleSuccess(JobParameters params) {
         sLogger.d(TAG + ": MddJobService.MddHandleTask succeeded!");
-        if (WIFI_CHARGING_PERIODIC_TASK.equals(mMddTaskTag)) {
+        if (WIFI_CHARGING_PERIODIC_TASK.equals(getMddTaskTag(params.getExtras()))) {
             OnDevicePersonalizationDownloadProcessingJob.schedule(/* context */ this);
         }
-        recordJobFinished(jobId, true);
+        recordJobFinished(params.getJobId(), true);
         jobFinished(params, false);
     }
 
-    private void handleFailure(int jobId, JobParameters params, Throwable throwable) {
-        sLogger.e(TAG + ": Failed to handle JobService: " + jobId, throwable);
-        recordJobFinished(jobId, false);
+    private void handleFailure(JobParameters params, Throwable throwable) {
+        sLogger.e(TAG + ": Failed to handle JobService: " + params.getJobId(), throwable);
+        recordJobFinished(params.getJobId(), false);
         jobFinished(params, false);
     }
 
@@ -150,39 +152,24 @@ public class MddJobService extends JobService {
     @Override
     public boolean onStopJob(JobParameters params) {
         // Attempt to process any data downloaded before the worker was stopped.
-        if (WIFI_CHARGING_PERIODIC_TASK.equals(mMddTaskTag)) {
+        if (WIFI_CHARGING_PERIODIC_TASK.equals(getMddTaskTag(params.getExtras()))) {
             OnDevicePersonalizationDownloadProcessingJob.schedule(/* context */ this);
         }
         // Reschedule the job since it ended before finishing
         boolean wantsReschedule = true;
         OdpJobServiceLogger.getInstance(this)
-                .recordOnStopJob(params, getMddTaskJobId(params), wantsReschedule);
+                .recordOnStopJob(params, params.getJobId(), wantsReschedule);
         return wantsReschedule;
     }
 
     private boolean cancelAndFinishJob(final JobParameters params, int skipReason) {
         JobScheduler jobScheduler = this.getSystemService(JobScheduler.class);
-        int jobId = getMddTaskJobId(params);
+        int jobId = params.getJobId();
         if (jobScheduler != null) {
             jobScheduler.cancel(jobId);
         }
         OdpJobServiceLogger.getInstance(this).recordJobSkipped(jobId, skipReason);
         jobFinished(params, /* wantsReschedule = */ false);
         return true;
-    }
-
-    private int getMddTaskJobId(final JobParameters params) {
-        mMddTaskTag = getMddTaskTag(params);
-        return MddTaskScheduler.getMddTaskJobId(mMddTaskTag);
-    }
-
-    private String getMddTaskTag(final JobParameters params) {
-        // Get the MddTaskTag from input.
-        PersistableBundle extras = params.getExtras();
-        if (null == extras) {
-            sLogger.e(TAG + ": can't find MDD task tag");
-            throw new IllegalArgumentException("Can't find MDD Tasks Tag!");
-        }
-        return extras.getString(MDD_TASK_TAG_KEY);
     }
 }
