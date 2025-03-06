@@ -23,7 +23,7 @@ import java.io.Closeable;
 
 /**
  * Iterator interface that client apps implement to return training examples. When FederatedCompute
- * runs a computation, it will call into this interface to fetech training examples to feed to the
+ * runs a computation, it will call into this interface to fetch training examples to feed to the
  * computation.
  *
  * @hide
@@ -31,16 +31,19 @@ import java.io.Closeable;
 public interface ExampleStoreIterator extends Closeable {
     /** Called when FederatedCompute needs another example. */
     void next(@NonNull IteratorCallback callback);
+
     /** Called by FederatedCompute when it is done using this iterator instance. */
     @Override
     void close();
+
     /** The client app must implement this callback return training examples. */
     public interface IteratorCallback {
         /**
-         * Called when the result for {@link ExampleStoreIterator#next} is available, or when the
-         * end of the collection has been reached.
+         * Called when the result for {@link ExampleStoreIterator#next} is available, or {@code
+         * null} when the end of the collection has been reached.
          */
         boolean onIteratorNextSuccess(Bundle result);
+
         /** Called when an error occurred and the result cannot be returned. */
         void onIteratorNextFailure(int errorCode);
     }
