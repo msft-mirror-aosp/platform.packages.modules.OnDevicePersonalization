@@ -16,6 +16,10 @@
 
 package com.android.federatedcompute.services.encryption;
 
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_FAILED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SKIPPED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SUCCESSFUL;
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.odp.module.common.encryption.OdpEncryptionKey.KEY_TYPE_ENCRYPTION;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -27,7 +31,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -48,6 +51,7 @@ import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.PhFlagsTestUtil;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDaoUtils;
+import com.android.federatedcompute.services.sharedlibrary.spe.FederatedComputeJobScheduler;
 import com.android.odp.module.common.EventLogger;
 import com.android.odp.module.common.MonotonicClock;
 import com.android.odp.module.common.data.OdpEncryptionKeyDao;
@@ -104,6 +108,7 @@ public class BackgroundKeyFetchJobServiceTest {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
         PhFlagsTestUtil.enableScheduleBackgroundKeyFetchJob();
+        PhFlagsTestUtil.disableSpeBackgroundKeyFetchJob();
         MockitoAnnotations.initMocks(this);
 
         mContext = ApplicationProvider.getApplicationContext();
@@ -128,6 +133,7 @@ public class BackgroundKeyFetchJobServiceTest {
                                 mTestDbHelper));
         mStaticMockSession =
                 ExtendedMockito.mockitoSession()
+                        .mockStatic(FederatedComputeJobScheduler.class)
                         .initMocks(this)
                         .strictness(Strictness.LENIENT)
                         .startMocking();
@@ -167,6 +173,20 @@ public class BackgroundKeyFetchJobServiceTest {
     }
 
     @Test
+    public void onStartJobTestSpeEnabled() {
+        PhFlagsTestUtil.enableSpeBackgroundKeyFetchJob();
+
+        // Mock OdpJobScheduler to not actually schedule the job.
+        FederatedComputeJobScheduler mockedScheduler = mock(FederatedComputeJobScheduler.class);
+        doReturn(mockedScheduler).when(() -> FederatedComputeJobScheduler.getInstance(any()));
+
+        assertThat(mSpyService.onStartJob(mock(JobParameters.class))).isFalse();
+
+        // Verify SPE scheduler has rescheduled the job.
+        verify(mockedScheduler).schedule(any(), any());
+    }
+
+    @Test
     public void testOnStartJob_onFailure() {
         OdpEncryptionKeyManager keyManager = mInjector.getEncryptionKeyManager(mContext);
         doReturn(
@@ -192,8 +212,8 @@ public class BackgroundKeyFetchJobServiceTest {
 
         assertThat(
                         BackgroundKeyFetchJobService.scheduleJobIfNeeded(
-                                mContext, FlagsFactory.getFlags()))
-                .isEqualTo(true);
+                                mContext, FlagsFactory.getFlags(), /* forceSchedule */ false))
+                .isEqualTo(SCHEDULING_RESULT_CODE_SUCCESSFUL);
 
         final JobInfo scheduledJob =
                 jobScheduler.getPendingJob(
@@ -207,13 +227,26 @@ public class BackgroundKeyFetchJobServiceTest {
     public void testScheduleJob_notNeeded() {
         assertThat(
                         BackgroundKeyFetchJobService.scheduleJobIfNeeded(
-                                mContext, FlagsFactory.getFlags()))
-                .isEqualTo(true);
+                                mContext, FlagsFactory.getFlags(), /* forceSchedule */ false))
+                .isEqualTo(SCHEDULING_RESULT_CODE_SUCCESSFUL);
 
         assertThat(
                         BackgroundKeyFetchJobService.scheduleJobIfNeeded(
-                                mContext, FlagsFactory.getFlags()))
-                .isEqualTo(false);
+                                mContext, FlagsFactory.getFlags(), /* forceSchedule */ false))
+                .isEqualTo(SCHEDULING_RESULT_CODE_SKIPPED);
+    }
+
+    @Test
+    public void testScheduleJob_forceScheduleSuccessful() {
+        assertThat(
+                BackgroundKeyFetchJobService.scheduleJobIfNeeded(
+                        mContext, FlagsFactory.getFlags(), /* forceSchedule */ false))
+                .isEqualTo(SCHEDULING_RESULT_CODE_SUCCESSFUL);
+
+        assertThat(
+                BackgroundKeyFetchJobService.scheduleJobIfNeeded(
+                        mContext, FlagsFactory.getFlags(), /* forceSchedule */ true))
+                .isEqualTo(SCHEDULING_RESULT_CODE_SUCCESSFUL);
     }
 
     @Test
@@ -221,8 +254,8 @@ public class BackgroundKeyFetchJobServiceTest {
         PhFlagsTestUtil.disableScheduleBackgroundKeyFetchJob();
 
         assertThat(BackgroundKeyFetchJobService.scheduleJobIfNeeded(
-                mContext, FlagsFactory.getFlags()
-        )).isEqualTo(false);
+                mContext, FlagsFactory.getFlags(), /* forceSchedule */ false
+        )).isEqualTo(SCHEDULING_RESULT_CODE_FAILED);
     }
 
     @Test
@@ -240,7 +273,8 @@ public class BackgroundKeyFetchJobServiceTest {
                 .fetchAndPersistActiveKeys(
                         KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true, Optional.empty());
         doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
-        mSpyService.scheduleJobIfNeeded(mContext, FlagsFactory.getFlags());
+        mSpyService
+                .scheduleJobIfNeeded(mContext, FlagsFactory.getFlags(), /* forceSchedule */ false);
         assertTrue(mJobScheduler.getPendingJob(
                 FederatedComputeJobInfo.ENCRYPTION_KEY_FETCH_JOB_ID)
                 != null);

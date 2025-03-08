@@ -23,7 +23,7 @@ import android.os.IBinder;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
-import com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService;
+import com.android.federatedcompute.services.encryption.BackgroundKeyFetchJob;
 import com.android.federatedcompute.services.scheduling.DeleteExpiredJob;
 import com.android.federatedcompute.services.scheduling.FederatedComputeLearningJobScheduleOrchestrator;
 import com.android.federatedcompute.services.statsd.FederatedComputeStatsdLogger;
@@ -59,7 +59,7 @@ public class FederatedComputeManagingServiceImpl extends Service {
             mFcpServiceDelegate =
                     new FederatedComputeManagingServiceDelegate(
                             this, FederatedComputeStatsdLogger.getInstance());
-            BackgroundKeyFetchJobService.scheduleJobIfNeeded(this, mFlags);
+            BackgroundKeyFetchJob.schedule(this);
             DeleteExpiredJob.schedule(this, mFlags);
             var unused = Futures.submit(() ->
                     FederatedComputeLearningJobScheduleOrchestrator.getInstance(this)

@@ -21,6 +21,7 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.doAnswer;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doNothing;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.federatedcompute.services.common.FederatedComputeJobInfo.DELETE_EXPIRED_JOB_ID;
+import static com.android.federatedcompute.services.common.FederatedComputeJobInfo.ENCRYPTION_KEY_FETCH_JOB_ID;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -52,6 +53,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.quality.Strictness;
+
+import java.util.function.Supplier;
 
 /** Unit tests for {@link FederatedComputeJobService}. */
 @SpyStatic(FlagsFactory.class)
@@ -162,34 +165,88 @@ public final class FederatedComputeJobServiceTest {
     }
 
     @Test
-    public void testShouldRescheduleWithLegacyMethod_speDisabled() {
-        when(mMockFlags.getSpePilotJobEnabled()).thenReturn(false);
+    public void testShouldRescheduleWithLegacyMethod_deleteExpiredJobDisabled() {
+        assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
+                DELETE_EXPIRED_JOB_ID,
+                /* jobName */ "DeleteExpiredJob",
+                mMockFlags::getSpePilotJobEnabled);
+    }
 
-        assertWithMessage("shouldRescheduleWithLegacyMethod() for" + " DeleteExpiredJob")
-                .that(
-                        mSpyFederatedComputeJobService.shouldRescheduleWithLegacyMethod(
-                                DELETE_EXPIRED_JOB_ID))
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_backgroundKeyFetchJobDisabled() {
+        assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
+                ENCRYPTION_KEY_FETCH_JOB_ID,
+                /* jobName */ "BackgroundKeyFetchJob",
+                mMockFlags::getSpeOnBackgroundKeyFetchJobEnabled);
+    }
+
+    private void assertRescheduledWithLegacyMethodWhenSpeJobDisabled(
+            int jobId, String jobName, Supplier<Boolean> speJobEnabledFlagSupplier) {
+        when(speJobEnabledFlagSupplier.get()).thenReturn(false);
+
+        assertWithMessage(
+                /* messageToPrepend */ "shouldRescheduleWithLegacyMethod() for " + jobName
+                        + " did not reschedule with legacy even though the spe job is disabled")
+                .that(mSpyFederatedComputeJobService.shouldRescheduleWithLegacyMethod(jobId))
                 .isTrue();
     }
 
     @Test
-    public void testShouldRescheduleWithLegacyMethod_speDisabled_notConfiguredJobId() {
-        when(mMockFlags.getSpePilotJobEnabled()).thenReturn(true);
+    public void testShouldRescheduleWithLegacyMethod_deleteExpiredJobEnabled_notConfiguredJobId() {
         int invalidJobId = -1;
 
-        assertWithMessage("shouldRescheduleWithLegacyMethod() for" + " not configured job ID")
-                .that(mSpyFederatedComputeJobService.shouldRescheduleWithLegacyMethod(invalidJobId))
+        assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
+                invalidJobId,
+                /* jobName */ "DeleteExpiredJob",
+                mMockFlags::getSpePilotJobEnabled);
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_backgroundKeyJobEnabled_notConfiguredJobId() {
+        int invalidJobId = -1;
+
+        assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
+                invalidJobId,
+                /* jobName */ "BackgroundKeyFetchJob",
+                mMockFlags::getSpeOnBackgroundKeyFetchJobEnabled);
+    }
+
+
+    private void assertNotRescheduledWithLegacyMethodWhenJobMisconfigured(
+            int jobId, String jobName, Supplier<Boolean> speJobEnabledFlagSupplier) {
+        when(speJobEnabledFlagSupplier.get()).thenReturn(true);
+
+        assertWithMessage(
+                /* messageToPrepend */ "shouldRescheduleWithLegacyMethod() for " + jobName
+                        + " rescheduled even though job ID was misconfigured")
+                .that(mSpyFederatedComputeJobService.shouldRescheduleWithLegacyMethod(jobId))
                 .isFalse();
     }
 
     @Test
-    public void testShouldRescheduleWithLegacyMethod_speEnabled() {
-        when(mMockFlags.getSpePilotJobEnabled()).thenReturn(true);
+    public void testShouldRescheduleWithLegacyMethod_deleteExpiredJobEnabled() {
+        assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(
+                DELETE_EXPIRED_JOB_ID,
+                /* jobName */ "DeleteExpiredJob",
+                mMockFlags::getSpePilotJobEnabled);
+    }
 
-        assertWithMessage("shouldRescheduleWithLegacyMethod() for" + " DeleteExpiredJob")
-                .that(
-                        mSpyFederatedComputeJobService.shouldRescheduleWithLegacyMethod(
-                                DELETE_EXPIRED_JOB_ID))
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_backgroundKeyFetchJobEnabled() {
+        assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(
+                ENCRYPTION_KEY_FETCH_JOB_ID,
+                /* jobName */ "BackgroundKeyFetchJob",
+                mMockFlags::getSpeOnBackgroundKeyFetchJobEnabled);
+    }
+
+    private void assertNotRescheduledWithLegacyMethodWhenSpeJobEnabled(
+            int jobId, String jobName, Supplier<Boolean> speJobEnabledFlagSupplier) {
+        when(speJobEnabledFlagSupplier.get()).thenReturn(true);
+
+        assertWithMessage(
+                /* messageToPrepend */ "shouldRescheduleWithLegacyMethod() for " + jobName
+                        + " rescheduled with legacy method even though the spe job is enabled")
+                .that(mSpyFederatedComputeJobService.shouldRescheduleWithLegacyMethod(jobId))
                 .isFalse();
     }
 }

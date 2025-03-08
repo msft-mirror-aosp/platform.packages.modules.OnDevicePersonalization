@@ -17,6 +17,7 @@
 package com.android.federatedcompute.services.sharedlibrary.spe;
 
 import static com.android.federatedcompute.services.common.FederatedComputeJobInfo.DELETE_EXPIRED_JOB_ID;
+import static com.android.federatedcompute.services.common.FederatedComputeJobInfo.ENCRYPTION_KEY_FETCH_JOB_ID;
 
 import android.app.job.JobParameters;
 
@@ -71,10 +72,13 @@ public final class FederatedComputeJobService extends AbstractJobService {
     boolean shouldRescheduleWithLegacyMethod(int jobId) {
         Flags flags = FlagsFactory.getFlags();
 
-        if (jobId == DELETE_EXPIRED_JOB_ID && !flags.getSpePilotJobEnabled()) {
-            return true;
+        switch (jobId) {
+            case DELETE_EXPIRED_JOB_ID:
+                return !flags.getSpePilotJobEnabled();
+            case ENCRYPTION_KEY_FETCH_JOB_ID:
+                return !flags.getSpeOnBackgroundKeyFetchJobEnabled();
+            default:
+                return false;
         }
-
-        return false;
     }
 }
