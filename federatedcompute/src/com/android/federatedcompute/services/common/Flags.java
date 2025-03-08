@@ -262,6 +262,34 @@ public interface Flags extends ModuleSharedFlags {
         return DEFAULT_SPE_PILOT_JOB_ENABLED;
     }
 
+    /**
+     * Default enablement for applying SPE (Scheduling Policy Engine) to
+     * {@code BackgroundKeyFetchJobService}
+     */
+    @FeatureFlag boolean
+            DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB = false;
+
+    /**
+     * Returns the default enablement of applying SPE (Scheduling Policy Engine) to
+     * {@code BackgroundKeyFetchJobService}
+     */
+    default boolean getSpeOnBackgroundKeyFetchJobEnabled() {
+        return DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB;
+    }
+
+    /**
+     * Default enablement for applying SPE (Scheduling Policy Engine) to {@code FederatedJobService}
+     */
+    @FeatureFlag boolean DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB = false;
+
+    /**
+     * Returns the default enablement of applying SPE (Scheduling Policy Engine) to
+     * {@code FederatedJobService}
+     */
+    default boolean getSpeOnFederatedJobEnabled() {
+        return DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB;
+    }
+
     @ConfigFlag int DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE = 50;
 
     default int getFcpTaskLimitPerPackage() {

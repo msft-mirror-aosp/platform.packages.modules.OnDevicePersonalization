@@ -17,6 +17,7 @@
 package com.android.federatedcompute.services.sharedlibrary.spe;
 
 import static com.android.federatedcompute.services.common.FederatedComputeJobInfo.DELETE_EXPIRED_JOB_ID;
+import static com.android.federatedcompute.services.common.FederatedComputeJobInfo.ENCRYPTION_KEY_FETCH_JOB_ID;
 import static com.android.federatedcompute.services.common.FederatedComputeJobInfo.JOB_ID_TO_NAME_MAP;
 
 import android.content.Context;
@@ -31,6 +32,8 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
+import com.android.federatedcompute.services.encryption.BackgroundKeyFetchJob;
+import com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService;
 import com.android.federatedcompute.services.scheduling.DeleteExpiredJob;
 import com.android.federatedcompute.services.scheduling.DeleteExpiredJobService;
 import com.android.federatedcompute.services.statsd.ClientErrorLogger;
@@ -134,6 +137,8 @@ public class FederatedComputeJobServiceFactory implements JobServiceFactory {
             switch (jobId) {
                 case DELETE_EXPIRED_JOB_ID:
                     return new DeleteExpiredJob();
+                case ENCRYPTION_KEY_FETCH_JOB_ID:
+                    return new BackgroundKeyFetchJob();
                 default:
                     throw new RuntimeException(
                             "The job is not configured for the instance creation.");
@@ -181,6 +186,10 @@ public class FederatedComputeJobServiceFactory implements JobServiceFactory {
             switch (jobId) {
                 case DELETE_EXPIRED_JOB_ID:
                     DeleteExpiredJobService.scheduleJobIfNeeded(context, mFlags, forceSchedule);
+                    return;
+                case ENCRYPTION_KEY_FETCH_JOB_ID:
+                    BackgroundKeyFetchJobService
+                            .scheduleJobIfNeeded(context, mFlags, forceSchedule);
                     return;
                 default:
                     throw new RuntimeException(

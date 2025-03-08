@@ -22,7 +22,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.Uri;
 
-
 import androidx.annotation.NonNull;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -65,26 +64,17 @@ public class OnDevicePersonalizationFileDownloader implements FileDownloader {
 
     private static final String MDD_METADATA_SHARED_PREFERENCES = "mdd_metadata_store";
 
-    private final SynchronousFileStorage mFileStorage;
-    private final Context mContext;
-
-    private final Executor mDownloadExecutor;
-
     private final FileDownloader mOffroad2FileDownloader;
     private final FileDownloader mLocalFileDownloader;
 
     public OnDevicePersonalizationFileDownloader(
             SynchronousFileStorage fileStorage, Executor downloadExecutor,
             Context context) {
-        this.mFileStorage = fileStorage;
-        this.mDownloadExecutor = downloadExecutor;
-        this.mContext = context;
-
-        this.mOffroad2FileDownloader = getOffroad2FileDownloader(mContext, mFileStorage,
-                mDownloadExecutor);
-        this.mLocalFileDownloader = new OnDevicePersonalizationLocalFileDownloader(mFileStorage,
-                mDownloadExecutor, mContext);
-
+        this.mOffroad2FileDownloader =
+                getOffroad2FileDownloader(context, fileStorage, downloadExecutor);
+        this.mLocalFileDownloader =
+                new OnDevicePersonalizationLocalFileDownloader(
+                        fileStorage, downloadExecutor, context);
     }
 
     @NonNull

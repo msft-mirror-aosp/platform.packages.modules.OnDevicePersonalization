@@ -25,6 +25,8 @@ import android.os.Bundle;
 import android.os.RemoteException;
 
 import com.android.federatedcompute.internal.util.LogUtil;
+import com.android.internal.annotations.GuardedBy;
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.Preconditions;
 
 /**
@@ -36,6 +38,7 @@ public class ExampleStoreQueryCallbackImpl implements QueryCallback {
     private static final String TAG = "ExampleStoreQueryCallbackImpl";
     private final IExampleStoreCallback mExampleStoreQueryCallback;
 
+    @VisibleForTesting
     public ExampleStoreQueryCallbackImpl(IExampleStoreCallback exampleStoreQueryCallback) {
         this.mExampleStoreQueryCallback = exampleStoreQueryCallback;
     }
@@ -60,6 +63,7 @@ public class ExampleStoreQueryCallbackImpl implements QueryCallback {
             LogUtil.w(TAG, e, "onIteratorNextFailure AIDL call failed, closing iterator");
         }
     }
+
     /**
      * The implementation of {@link IExampleStoreIterator}.
      *
@@ -68,6 +72,8 @@ public class ExampleStoreQueryCallbackImpl implements QueryCallback {
     public static class IteratorAdapter extends IExampleStoreIterator.Stub {
         private final ExampleStoreIterator mIterator;
         private final Object mLock = new Object();
+
+        @GuardedBy("mLock")
         private boolean mClosed = false;
 
         public IteratorAdapter(ExampleStoreIterator iterator) {
@@ -100,6 +106,7 @@ public class ExampleStoreQueryCallbackImpl implements QueryCallback {
             mIterator.close();
         }
     }
+
     /**
      * The implementation of {@link ExampleStoreIterator.IteratorCallback} that FederatedCompute
      * pass to the apps.

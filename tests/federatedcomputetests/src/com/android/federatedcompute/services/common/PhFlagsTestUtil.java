@@ -18,6 +18,7 @@ package com.android.federatedcompute.services.common;
 
 import static com.android.federatedcompute.services.common.Flags.USE_BACKGROUND_ENCRYPTION_KEY_FETCH;
 import static com.android.federatedcompute.services.common.FlagsConstants.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB;
 import static com.android.federatedcompute.services.common.FlagsConstants.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
 
 import android.provider.DeviceConfig;
@@ -80,6 +81,24 @@ public class PhFlagsTestUtil {
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH,
+                Boolean.toString(false),
+                /* makeDefault= */ false);
+    }
+
+    /** Enable SPE scheduling for the background key fetch job. */
+    public static void enableSpeBackgroundKeyFetchJob() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB,
+                Boolean.toString(true),
+                /* makeDefault= */ false);
+    }
+
+    /** Disable SPE scheduling for the background key fetch job. */
+    public static void disableSpeBackgroundKeyFetchJob() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB,
                 Boolean.toString(false),
                 /* makeDefault= */ false);
     }

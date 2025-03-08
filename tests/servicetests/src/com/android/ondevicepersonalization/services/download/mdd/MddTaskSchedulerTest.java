@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.download.mdd;
 
 import static com.android.adservices.shared.proto.JobPolicy.BatteryType.BATTERY_TYPE_REQUIRE_NOT_LOW;
 import static com.android.adservices.shared.proto.JobPolicy.NetworkType.NETWORK_TYPE_ANY;
+import static com.android.adservices.shared.proto.JobPolicy.NetworkType.NETWORK_TYPE_NONE;
 import static com.android.adservices.shared.proto.JobPolicy.NetworkType.NETWORK_TYPE_UNMETERED;
 import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SKIPPED;
 import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SUCCESSFUL;
@@ -234,45 +235,51 @@ public final class MddTaskSchedulerTest {
     @Test
     public void testCreateJobSpec_maintenancePeriodicJob() {
         JobPolicy jobPolicy =
-                createJobPolicy(MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID, NETWORK_TYPE_UNMETERED,
+                createJobPolicy(
+                        MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID,
+                        NETWORK_TYPE_NONE,
                         /* requireStorageNotLow= */ false);
         JobSpec expectedJobSpec = new JobSpec.Builder(jobPolicy).setExtras(createMddExtras(
                 MAINTENANCE_PERIODIC_TASK,
                 DEFAULT_PERIOD_SECONDS,
-                NetworkState.NETWORK_STATE_UNMETERED))
+                NetworkState.NETWORK_STATE_ANY))
                 .build();
 
         assertWithMessage("testCreateJobSpec() for MddJob#maintenancePeriodic")
                 .that(MddTaskScheduler.createJobSpec(
                         MAINTENANCE_PERIODIC_TASK,
                         DEFAULT_PERIOD_SECONDS,
-                        NetworkState.NETWORK_STATE_UNMETERED))
+                        NetworkState.NETWORK_STATE_ANY))
                 .isEqualTo(expectedJobSpec);
     }
 
     @Test
     public void testCreateJobSpec_chargingPeriodicJob() {
         JobPolicy jobPolicy =
-                createJobPolicy(MDD_CHARGING_PERIODIC_TASK_JOB_ID, NETWORK_TYPE_UNMETERED,
+                createJobPolicy(
+                        MDD_CHARGING_PERIODIC_TASK_JOB_ID,
+                        NETWORK_TYPE_NONE,
                         /* requireStorageNotLow= */ false);
         JobSpec expectedJobSpec = new JobSpec.Builder(jobPolicy).setExtras(createMddExtras(
                 CHARGING_PERIODIC_TASK,
                 DEFAULT_PERIOD_SECONDS,
-                NetworkState.NETWORK_STATE_UNMETERED))
+                NetworkState.NETWORK_STATE_ANY))
                 .build();
 
         assertWithMessage("testCreateJobSpec() for MddJob#charging")
                 .that(MddTaskScheduler.createJobSpec(
                         CHARGING_PERIODIC_TASK,
                         DEFAULT_PERIOD_SECONDS,
-                        NetworkState.NETWORK_STATE_UNMETERED))
+                        NetworkState.NETWORK_STATE_ANY))
                 .isEqualTo(expectedJobSpec);
     }
 
     @Test
     public void testCreateJobSpec_cellularChargingPeriodicJob() {
         JobPolicy jobPolicy =
-                createJobPolicy(MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID, NETWORK_TYPE_ANY,
+                createJobPolicy(
+                        MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID,
+                        NETWORK_TYPE_ANY,
                         /* requireStorageNotLow= */ true);
         JobSpec expectedJobSpec = new JobSpec.Builder(jobPolicy).setExtras(createMddExtras(
                 CELLULAR_CHARGING_PERIODIC_TASK,
@@ -291,19 +298,21 @@ public final class MddTaskSchedulerTest {
     @Test
     public void testCreateJobSpec_wifiPeriodicJob() {
         JobPolicy jobPolicy =
-                createJobPolicy(MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID, NETWORK_TYPE_ANY,
+                createJobPolicy(
+                        MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID,
+                        NETWORK_TYPE_UNMETERED,
                         /* requireStorageNotLow= */ true);
         JobSpec expectedJobSpec = new JobSpec.Builder(jobPolicy).setExtras(createMddExtras(
                 WIFI_CHARGING_PERIODIC_TASK,
                 DEFAULT_PERIOD_SECONDS,
-                NetworkState.NETWORK_STATE_ANY))
+                NetworkState.NETWORK_STATE_UNMETERED))
                 .build();
 
         assertWithMessage("testCreateJobSpec() for MddJob#wifiPeriodic")
                 .that(MddTaskScheduler.createJobSpec(
                         WIFI_CHARGING_PERIODIC_TASK,
                         DEFAULT_PERIOD_SECONDS,
-                        NetworkState.NETWORK_STATE_ANY))
+                        NetworkState.NETWORK_STATE_UNMETERED))
                 .isEqualTo(expectedJobSpec);
     }
 
