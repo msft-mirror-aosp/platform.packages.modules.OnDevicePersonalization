@@ -111,7 +111,12 @@ public class SampleHandler implements IsolatedWorker {
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA"
                     + "AAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC";
     private static final byte[] TRANSPARENT_PNG_BYTES = Base64.decode(TRANSPARENT_PNG_BASE64, 0);
-    private static final int ERROR_CODE = 10;
+    private static final int ERROR_CODE_INJECT_ERROR = 10;
+    private static final int ERROR_CODE_ILLEGAL_ARGUMENT = 11;
+    private static final int ERROR_CODE_WORKER_ON_EXECUTE_ERROR = 12;
+    private static final int ERROR_CODE_WORKER_ON_RENDER_ERROR = 13;
+    private static final int ERROR_CODE_WORKER_ON_EVENT_ERROR = 14;
+    private static final int ERROR_CODE_WORKER_ON_WEB_TRIGGER_ERROR = 15;
 
     private static final ListeningExecutorService sBackgroundExecutor =
             MoreExecutors.listeningDecorator(
@@ -455,7 +460,7 @@ public class SampleHandler implements IsolatedWorker {
                     && input.getAppParams() != null
                     && input.getAppParams().getString("keyword") != null
                     && input.getAppParams().getString("keyword").equalsIgnoreCase("error")) {
-                receiver.onError(new IsolatedServiceException(ERROR_CODE));
+                receiver.onError(new IsolatedServiceException(ERROR_CODE_INJECT_ERROR));
                 return;
             }
             if (input != null
@@ -463,7 +468,7 @@ public class SampleHandler implements IsolatedWorker {
                     && input.getAppParams().getString("schedule_training") != null) {
                 Log.d(TAG, "onExecute() performing schedule training.");
                 if (input.getAppParams().getString("schedule_training").isEmpty()) {
-                    receiver.onResult(null);
+                    receiver.onError(new IsolatedServiceException(ERROR_CODE_ILLEGAL_ARGUMENT));
                     return;
                 }
                 TrainingInterval interval;
@@ -503,7 +508,7 @@ public class SampleHandler implements IsolatedWorker {
                     && input.getAppParams().getString("cancel_training") != null) {
                 Log.d(TAG, "onExecute() performing cancel training.");
                 if (input.getAppParams().getString("cancel_training").isEmpty()) {
-                    receiver.onResult(null);
+                    receiver.onError(new IsolatedServiceException(ERROR_CODE_ILLEGAL_ARGUMENT));
                     return;
                 }
                 FederatedComputeInput fcInput =
@@ -518,12 +523,11 @@ public class SampleHandler implements IsolatedWorker {
             } else if (input != null
                     && input.getAppParams() != null
                     && input.getAppParams().getString("conversion_ad_id") != null) {
-                try {
-                    receiver.onResult(handleConversion(input));
-                } catch (Exception e) {
-                    receiver.onResult(null);
+                if (input.getAppParams().getString("conversion_ad_id").isEmpty()) {
+                    receiver.onError(new IsolatedServiceException(ERROR_CODE_ILLEGAL_ARGUMENT));
                     return;
                 }
+                receiver.onResult(handleConversion(input));
             } else {
                 ListenableFuture<List<Ad>> matchAdsFuture =
                         FluentFuture.from(readAds(mRemoteData))
@@ -553,14 +557,15 @@ public class SampleHandler implements IsolatedWorker {
                                         Exception.class,
                                         e -> {
                                             Log.e(TAG, "Execution failed.", e);
-                                            receiver.onResult(null);
+                                            receiver.onError(new IsolatedServiceException(
+                                                    ERROR_CODE_WORKER_ON_EXECUTE_ERROR));
                                             return null;
                                         },
                                         MoreExecutors.directExecutor());
             }
         } catch (Exception e) {
             Log.e(TAG, "handleOnExecute() failed", e);
-            receiver.onResult(null);
+            receiver.onError(new IsolatedServiceException(ERROR_CODE_WORKER_ON_EXECUTE_ERROR));
         }
     }
 
@@ -627,9 +632,11 @@ public class SampleHandler implements IsolatedWorker {
     }
 
     private ExecuteOutput handleConversion(ExecuteInput input) {
-        String adId = input.getAppParams().getString("conversion_ad_id");
-        if (adId.isEmpty()) {
-            return null;
+        String adId = input.getAppParams().getString("conversion_ad_id").strip();
+        var builder = new ExecuteOutput.Builder();
+        if (adId == null || adId.isEmpty()) {
+            Log.d(TAG, "SourceAdId should not be empty");
+            return builder.build();
         }
         long now = System.currentTimeMillis();
         List<EventLogRecord> logRecords =
@@ -652,7 +659,6 @@ public class SampleHandler implements IsolatedWorker {
                 }
             }
         }
-        var builder = new ExecuteOutput.Builder();
         if (found != null) {
             ContentValues values = new ContentValues();
             values.put(SOURCE_TYPE_KEY, found.getType());
@@ -664,6 +670,8 @@ public class SampleHandler implements IsolatedWorker {
                             .setRequestLogRecord(found.getRequestLogRecord())
                             .build();
             builder.addEventLogRecord(conv);
+        } else {
+            Log.d(TAG, String.format("SourceAdId %s not find matched record", adId));
         }
         return builder.build();
     }
@@ -702,14 +710,15 @@ public class SampleHandler implements IsolatedWorker {
                                     Exception.class,
                                     e -> {
                                         Log.e(TAG, "Execution failed.", e);
-                                        receiver.onResult(null);
+                                        receiver.onError(new IsolatedServiceException(
+                                                ERROR_CODE_WORKER_ON_RENDER_ERROR));
                                         return null;
                                     },
                                     MoreExecutors.directExecutor());
 
         } catch (Exception e) {
             Log.e(TAG, "handleOnRender failed.", e);
-            receiver.onResult(null);
+            receiver.onError(new IsolatedServiceException(ERROR_CODE_WORKER_ON_RENDER_ERROR));
         }
     }
 
@@ -752,7 +761,7 @@ public class SampleHandler implements IsolatedWorker {
             receiver.onResult(result);
         } catch (Exception e) {
             Log.e(TAG, "handleOnEvent failed.", e);
-            receiver.onResult(null);
+            receiver.onError(new IsolatedServiceException(ERROR_CODE_WORKER_ON_EVENT_ERROR));
         }
     }
 
@@ -810,7 +819,8 @@ public class SampleHandler implements IsolatedWorker {
             receiver.onResult(output);
         } catch (Exception e) {
             Log.e(TAG, "handleOnWebTrigger failed.", e);
-            receiver.onResult(null);
+            receiver.onError(new IsolatedServiceException(
+                    ERROR_CODE_WORKER_ON_WEB_TRIGGER_ERROR));
         }
     }
 

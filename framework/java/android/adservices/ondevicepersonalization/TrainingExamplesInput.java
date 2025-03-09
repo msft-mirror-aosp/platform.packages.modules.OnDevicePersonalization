@@ -25,7 +25,6 @@ import com.android.adservices.ondevicepersonalization.flags.Flags;
 import java.util.Objects;
 
 /** The input data for {@link IsolatedWorker#onTrainingExamples}. */
-@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public final class TrainingExamplesInput {
     /**
      * The name of the federated compute population. It should match the population name in {@link

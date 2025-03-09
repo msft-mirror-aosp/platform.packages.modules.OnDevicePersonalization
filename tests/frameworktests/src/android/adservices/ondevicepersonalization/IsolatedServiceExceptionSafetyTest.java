@@ -43,6 +43,7 @@ import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -60,7 +61,7 @@ public class IsolatedServiceExceptionSafetyTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
     private IIsolatedService mIsolatedService;
-    private AbstractServiceBinder<IIsolatedService> mServiceBinder;
+    private static AbstractServiceBinder<IIsolatedService> sServiceBinder;
     private int mCallbackErrorCode;
     private int mIsolatedServiceErrorCode;
     private byte[] mSerializedExceptionInfo;
@@ -81,23 +82,31 @@ public class IsolatedServiceExceptionSafetyTest {
 
     @Before
     public void setUp() throws Exception {
-        mServiceBinder = AbstractServiceBinder.getIsolatedServiceBinderByServiceName(
-                mContext,
-                "android.adservices.ondevicepersonalization.IsolatedServiceExceptionSafetyTestImpl",
-                mContext.getPackageName(),
-                "testIsolatedProcess",
-                0,
-                IIsolatedService.Stub::asInterface);
+        if (sServiceBinder == null) {
+            sServiceBinder =
+                    AbstractServiceBinder.getIsolatedServiceBinderByServiceName(
+                            mContext,
+                            "android.adservices.ondevicepersonalization."
+                                    + "IsolatedServiceExceptionSafetyTestImpl",
+                            mContext.getPackageName(),
+                            "testIsolatedProcess",
+                            0,
+                            IIsolatedService.Stub::asInterface);
+        }
 
-        mIsolatedService = mServiceBinder.getService(Runnable::run);
+        mIsolatedService = sServiceBinder.getService(Runnable::run);
         mLatch = new CountDownLatch(1);
     }
 
     @After
     public void tearDown() {
-        mServiceBinder.unbindFromService();
         mIsolatedService = null;
         mCallbackErrorCode = 0;
+    }
+
+    @AfterClass
+    public static void tearDownClass() {
+        sServiceBinder.unbindFromService();
     }
 
     @Test

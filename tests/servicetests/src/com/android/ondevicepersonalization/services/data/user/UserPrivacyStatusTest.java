@@ -17,12 +17,17 @@
 package com.android.ondevicepersonalization.services.data.user;
 
 import static android.adservices.ondevicepersonalization.Constants.STATUS_CALLER_NOT_ALLOWED;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_CLASS_NOT_FOUND;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_EXECUTION_INTERRUPTED;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_INTERNAL_ERROR;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_METHOD_NOT_FOUND;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_NULL_ADSERVICES_COMMON_MANAGER;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_REMOTE_EXCEPTION;
 import static android.adservices.ondevicepersonalization.Constants.STATUS_TIMEOUT;
 import static android.app.job.JobScheduler.RESULT_SUCCESS;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_REMOTE_EXCEPTION;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
@@ -34,19 +39,24 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 import com.android.odp.module.common.Clock;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.StableFlags;
 import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
+import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientErrorLogger;
 import com.android.ondevicepersonalization.services.util.DebugUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
@@ -59,18 +69,21 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 @RunWith(JUnit4.class)
+@MockStatic(ClientErrorLogger.class)
 public final class UserPrivacyStatusTest {
     private UserPrivacyStatus mUserPrivacyStatus;
     private static final int CONTROL_RESET_STATUS_CODE = 5;
     private static final long CACHE_TIMEOUT_MILLIS = 10000;
     private long mClockTime = 1000L;
     private boolean mCommonStatesWrapperCalled = false;
+    @Mock private ClientErrorLogger mMockClientErrorLogger;
     private AdServicesCommonStatesWrapper.CommonStatesResult mCommonStatesResult =
             new AdServicesCommonStatesWrapper.CommonStatesResult(
                     UserPrivacyStatus.CONTROL_GIVEN_STATUS_CODE,
@@ -123,6 +136,7 @@ public final class UserPrivacyStatusTest {
                 () -> StableFlags.get(KEY_USER_CONTROL_CACHE_IN_MILLIS));
         mUserPrivacyStatus = new UserPrivacyStatus(mCommonStatesWrapper, mTestClock);
         doReturn(RESULT_SUCCESS).when(ResetDataJobService::schedule);
+        when(ClientErrorLogger.getInstance()).thenReturn(mMockClientErrorLogger);
     }
 
     @Test
@@ -183,6 +197,30 @@ public final class UserPrivacyStatusTest {
     }
 
     @Test
+    public void testFetchesFromAdServicesException() {
+        AdServicesCommonStatesWrapper failingWrapper =
+                new AdServicesCommonStatesWrapper() {
+                    @Override public ListenableFuture<CommonStatesResult> getCommonStates() {
+                        return Futures.immediateFailedFuture(
+                                new IllegalStateException("remote err"));
+                    }
+                };
+        UserPrivacyStatus failingUserPrivacyStatus =
+                new UserPrivacyStatus(failingWrapper, mTestClock);
+
+        failingUserPrivacyStatus.invalidateUserControlCacheForTesting();
+        assertFalse(failingUserPrivacyStatus.isUserControlCacheValid());
+
+        var unused = failingUserPrivacyStatus.isMeasurementEnabled();
+        assertFalse(failingUserPrivacyStatus.isUserControlCacheValid());
+        verify(mMockClientErrorLogger)
+                .logError(
+                        any(),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_REMOTE_EXCEPTION),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP));
+    }
+
+    @Test
     public void testOverrideEnabledOnDeveloperModeOverrideTrue() {
         mUserPrivacyStatus.updateUserControlCache(
                 UserPrivacyStatus.CONTROL_REVOKED_STATUS_CODE,
@@ -232,14 +270,32 @@ public final class UserPrivacyStatusTest {
     @Test
     public void testGetStatusCode() {
         assertThat(mUserPrivacyStatus.getExceptionStatus(
-                new ExecutionException("timeout testing", new TimeoutException())))
+                new ExecutionException("timeout exception", new TimeoutException())))
                 .isEqualTo(STATUS_TIMEOUT);
-        assertThat(mUserPrivacyStatus.getExceptionStatus(new NoSuchMethodException()))
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("no such method", new NoSuchMethodException())))
                 .isEqualTo(STATUS_METHOD_NOT_FOUND);
-        assertThat(mUserPrivacyStatus.getExceptionStatus(new SecurityException()))
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("security exception", new SecurityException())))
                 .isEqualTo(STATUS_CALLER_NOT_ALLOWED);
-        assertThat(mUserPrivacyStatus.getExceptionStatus(new IllegalArgumentException()))
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("illegal state", new IllegalStateException())))
                 .isEqualTo(STATUS_INTERNAL_ERROR);
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("illegal argument", new IllegalArgumentException())))
+                .isEqualTo(STATUS_INTERNAL_ERROR);
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("no class def found", new NoClassDefFoundError())))
+                .isEqualTo(STATUS_CLASS_NOT_FOUND);
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("null adservices common manager",
+                        new AdServicesCommonStatesWrapper.NullAdServiceCommonManagerException())))
+                .isEqualTo(STATUS_NULL_ADSERVICES_COMMON_MANAGER);
+        assertThat(mUserPrivacyStatus.getExceptionStatus(
+                new ExecutionException("thread interrupted", new InterruptedException())))
+                .isEqualTo(STATUS_EXECUTION_INTERRUPTED);
+        assertThat(mUserPrivacyStatus.getExceptionStatus(new InterruptedException()))
+                .isEqualTo(STATUS_EXECUTION_INTERRUPTED);
         assertThat(mUserPrivacyStatus.getExceptionStatus(new Exception()))
                 .isEqualTo(STATUS_REMOTE_EXCEPTION);
     }

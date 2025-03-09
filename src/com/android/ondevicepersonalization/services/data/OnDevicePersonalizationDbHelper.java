@@ -24,9 +24,9 @@ import android.annotation.Nullable;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.database.sqlite.SQLiteOpenHelper;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.data.OdpSQLiteOpenHelper;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.events.EventStateContract;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
@@ -38,7 +38,7 @@ import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientEr
 import java.util.List;
 
 /** Helper to manage the OnDevicePersonalization database. */
-public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
+public class OnDevicePersonalizationDbHelper extends OdpSQLiteOpenHelper {
 
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationDbHelper";
@@ -143,6 +143,7 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
     }
 
     /** Wraps getWritableDatabase to catch SQLiteException and log error. */
+    @Override
     @Nullable
     public SQLiteDatabase safeGetWritableDatabase() {
         try {
@@ -159,6 +160,7 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
     }
 
     /** Wraps getReadableDatabase to catch SQLiteException and log error. */
+    @Override
     @Nullable
     public SQLiteDatabase safeGetReadableDatabase() {
         try {
