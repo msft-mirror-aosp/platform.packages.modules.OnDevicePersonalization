@@ -25,26 +25,19 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
-/**
- * ContextData object to pass to federatedcompute
- * TODO(278106108): Move this class depending on scheduling impl.
- */
-public class ContextData implements Serializable {
-    @NonNull
-    String mPackageName;
+/** ContextData object to pass to federatedcompute. */
+class ContextData implements Serializable {
+    @NonNull private final String mPackageName;
 
-    @NonNull
-    String mClassName;
+    @NonNull private final String mClassName;
 
-    public ContextData(@NonNull String packageName, @NonNull String className) {
+    ContextData(@NonNull String packageName, @NonNull String className) {
         this.mPackageName = packageName;
         this.mClassName = className;
     }
 
-    /**
-     * Converts the given ContextData into a serialized byte[]
-     */
-    public static byte[] toByteArray(ContextData contextData) throws IOException {
+    /** Converts the given ContextData into a serialized byte[] */
+    static byte[] toByteArray(ContextData contextData) throws IOException {
         try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
              ObjectOutputStream objectOutputStream = new ObjectOutputStream(
                      byteArrayOutputStream)) {
@@ -53,10 +46,8 @@ public class ContextData implements Serializable {
         }
     }
 
-    /**
-     * Converts the given serialized byte[] into a ContextData object
-     */
-    public static ContextData fromByteArray(byte[] arr) throws IOException, ClassNotFoundException {
+    /** Converts the given serialized byte[] into a ContextData object */
+    static ContextData fromByteArray(byte[] arr) throws IOException, ClassNotFoundException {
         try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(arr);
              ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream)) {
             return (ContextData) objectInputStream.readObject();
@@ -64,12 +55,12 @@ public class ContextData implements Serializable {
     }
 
     @NonNull
-    public String getPackageName() {
+    String getPackageName() {
         return mPackageName;
     }
 
     @NonNull
-    public String getClassName() {
+    String getClassName() {
         return mClassName;
     }
 }

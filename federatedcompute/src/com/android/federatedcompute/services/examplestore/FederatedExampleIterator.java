@@ -87,7 +87,6 @@ public final class FederatedExampleIterator implements ExampleIterator {
 
     private NextResultState mNextResultState;
     private final long mTaskId;
-    private final Context mContext;
 
     private final long mApexVersion;
 
@@ -103,9 +102,8 @@ public final class FederatedExampleIterator implements ExampleIterator {
         this.mClosed = false;
         this.mRecorder = recorder;
         this.mTaskId = taskId;
-        this.mContext = context;
         this.mIteratorWrapper = new ProxyIteratorWrapper(exampleStoreIterator);
-        this.mApexVersion = PackageUtils.getApexVersion(this.mContext);
+        this.mApexVersion = PackageUtils.getApexVersion(context);
     }
 
     @Override
@@ -180,7 +178,7 @@ public final class FederatedExampleIterator implements ExampleIterator {
         }
     }
 
-    private final class ProxyIteratorWrapper implements Closeable {
+    private static final class ProxyIteratorWrapper implements Closeable {
         private final IExampleStoreIterator mExampleStoreIterator;
         private boolean mIteratorClosed = false;
         private final FederatedExampleStoreIteratorCallback mIteratorCallback =
@@ -283,17 +281,14 @@ public final class FederatedExampleIterator implements ExampleIterator {
 
         @Override
         public void onIteratorNextSuccess(Bundle result) {
-            if (result == null) {
-                // Reach the end of data collection.
+            byte[] example =
+                    result == null ? null : result.getByteArray(EXTRA_EXAMPLE_ITERATOR_RESULT);
+            if (result == null || example == null) {
+                // Reached the end of data collection.
                 mResultOrErrorCodeFuture.set(Pair.create(null, null));
                 return;
             }
-            byte[] example = result.getByteArray(EXTRA_EXAMPLE_ITERATOR_RESULT);
-            if (example == null) {
-                // Reaches the end of data collection.
-                mResultOrErrorCodeFuture.set(Pair.create(null, null));
-                return;
-            }
+
 
             byte[] resumptionToken = result.getByteArray(EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN);
             if (resumptionToken == null) {

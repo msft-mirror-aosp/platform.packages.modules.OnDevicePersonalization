@@ -16,7 +16,12 @@
 
 package com.android.federatedcompute.services.encryption;
 
+import static android.app.job.JobScheduler.RESULT_SUCCESS;
+
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_FAILED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SKIPPED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SUCCESSFUL;
 
 import android.app.job.JobInfo;
 import android.app.job.JobParameters;
@@ -25,6 +30,7 @@ import android.app.job.JobService;
 import android.content.ComponentName;
 import android.content.Context;
 
+import com.android.adservices.shared.spe.JobServiceConstants;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FederatedComputeJobInfo;
@@ -98,6 +104,15 @@ public class BackgroundKeyFetchJobService extends JobService {
             return FederatedComputeJobUtil.cancelAndFinishJob(this, params,
                     ENCRYPTION_KEY_FETCH_JOB_ID,
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON);
+        }
+        // Reschedule jobs with SPE if it's enabled. Note scheduled jobs by this
+        // BackgroundKeyFetchJobService will be cancelled for the same job ID
+        if (FlagsFactory.getFlags().getSpeOnBackgroundKeyFetchJobEnabled()) {
+            LogUtil.d(TAG,
+                    "SPE is enabled. Reschedule BackgroundKeyFetchJobService with "
+                            + "BackgroundKeyFetchJob.");
+            BackgroundKeyFetchJob.schedule(/* context */ this);
+            return false;
         }
         EventLogger eventLogger = mInjector.getEventLogger();
         eventLogger.logEncryptionKeyFetchStartEventKind();
@@ -181,17 +196,18 @@ public class BackgroundKeyFetchJobService extends JobService {
     }
 
     /** Schedule the periodic background key fetch and delete job if it is not scheduled. */
-    public static boolean scheduleJobIfNeeded(Context context, Flags flags) {
+    @JobServiceConstants.JobSchedulingResultCode
+    public static int scheduleJobIfNeeded(Context context, Flags flags, boolean forceSchedule) {
         if (!flags.getEnableBackgroundEncryptionKeyFetch()) {
             LogUtil.d(
                     TAG,
                     "Schedule encryption key job fetch is not enable in flags.");
-            return false;
+            return SCHEDULING_RESULT_CODE_FAILED;
         }
         final JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
         if (jobScheduler == null) {
             LogUtil.e(TAG, "Failed to get job scheduler from system service.");
-            return false;
+            return SCHEDULING_RESULT_CODE_FAILED;
         }
 
         final JobInfo scheduledJob = jobScheduler.getPendingJob(ENCRYPTION_KEY_FETCH_JOB_ID);
@@ -208,19 +224,20 @@ public class BackgroundKeyFetchJobService extends JobService {
                         .setPersisted(true)
                         .build();
 
-        if (!jobInfo.equals(scheduledJob)) {
-            jobScheduler.schedule(jobInfo);
+        if (forceSchedule || !jobInfo.equals(scheduledJob)) {
+            int schedulingResult = jobScheduler.schedule(jobInfo);
             LogUtil.d(
                     TAG,
                     "Scheduled job BackgroundKeyFetchJobService id %d",
                     ENCRYPTION_KEY_FETCH_JOB_ID);
-            return true;
+            return RESULT_SUCCESS == schedulingResult ? SCHEDULING_RESULT_CODE_SUCCESSFUL
+                    : SCHEDULING_RESULT_CODE_FAILED;
         } else {
             LogUtil.d(
                     TAG,
                     "Already scheduled job BackgroundKeyFetchJobService id %d",
                     ENCRYPTION_KEY_FETCH_JOB_ID);
-            return false;
+            return SCHEDULING_RESULT_CODE_SKIPPED;
         }
     }
 }

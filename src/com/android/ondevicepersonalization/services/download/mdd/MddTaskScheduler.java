@@ -20,6 +20,7 @@ import static android.app.job.JobScheduler.RESULT_SUCCESS;
 
 import static com.android.adservices.shared.proto.JobPolicy.BatteryType.BATTERY_TYPE_REQUIRE_NOT_LOW;
 import static com.android.adservices.shared.proto.JobPolicy.NetworkType.NETWORK_TYPE_ANY;
+import static com.android.adservices.shared.proto.JobPolicy.NetworkType.NETWORK_TYPE_NONE;
 import static com.android.adservices.shared.proto.JobPolicy.NetworkType.NETWORK_TYPE_UNMETERED;
 import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_FAILED;
 import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SKIPPED;
@@ -228,7 +229,10 @@ public class MddTaskScheduler implements TaskScheduler {
     private static NetworkType getNetworkType(NetworkState networkState) {
         switch (networkState) {
             case NETWORK_STATE_ANY:
+                // Network not required.
+                return NETWORK_TYPE_NONE;
             case NETWORK_STATE_CONNECTED:
+                // Metered or unmetered network available.
                 return NETWORK_TYPE_ANY;
             case NETWORK_STATE_UNMETERED:
             default:

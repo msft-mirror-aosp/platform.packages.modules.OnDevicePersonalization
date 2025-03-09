@@ -21,6 +21,8 @@ import static com.android.federatedcompute.services.common.FlagsConstants.ENABLE
 import static com.android.federatedcompute.services.common.FlagsConstants.ENABLE_ELIGIBILITY_TASK;
 import static com.android.federatedcompute.services.common.FlagsConstants.EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC;
 import static com.android.federatedcompute.services.common.FlagsConstants.EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB;
 import static com.android.federatedcompute.services.common.FlagsConstants.FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE;
 import static com.android.federatedcompute.services.common.FlagsConstants.FCP_CHECKPOINT_FILE_SIZE_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.FCP_ENABLE_CLIENT_ERROR_LOGGING;
@@ -279,6 +281,23 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ FCP_SPE_PILOT_JOB_ENABLED,
                 /* defaultValue= */ DEFAULT_SPE_PILOT_JOB_ENABLED);
+    }
+
+    @Override
+    public boolean getSpeOnBackgroundKeyFetchJobEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB,
+                /* defaultValue= */
+                DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB);
+    }
+
+    @Override
+    public boolean getSpeOnFederatedJobEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB,
+                /* defaultValue= */ DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB);
     }
 
     @Override

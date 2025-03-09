@@ -29,9 +29,9 @@ import java.util.List;
 import java.util.ListIterator;
 
 /** Implementation of ExampleStoreIterator for OnDevicePersonalization */
-public class OdpExampleStoreIterator implements ExampleStoreIterator {
+class OdpExampleStoreIterator implements ExampleStoreIterator {
 
-    ListIterator<TrainingExampleRecord> mExampleIterator;
+    private final ListIterator<TrainingExampleRecord> mExampleIterator;
 
     OdpExampleStoreIterator(List<TrainingExampleRecord> exampleRecordList) {
         mExampleIterator = exampleRecordList.listIterator();
@@ -49,7 +49,7 @@ public class OdpExampleStoreIterator implements ExampleStoreIterator {
             callback.onIteratorNextSuccess(result);
             return;
         }
-        callback.onIteratorNextSuccess(null);
+        callback.onIteratorNextSuccess(/* result= */ null);
     }
 
     @Override

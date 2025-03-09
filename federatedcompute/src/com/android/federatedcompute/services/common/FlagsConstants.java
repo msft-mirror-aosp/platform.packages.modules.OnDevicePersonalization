@@ -80,6 +80,10 @@ public final class FlagsConstants {
             "fcp_job_scheduling_logging_sampling_rate";
     static final String FCP_MODULE_JOB_POLICY = "fcp_module_job_policy";
     static final String FCP_SPE_PILOT_JOB_ENABLED = "fcp_spe_pilot_job_enabled";
+    static final String FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB =
+            "FcpBackgroundJobs__enable_spe_on_background_key_fetch_job";
+    static final String FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB =
+            "FcpBackgroundJobs__enable_spe_on_federated_job";
     static final String EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC =
             "example_store_service_timeout_sec";
     static final String FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME = "tf_error_reschedule_seconds";

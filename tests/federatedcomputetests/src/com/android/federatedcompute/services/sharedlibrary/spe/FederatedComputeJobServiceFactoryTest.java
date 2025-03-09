@@ -18,6 +18,7 @@ package com.android.federatedcompute.services.sharedlibrary.spe;
 
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 import static com.android.federatedcompute.services.common.FederatedComputeJobInfo.DELETE_EXPIRED_JOB_ID;
+import static com.android.federatedcompute.services.common.FederatedComputeJobInfo.ENCRYPTION_KEY_FETCH_JOB_ID;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -29,6 +30,8 @@ import com.android.adservices.shared.proto.ModuleJobPolicy;
 import com.android.adservices.shared.spe.logging.JobSchedulingLogger;
 import com.android.adservices.shared.spe.logging.JobServiceLogger;
 import com.android.federatedcompute.services.common.Flags;
+import com.android.federatedcompute.services.encryption.BackgroundKeyFetchJob;
+import com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService;
 import com.android.federatedcompute.services.scheduling.DeleteExpiredJob;
 import com.android.federatedcompute.services.scheduling.DeleteExpiredJobService;
 import com.android.federatedcompute.services.statsd.ClientErrorLogger;
@@ -49,6 +52,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 /** Unit tests for {@link FederatedComputeJobServiceFactory}. */
+@MockStatic(BackgroundKeyFetchJobService.class)
 @MockStatic(DeleteExpiredJobService.class)
 public final class FederatedComputeJobServiceFactoryTest {
     @Rule(order = 0)
@@ -97,10 +101,17 @@ public final class FederatedComputeJobServiceFactoryTest {
     }
 
     @Test
-    public void testGetJobInstance() {
+    public void testGetJobInstance_deleteExpiredJob() {
         expect.withMessage("getJobWorkerInstance() for DeleteExpiredJob")
                 .that(mFactory.getJobWorkerInstance(DELETE_EXPIRED_JOB_ID))
                 .isInstanceOf(DeleteExpiredJob.class);
+    }
+
+    @Test
+    public void testGetJobInstance_backgroundKeyFetchJob() {
+        expect.withMessage("getJobWorkerInstance() for BackgroundKeyFetchJob")
+                .that(mFactory.getJobWorkerInstance(ENCRYPTION_KEY_FETCH_JOB_ID))
+                .isInstanceOf(BackgroundKeyFetchJob.class);
     }
 
     @Test
@@ -111,13 +122,24 @@ public final class FederatedComputeJobServiceFactoryTest {
     }
 
     @Test
-    public void testRescheduleJobWithLegacyMethod() {
+    public void testRescheduleJobWithLegacyMethod_deleteExpiredJob() {
         boolean forceSchedule = true;
 
         mFactory.rescheduleJobWithLegacyMethod(sContext, DELETE_EXPIRED_JOB_ID);
         verify(
                 () ->
                         DeleteExpiredJobService.scheduleJobIfNeeded(
+                                sContext, mMockFlags, forceSchedule));
+    }
+
+    @Test
+    public void testRescheduleJobWithLegacyMethod_backgroundKeyFetchJob() {
+        boolean forceSchedule = true;
+
+        mFactory.rescheduleJobWithLegacyMethod(sContext, ENCRYPTION_KEY_FETCH_JOB_ID);
+        verify(
+                () ->
+                        BackgroundKeyFetchJobService.scheduleJobIfNeeded(
                                 sContext, mMockFlags, forceSchedule));
     }
 

@@ -20,6 +20,8 @@ import static com.android.adservices.shared.common.flags.ModuleSharedFlags.BACKG
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_ENABLED;
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_ENABLE_ELIGIBILITY_TASK;
+import static com.android.federatedcompute.services.common.Flags.DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB;
+import static com.android.federatedcompute.services.common.Flags.DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_FCP_MODULE_JOB_POLICY;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_SCHEDULING_PERIOD_SECS;
@@ -41,6 +43,8 @@ import static com.android.federatedcompute.services.common.Flags.MIN_SCHEDULING_
 import static com.android.federatedcompute.services.common.Flags.TRANSIENT_ERROR_RETRY_DELAY_JITTER_PERCENT;
 import static com.android.federatedcompute.services.common.Flags.TRANSIENT_ERROR_RETRY_DELAY_SECS;
 import static com.android.federatedcompute.services.common.Flags.USE_BACKGROUND_ENCRYPTION_KEY_FETCH;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB;
 import static com.android.federatedcompute.services.common.FlagsConstants.HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.DEFAULT_SCHEDULING_PERIOD_SECS_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
@@ -79,6 +83,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.util.function.Supplier;
 
 /** Unit tests for {@link PhFlags} */
 @RunWith(JUnit4.class)
@@ -765,19 +771,46 @@ public class PhFlagsTest {
 
     @Test
     public void testGetSpePilotJobEnabled() {
-        // read a stable flag value and verify it's equal to the default value.
-        boolean stableValue = FlagsFactory.getFlags().getSpePilotJobEnabled();
-        assertThat(stableValue).isEqualTo(DEFAULT_SPE_PILOT_JOB_ENABLED);
+        assertSpeFeatureFlags(
+                () -> FlagsFactory.getFlags().getSpePilotJobEnabled(),
+                /* flagName */ FCP_SPE_PILOT_JOB_ENABLED,
+                /* defaultValue */ DEFAULT_SPE_PILOT_JOB_ENABLED);
+    }
 
-        // override the value in device config.
-        boolean overrideEnabled = !stableValue;
+    @Test
+    public void testGetSpeOnBackgroundKeyFetchJobEnabled() {
+        assertSpeFeatureFlags(
+                () -> FlagsFactory.getFlags().getSpeOnBackgroundKeyFetchJobEnabled(),
+                /* flagName */ FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB,
+                /* defaultValue */
+                DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB);
+    }
+
+    @Test
+    public void testGetSpeOnFederatedJobEnabled() {
+        assertSpeFeatureFlags(
+                () -> FlagsFactory.getFlags().getSpeOnFederatedJobEnabled(),
+                /* flagName */ FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB,
+                /* defaultValue */ DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB);
+    }
+
+    private void assertSpeFeatureFlags(
+            Supplier<Boolean> flagSupplier, String flagName, boolean defaultValue) {
+        // Test override value
+        boolean overrideValue = !defaultValue;
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_SPE_PILOT_JOB_ENABLED,
-                Boolean.toString(overrideEnabled),
-                /* makeDefault= */ false);
+                flagName,
+                Boolean.toString(overrideValue),
+                /* makeDefault */ false);
+        assertThat(flagSupplier.get()).isEqualTo(overrideValue);
 
-        // the flag value remains stable
-        assertThat(FlagsFactory.getFlags().getSpePilotJobEnabled()).isEqualTo(overrideEnabled);
+        // Test default value
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                flagName,
+                Boolean.toString(defaultValue),
+                /* makeDefault */ false);
+        assertThat(flagSupplier.get()).isEqualTo(defaultValue);
     }
 }
