@@ -33,13 +33,14 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
+import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
-import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
 import com.android.federatedcompute.services.sharedlibrary.spe.FederatedComputeJobScheduler;
 import com.android.federatedcompute.services.sharedlibrary.spe.FederatedComputeJobServiceFactory;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.data.ODPAuthorizationTokenDao;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -69,7 +70,8 @@ public final class DeleteExpiredJob implements JobWorker {
         }
 
         ODPAuthorizationTokenDao getODPAuthorizationTokenDao(Context context) {
-            return ODPAuthorizationTokenDao.getInstance(context);
+            return ODPAuthorizationTokenDao.getInstance(
+                    FederatedComputeDbHelper.getInstance(context));
         }
 
         FederatedTrainingTaskDao getTrainingTaskDao(Context context) {

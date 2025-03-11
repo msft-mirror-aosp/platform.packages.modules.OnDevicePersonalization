@@ -29,6 +29,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
+import android.os.Process;
+import android.os.StrictMode;
 import android.os.Trace;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
@@ -42,12 +44,17 @@ import android.widget.TextView;
 import android.widget.ViewSwitcher;
 
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class MainActivity extends Activity {
@@ -71,6 +78,43 @@ public class MainActivity extends Activity {
     private ViewSwitcher mViewSwitcher;
     private Context mContext;
     private static Executor sCallbackExecutor = Executors.newSingleThreadExecutor();
+
+    private static final ListeningExecutorService sLightweightExecutor =
+            MoreExecutors.listeningDecorator(
+                    Executors.newSingleThreadExecutor(
+                            createThreadFactory(
+                                    "Lite Thread",
+                                    Process.THREAD_PRIORITY_DEFAULT,
+                                    Optional.of(getAsyncThreadPolicy()))));
+
+    private static ThreadFactory createThreadFactory(
+            final String name, final int priority, final Optional<StrictMode.ThreadPolicy> policy) {
+        return new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat(name + " #%d")
+                .setThreadFactory(
+                        new ThreadFactory() {
+                            @Override
+                            public Thread newThread(final Runnable runnable) {
+                                return new Thread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if (policy.isPresent()) {
+                                            StrictMode.setThreadPolicy(policy.get());
+                                        }
+                                        // Process class operates on the current thread.
+                                        Process.setThreadPriority(priority);
+                                        runnable.run();
+                                    }
+                                });
+                            }
+                        })
+                .build();
+    }
+
+    private static StrictMode.ThreadPolicy getAsyncThreadPolicy() {
+        return new StrictMode.ThreadPolicy.Builder().detectAll().penaltyLog().build();
+    }
 
     class SurfaceCallback implements SurfaceHolder.Callback {
         @Override public void surfaceCreated(SurfaceHolder holder) {
@@ -117,11 +161,16 @@ public class MainActivity extends Activity {
 
     private void registerGetAdButton() {
         mGetAdButton.setOnClickListener(
-                v -> makeRequest());
+                v -> {
+                    var unused = sLightweightExecutor.submit(() -> makeRequest());
+                });
     }
 
     private void registerReportConversionButton() {
-        mReportConversionButton.setOnClickListener(v -> reportConversion());
+        mReportConversionButton.setOnClickListener(
+                v -> {
+                    var unused = sLightweightExecutor.submit(() -> reportConversion());
+                });
     }
 
     private OnDevicePersonalizationManager getOdpManager() throws NoClassDefFoundError {
@@ -219,7 +268,9 @@ public class MainActivity extends Activity {
 
     private void registerScheduleTrainingButton() {
         mScheduleTrainingButton.setOnClickListener(
-                v -> scheduleTraining());
+                v -> {
+                    var unused = sLightweightExecutor.submit(() -> scheduleTraining());
+                });
     }
 
     private void scheduleTraining() {
@@ -278,7 +329,9 @@ public class MainActivity extends Activity {
 
     private void registerCancelTrainingButton() {
         mCancelTrainingButton.setOnClickListener(
-                v -> cancelTraining());
+                v -> {
+                    var unused = sLightweightExecutor.submit(() -> cancelTraining());
+                });
     }
 
     private void cancelTraining() {

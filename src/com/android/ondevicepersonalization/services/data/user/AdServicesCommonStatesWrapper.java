@@ -46,4 +46,7 @@ public interface AdServicesCommonStatesWrapper {
 
     /** Returns the wrapped CommonStatesResult */
     ListenableFuture<CommonStatesResult> getCommonStates();
+
+    /** Thrown when the AdServicesCommonManager system service is null. */
+    class NullAdServiceCommonManagerException extends Exception {}
 }

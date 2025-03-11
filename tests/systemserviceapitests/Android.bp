@@ -33,6 +33,7 @@ android_test {
         "androidx.test.ext.truth",
         "androidx.test.rules",
         "modules-utils-build",
+        "ondevicepersonalization-testing-utils",
     ],
     sdk_version: "module_current",
     target_sdk_version: "current",
