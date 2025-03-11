@@ -79,7 +79,7 @@ public final class MddLoggerTest {
     public void mddLoggerTest_unspecified() {
         mMddLogger.log(mMockLog, EVENT_CODE_UNSPECIFIED);
         // Unspecified event does not trigger MDD logging.
-        ExtendedMockito.verifyZeroInteractions(staticMockMarker(AdServicesStatsLog.class));
+        ExtendedMockito.verifyNoMoreInteractions(staticMockMarker(AdServicesStatsLog.class));
     }
 
     @Test

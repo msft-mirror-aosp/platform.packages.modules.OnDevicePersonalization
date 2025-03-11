@@ -33,7 +33,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
@@ -241,7 +241,7 @@ public class AggregatedErrorReportingProtocolTest {
                 Arrays.equals(
                         expectedClientUploadRequest.getBody(), clientRequests.get(1).getBody()));
         // No interactions with encrypter since the key was null
-        verifyZeroInteractions(mMockEncrypter);
+        verifyNoMoreInteractions(mMockEncrypter);
     }
 
     @Test
