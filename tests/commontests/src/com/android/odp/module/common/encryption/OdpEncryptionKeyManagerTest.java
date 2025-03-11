@@ -26,7 +26,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import android.content.Context;
 
@@ -194,7 +194,7 @@ public class OdpEncryptionKeyManagerTest {
                 KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true,
                 Optional.of(mMockTrainingEventLogger)).get();
 
-        verifyZeroInteractions(mMockTrainingEventLogger);
+        verifyNoMoreInteractions(mMockTrainingEventLogger);
         assertThat(keys.size()).isGreaterThan(0);
     }
 
@@ -214,7 +214,7 @@ public class OdpEncryptionKeyManagerTest {
                 KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false,
                 Optional.of(mMockTrainingEventLogger)).get();
 
-        verifyZeroInteractions(mMockTrainingEventLogger);
+        verifyNoMoreInteractions(mMockTrainingEventLogger);
         assertThat(keys.size()).isGreaterThan(0);
     }
 
@@ -282,7 +282,7 @@ public class OdpEncryptionKeyManagerTest {
                                         /* isScheduledJob= */ true,
                                         Optional.of(mMockTrainingEventLogger))
                                 .get());
-        verifyZeroInteractions(mMockTrainingEventLogger);
+        verifyNoMoreInteractions(mMockTrainingEventLogger);
     }
 
     @Test
@@ -304,7 +304,7 @@ public class OdpEncryptionKeyManagerTest {
                                         /* isScheduledJob= */ false,
                                         Optional.of(mMockTrainingEventLogger))
                                 .get());
-        verifyZeroInteractions(mMockTrainingEventLogger);
+        verifyNoMoreInteractions(mMockTrainingEventLogger);
     }
 
     @Test
@@ -322,7 +322,7 @@ public class OdpEncryptionKeyManagerTest {
         mOdpEncryptionKeyManager
                 .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true,
                         Optional.of(mMockTrainingEventLogger)).get();
-        verifyZeroInteractions(mMockTrainingEventLogger);
+        verifyNoMoreInteractions(mMockTrainingEventLogger);
         List<OdpEncryptionKey> keys =
                 sEncryptionKeyDao.readEncryptionKeysFromDatabase(
                         ""
@@ -357,7 +357,7 @@ public class OdpEncryptionKeyManagerTest {
         mOdpEncryptionKeyManager
                 .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false,
                         Optional.of(mMockTrainingEventLogger)).get();
-        verifyZeroInteractions(mMockTrainingEventLogger);
+        verifyNoMoreInteractions(mMockTrainingEventLogger);
 
         List<OdpEncryptionKey> keys =
                 sEncryptionKeyDao.readEncryptionKeysFromDatabase(
@@ -402,7 +402,7 @@ public class OdpEncryptionKeyManagerTest {
         mOdpEncryptionKeyManager
                 .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true,
                         Optional.of(mMockTrainingEventLogger)).get();
-        verifyZeroInteractions(mMockTrainingEventLogger);
+        verifyNoMoreInteractions(mMockTrainingEventLogger);
 
         List<OdpEncryptionKey> keys =
                 sEncryptionKeyDao.readEncryptionKeysFromDatabase(
@@ -442,7 +442,7 @@ public class OdpEncryptionKeyManagerTest {
         mOdpEncryptionKeyManager.fetchAndPersistActiveKeys(
                 KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false,
                 Optional.of(mMockTrainingEventLogger)).get();
-        verifyZeroInteractions(mMockTrainingEventLogger);
+        verifyNoMoreInteractions(mMockTrainingEventLogger);
 
         List<OdpEncryptionKey> keys =
                 sEncryptionKeyDao.readEncryptionKeysFromDatabase(
@@ -509,7 +509,7 @@ public class OdpEncryptionKeyManagerTest {
                         KEY_TYPE_ENCRYPTION, /* keyCount= */ 2,
                         Optional.of(mMockTrainingEventLogger));
 
-        verifyZeroInteractions(mMockTrainingEventLogger);
+        verifyNoMoreInteractions(mMockTrainingEventLogger);
         verify(mMockHttpClient, never()).performRequestAsyncWithRetry(any());
         assertThat(keys.size()).isEqualTo(1);
     }
