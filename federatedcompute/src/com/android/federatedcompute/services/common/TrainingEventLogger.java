@@ -45,8 +45,6 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_FAILED_ENCRYPTION_KEY_FETCH_FAILED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_TASK_ASSIGNMENT_AUTH_SUCCEEDED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_TASK_ASSIGNMENT_UNAUTHORIZED;
-import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY_CLIENT_VERSION_MISMATCH;
-import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY_NO_ACTIVE_TASK_EXISTS;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.statsd.FederatedComputeStatsdLogger;
@@ -113,16 +111,6 @@ public class TrainingEventLogger implements EventLogger {
             case NO_TASK_AVAILABLE:
                 logNetworkEvent(
                         FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY_NO_TASK_AVAILABLE,
-                        networkStats);
-                break;
-            case CLIENT_VERSION_MISMATCH:
-                logNetworkEvent(
-                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY_CLIENT_VERSION_MISMATCH,
-                        networkStats);
-                break;
-            case NO_ACTIVE_TASK_EXISTS:
-                logNetworkEvent(
-                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY_NO_ACTIVE_TASK_EXISTS,
                         networkStats);
                 break;
             default:
