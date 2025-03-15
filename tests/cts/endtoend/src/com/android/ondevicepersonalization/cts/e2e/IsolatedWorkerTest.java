@@ -29,6 +29,7 @@ import android.adservices.ondevicepersonalization.EventInput;
 import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventOutput;
 import android.adservices.ondevicepersonalization.ExecuteInput;
+import android.adservices.ondevicepersonalization.ExecuteInputParcel;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
@@ -53,6 +54,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
 
 import org.junit.Assume;
@@ -70,7 +73,6 @@ import java.util.Set;
  */
 @SmallTest
 @RunWith(AndroidJUnit4.class)
-@RequiresFlagsEnabled(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
 public class IsolatedWorkerTest {
     @Rule
     public final CheckFlagsRule mCheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule();
@@ -87,7 +89,14 @@ public class IsolatedWorkerTest {
         WorkerResultReceiver<ExecuteOutput> receiver = new WorkerResultReceiver<>();
         PersistableBundle bundle = new PersistableBundle();
         bundle.putString("x", "y");
-        worker.onExecute(new ExecuteInput("com.example.app", bundle), receiver);
+        ByteArrayParceledSlice slice =
+                new ByteArrayParceledSlice(PersistableBundleUtils.toByteArray(bundle));
+        ExecuteInputParcel inputParcel =
+                new ExecuteInputParcel.Builder()
+                        .setAppPackageName("com.example.app")
+                        .setSerializedAppParams(slice)
+                        .build();
+        worker.onExecute(new ExecuteInput(inputParcel), receiver);
     }
 
     @Test
@@ -106,7 +115,7 @@ public class IsolatedWorkerTest {
         WorkerResultReceiver<DownloadCompletedOutput> receiver = new WorkerResultReceiver<>();
         TestKeyValueStore store = new TestKeyValueStore(
                 Map.of("a", new byte[]{'A'}, "b", new byte[]{'B'}));
-        worker.onDownloadCompleted(new DownloadCompletedInput(store), receiver);
+        worker.onDownloadCompleted(new DownloadCompletedInput.Builder(store).build(), receiver);
         assertThat(receiver.mResult.getRetainedKeys(), containsInAnyOrder("a", "b"));
     }
 
@@ -146,6 +155,27 @@ public class IsolatedWorkerTest {
         assertNotNull(receiver.mResult);
         assertNotNull(receiver.mResult.getRequestLogRecord());
         assertEquals(1, receiver.mResult.getEventLogRecords().size());
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
+    public void testOnExecuteWithCtor() throws Exception {
+        IsolatedWorker worker = new TestWorker();
+        WorkerResultReceiver<ExecuteOutput> receiver = new WorkerResultReceiver<>();
+        PersistableBundle bundle = new PersistableBundle();
+        bundle.putString("x", "y");
+        worker.onExecute(new ExecuteInput("com.example.app", bundle), receiver);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
+    public void testOnDownloadCompletedWithCtors() throws Exception {
+        IsolatedWorker worker = new TestWorker();
+        WorkerResultReceiver<DownloadCompletedOutput> receiver = new WorkerResultReceiver<>();
+        TestKeyValueStore store =
+                new TestKeyValueStore(Map.of("a", new byte[] {'A'}, "b", new byte[] {'B'}));
+        worker.onDownloadCompleted(new DownloadCompletedInput(store), receiver);
+        assertThat(receiver.mResult.getRetainedKeys(), containsInAnyOrder("a", "b"));
     }
 
     class TestWorker implements IsolatedWorker {
