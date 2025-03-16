@@ -1290,6 +1290,28 @@ public class CtsOdpManagerTests {
     }
 
     @Test
+    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
+    public void testExecuteNoOutputData() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(
+                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RETURN_OUTPUT_DATA);
+        appParams.putString(SampleServiceApi.KEY_BASE64_VALUE, TEST_WRITE_DATA);
+
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertThat(receiver.getResult().getOutputData()).isNull();
+    }
+
+    @Test
     @RequiresFlagsEnabled(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public void testQueryFeatureAvailableApiThrowsIfReceiverMissing() throws Exception {
         OnDevicePersonalizationManager manager =
