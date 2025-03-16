@@ -79,6 +79,8 @@ public class StableFlags {
                 flags.getPersonalizationStatusOverrideValue());
         mStableFlagsMap.put(PhFlags.KEY_USER_CONTROL_CACHE_IN_MILLIS,
                 flags.getUserControlCacheInMillis());
+        mStableFlagsMap.put(PhFlags.KEY_PLUGIN_PROCESS_RUNNER_ENABLED,
+                flags.isPluginProcessRunnerEnabled());
     }
 
     private Object getStableFlag(String flagName) {

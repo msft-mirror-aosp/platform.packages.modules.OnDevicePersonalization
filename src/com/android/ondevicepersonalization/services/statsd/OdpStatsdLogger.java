@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.statsd;
 
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ONDEVICEPERSONALIZATION_API_CALLED;
+import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ONDEVICEPERSONALIZATION_TRACE_EVENT;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__ADSERVICES_GET_COMMON_STATES;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__EVENT_URL_CREATE_WITH_REDIRECT;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__EVENT_URL_CREATE_WITH_RESPONSE;
@@ -40,6 +41,16 @@ import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLo
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__SERVICE_ON_RENDER;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__SERVICE_ON_TRAINING_EXAMPLE;
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__SERVICE_ON_WEB_TRIGGER;
+import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_TRACE_EVENT__EVENT_TYPE__UNKNOWN;
+import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_TRACE_EVENT__EVENT_TYPE__WRITE_REQUEST_LOG;
+import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_TRACE_EVENT__EVENT_TYPE__WRITE_EVENT_LOG;
+import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_TRACE_EVENT__TASK_TYPE__TASK_TYPE_UNKNOWN;
+import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_TRACE_EVENT__TASK_TYPE__EXECUTE;
+import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_TRACE_EVENT__TASK_TYPE__RENDER;
+import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_TRACE_EVENT__TASK_TYPE__DOWNLOAD;
+import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_TRACE_EVENT__TASK_TYPE__WEBVIEW;
+import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_TRACE_EVENT__TASK_TYPE__TRAINING;
+import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_TRACE_EVENT__TASK_TYPE__MAINTENANCE;
 
 import com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog;
 
@@ -74,6 +85,22 @@ public class OdpStatsdLogger {
             ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__SERVICE_ON_WEB_TRIGGER
     );
 
+    private static final Set<Integer> sTaskType = Set.of(
+            ON_DEVICE_PERSONALIZATION_TRACE_EVENT__TASK_TYPE__TASK_TYPE_UNKNOWN,
+            ON_DEVICE_PERSONALIZATION_TRACE_EVENT__TASK_TYPE__EXECUTE,
+            ON_DEVICE_PERSONALIZATION_TRACE_EVENT__TASK_TYPE__RENDER,
+            ON_DEVICE_PERSONALIZATION_TRACE_EVENT__TASK_TYPE__DOWNLOAD,
+            ON_DEVICE_PERSONALIZATION_TRACE_EVENT__TASK_TYPE__WEBVIEW,
+            ON_DEVICE_PERSONALIZATION_TRACE_EVENT__TASK_TYPE__TRAINING,
+            ON_DEVICE_PERSONALIZATION_TRACE_EVENT__TASK_TYPE__MAINTENANCE
+    );
+
+    private static final Set<Integer> sEventType = Set.of(
+            ON_DEVICE_PERSONALIZATION_TRACE_EVENT__EVENT_TYPE__UNKNOWN,
+            ON_DEVICE_PERSONALIZATION_TRACE_EVENT__EVENT_TYPE__WRITE_REQUEST_LOG,
+            ON_DEVICE_PERSONALIZATION_TRACE_EVENT__EVENT_TYPE__WRITE_EVENT_LOG
+    );
+
     /** Returns an instance of {@link OdpStatsdLogger}. */
     public static OdpStatsdLogger getInstance() {
         if (sStatsdLogger == null) {
@@ -102,5 +129,31 @@ public class OdpStatsdLogger {
                 apiCallStats.getRpcReturnLatencyMillis(),
                 apiCallStats.getAppUid(),
                 apiCallStats.getSdkPackageName());
+    }
+
+    /** Log trace event stats e.g. task type, event type, latency etc. */
+    public void logTraceEventStats(int taskType, int eventType, int status,
+            long latencyMillis, String servicePackageName) {
+        TraceEventStats traceEventStats =
+                new TraceEventStats.Builder()
+                        .setTaskType(taskType)
+                        .setEventType(eventType)
+                        .setStatus(status)
+                        .setLatencyMillis((int) latencyMillis)
+                        .setServicePackageName(servicePackageName)
+                        .build();
+        if (!sTaskType.contains(traceEventStats.getTaskType())) {
+            return;
+        }
+        if (!sEventType.contains(traceEventStats.getEventType())) {
+            return;
+        }
+        OnDevicePersonalizationStatsLog.write(
+                ONDEVICEPERSONALIZATION_TRACE_EVENT,
+                traceEventStats.getTaskType(),
+                traceEventStats.getEventType(),
+                traceEventStats.getStatus(),
+                traceEventStats.getLatencyMillis(),
+                traceEventStats.getServicePackageName());
     }
 }

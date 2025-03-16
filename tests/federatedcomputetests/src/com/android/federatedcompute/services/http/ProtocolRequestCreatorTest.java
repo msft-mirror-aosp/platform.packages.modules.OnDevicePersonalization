@@ -16,16 +16,16 @@
 
 package com.android.federatedcompute.services.http;
 
-import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
-import static com.android.odp.module.common.HttpClientUtils.CONTENT_TYPE_HDR;
-import static com.android.odp.module.common.HttpClientUtils.PROTOBUF_CONTENT_TYPE;
+import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_LENGTH_HDR;
+import static com.android.odp.module.common.http.HttpClientUtils.CONTENT_TYPE_HDR;
+import static com.android.odp.module.common.http.HttpClientUtils.PROTOBUF_CONTENT_TYPE;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 
-import com.android.odp.module.common.HttpClientUtils;
-import com.android.odp.module.common.OdpHttpRequest;
+import com.android.odp.module.common.http.HttpClientUtils;
+import com.android.odp.module.common.http.OdpHttpRequest;
 
 import com.google.internal.federatedcompute.v1.ForwardingInfo;
 

@@ -402,6 +402,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             return Futures.immediateFuture(-1L);
         }
         return LogUtils.writeLogRecords(
+                Constants.TASK_TYPE_EXECUTE,
                 mContext,
                 mCallingPackageName,
                 mService,

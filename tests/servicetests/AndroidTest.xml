@@ -26,6 +26,19 @@
         <option name="test-file-name" value="OnDevicePersonalizationManagingServicesTests.apk"/>
     </target_preparer>
 
+    <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">
+        <option name="run-command" value="setprop log.tag.federatedcompute VERBOSE" />
+        <option name="run-command" value="setprop log.tag.ondevicepersonalization VERBOSE" />
+        <option name="run-command" value="setprop log.tag.OdpParceledListSlice VERBOSE" />
+        <option name="run-command" value="setprop log.tag.PluginControllerImpl VERBOSE" />
+        <option name="run-command" value="setprop log.tag.PluginLoaderImpl VERBOSE" />
+        <option name="run-command" value="setprop log.tag.PluginExecutorService VERBOSE" />
+        <option name="run-command" value="setprop log.tag.PluginExecutor VERBOSE" />
+        <option name="run-command" value="setprop log.tag.PluginArchiveManager VERBOSE" />
+        <option name="run-command" value="setprop log.tag.PluginExecutorServiceProviderImpl VERBOSE" />
+        <option name="run-command" value="setprop log.tag.TestPersonalizationHandler VERBOSE" />
+    </target_preparer>
+
     <test class="com.android.tradefed.testtype.AndroidJUnitTest">
         <option name="hidden-api-checks" value="false" /> <!-- Allow hidden API uses -->
         <option name="package" value="com.android.ondevicepersonalization.servicetests"/>

@@ -71,7 +71,7 @@ public class RemoteDataImpl implements KeyValueStore {
 
             CallbackResult callbackResult = asyncResult.take();
             if (callbackResult.mErrorCode != 0) {
-                responseCode = Constants.STATUS_INTERNAL_ERROR;
+                responseCode = callbackResult.mErrorCode;
                 return null;
             }
             Bundle result = callbackResult.mResult;

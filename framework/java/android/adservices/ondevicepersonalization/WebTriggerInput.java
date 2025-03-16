@@ -28,7 +28,6 @@ import java.util.Objects;
  * The input data for
  * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, android.os.OutcomeReceiver)}.
  */
-@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public final class WebTriggerInput {
     /** The destination URL (landing page) where the trigger event occurred. */
     @NonNull private Uri mDestinationUrl;

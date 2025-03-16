@@ -58,16 +58,14 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.runners.JUnit4;
 import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 
-@RunWith(Parameterized.class)
+@RunWith(JUnit4.class)
 public class RenderFlowTest {
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
@@ -86,23 +84,16 @@ public class RenderFlowTest {
 
     @Mock UserPrivacyStatus mUserPrivacyStatus;
     @Mock CryptUtils mCryptUtils;
-
-    @Parameterized.Parameter(0)
-    public boolean mIsSipFeatureEnabled;
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(
-                new Object[][] {
-                        {true}, {false}
-                }
-        );
-    }
-
     private Flags mSpyFlags = new Flags() {
         int mIsolatedServiceDeadlineSeconds = 30;
+        boolean mIsIsolatedServiceDebuggingEnabled = true;
         @Override public int getIsolatedServiceDeadlineSeconds() {
             return mIsolatedServiceDeadlineSeconds;
+        }
+
+        @Override
+        public boolean isIsolatedServiceDebuggingEnabled() {
+            return mIsIsolatedServiceDebuggingEnabled;
         }
     };
 
@@ -120,7 +111,7 @@ public class RenderFlowTest {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
         ExtendedMockito.doReturn(mSpyFlags).when(FlagsFactory::getFlags);
-        ExtendedMockito.doReturn(SdkLevel.isAtLeastU() && mIsSipFeatureEnabled).when(
+        ExtendedMockito.doReturn(SdkLevel.isAtLeastU()).when(
                 () -> StableFlags.get(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED));
 
         setUpTestDate();

@@ -203,7 +203,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                             for (ClientConfigProto.ClientFileGroup fileGroup : fileGroupList) {
                                 fileGroupsToRemove.add(fileGroup.getGroupName());
                             }
-                            List<ListenableFuture<Boolean>> mFutures = new ArrayList<>();
+                            List<ListenableFuture<Boolean>> futureList = new ArrayList<>();
                             for (String packageName :
                                     AppManifestConfigHelper.getOdpPackages(
                                             mContext, /* enrolledOnly= */ true)) {
@@ -229,7 +229,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                                                     new ChecksumType[] {checksumType},
                                                     new String[] {downloadUrl},
                                                     deviceNetworkPolicy);
-                                    mFutures.add(
+                                    futureList.add(
                                             mobileDataDownload.addFileGroup(
                                                     AddFileGroupRequest.newBuilder()
                                                             .setDataFileGroup(dataFileGroup)
@@ -245,7 +245,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
 
                             for (String group : fileGroupsToRemove) {
                                 sLogger.d(TAG + ": Removing file group: " + group);
-                                mFutures.add(
+                                futureList.add(
                                         mobileDataDownload.removeFileGroup(
                                                 RemoveFileGroupRequest.newBuilder()
                                                         .setGroupName(group)
@@ -253,7 +253,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                             }
 
                             return PropagatedFutures.transform(
-                                    Futures.successfulAsList(mFutures),
+                                    Futures.successfulAsList(futureList),
                                     result -> {
                                         if (result.contains(null)) {
                                             sLogger.d(
