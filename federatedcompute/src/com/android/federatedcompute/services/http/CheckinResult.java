@@ -31,7 +31,7 @@ public class CheckinResult {
     private final String mInputCheckpoint;
     private final ClientOnlyPlan mPlanData;
     private final TaskAssignment mTaskAssignment;
-    private final RejectionInfo mRejectionInfo;
+    @Nullable private final RejectionInfo mRejectionInfo;
 
     public CheckinResult(
             String inputCheckpoint, ClientOnlyPlan planData, TaskAssignment taskAssignment) {
@@ -41,18 +41,11 @@ public class CheckinResult {
         this.mRejectionInfo = null;
     }
 
-    public CheckinResult(RejectionInfo mRejectionInfo) {
-        this.mRejectionInfo = mRejectionInfo;
-        this.mInputCheckpoint = null;
-        this.mPlanData = null;
-        this.mTaskAssignment = null;
-    }
-
     @Nullable
     public String getInputCheckpointFile() {
         Preconditions.checkArgument(
                 mInputCheckpoint != null && !mInputCheckpoint.isEmpty(),
-                "Input checkpoint file should not be none or empty");
+                "Input checkpoint file should not be null or empty");
         return mInputCheckpoint;
     }
 
