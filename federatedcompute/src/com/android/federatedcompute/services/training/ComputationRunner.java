@@ -30,17 +30,17 @@ import com.google.internal.federated.plan.ExampleSelector;
 
 /**
  * Centralized class for running a single computation session. It calls to native fcp client to
- * start federated ananlytic and federated training jobs.
+ * start federated analytics and federated training jobs.
  */
-public class ComputationRunner {
+class ComputationRunner {
     private final Context mContext;
 
-    public ComputationRunner(Context context) {
+    ComputationRunner(Context context) {
         this.mContext = context;
     }
 
     /** Run a single round of federated computation. */
-    public FLRunnerResult runTaskWithNativeRunner(
+    FLRunnerResult runTaskWithNativeRunner(
             String taskName,
             String populationName,
             String inputCheckpointFd,
@@ -62,14 +62,7 @@ public class ComputationRunner {
         FlRunnerWrapper flRunnerWrapper =
                 new FlRunnerWrapper(interruptState, populationName, federatedExampleIterator);
 
-        FLRunnerResult runResult =
-                flRunnerWrapper.run(
-                        taskName,
-                        populationName,
-                        clientOnlyPlan,
-                        inputCheckpointFd,
-                        outputCheckpointFd);
-
-        return runResult;
+        return flRunnerWrapper.run(
+                taskName, populationName, clientOnlyPlan, inputCheckpointFd, outputCheckpointFd);
     }
 }
