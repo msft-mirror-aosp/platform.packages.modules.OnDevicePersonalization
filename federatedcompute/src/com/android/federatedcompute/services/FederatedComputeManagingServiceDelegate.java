@@ -23,16 +23,20 @@ import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE;
 
+import android.adservices.ondevicepersonalization.Constants;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IFederatedComputeService;
+import android.federatedcompute.aidl.IIsFeatureEnabledCallback;
 import android.federatedcompute.common.TrainingOptions;
 import android.os.Binder;
 import android.os.RemoteException;
+import android.os.SystemClock;
 
 import com.android.federatedcompute.internal.util.LogUtil;
+import com.android.federatedcompute.services.common.FeatureStatusManager;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
@@ -234,6 +238,29 @@ class FederatedComputeManagingServiceDelegate extends IFederatedComputeService.S
         }
         Binder.restoreCallingIdentity(origId);
         return killSwitchEnabled;
+    }
+
+    @Override
+    public void isFeatureEnabled(
+            String featureName,
+            IIsFeatureEnabledCallback callback) {
+        if (!FlagsFactory.getFlags().isFeatureEnabledApiEnabled()) {
+            throw new IllegalStateException("isFeatureEnabled flag is not enabled.");
+        }
+
+        long serviceEntryTimeMillis = SystemClock.elapsedRealtime();
+
+        FeatureStatusManager.getFeatureStatusAndSendResult(featureName,
+                serviceEntryTimeMillis,
+                callback);
+
+        mFcStatsdLogger.logApiCallStats(
+                new ApiCallStats.Builder().setApiName(
+                                Constants.API_NAME_IS_FEATURE_ENABLED)
+                        .setLatencyMillis((int) (mClock.elapsedRealtime() - serviceEntryTimeMillis))
+                        .setResponseCode(STATUS_SUCCESS)
+                        .setSdkPackageName("")
+                        .build());
     }
 
     private static void sendResult(@NonNull IFederatedComputeCallback callback, int resultCode) {

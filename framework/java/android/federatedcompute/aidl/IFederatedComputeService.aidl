@@ -18,6 +18,7 @@ package android.federatedcompute.aidl;
 
 import android.federatedcompute.common.TrainingOptions;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
+import android.federatedcompute.aidl.IIsFeatureEnabledCallback;
 
 /** @hide */
 interface IFederatedComputeService {
@@ -30,4 +31,8 @@ interface IFederatedComputeService {
     in ComponentName ownerComponent,
     in String populationName,
     in IFederatedComputeCallback callback);
+
+    void isFeatureEnabled(
+    in String featureName,
+    in IIsFeatureEnabledCallback callback);
 }

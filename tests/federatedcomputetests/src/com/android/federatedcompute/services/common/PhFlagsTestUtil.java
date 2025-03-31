@@ -20,6 +20,7 @@ import static com.android.federatedcompute.services.common.Flags.USE_BACKGROUND_
 import static com.android.federatedcompute.services.common.FlagsConstants.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
 import static com.android.federatedcompute.services.common.FlagsConstants.FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB;
 import static com.android.federatedcompute.services.common.FlagsConstants.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
+import static com.android.federatedcompute.services.common.FlagsConstants.KEY_IS_FEATURE_ENABLED_API_ENABLED;
 
 import android.provider.DeviceConfig;
 
@@ -99,6 +100,24 @@ public class PhFlagsTestUtil {
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB,
+                Boolean.toString(false),
+                /* makeDefault= */ false);
+    }
+
+    /** Enable isFeatureEnabled. */
+    public static void enableIsFeatureEnabled() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_IS_FEATURE_ENABLED_API_ENABLED,
+                Boolean.toString(true),
+                /* makeDefault= */ false);
+    }
+
+    /** Disable isFeatureEnabled. */
+    public static void disableIsFeatureEnabled() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_IS_FEATURE_ENABLED_API_ENABLED,
                 Boolean.toString(false),
                 /* makeDefault= */ false);
     }

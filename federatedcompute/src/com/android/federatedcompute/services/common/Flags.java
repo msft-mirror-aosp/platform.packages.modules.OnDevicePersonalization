@@ -315,4 +315,10 @@ public interface Flags extends ModuleSharedFlags {
     default long getTempFileTtlMillis() {
         return DEFAULT_TEMP_FILE_TTL_MILLIS;
     }
+
+    boolean DEFAULT_IS_FEATURE_ENABLED_API_ENABLED = false;
+
+    default boolean isFeatureEnabledApiEnabled() {
+        return DEFAULT_IS_FEATURE_ENABLED_API_ENABLED;
+    }
 }

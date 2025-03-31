@@ -27,16 +27,20 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.adservices.ondevicepersonalization.Constants;
 import android.content.ComponentName;
 import android.content.Context;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
+import android.federatedcompute.aidl.IIsFeatureEnabledCallback;
 import android.federatedcompute.common.TrainingOptions;
+import android.os.RemoteException;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -294,6 +298,53 @@ public final class FederatedComputeManagingServiceDelegateTest {
                                 new FederatedComputeCallback()));
     }
 
+    @Test
+    public void testIsFeatureEnabledFlagDisabled_returnsError() throws Exception {
+        PhFlagsTestUtil.disableIsFeatureEnabled();
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        mFcpService.isFeatureEnabled(
+                                "featureName",
+                                new IsFeatureEnabledCallback()));
+    }
+
+    @Test
+    public void testIsFeatureEnabledAndLogging() throws Exception {
+        PhFlagsTestUtil.enableIsFeatureEnabled();
+        final CountDownLatch logOperationCalledLatch = new CountDownLatch(1);
+        ArgumentCaptor<ApiCallStats> argument = ArgumentCaptor.forClass(ApiCallStats.class);
+
+        doAnswer(
+                new Answer<Object>() {
+                    @Override
+                    public Object answer(InvocationOnMock invocation) throws Throwable {
+                        // The method logAPiCallStats is called.
+                        invocation.callRealMethod();
+                        logOperationCalledLatch.countDown();
+                        return null;
+                    }
+                })
+                .when(mFcStatsdLogger)
+                .logApiCallStats(argument.capture());
+        var callback = new IsFeatureEnabledCallback();
+        mFcpService.isFeatureEnabled(
+                "featureName",
+                callback);
+
+        callback.await();
+        assertTrue(callback.mWasInvoked);
+
+        logOperationCalledLatch.await(BINDER_CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+
+        assertThat(argument.getValue().getResponseCode()).isEqualTo(Constants.STATUS_SUCCESS);
+        assertThat(argument.getValue().getApiName())
+                .isEqualTo(Constants.API_NAME_IS_FEATURE_ENABLED);
+
+        PhFlagsTestUtil.disableIsFeatureEnabled();
+
+    }
+
     private void invokeScheduleAndVerifyLogging(
             TrainingOptions trainingOptions, int expectedResultCode) throws InterruptedException {
         invokeScheduleAndVerifyLogging(trainingOptions, expectedResultCode, 100L);
@@ -379,6 +430,21 @@ public final class FederatedComputeManagingServiceDelegateTest {
             mError = true;
             mErrorCode = errorCode;
             mJobFinishCountDown.countDown();
+        }
+    }
+
+    static class IsFeatureEnabledCallback extends IIsFeatureEnabledCallback.Stub {
+        public boolean mWasInvoked = false;
+        private final CountDownLatch mLatch = new CountDownLatch(1);
+
+        @Override
+        public void onResult(int result) throws RemoteException {
+            mWasInvoked = true;
+            mLatch.countDown();
+        }
+
+        public void await() throws Exception {
+            mLatch.await();
         }
     }
 
