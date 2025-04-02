@@ -34,6 +34,7 @@
         <option name="run-command" value="device_config put on_device_personalization enable_personalization_status_override true"/>
         <option name="run-command" value="device_config put on_device_personalization personalization_status_override_value true"/>
         <option name="run-command" value="device_config put on_device_personalization isolated_service_debugging_enabled true"/>
+        <option name="run-command" value="device_config put on_device_personalization caller_app_allow_list com.android.ondevicepersonalization.cts.e2e"/>
         <option name="run-command" value="setprop log.tag.federatedcompute VERBOSE" />
         <option name="run-command" value="setprop log.tag.ondevicepersonalization VERBOSE" />
         <option name="run-command" value="setprop log.tag.OdpParceledListSlice VERBOSE" />
@@ -49,6 +50,7 @@
         <option name="teardown-command" value="device_config delete on_device_personalization enable_personalization_status_override" />
         <option name="teardown-command" value="device_config delete on_device_personalization personalization_status_override_value" />
         <option name="teardown-command" value="device_config delete on_device_personalization isolated_service_debugging_enabled" />
+        <option name="teardown-command" value="device_config delete on_device_personalization caller_app_allow_list" />
         <option name="teardown-command" value="device_config set_sync_disabled_for_tests none" />
     </target_preparer>
 
