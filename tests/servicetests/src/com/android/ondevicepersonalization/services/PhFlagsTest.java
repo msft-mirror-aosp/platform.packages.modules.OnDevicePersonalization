@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services;
 
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
+import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_SPE_ENABLE_PER_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.Flags.APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED;
@@ -27,25 +28,34 @@ import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGA
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_RETRY_LIMIT;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_TIMEOUT_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORT_TTL_DAYS;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATE_ERROR_DATA_REPORTING_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_DOWNLOAD_PROCESSING_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ENCRYPTION_KEY_MAX_AGE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ENCRYPTION_KEY_URL;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_IS_FEATURE_ENABLED_API_ENABLED;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_MAINTENANCE_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_MDD_CELLULAR_CHARGING_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_MDD_CHARGING_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_MDD_MAINTENANCE_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_MDD_WIFI_CHARGING_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB;
-import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_MODULE_JOB_POLICY;
-import static com.android.ondevicepersonalization.services.Flags.DEFAULT_OUTPUT_DATA_ALLOW_LIST;
-import static com.android.ondevicepersonalization.services.Flags.DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED;
-import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_MODULE_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_OUTPUT_DATA_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_PLUGIN_PROCESS_RUNNER_ENABLED;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_RESET_DATA_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SPE_PILOT_JOB_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_TRUSTED_PARTNER_APPS_LIST;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_USER_DATA_COLLECTION_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.Flags.DOWNLOAD_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.Flags.EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
@@ -63,12 +73,15 @@ import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AG
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_PATH;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATE_ERROR_DATA_REPORTING_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_DOWNLOAD_PROCESSING_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_AGGREGATED_ERROR_REPORTING;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_PER_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENCRYPTION_KEY_MAX_AGE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENCRYPTION_KEY_URL;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
@@ -77,6 +90,16 @@ import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_IS
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ISOLATED_SERVICE_DEBUGGING_ENABLED;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_IS_FEATURE_ENABLED_API_ENABLED;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_MAINTENANCE_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_MDD_CELLULAR_CHARGING_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_MDD_CHARGING_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_MDD_MAINTENANCE_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_MDD_WIFI_CHARGING_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_JOB_SCHEDULING_LOGGING_ENABLED;
@@ -87,13 +110,10 @@ import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_OU
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_PLUGIN_PROCESS_RUNNER_ENABLED;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_RENDER_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_RESET_DATA_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
-import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB;
-import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB;
-import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB;
-import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB;
-import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_TRUSTED_PARTNER_APPS_LIST;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_USER_DATA_COLLECTION_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS;
 
@@ -122,9 +142,7 @@ public class PhFlagsTest {
     public final TestableDeviceConfig.TestableDeviceConfigRule mDeviceConfigRule =
             new TestableDeviceConfig.TestableDeviceConfigRule();
 
-    /**
-     * Get necessary permissions to access Setting.Config API and set up context
-     */
+    /** Get necessary permissions to access Setting.Config API and set up context */
     @Before
     public void setUpContext() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
@@ -160,8 +178,8 @@ public class PhFlagsTest {
                 KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE,
                 Boolean.toString(ENABLE_PERSONALIZATION_STATUS_OVERRIDE),
                 /* makeDefault */ false);
-        assertThat(FlagsFactory.getFlags().isPersonalizationStatusOverrideEnabled()).isEqualTo(
-                ENABLE_PERSONALIZATION_STATUS_OVERRIDE);
+        assertThat(FlagsFactory.getFlags().isPersonalizationStatusOverrideEnabled())
+                .isEqualTo(ENABLE_PERSONALIZATION_STATUS_OVERRIDE);
 
         final boolean phOverridingValue = true;
         DeviceConfig.setProperty(
@@ -182,8 +200,8 @@ public class PhFlagsTest {
                 KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE,
                 Boolean.toString(PERSONALIZATION_STATUS_OVERRIDE_VALUE),
                 /* makeDefault */ false);
-        assertThat(FlagsFactory.getFlags().getPersonalizationStatusOverrideValue()).isEqualTo(
-                PERSONALIZATION_STATUS_OVERRIDE_VALUE);
+        assertThat(FlagsFactory.getFlags().getPersonalizationStatusOverrideValue())
+                .isEqualTo(PERSONALIZATION_STATUS_OVERRIDE_VALUE);
 
         final boolean phOverridingValue = true;
         DeviceConfig.setProperty(
@@ -255,8 +273,7 @@ public class PhFlagsTest {
                 String.valueOf(test_deadline),
                 /* makeDefault */ false);
 
-        assertThat(FlagsFactory.getFlags().getRenderFlowDeadlineSeconds())
-                .isEqualTo(test_deadline);
+        assertThat(FlagsFactory.getFlags().getRenderFlowDeadlineSeconds()).isEqualTo(test_deadline);
 
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -346,8 +363,7 @@ public class PhFlagsTest {
             assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList())
                     .isEqualTo(DEFAULT_TRUSTED_PARTNER_APPS_LIST);
         } else {
-            assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList())
-                    .isEqualTo("");
+            assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList()).isEqualTo("");
         }
 
         final String testTrustedPartnerAppsList =
@@ -363,8 +379,7 @@ public class PhFlagsTest {
             assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList())
                     .isEqualTo(testTrustedPartnerAppsList);
         } else {
-            assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList())
-                    .isEqualTo("");
+            assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList()).isEqualTo("");
         }
     }
 
@@ -380,8 +395,7 @@ public class PhFlagsTest {
             assertThat(FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled())
                     .isEqualTo(DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
         } else {
-            assertThat(FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled())
-                    .isFalse();
+            assertThat(FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()).isFalse();
         }
 
         final boolean testIsolatedProcessFeatureEnabled =
@@ -397,8 +411,7 @@ public class PhFlagsTest {
             assertThat(FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled())
                     .isEqualTo(testIsolatedProcessFeatureEnabled);
         } else {
-            assertThat(FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled())
-                    .isFalse();
+            assertThat(FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()).isFalse();
         }
     }
 
@@ -413,8 +426,7 @@ public class PhFlagsTest {
         assertThat(FlagsFactory.getFlags().getCallerAppAllowList())
                 .isEqualTo(DEFAULT_CALLER_APP_ALLOW_LIST);
 
-        final String testCallerAppAllowList =
-                "com.example.odpclient";
+        final String testCallerAppAllowList = "com.example.odpclient";
 
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -434,8 +446,7 @@ public class PhFlagsTest {
                 Boolean.toString(false),
                 /* makeDefault */ false);
 
-        assertThat(FlagsFactory.getFlags().isIsolatedServiceDebuggingEnabled())
-                .isEqualTo(false);
+        assertThat(FlagsFactory.getFlags().isIsolatedServiceDebuggingEnabled()).isEqualTo(false);
 
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -443,8 +454,7 @@ public class PhFlagsTest {
                 Boolean.toString(true),
                 /* makeDefault */ false);
 
-        assertThat(FlagsFactory.getFlags().isIsolatedServiceDebuggingEnabled())
-                .isEqualTo(true);
+        assertThat(FlagsFactory.getFlags().isIsolatedServiceDebuggingEnabled()).isEqualTo(true);
     }
 
     @Test
@@ -481,8 +491,7 @@ public class PhFlagsTest {
         assertThat(FlagsFactory.getFlags().getIsolatedServiceAllowList())
                 .isEqualTo(DEFAULT_ISOLATED_SERVICE_ALLOW_LIST);
 
-        final String testIsolatedServiceAllowList =
-                "com.example.odpsamplenetwork";
+        final String testIsolatedServiceAllowList = "com.example.odpsamplenetwork";
 
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -505,8 +514,7 @@ public class PhFlagsTest {
         assertThat(FlagsFactory.getFlags().getOutputDataAllowList())
                 .isEqualTo(DEFAULT_OUTPUT_DATA_ALLOW_LIST);
 
-        final String testOutputDataAllowList =
-                "com.example.odpclient;com.example.odpsamplenetwork";
+        final String testOutputDataAllowList = "com.example.odpclient;com.example.odpsamplenetwork";
 
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -535,14 +543,12 @@ public class PhFlagsTest {
                 KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING,
                 Boolean.toString(overrideEnable),
                 /* makeDefault= */ false);
-        assertThat(FlagsFactory.getFlags().getEnableClientErrorLogging())
-                .isEqualTo(overrideEnable);
+        assertThat(FlagsFactory.getFlags().getEnableClientErrorLogging()).isEqualTo(overrideEnable);
     }
 
     @Test
     public void testGetBackgroundJobsLoggingEnabled() {
-        assertThat(FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled())
-                .isEqualTo(true);
+        assertThat(FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled()).isEqualTo(true);
     }
 
     @Test
@@ -609,56 +615,50 @@ public class PhFlagsTest {
 
     @Test
     public void testGetSpePilotJobEnabled() {
-        assertSpeFeatureFlags(
+        assertBooleanFeatureFlags(
                 () -> FlagsFactory.getFlags().getSpePilotJobEnabled(),
                 KEY_ODP_SPE_PILOT_JOB_ENABLED,
-                DEFAULT_SPE_PILOT_JOB_ENABLED
-        );
+                DEFAULT_SPE_PILOT_JOB_ENABLED);
     }
 
     @Test
     public void testGetSpeOnAggregateErrorDataReportingJobEnabled() {
-        assertSpeFeatureFlags(
+        assertBooleanFeatureFlags(
                 () -> FlagsFactory.getFlags().getSpeOnAggregateErrorDataReportingJobEnabled(),
                 KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB,
-                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB
-        );
+                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB);
     }
 
     @Test
     public void testGetSpeOnMddJobEnabled() {
-        assertSpeFeatureFlags(
+        assertBooleanFeatureFlags(
                 () -> FlagsFactory.getFlags().getSpeOnMddJobEnabled(),
                 KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB,
-                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB
-        );
+                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB);
     }
 
     @Test
     public void testGetSpeOnOdpDownloadProcessingJobEnabled() {
-        assertSpeFeatureFlags(
+        assertBooleanFeatureFlags(
                 () -> FlagsFactory.getFlags().getSpeOnOdpDownloadProcessingJobEnabled(),
                 KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB,
-                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB
-        );
+                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB);
     }
 
     @Test
     public void testGetSpeOnResetDataJobEnabled() {
-        assertSpeFeatureFlags(
+        assertBooleanFeatureFlags(
                 () -> FlagsFactory.getFlags().getSpeOnResetDataJobEnabled(),
                 KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB,
-                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB
-        );
+                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB);
     }
 
     @Test
     public void testGetSpeOnUserDataCollectionJobEnabled() {
-        assertSpeFeatureFlags(
+        assertBooleanFeatureFlags(
                 () -> FlagsFactory.getFlags().getSpeOnUserDataCollectionJobEnabled(),
                 KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB,
-                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB
-        );
+                DEFAULT_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB);
     }
 
     @Test
@@ -934,8 +934,8 @@ public class PhFlagsTest {
                 /* makeDefault= */ false);
 
         // the flag value remains stable
-        assertThat(FlagsFactory.getFlags().isPluginProcessRunnerEnabled()).isEqualTo(
-                overrideEnabled);
+        assertThat(FlagsFactory.getFlags().isPluginProcessRunnerEnabled())
+                .isEqualTo(overrideEnabled);
     }
 
     @Test
@@ -953,7 +953,87 @@ public class PhFlagsTest {
         assertThat(FlagsFactory.getFlags().isFeatureEnabledApiEnabled()).isEqualTo(overrideEnabled);
     }
 
-    private void assertSpeFeatureFlags(
+    @Test
+    public void testGetEnablePerJobPolicy() {
+        assertBooleanFeatureFlags(
+                () -> FlagsFactory.getFlags().getSpeEnablePerJobPolicy(),
+                KEY_ENABLE_PER_JOB_POLICY,
+                DEFAULT_SPE_ENABLE_PER_JOB_POLICY);
+    }
+
+    @Test
+    public void testGetMddMaintenanceJobPolicy() {
+        assertStringFeatureFlags(
+                () -> FlagsFactory.getFlags().getMddMaintenanceJobPolicy(),
+                KEY_MDD_MAINTENANCE_JOB_POLICY,
+                DEFAULT_MDD_MAINTENANCE_JOB_POLICY);
+    }
+
+    @Test
+    public void testGetMddChargingJobPolicy() {
+        assertStringFeatureFlags(
+                () -> FlagsFactory.getFlags().getMddChargingJobPolicy(),
+                KEY_MDD_CHARGING_JOB_POLICY,
+                DEFAULT_MDD_CHARGING_JOB_POLICY);
+    }
+
+    @Test
+    public void testGetMddCellularChargingJobPolicy() {
+        assertStringFeatureFlags(
+                () -> FlagsFactory.getFlags().getMddCellularChargingJobPolicy(),
+                KEY_MDD_CELLULAR_CHARGING_JOB_POLICY,
+                DEFAULT_MDD_CELLULAR_CHARGING_JOB_POLICY);
+    }
+
+    @Test
+    public void testGetMddWifiChargingJobPolicy() {
+        assertStringFeatureFlags(
+                () -> FlagsFactory.getFlags().getMddWifiChargingJobPolicy(),
+                KEY_MDD_WIFI_CHARGING_JOB_POLICY,
+                DEFAULT_MDD_WIFI_CHARGING_JOB_POLICY);
+    }
+
+    @Test
+    public void testGetDownloadProcessingJobPolicy() {
+        assertStringFeatureFlags(
+                () -> FlagsFactory.getFlags().getDownloadProcessingJobPolicy(),
+                KEY_DOWNLOAD_PROCESSING_JOB_POLICY,
+                DEFAULT_DOWNLOAD_PROCESSING_JOB_POLICY);
+    }
+
+    @Test
+    public void testGetMaintenanceJobPolicy() {
+        assertStringFeatureFlags(
+                () -> FlagsFactory.getFlags().getMaintenanceJobPolicy(),
+                KEY_MAINTENANCE_JOB_POLICY,
+                DEFAULT_MAINTENANCE_JOB_POLICY);
+    }
+
+    @Test
+    public void testGetUserDataCollectionJobPolicy() {
+        assertStringFeatureFlags(
+                () -> FlagsFactory.getFlags().getUserDataCollectionJobPolicy(),
+                KEY_USER_DATA_COLLECTION_JOB_POLICY,
+                DEFAULT_USER_DATA_COLLECTION_JOB_POLICY);
+    }
+
+    @Test
+    public void testGetResetDataJobPolicy() {
+        assertStringFeatureFlags(
+                () -> FlagsFactory.getFlags().getResetDataJobPolicy(),
+                KEY_RESET_DATA_JOB_POLICY,
+                DEFAULT_RESET_DATA_JOB_POLICY);
+    }
+
+    @Test
+    public void testGetAggregateErrorDataReportingJobPolicy() {
+        assertStringFeatureFlags(
+                () -> FlagsFactory.getFlags().getAggregateErrorDataReportingJobPolicy(),
+                KEY_AGGREGATE_ERROR_DATA_REPORTING_JOB_POLICY,
+                DEFAULT_AGGREGATE_ERROR_DATA_REPORTING_JOB_POLICY);
+    }
+
+    private void assertBooleanFeatureFlags(
             Supplier<Boolean> flagSupplier, String flagName, boolean defaultValue) {
         // Test override value
         boolean overrideValue = !defaultValue;
@@ -969,6 +1049,26 @@ public class PhFlagsTest {
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 flagName,
                 Boolean.toString(defaultValue),
+                /* makeDefault */ false);
+        assertThat(flagSupplier.get()).isEqualTo(defaultValue);
+    }
+
+    private void assertStringFeatureFlags(
+            Supplier<String> flagSupplier, String flagName, String defaultValue) {
+        // Test override value
+        String overrideValue = "" + "_test_value";
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                flagName,
+                overrideValue,
+                /* makeDefault */ false);
+        assertThat(flagSupplier.get()).isEqualTo(overrideValue);
+
+        // Test default value
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                flagName,
+                defaultValue,
                 /* makeDefault */ false);
         assertThat(flagSupplier.get()).isEqualTo(defaultValue);
     }

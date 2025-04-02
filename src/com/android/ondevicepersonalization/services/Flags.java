@@ -491,4 +491,58 @@ public interface Flags extends ModuleSharedFlags {
     default boolean isFeatureEnabledApiEnabled() {
         return DEFAULT_IS_FEATURE_ENABLED_API_ENABLED;
     }
+
+    String DEFAULT_MDD_MAINTENANCE_JOB_POLICY = "";
+
+    default String getMddMaintenanceJobPolicy() {
+        return DEFAULT_MDD_MAINTENANCE_JOB_POLICY;
+    }
+
+    String DEFAULT_MDD_CHARGING_JOB_POLICY = "";
+
+    default String getMddChargingJobPolicy() {
+        return DEFAULT_MDD_CHARGING_JOB_POLICY;
+    }
+
+    String DEFAULT_MDD_CELLULAR_CHARGING_JOB_POLICY = "";
+
+    default String getMddCellularChargingJobPolicy() {
+        return DEFAULT_MDD_CELLULAR_CHARGING_JOB_POLICY;
+    }
+
+    String DEFAULT_MDD_WIFI_CHARGING_JOB_POLICY = "";
+
+    default String getMddWifiChargingJobPolicy() {
+        return DEFAULT_MDD_WIFI_CHARGING_JOB_POLICY;
+    }
+
+    String DEFAULT_DOWNLOAD_PROCESSING_JOB_POLICY = "";
+
+    default String getDownloadProcessingJobPolicy() {
+        return DEFAULT_DOWNLOAD_PROCESSING_JOB_POLICY;
+    }
+
+    String DEFAULT_MAINTENANCE_JOB_POLICY = "";
+
+    default String getMaintenanceJobPolicy() {
+        return DEFAULT_MAINTENANCE_JOB_POLICY;
+    }
+
+    String DEFAULT_USER_DATA_COLLECTION_JOB_POLICY = "";
+
+    default String getUserDataCollectionJobPolicy() {
+        return DEFAULT_USER_DATA_COLLECTION_JOB_POLICY;
+    }
+
+    String DEFAULT_RESET_DATA_JOB_POLICY = "";
+
+    default String getResetDataJobPolicy() {
+        return DEFAULT_RESET_DATA_JOB_POLICY;
+    }
+
+    String DEFAULT_AGGREGATE_ERROR_DATA_REPORTING_JOB_POLICY = "";
+
+    default String getAggregateErrorDataReportingJobPolicy() {
+        return DEFAULT_AGGREGATE_ERROR_DATA_REPORTING_JOB_POLICY;
+    }
 }

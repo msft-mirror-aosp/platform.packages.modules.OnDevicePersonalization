@@ -152,4 +152,34 @@ public final class FlagsConstants {
 
     public static final String KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS =
             "example_store_flow_deadline_seconds";
+
+    public static final String KEY_ENABLE_PER_JOB_POLICY =
+            "OdpBackgroundJobs__enable_per_job_policy";
+
+    public static final String KEY_MDD_MAINTENANCE_JOB_POLICY =
+            "OdpBackgroundJobs__mdd_maintenance_job_policy";
+
+    public static final String KEY_MDD_CHARGING_JOB_POLICY =
+            "OdpBackgroundJobs__mdd_charging_job_policy";
+
+    public static final String KEY_MDD_CELLULAR_CHARGING_JOB_POLICY =
+            "OdpBackgroundJobs__mdd_cellular_charging_job_policy";
+
+    public static final String KEY_MDD_WIFI_CHARGING_JOB_POLICY =
+            "OdpBackgroundJobs__mdd_wifi_charging_job_policy";
+
+    public static final String KEY_DOWNLOAD_PROCESSING_JOB_POLICY =
+            "OdpBackgroundJobs__download_processing_job_policy";
+
+    public static final String KEY_MAINTENANCE_JOB_POLICY =
+            "OdpBackgroundJobs__maintenance_job_policy";
+
+    public static final String KEY_USER_DATA_COLLECTION_JOB_POLICY =
+            "OdpBackgroundJobs__user_data_collection_job_policy";
+
+    public static final String KEY_RESET_DATA_JOB_POLICY =
+            "OdpBackgroundJobs__reset_data_job_policy";
+
+    public static final String KEY_AGGREGATE_ERROR_DATA_REPORTING_JOB_POLICY =
+            "OdpBackgroundJobs__aggregate_error_data_reporting_job_policy";
 }

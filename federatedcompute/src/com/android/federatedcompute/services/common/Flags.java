@@ -195,8 +195,8 @@ public interface Flags extends ModuleSharedFlags {
 
     /**
      * Limitation of how much times can FCP task job can be rescheduled if it failed, if federated
-     * compute job retry times exceeds this limit, the job will be canceled/abort.
-     * This one is for recurrent jobs.
+     * compute job retry times exceeds this limit, the job will be canceled/abort. This one is for
+     * recurrent jobs.
      */
     default int getFcpRecurrentRescheduleLimit() {
         return FCP_RECURRENT_RESCHEDULE_LIMIT;
@@ -263,15 +263,15 @@ public interface Flags extends ModuleSharedFlags {
     }
 
     /**
-     * Default enablement for applying SPE (Scheduling Policy Engine) to
-     * {@code BackgroundKeyFetchJobService}
+     * Default enablement for applying SPE (Scheduling Policy Engine) to {@code
+     * BackgroundKeyFetchJobService}
      */
-    @FeatureFlag boolean
-            DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB = false;
+    @FeatureFlag
+    boolean DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB = false;
 
     /**
-     * Returns the default enablement of applying SPE (Scheduling Policy Engine) to
-     * {@code BackgroundKeyFetchJobService}
+     * Returns the default enablement of applying SPE (Scheduling Policy Engine) to {@code
+     * BackgroundKeyFetchJobService}
      */
     default boolean getSpeOnBackgroundKeyFetchJobEnabled() {
         return DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB;
@@ -283,8 +283,8 @@ public interface Flags extends ModuleSharedFlags {
     @FeatureFlag boolean DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB = false;
 
     /**
-     * Returns the default enablement of applying SPE (Scheduling Policy Engine) to
-     * {@code FederatedJobService}
+     * Returns the default enablement of applying SPE (Scheduling Policy Engine) to {@code
+     * FederatedJobService}
      */
     default boolean getSpeOnFederatedJobEnabled() {
         return DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB;
@@ -320,5 +320,17 @@ public interface Flags extends ModuleSharedFlags {
 
     default boolean isFeatureEnabledApiEnabled() {
         return DEFAULT_IS_FEATURE_ENABLED_API_ENABLED;
+    }
+
+    String DEFAULT_BACKGROUND_KEY_FETCH_JOB_POLICY = "";
+
+    default String getBackgroundKeyFetchJobPolicy() {
+        return DEFAULT_BACKGROUND_KEY_FETCH_JOB_POLICY;
+    }
+
+    String DEFAULT_DELETE_EXPIRED_DATA_JOB_POLICY = "";
+
+    default String getDeleteExpiredDataJobPolicy() {
+        return DEFAULT_DELETE_EXPIRED_DATA_JOB_POLICY;
     }
 }
