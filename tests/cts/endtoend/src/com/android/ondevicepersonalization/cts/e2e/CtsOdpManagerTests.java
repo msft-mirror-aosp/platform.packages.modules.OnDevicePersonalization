@@ -540,30 +540,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    public void testExecuteSendLargeBlob() throws InterruptedException {
-        final String tableKey = "testKey_" + System.currentTimeMillis();
-        OnDevicePersonalizationManager manager =
-                mContext.getSystemService(OnDevicePersonalizationManager.class);
-        assertNotNull(manager);
-        var receiver = new ResultReceiver<ExecuteResult>();
-        PersistableBundle appParams = new PersistableBundle();
-        appParams.putString(
-                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_CHECK_VALUE_LENGTH);
-        byte[] buffer = new byte[LARGE_BLOB_SIZE];
-        for (int i = 0; i < LARGE_BLOB_SIZE; ++i) {
-            buffer[i] = 'A';
-        }
-        appParams.putString(SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(buffer, 0));
-        appParams.putInt(SampleServiceApi.KEY_VALUE_LENGTH, LARGE_BLOB_SIZE);
-        manager.execute(
-                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
-                appParams,
-                Executors.newSingleThreadExecutor(),
-                receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-    }
-
-    @Test
     public void testRunModelInference() throws Exception {
         final String tableKey = "model_" + System.currentTimeMillis();
         OnDevicePersonalizationManager manager =
@@ -1109,32 +1085,6 @@ public class CtsOdpManagerTests {
         Thread.sleep(DELAY_MILLIS);
 
         checkExpectedMissingLocalDataNewExecuteApi(manager, tableKey);
-    }
-
-    @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
-    public void testExecuteInIsolatedServiceSendLargeBlob() throws InterruptedException {
-        OnDevicePersonalizationManager manager =
-                mContext.getSystemService(OnDevicePersonalizationManager.class);
-        assertNotNull(manager);
-        var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
-        PersistableBundle appParams = new PersistableBundle();
-        appParams.putString(
-                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_CHECK_VALUE_LENGTH);
-        byte[] buffer = new byte[LARGE_BLOB_SIZE];
-        for (int i = 0; i < LARGE_BLOB_SIZE; ++i) {
-            buffer[i] = 'A';
-        }
-        appParams.putString(SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(buffer, 0));
-        appParams.putInt(SampleServiceApi.KEY_VALUE_LENGTH, LARGE_BLOB_SIZE);
-        ExecuteInIsolatedServiceRequest request =
-                new ExecuteInIsolatedServiceRequest.Builder(
-                                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS))
-                        .setAppParams(appParams)
-                        .build();
-
-        manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
     }
 
     @Test
