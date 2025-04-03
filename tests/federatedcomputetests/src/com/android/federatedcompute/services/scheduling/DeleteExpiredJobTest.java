@@ -27,6 +27,7 @@ import static com.android.federatedcompute.services.common.FederatedComputeJobIn
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_TASK_HISTORY_TTL_MILLIS;
 import static com.android.federatedcompute.services.common.Flags.ODP_AUTHORIZATION_TOKEN_DELETION_PERIOD_SECONDs;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -193,6 +194,16 @@ public class DeleteExpiredJobTest {
         assertWithMessage("createDefaultJobSpec() for DeleteExpiredJob")
                 .that(DeleteExpiredJob.createDefaultJobSpec())
                 .isEqualTo(new JobSpec.Builder(expectedJobPolicy).build());
+    }
+
+    @Test
+    public void testGetJobPolicyString() {
+        String testPolicyString = "test_string";
+
+        when(mMockFlags.getDeleteExpiredDataJobPolicy()).thenReturn(testPolicyString);
+
+        assertThat(mDeleteExpiredJob.getJobPolicyString(/* jobId= */ 0))
+                .isEqualTo(testPolicyString);
     }
 
     private class TestInjector extends Injector {

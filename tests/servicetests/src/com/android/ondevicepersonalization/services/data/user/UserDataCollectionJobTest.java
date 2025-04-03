@@ -27,6 +27,7 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 import static com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -217,11 +218,22 @@ public final class UserDataCollectionJobTest {
                 .isEqualTo(expectedBackoffPolicy);
     }
 
+    @Test
+    public void testGetJobPolicyString() {
+        String testPolicyString = "test_string";
+
+        when(mMockFlags.getUserDataCollectionJobPolicy()).thenReturn(testPolicyString);
+
+        assertThat(mSpyUserDataCollectionJob.getJobPolicyString(/* jobId= */ 0))
+                .isEqualTo(testPolicyString);
+    }
+
     public class TestInjector extends UserDataCollectionJob.Injector {
         @Override
         ListeningExecutorService getExecutor() {
             return MoreExecutors.newDirectExecutorService();
         }
+
         @Override
         Flags getFlags() {
             return mMockFlags;

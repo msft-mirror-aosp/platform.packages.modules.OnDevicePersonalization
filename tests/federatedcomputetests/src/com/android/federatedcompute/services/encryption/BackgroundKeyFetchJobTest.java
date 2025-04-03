@@ -25,6 +25,7 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 import static com.android.federatedcompute.services.common.FederatedComputeJobInfo.ENCRYPTION_KEY_FETCH_JOB_ID;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertThrows;
@@ -236,6 +237,16 @@ public final class BackgroundKeyFetchJobTest {
         assertWithMessage("getBackoffPolicy() for BackgroundKeyFetchJob")
                 .that(new BackgroundKeyFetchJob().getBackoffPolicy())
                 .isEqualTo(expectedBackoffPolicy);
+    }
+
+    @Test
+    public void testGetJobPolicyString() {
+        String testPolicyString = "test_string";
+
+        when(mMockFlags.getBackgroundKeyFetchJobPolicy()).thenReturn(testPolicyString);
+
+        assertThat(mBackgroundKeyFetchJob.getJobPolicyString(/* jobId= */ 0))
+                .isEqualTo(testPolicyString);
     }
 
     public class TestInjector extends BackgroundKeyFetchJob.Injector {

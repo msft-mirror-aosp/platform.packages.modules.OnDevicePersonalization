@@ -107,6 +107,11 @@ public final class UserDataCollectionJob implements JobWorker {
         return new BackoffPolicy.Builder().setShouldRetryOnExecutionStop(true).build();
     }
 
+    @Override
+    public String getJobPolicyString(int jobId) {
+        return FlagsFactory.getFlags().getUserDataCollectionJobPolicy();
+    }
+
     /** Schedules a unique instance of {@link UserDataCollectionJob}. */
     public static void schedule(Context context) {
         // If SPE is not enabled, force to schedule the job with the old JobService.
