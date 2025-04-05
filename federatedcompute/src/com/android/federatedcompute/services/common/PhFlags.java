@@ -50,6 +50,7 @@ import static com.android.federatedcompute.services.common.FlagsConstants.TRAINI
 import static com.android.federatedcompute.services.common.FlagsConstants.TRAINING_THERMAL_STATUS_TO_THROTTLE;
 import static com.android.federatedcompute.services.common.FlagsConstants.TRANSIENT_ERROR_RETRY_DELAY_JITTER_PERCENT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.TRANSIENT_ERROR_RETRY_DELAY_SECS_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.KEY_IS_FEATURE_ENABLED_API_ENABLED;
 
 import android.os.SystemProperties;
 import android.provider.DeviceConfig;
@@ -355,4 +356,13 @@ public final class PhFlags implements Flags {
                 /* name= */ FCP_TEMP_FILE_TTL_IN_MILLIS_NAME,
                 /* defaultValue= */ DEFAULT_TEMP_FILE_TTL_MILLIS);
     }
+
+    @Override
+    public boolean isFeatureEnabledApiEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_IS_FEATURE_ENABLED_API_ENABLED,
+                /* defaultValue= */ DEFAULT_IS_FEATURE_ENABLED_API_ENABLED);
+    }
+
 }

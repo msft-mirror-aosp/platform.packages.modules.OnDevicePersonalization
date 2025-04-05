@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.android.ondevicepersonalization.cts.e2e;
+package com.android.ondevicepersonalization.e2etests;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -34,14 +34,12 @@ import android.content.Context;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.net.Uri;
 import android.os.PersistableBundle;
-import android.platform.test.annotations.RequiresFlagsEnabled;
 import android.platform.test.flag.junit.CheckFlagsRule;
 import android.platform.test.flag.junit.DeviceFlagsValueProvider;
 import android.util.Base64;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
@@ -61,9 +59,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.concurrent.Executors;
 
-/** CTS Test cases for OnDevicePersonalizationManager APIs. */
+/** Test cases for OnDevicePersonalizationManager APIs. */
 @RunWith(JUnit4.class)
-public class CtsOdpManagerTests {
+public class OdpManagerTests {
 
     private static final String SERVICE_PACKAGE =
             "com.android.ondevicepersonalization.testing.sampleservice";
@@ -540,6 +538,30 @@ public class CtsOdpManagerTests {
     }
 
     @Test
+    public void testExecuteSendLargeBlob() throws InterruptedException {
+        final String tableKey = "testKey_" + System.currentTimeMillis();
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(
+                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_CHECK_VALUE_LENGTH);
+        byte[] buffer = new byte[LARGE_BLOB_SIZE];
+        for (int i = 0; i < LARGE_BLOB_SIZE; ++i) {
+            buffer[i] = 'A';
+        }
+        appParams.putString(SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(buffer, 0));
+        appParams.putInt(SampleServiceApi.KEY_VALUE_LENGTH, LARGE_BLOB_SIZE);
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+    }
+
+    @Test
     public void testRunModelInference() throws Exception {
         final String tableKey = "model_" + System.currentTimeMillis();
         OnDevicePersonalizationManager manager =
@@ -614,7 +636,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
     public void testExecuteWithScheduleFederatedJobWithOutcomeReceiver() throws Exception {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -650,7 +671,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceThrowsNPEIfExecutorMissing() {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -667,7 +687,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceThrowsNPEIfReceiverMissing() {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -686,7 +705,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceThrowsIAEIfPackageNameMissing() {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -705,7 +723,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceThrowsIAEIfClassNameMissing()
             throws InterruptedException {
         OnDevicePersonalizationManager manager =
@@ -725,7 +742,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceReturnsIllegalStateIfServiceNotEnrolled()
             throws InterruptedException {
         OnDevicePersonalizationManager manager =
@@ -745,7 +761,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceReturnsNameNotFoundIfServiceNotInstalled()
             throws InterruptedException {
         OnDevicePersonalizationManager manager =
@@ -771,7 +786,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceReturnsManifestParsingErrorIfServiceClassNotFound()
             throws InterruptedException {
         OnDevicePersonalizationManager manager =
@@ -797,7 +811,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceNoOp() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -817,7 +830,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceWithRenderAndLogging() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -844,7 +856,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceWithRender() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -867,7 +878,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceReadRemoteData() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -887,7 +897,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceReadUserData() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -907,7 +916,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceWithLogging() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -932,7 +940,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceReadLog() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -979,7 +986,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceReturnsErrorIfServiceThrows()
             throws InterruptedException {
         OnDevicePersonalizationManager manager =
@@ -1005,7 +1011,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceReturnsErrorIfServiceReturnsError()
             throws InterruptedException {
         OnDevicePersonalizationManager manager =
@@ -1032,7 +1037,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceWriteAndReadLocalData() throws InterruptedException {
         final String tableKey = "testKey_" + System.currentTimeMillis();
         OnDevicePersonalizationManager manager =
@@ -1060,7 +1064,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceWriteAndReadLargeLocalData()
             throws InterruptedException {
         final String tableKey = "testKey_" + System.currentTimeMillis();
@@ -1088,7 +1091,31 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
+    public void testExecuteInIsolatedServiceSendLargeBlob() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(
+                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_CHECK_VALUE_LENGTH);
+        byte[] buffer = new byte[LARGE_BLOB_SIZE];
+        for (int i = 0; i < LARGE_BLOB_SIZE; ++i) {
+            buffer[i] = 'A';
+        }
+        appParams.putString(SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(buffer, 0));
+        appParams.putInt(SampleServiceApi.KEY_VALUE_LENGTH, LARGE_BLOB_SIZE);
+        ExecuteInIsolatedServiceRequest request =
+                new ExecuteInIsolatedServiceRequest.Builder(
+                                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS))
+                        .setAppParams(appParams)
+                        .build();
+
+        manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+    }
+
+    @Test
     public void testExecuteInIsolatedServiceWithModelInference() throws Exception {
         final String tableKey = "model_" + System.currentTimeMillis();
         OnDevicePersonalizationManager manager =
@@ -1155,7 +1182,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceWithScheduleFederatedJob() throws Exception {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -1172,7 +1198,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteInIsolatedServiceWithCancelFederatedJob() throws Exception {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -1193,7 +1218,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public void testQueryFeatureAvailableApi() throws Exception {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -1208,7 +1232,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public void testQueryFeatureAvailableApiThrowsIfFeatureNameMissing() throws Exception {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -1224,7 +1247,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public void testQueryFeatureAvailableApiThrowsIfExecutorMissing() throws Exception {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -1240,7 +1262,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void testExecuteNoOutputData() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
@@ -1262,7 +1283,6 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    @RequiresFlagsEnabled(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public void testQueryFeatureAvailableApiThrowsIfReceiverMissing() throws Exception {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);

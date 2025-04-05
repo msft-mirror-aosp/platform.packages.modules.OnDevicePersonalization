@@ -9,6 +9,10 @@
       "name": "OnDevicePersonalizationManagingServicesTests[com.google.android.ondevicepersonalization.apex]"
     },
     {
+      // Install com.google.android.ondevicepersonalization.apex and run OnDevicePersonalizationEndToEndTests.
+      "name": "OnDevicePersonalizationEndToEndTests[com.google.android.ondevicepersonalization.apex]"
+    },
+    {
       // Install com.google.android.ondevicepersonalization.apex and run OdpChronicleTests.
       "name": "OdpChronicleTests[com.google.android.ondevicepersonalization.apex]"
     },
@@ -45,6 +49,9 @@
       "name": "OnDevicePersonalizationManagingServicesTests"
     },
     {
+      "name": "OnDevicePersonalizationEndToEndTests"
+    },
+    {
       "name": "OdpChronicleTests"
     },
     {
@@ -72,6 +79,9 @@
     },
     {
       "name": "OnDevicePersonalizationManagingServicesTests"
+    },
+    {
+      "name": "OnDevicePersonalizationEndToEndTests"
     },
     {
       "name": "OdpChronicleTests"

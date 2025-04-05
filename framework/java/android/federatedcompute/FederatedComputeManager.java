@@ -22,12 +22,15 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IFederatedComputeService;
+import android.federatedcompute.aidl.IIsFeatureEnabledCallback;
 import android.federatedcompute.common.ScheduleFederatedComputeRequest;
 import android.os.Binder;
 import android.os.OutcomeReceiver;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.federatedcompute.internal.util.LogUtil;
+import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
@@ -56,6 +59,7 @@ public final class FederatedComputeManager {
     private static final String ALT_FEDERATED_COMPUTATION_SERVICE_PACKAGE =
             "com.google.android.federatedcompute";
 
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private final Context mContext;
 
     private final AbstractServiceBinder<IFederatedComputeService> mServiceBinder;
@@ -70,6 +74,14 @@ public final class FederatedComputeManager {
                                 FEDERATED_COMPUTATION_SERVICE_PACKAGE,
                                 ALT_FEDERATED_COMPUTATION_SERVICE_PACKAGE),
                         IFederatedComputeService.Stub::asInterface);
+    }
+    /** @hide */
+    @VisibleForTesting
+    public FederatedComputeManager(
+            Context context,
+            AbstractServiceBinder<IFederatedComputeService> serviceBinder) {
+        mContext = context;
+        mServiceBinder = serviceBinder;
     }
 
     /**
@@ -157,6 +169,33 @@ public final class FederatedComputeManager {
             service.cancel(ownerComponent, populationName, federatedComputeCallback);
         } catch (Exception e) {
             LogUtil.e(TAG, e, "Exception when cancel federated job %s", populationName);
+            executor.execute(() -> callback.onError(e));
+            unbindFromService();
+        }
+    }
+
+    /**
+     * Check feature availability.
+     *
+     * @hide
+     */
+    public void isFeatureEnabled(
+            @NonNull String featureName,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull OutcomeReceiver<Integer, Exception> callback) {
+        Objects.requireNonNull(featureName);
+        final IFederatedComputeService service = mServiceBinder.getService(executor);
+        try {
+            IIsFeatureEnabledCallback callbackWrapper = new IIsFeatureEnabledCallback.Stub() {
+                @Override
+                public void onResult(int result) {
+                    executor.execute(() -> callback.onResult(result));
+                    unbindFromService();
+                }
+            };
+            service.isFeatureEnabled(featureName, callbackWrapper);
+        } catch (Exception e) {
+            LogUtil.e(TAG, e, "Exception querying feature availability %s", featureName);
             executor.execute(() -> callback.onError(e));
             unbindFromService();
         }
