@@ -30,14 +30,14 @@ public final class TrainingExamplesInput {
      * The name of the federated compute population. It should match the population name in {@link
      * FederatedComputeInput#getPopulationName}.
      */
-    @NonNull private String mPopulationName = "";
+    @NonNull private final String mPopulationName;
 
     /**
      * The name of the task within the population. It should match task plan configured at remote
      * federated compute server. One population may have multiple tasks. The task name can be used
      * to uniquely identify the job.
      */
-    @NonNull private String mTaskName = "";
+    @NonNull private final String mTaskName;
 
     /**
      * Token used to support the resumption of training. If client app wants to use resumption token
@@ -45,15 +45,13 @@ public final class TrainingExamplesInput {
      * {@link TrainingExampleRecord.Builder#setResumptionToken}, OnDevicePersonalization will store
      * it and pass it here for generating new training examples.
      */
-    @Nullable private byte[] mResumptionToken = null;
+    @Nullable private final byte[] mResumptionToken;
 
-    /**
-     * The data collection name to use to create training examples.
-     */
-    @Nullable private String mCollectionName;
+    /** The data collection name to use to create training examples. */
+    @Nullable private final String mCollectionName;
 
     /** @hide */
-    public TrainingExamplesInput(@NonNull TrainingExamplesInputParcel parcel) {
+    TrainingExamplesInput(@NonNull TrainingExamplesInputParcel parcel) {
         this(
                 parcel.getPopulationName(),
                 parcel.getTaskName(),
@@ -92,7 +90,8 @@ public final class TrainingExamplesInput {
      * The name of the federated compute population. It should match the population name in {@link
      * FederatedComputeInput#getPopulationName}.
      */
-    public @NonNull String getPopulationName() {
+    @NonNull
+    public String getPopulationName() {
         return mPopulationName;
     }
 
@@ -101,7 +100,8 @@ public final class TrainingExamplesInput {
      * federated compute server. One population may have multiple tasks. The task name can be used
      * to uniquely identify the job.
      */
-    public @NonNull String getTaskName() {
+    @NonNull
+    public String getTaskName() {
         return mTaskName;
     }
 
@@ -111,13 +111,15 @@ public final class TrainingExamplesInput {
      * {@link TrainingExampleRecord.Builder#setResumptionToken}, OnDevicePersonalization will store
      * it and pass it here for generating new training examples.
      */
-    public @Nullable byte[] getResumptionToken() {
+    @Nullable
+    public byte[] getResumptionToken() {
         return mResumptionToken;
     }
 
     /** The data collection name to use to create training examples. */
     @FlaggedApi(Flags.FLAG_FCP_MODEL_VERSION_ENABLED)
-    public @Nullable String getCollectionName() {
+    @Nullable
+    public String getCollectionName() {
         return mCollectionName;
     }
 
