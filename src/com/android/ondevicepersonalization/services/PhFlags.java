@@ -25,12 +25,15 @@ import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AG
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_PATH;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATE_ERROR_DATA_REPORTING_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_DOWNLOAD_PROCESSING_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_AGGREGATED_ERROR_REPORTING;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_PER_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENCRYPTION_KEY_MAX_AGE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENCRYPTION_KEY_URL;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
@@ -41,6 +44,16 @@ import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_IS
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_IS_FEATURE_ENABLED_API_ENABLED;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_LOG_ISOLATED_SERVICE_ERROR_CODE_NON_AGGREGATED_ALLOWLIST;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_MAINTENANCE_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_MDD_CELLULAR_CHARGING_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_MDD_CHARGING_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_MDD_MAINTENANCE_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_MDD_WIFI_CHARGING_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_JOB_SCHEDULING_LOGGING_ENABLED;
@@ -55,14 +68,11 @@ import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_PL
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_RENDER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_RESET_DATA_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_RESET_DATA_DELAY_SECONDS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_RESET_DATA_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
-import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_AGGREGATE_ERROR_DATA_REPORTING_JOB;
-import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_MDD_JOB;
-import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_ODP_DOWNLOAD_PROCESSING_JOB;
-import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_RESET_DATA_JOB;
-import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ODP_BACKGROUND_JOBS__ENABLE_SPE_ON_USER_DATA_COLLECTION_JOB;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_TRUSTED_PARTNER_APPS_LIST;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_USER_CONTROL_CACHE_IN_MILLIS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_USER_DATA_COLLECTION_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.MAX_INT_VALUES_LIMIT;
@@ -522,5 +532,85 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_IS_FEATURE_ENABLED_API_ENABLED,
                 /* defaultValue= */ DEFAULT_IS_FEATURE_ENABLED_API_ENABLED);
+    }
+
+    @Override
+    public boolean getSpeEnablePerJobPolicy() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ENABLE_PER_JOB_POLICY,
+                /* defaultValue= */ DEFAULT_SPE_ENABLE_PER_JOB_POLICY);
+    }
+
+    @Override
+    public String getMddMaintenanceJobPolicy() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_MDD_MAINTENANCE_JOB_POLICY,
+                /* defaultValue= */ DEFAULT_MDD_MAINTENANCE_JOB_POLICY);
+    }
+
+    @Override
+    public String getMddChargingJobPolicy() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_MDD_CHARGING_JOB_POLICY,
+                /* defaultValue= */ DEFAULT_MDD_CHARGING_JOB_POLICY);
+    }
+
+    @Override
+    public String getMddCellularChargingJobPolicy() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_MDD_CELLULAR_CHARGING_JOB_POLICY,
+                /* defaultValue= */ DEFAULT_MDD_CELLULAR_CHARGING_JOB_POLICY);
+    }
+
+    @Override
+    public String getMddWifiChargingJobPolicy() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_MDD_WIFI_CHARGING_JOB_POLICY,
+                /* defaultValue= */ DEFAULT_MDD_WIFI_CHARGING_JOB_POLICY);
+    }
+
+    @Override
+    public String getDownloadProcessingJobPolicy() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_DOWNLOAD_PROCESSING_JOB_POLICY,
+                /* defaultValue= */ DEFAULT_DOWNLOAD_PROCESSING_JOB_POLICY);
+    }
+
+    @Override
+    public String getMaintenanceJobPolicy() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_MAINTENANCE_JOB_POLICY,
+                /* defaultValue= */ DEFAULT_MAINTENANCE_JOB_POLICY);
+    }
+
+    @Override
+    public String getUserDataCollectionJobPolicy() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_USER_DATA_COLLECTION_JOB_POLICY,
+                /* defaultValue= */ DEFAULT_USER_DATA_COLLECTION_JOB_POLICY);
+    }
+
+    @Override
+    public String getResetDataJobPolicy() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_RESET_DATA_JOB_POLICY,
+                /* defaultValue= */ DEFAULT_RESET_DATA_JOB_POLICY);
+    }
+
+    @Override
+    public String getAggregateErrorDataReportingJobPolicy() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_AGGREGATE_ERROR_DATA_REPORTING_JOB_POLICY,
+                /* defaultValue= */ DEFAULT_AGGREGATE_ERROR_DATA_REPORTING_JOB_POLICY);
     }
 }

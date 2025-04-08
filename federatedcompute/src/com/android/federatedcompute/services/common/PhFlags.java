@@ -39,7 +39,11 @@ import static com.android.federatedcompute.services.common.FlagsConstants.FCP_TE
 import static com.android.federatedcompute.services.common.FlagsConstants.FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL;
 import static com.android.federatedcompute.services.common.FlagsConstants.HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.KEY_BACKGROUND_KEY_FETCH_JOB_POLICY;
+import static com.android.federatedcompute.services.common.FlagsConstants.KEY_DELETE_EXPIRED_DATA_JOB_POLICY;
+import static com.android.federatedcompute.services.common.FlagsConstants.KEY_ENABLE_PER_JOB_POLICY;
 import static com.android.federatedcompute.services.common.FlagsConstants.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
+import static com.android.federatedcompute.services.common.FlagsConstants.KEY_IS_FEATURE_ENABLED_API_ENABLED;
 import static com.android.federatedcompute.services.common.FlagsConstants.MAX_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.MAX_SCHEDULING_PERIOD_SECS_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.MIN_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION_CONFIG_NAME;
@@ -50,7 +54,6 @@ import static com.android.federatedcompute.services.common.FlagsConstants.TRAINI
 import static com.android.federatedcompute.services.common.FlagsConstants.TRAINING_THERMAL_STATUS_TO_THROTTLE;
 import static com.android.federatedcompute.services.common.FlagsConstants.TRANSIENT_ERROR_RETRY_DELAY_JITTER_PERCENT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.TRANSIENT_ERROR_RETRY_DELAY_SECS_CONFIG_NAME;
-import static com.android.federatedcompute.services.common.FlagsConstants.KEY_IS_FEATURE_ENABLED_API_ENABLED;
 
 import android.os.SystemProperties;
 import android.provider.DeviceConfig;
@@ -63,8 +66,7 @@ public final class PhFlags implements Flags {
     // SystemProperty prefix. SystemProperty is for overriding OnDevicePersonalization Configs.
     private static final String SYSTEM_PROPERTY_PREFIX = "debug.ondevicepersonalization.";
 
-    private PhFlags() {
-    }
+    private PhFlags() {}
 
     /** Returns the singleton instance of the PhFlags. */
     static PhFlags getInstance() {
@@ -289,8 +291,7 @@ public final class PhFlags implements Flags {
         return DeviceConfig.getBoolean(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB,
-                /* defaultValue= */
-                DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB);
+                /* defaultValue= */ DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB);
     }
 
     @Override
@@ -365,4 +366,27 @@ public final class PhFlags implements Flags {
                 /* defaultValue= */ DEFAULT_IS_FEATURE_ENABLED_API_ENABLED);
     }
 
+    @Override
+    public boolean getSpeEnablePerJobPolicy() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ENABLE_PER_JOB_POLICY,
+                /* defaultValue= */ DEFAULT_SPE_ENABLE_PER_JOB_POLICY);
+    }
+
+    @Override
+    public String getBackgroundKeyFetchJobPolicy() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_BACKGROUND_KEY_FETCH_JOB_POLICY,
+                /* defaultValue= */ DEFAULT_BACKGROUND_KEY_FETCH_JOB_POLICY);
+    }
+
+    @Override
+    public String getDeleteExpiredDataJobPolicy() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_DELETE_EXPIRED_DATA_JOB_POLICY,
+                /* defaultValue= */ DEFAULT_BACKGROUND_KEY_FETCH_JOB_POLICY);
+    }
 }

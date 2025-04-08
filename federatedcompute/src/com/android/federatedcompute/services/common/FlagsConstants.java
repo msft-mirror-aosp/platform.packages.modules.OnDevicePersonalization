@@ -91,4 +91,9 @@ public final class FlagsConstants {
     static final String FCP_TEMP_FILE_TTL_IN_MILLIS_NAME = "FcpFeatures__temp_file_ttl_in_millis";
     static final String KEY_IS_FEATURE_ENABLED_API_ENABLED =
             "FcpFeatures__enable_is_feature_enabled";
+    static final String KEY_ENABLE_PER_JOB_POLICY = "FcpBackgroundJobs__enable_per_job_policy";
+    static final String KEY_BACKGROUND_KEY_FETCH_JOB_POLICY =
+            "FcpBackgroundJobs__background_key_fetch_job_policy";
+    static final String KEY_DELETE_EXPIRED_DATA_JOB_POLICY =
+            "FcpBackgroundJobs__delete_expired_data_job_policy";
 }
