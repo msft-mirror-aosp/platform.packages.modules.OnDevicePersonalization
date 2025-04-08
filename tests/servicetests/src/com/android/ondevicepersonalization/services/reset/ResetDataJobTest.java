@@ -26,6 +26,7 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.RESET_DATA_JOB_ID;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -184,5 +185,14 @@ public final class ResetDataJobTest {
         assertWithMessage("getBackoffPolicy() for ResetDataJob")
                 .that(new ResetDataJob().getBackoffPolicy())
                 .isEqualTo(expectedBackoffPolicy);
+    }
+
+    @Test
+    public void testGetJobPolicyString() {
+        String testPolicyString = "test_string";
+
+        when(mMockFlags.getResetDataJobPolicy()).thenReturn(testPolicyString);
+
+        assertThat(mSpyResetDataJob.getJobPolicyString(/* jobId= */ 0)).isEqualTo(testPolicyString);
     }
 }

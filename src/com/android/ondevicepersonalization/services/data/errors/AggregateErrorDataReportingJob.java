@@ -132,15 +132,22 @@ public final class AggregateErrorDataReportingJob implements JobWorker {
         return new BackoffPolicy.Builder().setShouldRetryOnExecutionStop(true).build();
     }
 
+    @Override
+    public String getJobPolicyString(int jobId) {
+        return FlagsFactory.getFlags().getAggregateErrorDataReportingJobPolicy();
+    }
+
     /** Schedules a unique instance of {@link AggregateErrorDataReportingJob}. */
     public static void schedule(Context context) {
         // If SPE is not enabled, force to schedule the job with the old JobService.
         if (!FlagsFactory.getFlags().getSpeOnAggregateErrorDataReportingJobEnabled()) {
-            sLogger.d("SPE is not enabled. Schedule the job with"
-                    + " AggregateErrorDataReportingService.");
+            sLogger.d(
+                    "SPE is not enabled. Schedule the job with"
+                            + " AggregateErrorDataReportingService.");
 
-            int resultCode = AggregateErrorDataReportingService
-                    .scheduleIfNeeded(context, /* forceSchedule */ false);
+            int resultCode =
+                    AggregateErrorDataReportingService.scheduleIfNeeded(
+                            context, /* forceSchedule */ false);
             OdpJobServiceFactory.getInstance(context)
                     .getJobSchedulingLogger()
                     .recordOnSchedulingLegacy(AGGREGATE_ERROR_DATA_REPORTING_JOB_ID, resultCode);

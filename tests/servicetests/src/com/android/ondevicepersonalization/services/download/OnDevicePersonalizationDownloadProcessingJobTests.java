@@ -25,6 +25,7 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -201,5 +202,15 @@ public final class OnDevicePersonalizationDownloadProcessingJobTests {
         assertWithMessage("getBackoffPolicy() for OnDevicePersonalizationDownloadProcessingJob")
                 .that(new OnDevicePersonalizationDownloadProcessingJob().getBackoffPolicy())
                 .isEqualTo(expectedBackoffPolicy);
+    }
+
+    @Test
+    public void testGetJobPolicyString() {
+        String testPolicyString = "test_string";
+
+        when(mMockFlags.getDownloadProcessingJobPolicy()).thenReturn(testPolicyString);
+
+        assertThat(mSpyOdpDownloadProcessingJob.getJobPolicyString(/* jobId= */ 0))
+                .isEqualTo(testPolicyString);
     }
 }

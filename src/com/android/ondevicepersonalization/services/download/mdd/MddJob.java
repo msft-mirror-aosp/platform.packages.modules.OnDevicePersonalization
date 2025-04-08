@@ -16,13 +16,17 @@
 
 package com.android.ondevicepersonalization.services.download.mdd;
 
-
 import static com.android.adservices.shared.spe.JobServiceConstants.JOB_ENABLED_STATUS_DISABLED_FOR_KILL_SWITCH_ON;
 import static com.android.adservices.shared.spe.JobServiceConstants.JOB_ENABLED_STATUS_DISABLED_FOR_USER_CONSENT_REVOKED;
 import static com.android.adservices.shared.spe.JobServiceConstants.JOB_ENABLED_STATUS_ENABLED;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID;
 
 import static com.google.android.libraries.mobiledatadownload.TaskScheduler.WIFI_CHARGING_PERIODIC_TASK;
 
+import android.annotation.Nullable;
 import android.content.Context;
 
 import com.android.adservices.shared.spe.framework.ExecutionResult;
@@ -120,5 +124,23 @@ public final class MddJob implements JobWorker {
     @Override
     public BackoffPolicy getBackoffPolicy() {
         return new BackoffPolicy.Builder().setShouldRetryOnExecutionStop(true).build();
+    }
+
+    @Override
+    @Nullable
+    public String getJobPolicyString(int jobId) {
+        Flags flags = FlagsFactory.getFlags();
+
+        if (jobId == MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID) {
+            return flags.getMddMaintenanceJobPolicy();
+        } else if (jobId == MDD_CHARGING_PERIODIC_TASK_JOB_ID) {
+            return flags.getMddChargingJobPolicy();
+        } else if (jobId == MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID) {
+            return flags.getMddCellularChargingJobPolicy();
+        } else if (jobId == MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID) {
+            return flags.getMddWifiChargingJobPolicy();
+        }
+
+        return null;
     }
 }

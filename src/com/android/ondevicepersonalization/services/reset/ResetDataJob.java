@@ -110,6 +110,11 @@ public final class ResetDataJob implements JobWorker {
         return new BackoffPolicy.Builder().setShouldRetryOnExecutionStop(true).build();
     }
 
+    @Override
+    public String getJobPolicyString(int jobId) {
+        return FlagsFactory.getFlags().getResetDataJobPolicy();
+    }
+
     @VisibleForTesting
     void deleteMeasurementData() {
         ResetDataTask.deleteMeasurementData();

@@ -122,15 +122,22 @@ public final class OnDevicePersonalizationDownloadProcessingJob implements JobWo
         return new BackoffPolicy.Builder().setShouldRetryOnExecutionStop(true).build();
     }
 
+    @Override
+    public String getJobPolicyString(int jobId) {
+        return FlagsFactory.getFlags().getDownloadProcessingJobPolicy();
+    }
+
     /** Schedules a unique instance of {@link OnDevicePersonalizationDownloadProcessingJob}. */
     public static void schedule(Context context) {
         // If SPE is not enabled, force to schedule the job with the old JobService.
         if (!FlagsFactory.getFlags().getSpeOnOdpDownloadProcessingJobEnabled()) {
-            sLogger.d("SPE is not enabled. Schedule the job with "
-                    + "OnDevicePersonalizationDownloadProcessingJobService.");
+            sLogger.d(
+                    "SPE is not enabled. Schedule the job with "
+                            + "OnDevicePersonalizationDownloadProcessingJobService.");
 
-            int resultCode = OnDevicePersonalizationDownloadProcessingJobService.schedule(
-                    context, /* forceSchedule */ false);
+            int resultCode =
+                    OnDevicePersonalizationDownloadProcessingJobService.schedule(
+                            context, /* forceSchedule */ false);
             OdpJobServiceFactory.getInstance(context)
                     .getJobSchedulingLogger()
                     .recordOnSchedulingLegacy(DOWNLOAD_PROCESSING_TASK_JOB_ID, resultCode);
