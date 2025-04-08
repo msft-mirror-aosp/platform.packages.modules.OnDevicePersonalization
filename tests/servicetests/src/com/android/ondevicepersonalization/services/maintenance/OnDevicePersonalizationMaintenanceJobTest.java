@@ -371,6 +371,16 @@ public final class OnDevicePersonalizationMaintenanceJobTest {
         assertThat(localDir.listFiles()).hasLength(1);
     }
 
+    @Test
+    public void testGetJobPolicyString() {
+        String testPolicyString = "test_string";
+
+        when(mMockFlags.getMaintenanceJobPolicy()).thenReturn(testPolicyString);
+
+        assertThat(mSpyOnDevicePersonalizationMaintenanceJob.getJobPolicyString(/* jobId= */ 0))
+                .isEqualTo(testPolicyString);
+    }
+
     private static void addTestData(long timestamp, OnDevicePersonalizationVendorDataDao dao) {
         String key1 = "key1";
         String key2 = "key2";

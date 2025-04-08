@@ -26,6 +26,7 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.AGGREGATE_ERROR_DATA_REPORTING_JOB_ID;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -81,18 +82,12 @@ public class AggregateErrorDataReportingJobTest {
     private static final Context sContext = ApplicationProvider.getApplicationContext();
 
     private AggregateErrorDataReportingJob mSpyAggregateErrorDataReportingJob;
-    @Mock
-    private Flags mMockFlags;
-    @Mock
-    private ExecutionRuntimeParameters mMockParams;
-    @Mock
-    private OdpJobScheduler mMockOdpJobScheduler;
-    @Mock
-    private OdpJobServiceFactory mMockOdpJobServiceFactory;
-    @Mock
-    private AggregatedErrorReportingWorker mMockReportingWorker;
-    @Mock
-    private OdpEncryptionKeyManager mMockEncryptionKeyManager;
+    @Mock private Flags mMockFlags;
+    @Mock private ExecutionRuntimeParameters mMockParams;
+    @Mock private OdpJobScheduler mMockOdpJobScheduler;
+    @Mock private OdpJobServiceFactory mMockOdpJobServiceFactory;
+    @Mock private AggregatedErrorReportingWorker mMockReportingWorker;
+    @Mock private OdpEncryptionKeyManager mMockEncryptionKeyManager;
 
     @Before
     public void setup() throws Exception {
@@ -121,8 +116,7 @@ public class AggregateErrorDataReportingJobTest {
 
     @Test
     public void testGetExecutionFuture_encryptedFlow() throws Exception {
-        when(mMockFlags.getAllowUnencryptedAggregatedErrorReportingPayload())
-                .thenReturn(false);
+        when(mMockFlags.getAllowUnencryptedAggregatedErrorReportingPayload()).thenReturn(false);
         when(mMockReportingWorker.reportAggregateErrors(any(), any()))
                 .thenReturn(Futures.immediateVoidFuture());
         when(mMockEncryptionKeyManager.fetchAndPersistActiveKeys(anyInt(), anyBoolean(), any()))
@@ -184,16 +178,21 @@ public class AggregateErrorDataReportingJobTest {
 
         JobSchedulingLogger loggerMock = mock(JobSchedulingLogger.class);
         when(mMockOdpJobServiceFactory.getJobSchedulingLogger()).thenReturn(loggerMock);
-        doReturn(resultCode).when(() -> AggregateErrorDataReportingService
-                .scheduleIfNeeded(any(), /* forceSchedule */ eq(false)));
+        doReturn(resultCode)
+                .when(
+                        () ->
+                                AggregateErrorDataReportingService.scheduleIfNeeded(
+                                        any(), /* forceSchedule */ eq(false)));
 
         AggregateErrorDataReportingJob.schedule(sContext);
 
         verify(mMockOdpJobScheduler, never()).schedule(eq(sContext), any());
-        verify(() -> AggregateErrorDataReportingService
-                .scheduleIfNeeded(any(), /* forceSchedule */ eq(false)));
-        verify(loggerMock).recordOnSchedulingLegacy(AGGREGATE_ERROR_DATA_REPORTING_JOB_ID,
-                resultCode);
+        verify(
+                () ->
+                        AggregateErrorDataReportingService.scheduleIfNeeded(
+                                any(), /* forceSchedule */ eq(false)));
+        verify(loggerMock)
+                .recordOnSchedulingLegacy(AGGREGATE_ERROR_DATA_REPORTING_JOB_ID, resultCode);
     }
 
     @Test
@@ -206,10 +205,13 @@ public class AggregateErrorDataReportingJobTest {
                         .setRequireStorageNotLow(true)
                         .setNetworkType(NETWORK_TYPE_UNMETERED)
                         .setPeriodicJobParams(
-                                JobPolicy.PeriodicJobParams.newBuilder().setPeriodicIntervalMs(
-                                        mMockFlags.getAggregatedErrorReportingIntervalInHours()
-                                                * 1000L * 3600L
-                                        ).build())
+                                JobPolicy.PeriodicJobParams.newBuilder()
+                                        .setPeriodicIntervalMs(
+                                                mMockFlags
+                                                                .getAggregatedErrorReportingIntervalInHours()
+                                                        * 1000L
+                                                        * 3600L)
+                                        .build())
                         .setIsPersisted(true)
                         .build();
 
@@ -226,6 +228,16 @@ public class AggregateErrorDataReportingJobTest {
         assertWithMessage("getBackoffPolicy() for ResetDataJob")
                 .that(new AggregateErrorDataReportingJob().getBackoffPolicy())
                 .isEqualTo(expectedBackoffPolicy);
+    }
+
+    @Test
+    public void testGetJobPolicyString() {
+        String testPolicyString = "test_string";
+
+        when(mMockFlags.getAggregateErrorDataReportingJobPolicy()).thenReturn(testPolicyString);
+
+        assertThat(mSpyAggregateErrorDataReportingJob.getJobPolicyString(/* jobId= */ 0))
+                .isEqualTo(testPolicyString);
     }
 
     public class TestInjector extends AggregateErrorDataReportingJob.Injector {

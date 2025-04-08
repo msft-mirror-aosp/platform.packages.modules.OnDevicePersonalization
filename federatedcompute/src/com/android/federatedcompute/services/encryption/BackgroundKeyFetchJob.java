@@ -128,15 +128,22 @@ public final class BackgroundKeyFetchJob implements JobWorker {
         return new BackoffPolicy.Builder().setShouldRetryOnExecutionStop(true).build();
     }
 
+    @Override
+    public String getJobPolicyString(int jobId) {
+        return FlagsFactory.getFlags().getBackgroundKeyFetchJobPolicy();
+    }
+
     /** Schedules a unique instance of {@link BackgroundKeyFetchJobService}. */
     public static void schedule(Context context) {
         // If SPE is not enabled, force to schedule the job with the old JobService.
         if (!FlagsFactory.getFlags().getSpeOnBackgroundKeyFetchJobEnabled()) {
-            LogUtil.d(TAG, "SPE is not enabled. Schedule the job with "
-                    + "BackgroundKeyFetchJobService.");
+            LogUtil.d(
+                    TAG,
+                    "SPE is not enabled. Schedule the job with " + "BackgroundKeyFetchJobService.");
 
-            int resultCode = BackgroundKeyFetchJobService.scheduleJobIfNeeded(
-                    context, FlagsFactory.getFlags(), /* forceSchedule */ false);
+            int resultCode =
+                    BackgroundKeyFetchJobService.scheduleJobIfNeeded(
+                            context, FlagsFactory.getFlags(), /* forceSchedule */ false);
             FederatedComputeJobServiceFactory.getInstance(context)
                     .getJobSchedulingLogger()
                     .recordOnSchedulingLegacy(ENCRYPTION_KEY_FETCH_JOB_ID, resultCode);
