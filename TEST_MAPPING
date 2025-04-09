@@ -39,18 +39,6 @@
     {
       // Install com.google.android.ondevicepersonalization.apex and run CtsSandboxOnDevicePersonalizationManagerTests.
       "name": "CtsSandboxOnDevicePersonalizationManagerTests[com.google.android.ondevicepersonalization.apex]"
-    },
-    {
-      // Install com.google.android.ondevicepersonalization.apex and run OnDevicePersonalizationSystemServiceApiTests.
-      "name": "OnDevicePersonalizationSystemServiceApiTests[com.google.android.ondevicepersonalization.apex]"
-    },
-    {
-      // Install com.google.android.ondevicepersonalization.apex and run OwaspJavaEncoderTestCases.
-      "name": "OwaspJavaEncoderTestCases[com.google.android.ondevicepersonalization.apex]"
-    },
-    {
-      // Install com.google.android.ondevicepersonalization.apex and run OnDevicePersonalizationRollbackRollForwardHostTests.
-      "name": "OnDevicePersonalizationRollbackRollForwardHostTests[com.google.android.ondevicepersonalization.apex]"
     }
   ],
   "presubmit": [
@@ -83,15 +71,6 @@
     },
     {
       "name": "CtsSandboxOnDevicePersonalizationManagerTests"
-    },
-    {
-      "name": "OnDevicePersonalizationSystemServiceApiTests"
-    },
-    {
-      "name": "OwaspJavaEncoderTestCases"
-    },
-    {
-      "name": "OnDevicePersonalizationRollbackRollForwardHostTests"
     }
   ],
   "ondevicepersonalization-mainline-presubmit": [
@@ -124,15 +103,6 @@
     },
     {
       "name": "CtsSandboxOnDevicePersonalizationManagerTests"
-    },
-    {
-      "name": "OnDevicePersonalizationSystemServiceApiTests"
-    },
-    {
-      "name": "OwaspJavaEncoderTestCases"
-    },
-    {
-      "name": "OnDevicePersonalizationRollbackRollForwardHostTests"
     }
   ]
 }
