@@ -28,19 +28,21 @@ import com.android.odp.module.common.Clock;
 import com.google.common.annotations.VisibleForTesting;
 
 /** The helper class of JobScheduler. */
-public class JobSchedulerHelper {
+class JobSchedulerHelper {
     private static final String TAG = JobSchedulerHelper.class.getSimpleName();
-    @VisibleForTesting
-    public static final String TRAINING_JOB_SERVICE =
-            "com.android.federatedcompute.services.training.FederatedJobService";
-    private Clock mClock;
 
-    public JobSchedulerHelper(Clock clock) {
+    @VisibleForTesting
+    static final String TRAINING_JOB_SERVICE =
+            "com.android.federatedcompute.services.training.FederatedJobService";
+
+    private final Clock mClock;
+
+    JobSchedulerHelper(Clock clock) {
         this.mClock = clock;
     }
 
     /** Schedules a task using JobScheduler. */
-    public boolean scheduleTask(Context context, FederatedTrainingTask newTask) {
+    boolean scheduleTask(Context context, FederatedTrainingTask newTask) {
         JobInfo jobInfo = convertToJobInfo(context, newTask);
         LogUtil.i(
                 TAG,
@@ -51,7 +53,7 @@ public class JobSchedulerHelper {
     }
 
     /** Cancels a task using JobScheduler. */
-    public void cancelTask(Context context, FederatedTrainingTask taskToCancel) {
+    void cancelTask(Context context, FederatedTrainingTask taskToCancel) {
         final JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
         jobScheduler.cancel(taskToCancel.jobId());
     }
@@ -74,7 +76,7 @@ public class JobSchedulerHelper {
         return jobScheduler.schedule(jobInfo) == JobScheduler.RESULT_SUCCESS;
     }
 
-    private boolean checkCollidesWithNonFederatedComputationJob(
+    private static boolean checkCollidesWithNonFederatedComputationJob(
             JobScheduler jobScheduler, JobInfo jobInfo) {
         JobInfo existingJobInfo = jobScheduler.getPendingJob(jobInfo.getId());
         if (existingJobInfo == null) {
@@ -108,7 +110,7 @@ public class JobSchedulerHelper {
     }
 
     /** Checks if a task is already scheduled by JobScheduler. */
-    public boolean isTaskScheduled(Context context, FederatedTrainingTask task) {
+    boolean isTaskScheduled(Context context, FederatedTrainingTask task) {
         final JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
         return jobScheduler.getPendingJob(task.jobId()) != null;
     }
