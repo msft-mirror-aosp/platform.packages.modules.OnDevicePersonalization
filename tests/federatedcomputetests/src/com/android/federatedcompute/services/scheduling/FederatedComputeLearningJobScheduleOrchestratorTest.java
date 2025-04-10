@@ -45,16 +45,19 @@ import com.google.flatbuffers.FlatBufferBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class FederatedComputeLearningJobScheduleOrchestratorTest {
 
     private static final String CALLING_PACKAGE_NAME = "callingPkg";
     private static final String CALLING_CLASS_NAME =
-            "FederatedComputeLearningJobScheduleOrchestratorTest";
+            FederatedComputeLearningJobScheduleOrchestratorTest.class.getSimpleName();
     private static final String POPULATION_NAME = "population";
     private static final String SERVER_ADDRESS = "https://server.uri/";
 
-    private final Context mContext = ApplicationProvider.getApplicationContext();
+    private static final Context TEST_CONTEXT = ApplicationProvider.getApplicationContext();
 
     private FederatedTrainingTaskDao mTrainingTaskDao;
     private Clock mClock;
@@ -64,22 +67,23 @@ public class FederatedComputeLearningJobScheduleOrchestratorTest {
     @Before
     public void setUp() {
         mClock =  MonotonicClock.getInstance();
-        JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
+        JobScheduler jobScheduler = TEST_CONTEXT.getSystemService(JobScheduler.class);
         jobScheduler.cancelAll();
-        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mContext);
+        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(TEST_CONTEXT);
 
         mOrchestrator =
                 new FederatedComputeLearningJobScheduleOrchestrator(
-                        mContext, mTrainingTaskDao, new JobSchedulerHelper(mClock));
+                        TEST_CONTEXT, mTrainingTaskDao, new JobSchedulerHelper(mClock));
     }
 
     @After
     public void tearDown() {
-        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
+        FederatedComputeDbHelper dbHelper =
+                FederatedComputeDbHelper.getInstanceForTest(TEST_CONTEXT);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
-        JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
+        JobScheduler jobScheduler = TEST_CONTEXT.getSystemService(JobScheduler.class);
         jobScheduler.cancelAll();
     }
 
@@ -93,7 +97,8 @@ public class FederatedComputeLearningJobScheduleOrchestratorTest {
                         .ownerPackageName(CALLING_PACKAGE_NAME)
                         .ownerClassName(CALLING_CLASS_NAME)
                         .ownerIdCertDigest(
-                                PackageUtils.getCertDigest(mContext, mContext.getPackageName()))
+                                PackageUtils.getCertDigest(
+                                        TEST_CONTEXT, TEST_CONTEXT.getPackageName()))
                         .populationName(POPULATION_NAME)
                         .serverAddress(SERVER_ADDRESS)
                         .creationTime(nowMillis)
@@ -109,7 +114,8 @@ public class FederatedComputeLearningJobScheduleOrchestratorTest {
                         .ownerPackageName(CALLING_PACKAGE_NAME)
                         .ownerClassName(CALLING_CLASS_NAME)
                         .ownerIdCertDigest(
-                                PackageUtils.getCertDigest(mContext, mContext.getPackageName()))
+                                PackageUtils.getCertDigest(
+                                        TEST_CONTEXT, TEST_CONTEXT.getPackageName()))
                         .populationName(POPULATION_NAME)
                         .serverAddress(SERVER_ADDRESS)
                         .creationTime(nowMillis)
@@ -120,12 +126,12 @@ public class FederatedComputeLearningJobScheduleOrchestratorTest {
                         .build();
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task1);
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task2);
-        ComponentName jobComponent = new ComponentName(mContext, TRAINING_JOB_SERVICE);
+        ComponentName jobComponent = new ComponentName(TEST_CONTEXT, TRAINING_JOB_SERVICE);
         JobInfo jobInfo2 =
                 new JobInfo.Builder(task2.jobId(), jobComponent)
                         .setMinimumLatency(1000000000)
                         .build();
-        JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
+        JobScheduler jobScheduler = TEST_CONTEXT.getSystemService(JobScheduler.class);
         jobScheduler.schedule(jobInfo2);
 
         mOrchestrator.checkAndSchedule();
