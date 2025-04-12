@@ -33,11 +33,11 @@ import com.google.intelligence.fcp.client.engine.TaskRetry;
 import java.util.Random;
 
 /** The util function about federated job scheduler. */
-public class SchedulingUtil {
+class SchedulingUtil {
     private SchedulingUtil() {}
 
     /** Gets the next run time when federated compute job finishes. */
-    public static long getEarliestRuntimeForFCReschedule(
+    static long getEarliestRuntimeForFCReschedule(
             long nowMs,
             TrainingIntervalOptions interval,
             TaskRetry taskRetry,
@@ -77,7 +77,7 @@ public class SchedulingUtil {
     }
 
     /** Gets the next run time when first time schedule the federated compute job. */
-    public static long getEarliestRuntimeForInitialSchedule(
+    static long getEarliestRuntimeForInitialSchedule(
             long nowMs, long lastRunTimeMs, TrainingOptions trainerOptions, Flags flags) {
         long defaultNextRunTimeMs =
                 nowMs + SECONDS.toMillis(flags.getDefaultSchedulingPeriodSecs());
@@ -114,7 +114,7 @@ public class SchedulingUtil {
     }
 
     /** Gets the next run time when the federated job with same job id may be running. */
-    public static long getEarliestRuntimeForExistingTask(
+    static long getEarliestRuntimeForExistingTask(
             FederatedTrainingTask existingTask,
             TrainingOptions trainingOptions,
             Flags flags,
@@ -131,7 +131,7 @@ public class SchedulingUtil {
     }
 
     /** Gets the task retry range for transient error happens and worth retry. */
-    public static TaskRetry generateTransientErrorTaskRetry(Flags flags) {
+    static TaskRetry generateTransientErrorTaskRetry(Flags flags) {
         double jitterPercent = min(1.0, max(0.0, flags.getTransientErrorRetryDelayJitterPercent()));
         long targetDelayMillis = SECONDS.toMillis(flags.getTransientErrorRetryDelaySecs());
         long maxDelay = (long) (targetDelayMillis * (1.0 + jitterPercent));
@@ -140,7 +140,7 @@ public class SchedulingUtil {
     }
 
     /** Generates a random delay between the provided min and max values. */
-    private static long generateMinimumDelayMillisFromRange(long minMillis, long maxMillis) {
+    static long generateMinimumDelayMillisFromRange(long minMillis, long maxMillis) {
         // Sanitize the min/max values.
         minMillis = max(0, minMillis);
         maxMillis = max(minMillis, maxMillis);
@@ -167,7 +167,7 @@ public class SchedulingUtil {
     }
 
     /** Converts from TrainingOptions SchedulingMode to the storage fbs.SchedulingMode. */
-    public static int convertSchedulingMode(@TrainingInterval.SchedulingMode int schedulingMode) {
+    static int convertSchedulingMode(@TrainingInterval.SchedulingMode int schedulingMode) {
         if (schedulingMode == TrainingInterval.SCHEDULING_MODE_RECURRENT) {
             return SchedulingMode.RECURRENT;
         } else if (schedulingMode == TrainingInterval.SCHEDULING_MODE_ONE_TIME) {

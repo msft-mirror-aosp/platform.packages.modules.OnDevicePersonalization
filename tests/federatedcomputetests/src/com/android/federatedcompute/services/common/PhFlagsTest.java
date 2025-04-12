@@ -19,6 +19,9 @@ package com.android.federatedcompute.services.common;
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.BACKGROUND_JOB_LOGGING_ENABLED;
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_ENABLED;
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
+import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_SPE_ENABLE_PER_JOB_POLICY;
+import static com.android.federatedcompute.services.common.Flags.DEFAULT_BACKGROUND_KEY_FETCH_JOB_POLICY;
+import static com.android.federatedcompute.services.common.Flags.DEFAULT_DELETE_EXPIRED_DATA_JOB_POLICY;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_ENABLE_ELIGIBILITY_TASK;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB;
@@ -44,12 +47,11 @@ import static com.android.federatedcompute.services.common.Flags.MIN_SCHEDULING_
 import static com.android.federatedcompute.services.common.Flags.TRANSIENT_ERROR_RETRY_DELAY_JITTER_PERCENT;
 import static com.android.federatedcompute.services.common.Flags.TRANSIENT_ERROR_RETRY_DELAY_SECS;
 import static com.android.federatedcompute.services.common.Flags.USE_BACKGROUND_ENCRYPTION_KEY_FETCH;
-import static com.android.federatedcompute.services.common.FlagsConstants.FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB;
-import static com.android.federatedcompute.services.common.FlagsConstants.FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB;
-import static com.android.federatedcompute.services.common.FlagsConstants.HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.DEFAULT_SCHEDULING_PERIOD_SECS_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
 import static com.android.federatedcompute.services.common.FlagsConstants.ENABLE_ELIGIBILITY_TASK;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB;
+import static com.android.federatedcompute.services.common.FlagsConstants.FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB;
 import static com.android.federatedcompute.services.common.FlagsConstants.FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE;
 import static com.android.federatedcompute.services.common.FlagsConstants.FCP_CHECKPOINT_FILE_SIZE_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.FCP_ENABLE_BACKGROUND_JOBS_LOGGING;
@@ -64,7 +66,12 @@ import static com.android.federatedcompute.services.common.FlagsConstants.FCP_RE
 import static com.android.federatedcompute.services.common.FlagsConstants.FCP_SPE_PILOT_JOB_ENABLED;
 import static com.android.federatedcompute.services.common.FlagsConstants.FCP_TASK_LIMIT_PER_PACKAGE_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL;
+import static com.android.federatedcompute.services.common.FlagsConstants.HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME;
+import static com.android.federatedcompute.services.common.FlagsConstants.KEY_BACKGROUND_KEY_FETCH_JOB_POLICY;
+import static com.android.federatedcompute.services.common.FlagsConstants.KEY_DELETE_EXPIRED_DATA_JOB_POLICY;
+import static com.android.federatedcompute.services.common.FlagsConstants.KEY_ENABLE_PER_JOB_POLICY;
 import static com.android.federatedcompute.services.common.FlagsConstants.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
+import static com.android.federatedcompute.services.common.FlagsConstants.KEY_IS_FEATURE_ENABLED_API_ENABLED;
 import static com.android.federatedcompute.services.common.FlagsConstants.MAX_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.MAX_SCHEDULING_PERIOD_SECS_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.MIN_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION_CONFIG_NAME;
@@ -73,7 +80,6 @@ import static com.android.federatedcompute.services.common.FlagsConstants.TRAINI
 import static com.android.federatedcompute.services.common.FlagsConstants.TRAINING_THERMAL_STATUS_TO_THROTTLE;
 import static com.android.federatedcompute.services.common.FlagsConstants.TRANSIENT_ERROR_RETRY_DELAY_JITTER_PERCENT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.FlagsConstants.TRANSIENT_ERROR_RETRY_DELAY_SECS_CONFIG_NAME;
-import static com.android.federatedcompute.services.common.FlagsConstants.KEY_IS_FEATURE_ENABLED_API_ENABLED;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -640,8 +646,7 @@ public class PhFlagsTest {
 
     @Test
     public void testGetBackgroundJobsLoggingEnabled() {
-        assertThat(FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled())
-                .isEqualTo(true);
+        assertThat(FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled()).isEqualTo(true);
     }
 
     @Test
@@ -778,7 +783,7 @@ public class PhFlagsTest {
 
     @Test
     public void testGetSpePilotJobEnabled() {
-        assertSpeFeatureFlags(
+        assertBooleanFeatureFlags(
                 () -> FlagsFactory.getFlags().getSpePilotJobEnabled(),
                 /* flagName */ FCP_SPE_PILOT_JOB_ENABLED,
                 /* defaultValue */ DEFAULT_SPE_PILOT_JOB_ENABLED);
@@ -786,7 +791,7 @@ public class PhFlagsTest {
 
     @Test
     public void testGetSpeOnBackgroundKeyFetchJobEnabled() {
-        assertSpeFeatureFlags(
+        assertBooleanFeatureFlags(
                 () -> FlagsFactory.getFlags().getSpeOnBackgroundKeyFetchJobEnabled(),
                 /* flagName */ FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_BACKGROUND_KEY_FETCH_JOB,
                 /* defaultValue */
@@ -795,13 +800,55 @@ public class PhFlagsTest {
 
     @Test
     public void testGetSpeOnFederatedJobEnabled() {
-        assertSpeFeatureFlags(
+        assertBooleanFeatureFlags(
                 () -> FlagsFactory.getFlags().getSpeOnFederatedJobEnabled(),
                 /* flagName */ FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB,
                 /* defaultValue */ DEFAULT_FCP_BACKGROUND_JOBS__ENABLE_SPE_ON_FEDERATED_JOB);
     }
 
-    private void assertSpeFeatureFlags(
+    @Test
+    public void testIsFeatureEnabledApiEnabled() {
+        // read a stable flag value and verify it's equal to the default value.
+        boolean stableValue = FlagsFactory.getFlags().isFeatureEnabledApiEnabled();
+        assertThat(stableValue).isEqualTo(DEFAULT_IS_FEATURE_ENABLED_API_ENABLED);
+
+        // override the value in device config.
+        boolean overrideEnabled = !stableValue;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_IS_FEATURE_ENABLED_API_ENABLED,
+                Boolean.toString(overrideEnabled),
+                /* makeDefault= */ false);
+
+        // the flag value remains stable
+        assertThat(FlagsFactory.getFlags().isFeatureEnabledApiEnabled()).isEqualTo(overrideEnabled);
+    }
+
+    @Test
+    public void testGetEnablePerJobPolicy() {
+        assertBooleanFeatureFlags(
+                () -> FlagsFactory.getFlags().getSpeEnablePerJobPolicy(),
+                KEY_ENABLE_PER_JOB_POLICY,
+                DEFAULT_SPE_ENABLE_PER_JOB_POLICY);
+    }
+
+    @Test
+    public void testGetBackgroundKeyFetchJobPolicy() {
+        assertStringFeatureFlags(
+                () -> FlagsFactory.getFlags().getBackgroundKeyFetchJobPolicy(),
+                KEY_BACKGROUND_KEY_FETCH_JOB_POLICY,
+                DEFAULT_BACKGROUND_KEY_FETCH_JOB_POLICY);
+    }
+
+    @Test
+    public void testGetDeleteExpiredDataJobPolicy() {
+        assertStringFeatureFlags(
+                () -> FlagsFactory.getFlags().getDeleteExpiredDataJobPolicy(),
+                KEY_DELETE_EXPIRED_DATA_JOB_POLICY,
+                DEFAULT_DELETE_EXPIRED_DATA_JOB_POLICY);
+    }
+
+    private void assertBooleanFeatureFlags(
             Supplier<Boolean> flagSupplier, String flagName, boolean defaultValue) {
         // Test override value
         boolean overrideValue = !defaultValue;
@@ -821,21 +868,23 @@ public class PhFlagsTest {
         assertThat(flagSupplier.get()).isEqualTo(defaultValue);
     }
 
-    @Test
-    public void testIsFeatureEnabledApiEnabled() {
-        // read a stable flag value and verify it's equal to the default value.
-        boolean stableValue = FlagsFactory.getFlags().isFeatureEnabledApiEnabled();
-        assertThat(stableValue).isEqualTo(DEFAULT_IS_FEATURE_ENABLED_API_ENABLED);
-
-        // override the value in device config.
-        boolean overrideEnabled = !stableValue;
+    private void assertStringFeatureFlags(
+            Supplier<String> flagSupplier, String flagName, String defaultValue) {
+        // Test override value
+        String overrideValue = "" + "_test_value";
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                KEY_IS_FEATURE_ENABLED_API_ENABLED,
-                Boolean.toString(overrideEnabled),
-                /* makeDefault= */ false);
+                flagName,
+                overrideValue,
+                /* makeDefault */ false);
+        assertThat(flagSupplier.get()).isEqualTo(overrideValue);
 
-        // the flag value remains stable
-        assertThat(FlagsFactory.getFlags().isFeatureEnabledApiEnabled()).isEqualTo(overrideEnabled);
+        // Test default value
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                flagName,
+                defaultValue,
+                /* makeDefault */ false);
+        assertThat(flagSupplier.get()).isEqualTo(defaultValue);
     }
 }

@@ -135,6 +135,11 @@ public final class DeleteExpiredJob implements JobWorker {
         return JOB_ENABLED_STATUS_ENABLED;
     }
 
+    @Override
+    public String getJobPolicyString(int jobId) {
+        return FlagsFactory.getFlags().getDeleteExpiredDataJobPolicy();
+    }
+
     /** Schedule the periodic {@link DeleteExpiredJob}. */
     public static void schedule(Context context, Flags flags) {
         // If SPE is not enabled, force to schedule the job with the old JobService.

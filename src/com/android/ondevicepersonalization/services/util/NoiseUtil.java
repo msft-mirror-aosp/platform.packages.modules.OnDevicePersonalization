@@ -27,8 +27,16 @@ public class NoiseUtil {
     private static final String TAG = NoiseUtil.class.getSimpleName();
 
     /**
-     * Add noise to {@link OnDevicePersonalizationManager#executeInIsolatedService} with best value
-     * option.
+     * Add noise to provided value based on input params.
+     *
+     * <p>Used by {@link
+     * android.adservices.ondevicepersonalization.OnDevicePersonalizationManager#executeInIsolatedService}
+     * with best value option.
+     *
+     * @param actualValue the original unmodified value.
+     * @param maxValue the maximum value that can be returned.
+     * @param random instance used to generate random values.
+     * @return the noised value based on input params.
      */
     public int applyNoiseToBestValue(int actualValue, int maxValue, ThreadLocalRandom random) {
         if (actualValue < 0 || actualValue > maxValue) {

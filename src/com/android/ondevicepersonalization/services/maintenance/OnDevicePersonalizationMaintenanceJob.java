@@ -88,6 +88,11 @@ public final class OnDevicePersonalizationMaintenanceJob implements JobWorker {
         return new BackoffPolicy.Builder().setShouldRetryOnExecutionStop(true).build();
     }
 
+    @Override
+    public String getJobPolicyString(int jobId) {
+        return FlagsFactory.getFlags().getMaintenanceJobPolicy();
+    }
+
     /** Schedules a unique instance of {@link OnDevicePersonalizationMaintenanceJob}. */
     public static void schedule(Context context) {
         // If SPE is not enabled, force to schedule the job with the old JobService.
