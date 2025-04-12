@@ -111,12 +111,9 @@ public class FederatedComputeJobManager {
         builder.finish(
                 TrainingConstraints.createTrainingConstraints(
                         builder,
-                        /** requiresSchedulerIdle= */
-                        true,
-                        /** requiresSchedulerBatteryNotLow= */
-                        true,
-                        /** requiresSchedulerUnmeteredNetwork= */
-                        true));
+                        /* requiresSchedulerIdle= */ true,
+                        /* requiresSchedulerBatteryNotLow= */ true,
+                        /* requiresSchedulerUnmeteredNetwork= */ true));
         return builder.sizedByteArray();
     }
 
@@ -124,7 +121,7 @@ public class FederatedComputeJobManager {
         FlatBufferBuilder builder = new FlatBufferBuilder();
         builder.finish(
                 TrainingIntervalOptions.createTrainingIntervalOptions(
-                        builder, SchedulingMode.ONE_TIME, 0));
+                        builder, SchedulingMode.ONE_TIME, /* minIntervalMillis= */ 0));
         return builder.sizedByteArray();
     }
 

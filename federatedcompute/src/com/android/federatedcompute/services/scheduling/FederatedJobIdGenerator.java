@@ -18,14 +18,18 @@ package com.android.federatedcompute.services.scheduling;
 
 import android.content.Context;
 
+import com.android.internal.annotations.GuardedBy;
+
 /** Used to generate job scheduler ids for federated compute jobs. */
-public class FederatedJobIdGenerator {
+class FederatedJobIdGenerator {
+
+    @GuardedBy("FederatedJobIdGenerator.class")
     private static FederatedJobIdGenerator sSingleton = null;
 
     private FederatedJobIdGenerator() {}
 
     /** Gets a singleton instance of {@link FederatedJobIdGenerator}. */
-    public static FederatedJobIdGenerator getInstance() {
+    static FederatedJobIdGenerator getInstance() {
         synchronized (FederatedJobIdGenerator.class) {
             if (sSingleton == null) {
                 sSingleton = new FederatedJobIdGenerator();
