@@ -97,6 +97,13 @@ class AggregatedErrorReportingWorker {
             return AggregatedErrorReportingWorker.getFcRemoteServerUrl(context, packageName);
         }
 
+        String getErrorReportingServerOverrideUrl() {
+            // URL set by PH Flags to override manifest based url.
+            // Note that this only overrides the base path and the override value is shared
+            // across all adopters.
+            return FlagsFactory.getFlags().getAggregatedErrorReportingServerOverrideUrl();
+        }
+
         long getErrorReportingIntervalHours() {
             return FlagsFactory.getFlags().getAggregatedErrorReportingIntervalInHours();
         }
@@ -231,8 +238,17 @@ class AggregatedErrorReportingWorker {
                     continue;
                 }
 
-                String fcServerUrl =
-                        mInjector.getServerUrl(context, componentName.getPackageName());
+                // Defer to override url if present, else use the URL from adopter manifest.
+                // Note that override url is not adopter specific.
+                String overrideUrl = mInjector.getErrorReportingServerOverrideUrl();
+                String fcServerUrl = "";
+                if (overrideUrl.isEmpty()) {
+                    fcServerUrl = mInjector.getServerUrl(context, componentName.getPackageName());
+                } else {
+                    sLogger.d(TAG + ": Using override URL for error reporting :" + overrideUrl);
+                    fcServerUrl = overrideUrl;
+                }
+
                 if (fcServerUrl.isEmpty()) {
                     sLogger.d(
                             TAG

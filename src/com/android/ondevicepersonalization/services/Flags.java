@@ -72,9 +72,7 @@ public interface Flags extends ModuleSharedFlags {
      */
     int WEB_VIEW_FLOW_DEADLINE_SECONDS = 30;
 
-    /**
-     * Executiton deadline for web trigger flow.
-     */
+    /** Execution deadline for web trigger flow. */
     int WEB_TRIGGER_FLOW_DEADLINE_SECONDS = 30;
 
     /** Default value for the list of trusted partner app names. */
@@ -361,6 +359,16 @@ public interface Flags extends ModuleSharedFlags {
      */
     default int getAggregatedErrorReportingTtlInDays() {
         return DEFAULT_AGGREGATED_ERROR_REPORT_TTL_DAYS;
+    }
+
+    String DEFAULT_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL = "";
+
+    /**
+     * Override URL that the reporting job will use to send adopters daily aggregated counts of
+     * {@link android.adservices.ondevicepersonalization.IsolatedServiceException}s.
+     */
+    default String getAggregatedErrorReportingServerOverrideUrl() {
+        return DEFAULT_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL;
     }
 
     String DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH =

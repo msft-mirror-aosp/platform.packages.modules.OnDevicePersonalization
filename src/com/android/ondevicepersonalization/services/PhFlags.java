@@ -22,6 +22,7 @@ import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AD
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_HTTP_RETRY_LIMIT;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_HTTP_TIMEOUT_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_PATH;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS;
@@ -411,6 +412,14 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS,
                 /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORT_TTL_DAYS);
+    }
+
+    @Override
+    public String getAggregatedErrorReportingServerOverrideUrl() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL,
+                /* defaultValue= */ DEFAULT_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL);
     }
 
     @Override
