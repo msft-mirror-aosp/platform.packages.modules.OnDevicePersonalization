@@ -86,7 +86,8 @@ import java.util.zip.GZIPInputStream;
 
 /** Implements a single session of HTTP-based federated compute protocol. */
 public final class HttpFederatedProtocol {
-    public static final String TAG = HttpFederatedProtocol.class.getSimpleName();
+    private static final String TAG = HttpFederatedProtocol.class.getSimpleName();
+
     private final long mClientVersion;
     private final String mPopulationName;
     private final HttpClient mHttpClient;
@@ -494,6 +495,7 @@ public final class HttpFederatedProtocol {
         byte[] fileOutputBytes = readFileAsByteArray(filePath);
         if (!FlagsFactory.getFlags().isEncryptionEnabled()) {
             // encryption not enabled, upload the file contents directly
+            LogUtil.d(TAG, "Encryption for request body is disabled.");
             return fileOutputBytes;
         }
         fileOutputBytes = compressWithGzip(fileOutputBytes);

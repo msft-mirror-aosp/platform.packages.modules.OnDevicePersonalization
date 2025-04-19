@@ -127,7 +127,6 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.modules.utils.testing.TestableDeviceConfig;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -136,7 +135,6 @@ import java.util.function.Supplier;
 
 /** Unit tests for {@link com.android.ondevicepersonalization.services.PhFlags} */
 @RunWith(AndroidJUnit4.class)
-@Ignore("b/375661140")
 public class PhFlagsTest {
     @Rule
     public final TestableDeviceConfig.TestableDeviceConfigRule mDeviceConfigRule =
@@ -829,7 +827,7 @@ public class PhFlagsTest {
                 KEY_AGGREGATED_ERROR_REPORTING_HTTP_TIMEOUT_SECONDS,
                 Integer.toString(DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_TIMEOUT_SECONDS),
                 /* makeDefault */ false);
-        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingIntervalInHours())
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingHttpTimeoutSeconds())
                 .isEqualTo(DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_TIMEOUT_SECONDS);
     }
 
@@ -851,7 +849,7 @@ public class PhFlagsTest {
                 KEY_AGGREGATED_ERROR_REPORTING_HTTP_RETRY_LIMIT,
                 Integer.toString(DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_RETRY_LIMIT),
                 /* makeDefault */ false);
-        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingIntervalInHours())
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingHttpRetryLimit())
                 .isEqualTo(DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_RETRY_LIMIT);
     }
 

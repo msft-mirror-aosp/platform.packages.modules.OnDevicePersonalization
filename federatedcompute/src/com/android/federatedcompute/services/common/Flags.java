@@ -168,6 +168,7 @@ public interface Flags extends ModuleSharedFlags {
         return HTTP_REQUEST_RETRY_LIMIT;
     }
 
+    /** Encryption is enabled for FCP by default. */
     Boolean ENCRYPTION_ENABLED = true;
 
     /** Whether to enable encryption when uploading results. */

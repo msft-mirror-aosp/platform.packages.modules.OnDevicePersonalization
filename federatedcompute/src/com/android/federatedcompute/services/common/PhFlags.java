@@ -58,13 +58,14 @@ import static com.android.federatedcompute.services.common.FlagsConstants.TRANSI
 import android.os.SystemProperties;
 import android.provider.DeviceConfig;
 
-import com.android.internal.annotations.VisibleForTesting;
-
 /** A placeholder class for PhFlag. */
 public final class PhFlags implements Flags {
     private static final PhFlags sSingleton = new PhFlags();
-    // SystemProperty prefix. SystemProperty is for overriding OnDevicePersonalization Configs.
-    private static final String SYSTEM_PROPERTY_PREFIX = "debug.ondevicepersonalization.";
+
+    /*
+     * The FCP SystemProperty prefix. SystemProperty is used to provide values for some
+     * flags, but most rely on device-config. */
+    private static final String SYSTEM_PROPERTY_PREFIX = "debug.federatedcompute.";
 
     private PhFlags() {}
 
@@ -86,8 +87,7 @@ public final class PhFlags implements Flags {
                         /* defaultValue= */ FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH));
     }
 
-    @VisibleForTesting
-    static String getSystemPropertyName(String key) {
+    private static String getSystemPropertyName(String key) {
         return SYSTEM_PROPERTY_PREFIX + key;
     }
 
@@ -115,11 +115,16 @@ public final class PhFlags implements Flags {
                 /* defaultValue= */ HTTP_REQUEST_RETRY_LIMIT);
     }
 
+    @Override
+    /**
+     * Whether to enable encryption when uploading results.
+     *
+     * <p>This flag is guarded only by a System Property unlike most flags that rely on device
+     * config instead.
+     */
     public Boolean isEncryptionEnabled() {
-        return DeviceConfig.getBoolean(
-                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name= */ FCP_ENABLE_ENCRYPTION,
-                /* defaultValue= */ ENCRYPTION_ENABLED);
+        return SystemProperties.getBoolean(
+                getSystemPropertyName(FCP_ENABLE_ENCRYPTION), ENCRYPTION_ENABLED);
     }
 
     @Override
