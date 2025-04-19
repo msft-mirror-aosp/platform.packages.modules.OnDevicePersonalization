@@ -25,12 +25,17 @@ import android.os.IBinder;
 import android.os.Trace;
 
 
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 
 import java.util.concurrent.Executor;
 
 /** Implementation of OnDevicePersonalization Service */
 public class OnDevicePersonalizationManagingServiceImpl extends Service {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+    private static final String TAG =
+            OnDevicePersonalizationManagingServiceImpl.class.getSimpleName();
     private IOnDevicePersonalizationManagingService.Stub mBinder;
 
     private Executor mExecutor;
@@ -46,6 +51,10 @@ public class OnDevicePersonalizationManagingServiceImpl extends Service {
 
     @Override
     public void onCreate() {
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            sLogger.d(TAG + "ODP Global kill switch is on, ODP is disabled.");
+            return;
+        }
         Trace.beginSection("OdpManagingService#Initialization");
         if (mBinder == null) {
             mBinder = new OnDevicePersonalizationManagingServiceDelegate(this);
@@ -56,6 +65,11 @@ public class OnDevicePersonalizationManagingServiceImpl extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            sLogger.d(TAG + "ODP Global kill switch is on, ODP is disabled.");
+            // Return null so that clients can not bind to the service.
+            return null;
+        }
         return mBinder;
     }
 }

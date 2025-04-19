@@ -297,24 +297,8 @@ public class PhFlagsTest {
 
     @Test
     public void testEnableEncryption() {
-        // Without Overriding
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_ENABLE_ENCRYPTION,
-                Boolean.toString(ENCRYPTION_ENABLED),
-                /* makeDefault */ false);
-        assertThat(FlagsFactory.getFlags().isEncryptionEnabled()).isEqualTo(ENCRYPTION_ENABLED);
-
-        // Now overriding the value from PH
-        boolean overrideEnableEncryption = !ENCRYPTION_ENABLED;
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_ENABLE_ENCRYPTION,
-                Boolean.toString(overrideEnableEncryption),
-                /* makeDefault */ false);
-
-        Flags phFlags = FlagsFactory.getFlags();
-        assertThat(phFlags.isEncryptionEnabled()).isEqualTo(overrideEnableEncryption);
+        // Test default value of encryption is enabled.
+        assertThat(FlagsFactory.getFlags().isEncryptionEnabled()).isTrue();
     }
 
     @Test

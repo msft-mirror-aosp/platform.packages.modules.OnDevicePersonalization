@@ -22,6 +22,7 @@ import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_R
 import static com.google.common.util.concurrent.Futures.immediateVoidFuture;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -628,6 +629,18 @@ public class OnDevicePersonalizationManagingServiceTest {
         ExtendedMockito.verify(() ->
                 UserDataCollectionJobService.schedule(any(), eq(false)), times(1));
         verify(mMockMdd).schedulePeriodicBackgroundTasks();
+    }
+
+    @Test
+    public void testEnabledGlobalKillOnOnCreateFailFast() {
+        OnDevicePersonalizationManagingServiceImpl service =
+                new OnDevicePersonalizationManagingServiceImpl(Runnable::run);
+        when(mMockFlags.getGlobalKillSwitch()).thenReturn(true);
+        service.onCreate();
+        Intent serviceIntent =
+                new Intent(mContext, OnDevicePersonalizationManagingServiceImpl.class);
+        IBinder binder = service.onBind(serviceIntent);
+        assertNull(binder);
     }
 
     @Test
