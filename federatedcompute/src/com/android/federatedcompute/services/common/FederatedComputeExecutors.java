@@ -17,8 +17,6 @@
 package com.android.federatedcompute.services.common;
 
 import android.annotation.NonNull;
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.Process;
 import android.os.StrictMode;
 import android.os.StrictMode.ThreadPolicy;
@@ -32,8 +30,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 /**
- * All executors of the FederatedCompute APK. Copied from
- * com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors.
+ * All executors of the FederatedCompute APK. Copied from {@link
+ * com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors}.
  */
 public final class FederatedComputeExecutors {
     private static final ListeningExecutorService sBackgroundExecutor =
@@ -64,10 +62,6 @@ public final class FederatedComputeExecutors {
                                             + Process.THREAD_PRIORITY_LESS_FAVORABLE,
                                     Optional.empty())));
 
-    private static final HandlerThread sHandlerThread = createHandlerThread();
-
-    private static final Handler sHandler = new Handler(sHandlerThread.getLooper());
-
     private FederatedComputeExecutors() {}
 
     /**
@@ -94,11 +88,6 @@ public final class FederatedComputeExecutors {
         return sBlockingExecutor;
     }
 
-    /** Returns a Handler that can post messages to a HandlerThread. */
-    public static Handler getHandler() {
-        return sHandler;
-    }
-
     private static ThreadFactory createThreadFactory(
             final String name, final int priority, final Optional<StrictMode.ThreadPolicy> policy) {
         return new ThreadFactoryBuilder()
@@ -110,9 +99,7 @@ public final class FederatedComputeExecutors {
                             public Thread newThread(final Runnable runnable) {
                                 return new Thread(
                                         () -> {
-                                            if (policy.isPresent()) {
-                                                StrictMode.setThreadPolicy(policy.get());
-                                            }
+                                            policy.ifPresent(StrictMode::setThreadPolicy);
                                             // Process class operates on the current thread.
                                             Process.setThreadPriority(priority);
                                             runnable.run();
@@ -133,11 +120,5 @@ public final class FederatedComputeExecutors {
                 .detectUnbufferedIo()
                 .penaltyLog()
                 .build();
-    }
-
-    private static HandlerThread createHandlerThread() {
-        HandlerThread handlerThread = new HandlerThread("DisplayThread");
-        handlerThread.start();
-        return handlerThread;
     }
 }
