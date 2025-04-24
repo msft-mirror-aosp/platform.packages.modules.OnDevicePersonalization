@@ -34,7 +34,6 @@ import android.os.RemoteException;
 import android.os.Trace;
 import android.util.Log;
 
-import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.ByteArrayUtil;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.util.IoUtils;
@@ -44,33 +43,25 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import org.tensorflow.lite.InterpreterApi;
 import org.tensorflow.lite.Tensor;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 /** The implementation of {@link IsolatedModelService}. */
-public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
+class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
     private static final String TAG = IsolatedModelServiceImpl.class.getSimpleName();
-    @NonNull private final Injector mInjector;
+    private final Injector mInjector;
 
     static {
         System.loadLibrary("fcp_cpp_dep_jni");
     }
 
-    @VisibleForTesting
-    public IsolatedModelServiceImpl(@NonNull Injector injector) {
-        this.mInjector = injector;
-    }
-
-    public IsolatedModelServiceImpl() {
-        this(new Injector());
+    IsolatedModelServiceImpl() {
+        this.mInjector = new Injector();
     }
 
     @Override
@@ -99,7 +90,7 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
                         });
     }
 
-    private void runTfliteInterpreter(
+    private static void runTfliteInterpreter(
             InferenceInputParcel inputParcel,
             InferenceOutputParcel outputParcel,
             IDataAccessService binder,
@@ -172,22 +163,7 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
         }
     }
 
-    private Object[] convertToObjArray(List<byte[]> input) {
-        Object[] output = new Object[input.size()];
-        for (int i = 0; i < input.size(); i++) {
-            ByteArrayInputStream bais = new ByteArrayInputStream(input.get(i));
-            try {
-                ObjectInputStream ois = new ObjectInputStream(bais);
-                output[i] = ois.readObject();
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to parse inference input.", e);
-                return null;
-            }
-        }
-        return output;
-    }
-
-    private void closeFd(ParcelFileDescriptor fd) {
+    private static void closeFd(ParcelFileDescriptor fd) {
         try {
             fd.close();
         } catch (IOException e) {
@@ -195,7 +171,8 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
         }
     }
 
-    private ParcelFileDescriptor fetchModel(IDataAccessService dataAccessService, ModelId modelId) {
+    private static ParcelFileDescriptor fetchModel(
+            IDataAccessService dataAccessService, ModelId modelId) {
         try {
             Log.d(TAG, ": Start fetch model " + modelId.getKey() + " " + modelId.getTableId());
             BlockingQueue<Bundle> asyncResult = new ArrayBlockingQueue<>(1);
@@ -246,8 +223,7 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
         }
     }
 
-    @VisibleForTesting
-    static class Injector {
+    private static class Injector {
         ListeningExecutorService getExecutor() {
             return OnDevicePersonalizationExecutors.getBackgroundExecutor();
         }
