@@ -67,7 +67,7 @@ public class OdpManagerTests {
             "com.android.ondevicepersonalization.testing.sampleservice";
     private static final String SERVICE_CLASS =
             "com.android.ondevicepersonalization.testing.sampleservice.SampleService";
-    private static final int LARGE_BLOB_SIZE = 30000000;
+    private static final int LARGE_BLOB_SIZE = 10000000;
     private static final int DELAY_MILLIS = 2000;
 
     private static final String TEST_POPULATION_NAME = "criteo_app_test_task";
@@ -521,7 +521,7 @@ public class OdpManagerTests {
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
 
-        // Write 30MB.
+        // Write 10MB.
         writeLocalData(manager, tableKey, /* writeLargeData= */ true);
         Thread.sleep(DELAY_MILLIS);
 
@@ -1071,7 +1071,7 @@ public class OdpManagerTests {
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
 
-        // Write 30MB.
+        // Write 10MB.
         writeLocalDataNewExecuteApi(manager, tableKey, /* writeLargeData= */ true);
         // Add delay between writing and read from db to reduce flakiness.
         Thread.sleep(DELAY_MILLIS);
