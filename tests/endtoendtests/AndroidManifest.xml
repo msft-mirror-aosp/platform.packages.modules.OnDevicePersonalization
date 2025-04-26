@@ -19,6 +19,7 @@
     <uses-sdk android:minSdkVersion="33"
               android:targetSdkVersion="33" />
     <application android:debuggable="true"
+                 android:largeHeap="true">
         android:label="OnDevicePersonalizationEndToEndTests">
         <uses-library android:name="android.test.runner" />
         <activity

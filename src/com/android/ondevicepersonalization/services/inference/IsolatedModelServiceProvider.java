@@ -28,7 +28,7 @@ import com.android.modules.utils.build.SdkLevel;
  * Provides {@link IsolatedModelService}.
  */
 public class IsolatedModelServiceProvider {
-    public static final String ISOLATED_MODEL_SERVICE_NAME =
+    private static final String ISOLATED_MODEL_SERVICE_NAME =
             "com.android.ondevicepersonalization.services.inference.IsolatedModelService";
     private AbstractServiceBinder<IIsolatedModelService> mModelService;
 
