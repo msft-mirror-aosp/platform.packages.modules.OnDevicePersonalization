@@ -32,10 +32,9 @@ import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
 import android.os.Trace;
+import android.util.Log;
 
-import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.ByteArrayUtil;
-import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.util.IoUtils;
 
@@ -44,34 +43,25 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import org.tensorflow.lite.InterpreterApi;
 import org.tensorflow.lite.Tensor;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 /** The implementation of {@link IsolatedModelService}. */
-public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
-    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
     private static final String TAG = IsolatedModelServiceImpl.class.getSimpleName();
-    @NonNull private final Injector mInjector;
+    private final Injector mInjector;
 
     static {
         System.loadLibrary("fcp_cpp_dep_jni");
     }
 
-    @VisibleForTesting
-    public IsolatedModelServiceImpl(@NonNull Injector injector) {
-        this.mInjector = injector;
-    }
-
-    public IsolatedModelServiceImpl() {
-        this(new Injector());
+    IsolatedModelServiceImpl() {
+        this.mInjector = new Injector();
     }
 
     @Override
@@ -100,7 +90,7 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
                         });
     }
 
-    private void runTfliteInterpreter(
+    private static void runTfliteInterpreter(
             InferenceInputParcel inputParcel,
             InferenceOutputParcel outputParcel,
             IDataAccessService binder,
@@ -111,7 +101,7 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
             Object[] inputs =
                     (Object[]) ByteArrayUtil.deserializeObject(inputParcel.getInputData());
             if (inputs == null || inputs.length == 0) {
-                sLogger.e("Input data can not be empty for inference.");
+                Log.e(TAG, "Input data can not be empty for inference.");
                 sendError(callback, OnDevicePersonalizationException.ERROR_INFERENCE_FAILED);
             }
             Map<Integer, Object> outputs = new HashMap<>();
@@ -124,14 +114,14 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
             }
 
             if (outputs.isEmpty()) {
-                sLogger.e("Output data can not be empty for inference.");
+                Log.e(TAG, "Output data can not be empty for inference.");
                 sendError(callback, OnDevicePersonalizationException.ERROR_INFERENCE_FAILED);
             }
 
             ModelId modelId = inputParcel.getModelId();
             ParcelFileDescriptor modelFd = fetchModel(binder, modelId);
             if (modelFd == null) {
-                sLogger.e(TAG + ": Failed to fetch model %s.", modelId.getKey());
+                Log.e(TAG, "Failed to fetch model: " + modelId.getKey());
                 sendError(
                         callback, OnDevicePersonalizationException.ERROR_INFERENCE_MODEL_NOT_FOUND);
                 return;
@@ -168,37 +158,23 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
             Trace.endSection();
         } catch (Exception e) {
             // Catch all exceptions including TFLite errors.
-            sLogger.e(e, TAG + ": Failed to run inference job.");
+            Log.e(TAG, "Failed to run inference job.");
             sendError(callback, OnDevicePersonalizationException.ERROR_INFERENCE_FAILED);
         }
     }
 
-    private Object[] convertToObjArray(List<byte[]> input) {
-        Object[] output = new Object[input.size()];
-        for (int i = 0; i < input.size(); i++) {
-            ByteArrayInputStream bais = new ByteArrayInputStream(input.get(i));
-            try {
-                ObjectInputStream ois = new ObjectInputStream(bais);
-                output[i] = ois.readObject();
-            } catch (Exception e) {
-                sLogger.e(e, "Failed to parse inference input");
-                return null;
-            }
-        }
-        return output;
-    }
-
-    private void closeFd(ParcelFileDescriptor fd) {
+    private static void closeFd(ParcelFileDescriptor fd) {
         try {
             fd.close();
         } catch (IOException e) {
-            sLogger.e(e, TAG + ": Failed to close model file descriptor");
+            Log.e(TAG, "Failed to close model file descriptor.");
         }
     }
 
-    private ParcelFileDescriptor fetchModel(IDataAccessService dataAccessService, ModelId modelId) {
+    private static ParcelFileDescriptor fetchModel(
+            IDataAccessService dataAccessService, ModelId modelId) {
         try {
-            sLogger.d(TAG + ": Start fetch model %s %d", modelId.getKey(), modelId.getTableId());
+            Log.d(TAG, ": Start fetch model " + modelId.getKey() + " " + modelId.getTableId());
             BlockingQueue<Bundle> asyncResult = new ArrayBlockingQueue<>(1);
             Bundle params = new Bundle();
             params.putParcelable(Constants.EXTRA_MODEL_ID, modelId);
@@ -225,7 +201,7 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
                     result.getParcelable(Constants.EXTRA_RESULT, ParcelFileDescriptor.class);
             return modelFd;
         } catch (Exception e) {
-            sLogger.e(e, TAG + ": Failed to fetch model from DataAccessService");
+            Log.e(TAG, "Failed to fetch model from DataAccessService.", e);
             return null;
         }
     }
@@ -234,7 +210,7 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
         try {
             callback.onError(errorCode);
         } catch (RemoteException e) {
-            sLogger.e(TAG + ": Callback error", e);
+            Log.e(TAG, "Callback error.", e);
         }
     }
 
@@ -243,12 +219,11 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
         try {
             callback.onSuccess(result);
         } catch (RemoteException e) {
-            sLogger.e(e, TAG + ": Callback error");
+            Log.e(TAG, "Callback error.", e);
         }
     }
 
-    @VisibleForTesting
-    static class Injector {
+    private static class Injector {
         ListeningExecutorService getExecutor() {
             return OnDevicePersonalizationExecutors.getBackgroundExecutor();
         }
