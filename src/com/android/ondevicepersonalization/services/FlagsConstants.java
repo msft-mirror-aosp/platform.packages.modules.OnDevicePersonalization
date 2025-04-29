@@ -108,6 +108,9 @@ public final class FlagsConstants {
     public static final String KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS =
             "Odp__aggregated_error_report_ttl_days";
 
+    public static final String KEY_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL =
+            "Odp__override_aggregated_error_reporting_url";
+
     public static final String KEY_AGGREGATED_ERROR_REPORTING_PATH =
             "Odp__aggregated_error_reporting_path";
 
