@@ -23,6 +23,7 @@ import static com.android.ondevicepersonalization.services.Flags.APP_REQUEST_FLO
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_THRESHOLD;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_RETRY_LIMIT;
@@ -70,6 +71,7 @@ import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AD
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_HTTP_RETRY_LIMIT;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_HTTP_TIMEOUT_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_PATH;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS;
@@ -742,6 +744,30 @@ public class PhFlagsTest {
                 /* makeDefault */ false);
         assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingServerPath())
                 .isEqualTo(DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH);
+    }
+
+    @Test
+    public void testAggregateErrorReportingOverrideUrl() {
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingServerOverrideUrl())
+                .isEmpty();
+        String testValue = "foo/bar";
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL,
+                testValue,
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingServerOverrideUrl())
+                .isEqualTo(testValue);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL,
+                DEFAULT_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL,
+                /* makeDefault */ false);
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingServerOverrideUrl())
+                .isEqualTo(DEFAULT_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL);
     }
 
     @Test

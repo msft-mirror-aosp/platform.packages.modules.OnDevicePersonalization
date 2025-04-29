@@ -27,7 +27,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -56,18 +55,20 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.quality.Strictness;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@RunWith(JUnit4.class)
+@RunWith(Parameterized.class)
 @ExtendedMockitoRule.MockStatic(PackageUtils.class)
 @ExtendedMockitoRule.MockStatic(AppManifestConfigHelper.class)
 public class AggregatedErrorReportingWorkerTest {
@@ -75,6 +76,8 @@ public class AggregatedErrorReportingWorkerTest {
     private static final String TEST_PACKAGE = "test_package";
     private static final String TEST_CLASS = "test_class";
     private static final String TEST_SERVER_URL = "https://google.com";
+
+    private static final String TEST_OVERRIDE_URL = "https://foo.com";
 
     private static final ComponentName TEST_COMPONENT_NAME =
             new ComponentName(TEST_PACKAGE, TEST_CLASS);
@@ -90,6 +93,14 @@ public class AggregatedErrorReportingWorkerTest {
             ErrorReportingMetadata.getDefaultInstance();
 
     private static final ImmutableList<ComponentName> EMPTY_ODP_SERVICE_LIST = ImmutableList.of();
+
+    @Parameterized.Parameter(0)
+    public boolean mUsedOverrideUrl = true;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][] {{false}, {true}});
+    }
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
@@ -136,7 +147,11 @@ public class AggregatedErrorReportingWorkerTest {
 
         // Inject a test ReportingProtocol object and a mock metadata store.
         mTestReportingProtocol = new TestReportingProtocol();
-        mTestInjector = new TestInjector(mTestReportingProtocol, mMockMetadataStore);
+        mTestInjector =
+                mUsedOverrideUrl
+                        ? new TestInjector(
+                                mTestReportingProtocol, mMockMetadataStore, TEST_OVERRIDE_URL)
+                        : new TestInjector(mTestReportingProtocol, mMockMetadataStore);
         mInstanceUnderTest = AggregatedErrorReportingWorker.createWorker(mTestInjector);
     }
 
@@ -187,7 +202,8 @@ public class AggregatedErrorReportingWorkerTest {
 
         assertTrue(returnedFuture.isDone());
         assertEquals(1, mTestInjector.mCallCount.get());
-        assertEquals(TEST_SERVER_URL, mTestInjector.mRequestUri);
+        assertEquals(
+                mUsedOverrideUrl ? TEST_OVERRIDE_URL : TEST_SERVER_URL, mTestInjector.mRequestUri);
         assertEquals(getExpectedErrorData(mDayIndexUtc), mTestInjector.mErrorData.get(0));
         assertEquals(1, mTestReportingProtocol.mCallCount.get());
         assertThat(mTestReportingProtocol.mOdpEncryptionKey).isSameInstanceAs(mMockEncryptionKey);
@@ -252,7 +268,8 @@ public class AggregatedErrorReportingWorkerTest {
 
         assertTrue(returnedFuture.isDone());
         assertEquals(1, mTestInjector.mCallCount.get());
-        assertEquals(TEST_SERVER_URL, mTestInjector.mRequestUri);
+        assertEquals(
+                mUsedOverrideUrl ? TEST_OVERRIDE_URL : TEST_SERVER_URL, mTestInjector.mRequestUri);
         assertEquals(getExpectedErrorData(mDayIndexUtc), mTestInjector.mErrorData.get(0));
         assertEquals(1, mTestReportingProtocol.mCallCount.get());
     }
@@ -296,10 +313,12 @@ public class AggregatedErrorReportingWorkerTest {
     }
 
     private static final class TestInjector extends AggregatedErrorReportingWorker.Injector {
+        // Immutable state provided by test setup
         private final ReportingProtocol mTestProtocol;
-
         private final ErrorReportingMetadataStore mStore;
+        private final String mOverrideUrl;
 
+        // Mutable state used by test for assertions
         private String mRequestUri;
         private ImmutableList<ErrorData> mErrorData;
         private final AtomicInteger mCallCount = new AtomicInteger(0);
@@ -307,8 +326,16 @@ public class AggregatedErrorReportingWorkerTest {
         TestInjector(
                 ReportingProtocol testProtocol,
                 ErrorReportingMetadataStore errorReportingMetadataStore) {
+            this(testProtocol, errorReportingMetadataStore, /* overrideUrl= */ "");
+        }
+
+        TestInjector(
+                ReportingProtocol testProtocol,
+                ErrorReportingMetadataStore errorReportingMetadataStore,
+                String overrideUrl) {
             this.mTestProtocol = testProtocol;
             this.mStore = errorReportingMetadataStore;
+            this.mOverrideUrl = overrideUrl;
         }
 
         @Override
@@ -335,6 +362,11 @@ public class AggregatedErrorReportingWorkerTest {
         @Override
         String getServerUrl(Context context, String packageName) {
             return TEST_SERVER_URL;
+        }
+
+        @Override
+        String getErrorReportingServerOverrideUrl() {
+            return mOverrideUrl;
         }
 
         @Override
