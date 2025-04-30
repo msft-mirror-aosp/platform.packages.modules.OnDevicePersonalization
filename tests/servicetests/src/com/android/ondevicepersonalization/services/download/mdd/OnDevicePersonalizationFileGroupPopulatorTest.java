@@ -32,7 +32,6 @@ import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 
-
 import com.google.android.libraries.mobiledatadownload.AddFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.DownloadFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.GetFileGroupsByFilterRequest;
@@ -139,11 +138,16 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     @Test
     public void testCreateDownloadUrlOverrideManifest() throws Exception {
         ShellUtils.runShellCommand(
-                "setprop debug.ondevicepersonalization.override_download_url_package "
+                "setprop "
+                        + OnDevicePersonalizationFileGroupPopulator.OVERRIDE_DOWNLOAD_URL_PACKAGE
+                        + " "
                         + mPackageName);
         String overrideUrl = "https://google.com";
         ShellUtils.runShellCommand(
-                "setprop debug.ondevicepersonalization.override_download_url " + overrideUrl);
+                "setprop "
+                        + OnDevicePersonalizationFileGroupPopulator.OVERRIDE_DOWNLOAD_URL
+                        + " "
+                        + overrideUrl);
         String downloadUrl = OnDevicePersonalizationFileGroupPopulator.createDownloadUrl(
                 mPackageName, mContext);
         assertTrue(downloadUrl.startsWith(overrideUrl));
@@ -194,9 +198,13 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     @After
     public void cleanup() {
         ShellUtils.runShellCommand(
-                "setprop debug.ondevicepersonalization.override_download_url_package \"\"");
+                "setprop "
+                        + OnDevicePersonalizationFileGroupPopulator.OVERRIDE_DOWNLOAD_URL_PACKAGE
+                        + " \"\"");
         ShellUtils.runShellCommand(
-                "setprop debug.ondevicepersonalization.override_download_url \"\"");
+                "setprop "
+                        + OnDevicePersonalizationFileGroupPopulator.OVERRIDE_DOWNLOAD_URL
+                        + " \"\"");
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
