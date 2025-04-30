@@ -472,6 +472,24 @@ public interface Flags extends ModuleSharedFlags {
         return DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS;
     }
 
+    /**
+     * Default download size limit in MB.
+     */
+    long DEFAULT_DOWNLOAD_REJECT_CAP_IN_MB = 100 * 1024 * 1024;
+
+    default long getDefaultDownloadRejectCapInMb() {
+        return DEFAULT_DOWNLOAD_REJECT_CAP_IN_MB;
+    }
+
+    /**
+     * Default storage size limit in MB to reject any remote storage attempt.
+     */
+    long DEFAULT_STORAGE_CAP_IN_MB = 100 * 1024 * 1024;
+
+    default long getDefaultStorageCapInMb() {
+        return DEFAULT_STORAGE_CAP_IN_MB;
+    }
+
     String DEFAULT_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST = "";
 
     default String getPlatformDataForTrainingAllowlist() {
