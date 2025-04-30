@@ -30,7 +30,6 @@ import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGA
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_TIMEOUT_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORT_TTL_DAYS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATE_ERROR_DATA_REPORTING_JOB_POLICY;
-import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
@@ -78,7 +77,6 @@ import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AG
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATE_ERROR_DATA_REPORTING_JOB_POLICY;
-import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS;
@@ -819,24 +817,9 @@ public class PhFlagsTest {
 
     @Test
     public void testAllowUnencryptedAggregatedErrorReportingPayload() {
-        boolean testValue = !DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD;
-
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING,
-                Boolean.toString(testValue),
-                /* makeDefault */ false);
-
+        // Test that by default encryption is enabled
         assertThat(FlagsFactory.getFlags().getAllowUnencryptedAggregatedErrorReportingPayload())
-                .isEqualTo(testValue);
-
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING,
-                Boolean.toString(DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD),
-                /* makeDefault */ false);
-        assertThat(FlagsFactory.getFlags().getAllowUnencryptedAggregatedErrorReportingPayload())
-                .isEqualTo(DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD);
+                .isFalse();
     }
 
     @Test

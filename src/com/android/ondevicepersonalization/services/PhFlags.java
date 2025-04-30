@@ -79,24 +79,21 @@ import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_US
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.MAX_INT_VALUES_LIMIT;
+import static com.android.ondevicepersonalization.services.util.DebugUtils.getSystemPropertyName;
 
 import android.annotation.NonNull;
+import android.os.SystemProperties;
 import android.provider.DeviceConfig;
 
 import com.android.modules.utils.build.SdkLevel;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /** Flags Implementation that delegates to DeviceConfig. */
 public final class PhFlags implements Flags {
 
     // OnDevicePersonalization Namespace String from DeviceConfig class
-    public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
+    private static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
 
-    private final Map<String, Object> mStableFlags = new HashMap<>();
-
-    PhFlags() {}
+    private PhFlags() {}
 
     /** Returns the singleton instance of the PhFlags. */
     @NonNull
@@ -449,11 +446,16 @@ public final class PhFlags implements Flags {
     }
 
     @Override
+    /**
+     * Whether to disable encryption when uploading aggregated error results. Defaults to false.
+     *
+     * <p>This flag is configured via a System Property unlike most flags that rely on device config
+     * instead.
+     */
     public boolean getAllowUnencryptedAggregatedErrorReportingPayload() {
-        return DeviceConfig.getBoolean(
-                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name= */ KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING,
-                /* defaultValue= */ DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD);
+        return SystemProperties.getBoolean(
+                getSystemPropertyName(KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING),
+                DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD);
     }
 
     @Override
