@@ -28,6 +28,7 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
+import com.android.ondevicepersonalization.services.util.DebugUtils;
 
 import com.google.android.libraries.mobiledatadownload.AddFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.FileGroupPopulator;
@@ -55,7 +56,8 @@ import java.util.Set;
  */
 public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopulator {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
-    private static final String TAG = "OnDevicePersonalizationFileGroupPopulator";
+    private static final String TAG =
+            OnDevicePersonalizationFileGroupPopulator.class.getSimpleName();
 
     private final Context mContext;
 
@@ -64,10 +66,14 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
 
     // Set files to expire after 2 days.
     private static final long EXPIRATION_TIME_SECS = 172800;
-    private static final String OVERRIDE_DOWNLOAD_URL_PACKAGE =
-            "debug.ondevicepersonalization.override_download_url_package";
-    private static final String OVERRIDE_DOWNLOAD_URL =
-            "debug.ondevicepersonalization.override_download_url";
+
+    @VisibleForTesting
+    static final String OVERRIDE_DOWNLOAD_URL_PACKAGE =
+            DebugUtils.getSystemPropertyName(/* key= */ "override_download_url_package");
+
+    @VisibleForTesting
+    static final String OVERRIDE_DOWNLOAD_URL =
+            DebugUtils.getSystemPropertyName(/* key= */ "override_download_url");
 
     public OnDevicePersonalizationFileGroupPopulator(Context context) {
         this.mContext = context;

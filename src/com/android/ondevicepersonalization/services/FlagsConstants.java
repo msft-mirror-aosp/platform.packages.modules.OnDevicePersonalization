@@ -136,6 +136,10 @@ public final class FlagsConstants {
 
     public static final String KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS =
             "adservices_ipc_call_timeout_in_millis";
+
+    public static final String KEY_DOWNLOAD_REJECT_CAP_IN_MB = "Odp__download_reject_cap_in_mb";
+
+    public static final String KEY_STORAGE_CAP_IN_MB = "Odp__storage_cap_in_mb";
     public static final String KEY_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST =
             "platform_data_for_training_allowlist";
     public static final String KEY_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST =

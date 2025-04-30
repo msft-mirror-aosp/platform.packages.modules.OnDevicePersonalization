@@ -93,6 +93,10 @@ public class Constants {
     public static final int STATUS_PARSE_ERROR = 128;
     // Internal code that tracks non-empty but not enough data from data storage or example store.
     public static final int STATUS_SUCCESS_NOT_ENOUGH_DATA = 129;
+    // Download file size exceeds size limit.
+    public static final int STATUS_DOWNLOAD_SIZE_EXCEED_CAP_ERROR = 130;
+    // Store content size exceeds size limit.
+    public static final int STATUS_STORAGE_SIZE_EXCEED_CAP_ERROR = 131;
 
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;

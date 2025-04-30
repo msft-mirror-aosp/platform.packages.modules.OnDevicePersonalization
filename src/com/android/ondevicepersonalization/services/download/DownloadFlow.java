@@ -30,6 +30,7 @@ import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
 import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessPermission;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
@@ -334,6 +335,20 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
         }
 
         ClientConfigProto.ClientFile clientFile = cfg.getFile(0);
+        int fileSize = clientFile.getFullSizeInBytes();
+        if (fileSize > FlagsFactory.getFlags().getDefaultDownloadRejectCapInMb()) {
+            // File size exceeds download limit is a valid case. Mark as success and return null.
+            StatsUtils.writeServiceRequestMetrics(
+                    Constants.API_NAME_SERVICE_ON_DOWNLOAD_COMPLETED,
+                    mService.getPackageName(),
+                    /* result= */ null,
+                    mInjector.getClock(),
+                    Constants.STATUS_DOWNLOAD_SIZE_EXCEED_CAP_ERROR,
+                    mStartServiceTimeMillis);
+            sLogger.d(TAG + ": File size " + fileSize + " exceed download size cap.");
+            mCallback.onSuccess(null);
+            return null;
+        }
         return Uri.parse(clientFile.getFileUri());
     }
 
