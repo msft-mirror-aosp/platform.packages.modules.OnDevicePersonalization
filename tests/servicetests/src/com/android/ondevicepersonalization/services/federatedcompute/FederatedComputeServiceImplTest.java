@@ -46,6 +46,7 @@ import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
+import com.android.ondevicepersonalization.services.util.DebugUtils;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -89,7 +90,6 @@ public class FederatedComputeServiceImplTest {
     private int mErrorCode = 0;
     private boolean mOnSuccessCalled = false;
     private boolean mOnErrorCalled = false;
-    private FederatedComputeServiceImpl mServiceImpl;
     private IFederatedComputeService mServiceProxy;
     private FederatedComputeManager mMockManager;
     private ComponentName mIsolatedService;
@@ -118,7 +118,7 @@ public class FederatedComputeServiceImplTest {
                 .when(mMockManager)
                 .schedule(mRequestCapture.capture(), any(), mCallbackCapture.capture());
 
-        mServiceImpl =
+        FederatedComputeServiceImpl serviceImpl =
                 new FederatedComputeServiceImpl(
                         ComponentName.createRelative(
                                 mApplicationContext.getPackageName(),
@@ -126,7 +126,7 @@ public class FederatedComputeServiceImplTest {
                                         mApplicationContext, mApplicationContext.getPackageName())),
                         mApplicationContext,
                         mInjector);
-        mServiceProxy = IFederatedComputeService.Stub.asInterface(mServiceImpl);
+        mServiceProxy = IFederatedComputeService.Stub.asInterface(serviceImpl);
     }
 
     @Test
@@ -156,11 +156,13 @@ public class FederatedComputeServiceImplTest {
     @Test
     public void testScheduleUrlOverride() throws Exception {
         ShellUtils.runShellCommand(
-                "setprop debug.ondevicepersonalization.override_fc_server_url_package "
+                "setprop "
+                        + DebugUtils.OVERRIDE_FC_SERVER_URL_PACKAGE
+                        + " "
                         + mApplicationContext.getPackageName());
         String overrideUrl = "https://android.com";
         ShellUtils.runShellCommand(
-                "setprop debug.ondevicepersonalization.override_fc_server_url " + overrideUrl);
+                "setprop " + DebugUtils.OVERRIDE_FC_SERVER_URL + " " + overrideUrl);
 
         mServiceProxy.schedule(TEST_OPTIONS, new TestCallback());
         mCallbackCapture.getValue().onResult(null);

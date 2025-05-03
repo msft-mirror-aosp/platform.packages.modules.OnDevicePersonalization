@@ -41,10 +41,20 @@ public class DebugUtils {
     private static final String TAG = DebugUtils.class.getSimpleName();
     private static final int MAX_EXCEPTION_CHAIN_DEPTH = 3;
 
-    private static final String OVERRIDE_FC_SERVER_URL_PACKAGE =
-            "debug.ondevicepersonalization.override_fc_server_url_package";
-    private static final String OVERRIDE_FC_SERVER_URL =
-            "debug.ondevicepersonalization.override_fc_server_url";
+    public static final String OVERRIDE_FC_SERVER_URL_PACKAGE =
+            getSystemPropertyName(/* key= */ "override_fc_server_url_package");
+    public static final String OVERRIDE_FC_SERVER_URL =
+            getSystemPropertyName(/* key= */ "override_fc_server_url");
+
+    /**
+     * ODP SystemProperty prefix. SystemProperty is for overriding OnDevicePersonalization Configs.
+     */
+    private static final String SYSTEM_PROPERTY_PREFIX = "debug.ondevicepersonalization.";
+
+    /** Gets the ODP system property name corresponding to the given key name. */
+    public static String getSystemPropertyName(String key) {
+        return SYSTEM_PROPERTY_PREFIX + key;
+    }
 
     /** Returns true if the device is debuggable. */
     public static boolean isDeveloperModeEnabled(@NonNull Context context) {

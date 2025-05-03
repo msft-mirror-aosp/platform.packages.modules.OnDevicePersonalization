@@ -108,6 +108,9 @@ public final class FlagsConstants {
     public static final String KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS =
             "Odp__aggregated_error_report_ttl_days";
 
+    public static final String KEY_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL =
+            "Odp__override_aggregated_error_reporting_url";
+
     public static final String KEY_AGGREGATED_ERROR_REPORTING_PATH =
             "Odp__aggregated_error_reporting_path";
 
@@ -133,6 +136,10 @@ public final class FlagsConstants {
 
     public static final String KEY_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS =
             "adservices_ipc_call_timeout_in_millis";
+
+    public static final String KEY_DOWNLOAD_REJECT_CAP_IN_MB = "Odp__download_reject_cap_in_mb";
+
+    public static final String KEY_STORAGE_CAP_IN_MB = "Odp__storage_cap_in_mb";
     public static final String KEY_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST =
             "platform_data_for_training_allowlist";
     public static final String KEY_PLATFORM_DATA_FOR_EXECUTE_ALLOWLIST =

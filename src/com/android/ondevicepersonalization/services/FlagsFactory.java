@@ -18,6 +18,9 @@ package com.android.ondevicepersonalization.services;
 
 /** Factory class for creating OnDevicePersonalization Flags */
 public class FlagsFactory {
+
+    private FlagsFactory() {}
+
     /** OnDevicePersonalization Flags backed by Phenotype/Heterodyne. */
     public static Flags getFlags() {
         // Use the Flags backed by PH.

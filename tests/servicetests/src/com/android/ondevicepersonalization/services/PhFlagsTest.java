@@ -23,17 +23,18 @@ import static com.android.ondevicepersonalization.services.Flags.APP_REQUEST_FLO
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_THRESHOLD;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_RETRY_LIMIT;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORT_HTTP_TIMEOUT_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATED_ERROR_REPORT_TTL_DAYS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_AGGREGATE_ERROR_DATA_REPORTING_JOB_POLICY;
-import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_DOWNLOAD_PROCESSING_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_DOWNLOAD_REJECT_CAP_IN_MB;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ENCRYPTION_KEY_MAX_AGE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ENCRYPTION_KEY_URL;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
@@ -54,6 +55,7 @@ import static com.android.ondevicepersonalization.services.Flags.DEFAULT_PLUGIN_
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_RESET_DATA_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SPE_PILOT_JOB_ENABLED;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_STORAGE_CAP_IN_MB;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_TRUSTED_PARTNER_APPS_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_USER_DATA_COLLECTION_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.Flags.DOWNLOAD_FLOW_DEADLINE_SECONDS;
@@ -70,15 +72,16 @@ import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AD
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_HTTP_RETRY_LIMIT;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_HTTP_TIMEOUT_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_INTERVAL_HOURS;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_PATH;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORTING_THRESHOLD;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATED_ERROR_REPORT_TTL_DAYS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_AGGREGATE_ERROR_DATA_REPORTING_JOB_POLICY;
-import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_DOWNLOAD_PROCESSING_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_DOWNLOAD_REJECT_CAP_IN_MB;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_AGGREGATED_ERROR_REPORTING;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_ENABLE_PER_JOB_POLICY;
@@ -112,6 +115,7 @@ import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_PL
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_RENDER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_RESET_DATA_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_STORAGE_CAP_IN_MB;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_TRUSTED_PARTNER_APPS_LIST;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_USER_DATA_COLLECTION_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.FlagsConstants.KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
@@ -745,6 +749,30 @@ public class PhFlagsTest {
     }
 
     @Test
+    public void testAggregateErrorReportingOverrideUrl() {
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingServerOverrideUrl())
+                .isEmpty();
+        String testValue = "foo/bar";
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL,
+                testValue,
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingServerOverrideUrl())
+                .isEqualTo(testValue);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL,
+                DEFAULT_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL,
+                /* makeDefault */ false);
+        assertThat(FlagsFactory.getFlags().getAggregatedErrorReportingServerOverrideUrl())
+                .isEqualTo(DEFAULT_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL);
+    }
+
+    @Test
     public void testAggregateErrorReportingThreshold() {
         int testValue = 5;
 
@@ -789,24 +817,9 @@ public class PhFlagsTest {
 
     @Test
     public void testAllowUnencryptedAggregatedErrorReportingPayload() {
-        boolean testValue = !DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD;
-
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING,
-                Boolean.toString(testValue),
-                /* makeDefault */ false);
-
+        // Test that by default encryption is enabled
         assertThat(FlagsFactory.getFlags().getAllowUnencryptedAggregatedErrorReportingPayload())
-                .isEqualTo(testValue);
-
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                KEY_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING,
-                Boolean.toString(DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD),
-                /* makeDefault */ false);
-        assertThat(FlagsFactory.getFlags().getAllowUnencryptedAggregatedErrorReportingPayload())
-                .isEqualTo(DEFAULT_ALLOW_UNENCRYPTED_AGGREGATED_ERROR_REPORTING_PAYLOAD);
+                .isFalse();
     }
 
     @Test
@@ -915,6 +928,48 @@ public class PhFlagsTest {
                 /* makeDefault */ false);
         assertThat(FlagsFactory.getFlags().getAdservicesIpcCallTimeoutInMillis())
                 .isEqualTo(DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS);
+    }
+
+    @Test
+    public void testGetDefaultDownloadRejectCapInMb() {
+        long testDownloadRejectCap = 100L;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_DOWNLOAD_REJECT_CAP_IN_MB,
+                Long.toString(testDownloadRejectCap),
+                /* makeDefault */ false);
+        assertThat(FlagsFactory.getFlags().getDefaultDownloadRejectCapInMb())
+                .isEqualTo(testDownloadRejectCap);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_DOWNLOAD_REJECT_CAP_IN_MB,
+                Long.toString(DEFAULT_DOWNLOAD_REJECT_CAP_IN_MB),
+                /* makeDefault */ false);
+        assertThat(FlagsFactory.getFlags().getDefaultDownloadRejectCapInMb())
+                .isEqualTo(DEFAULT_DOWNLOAD_REJECT_CAP_IN_MB);
+    }
+
+    @Test
+    public void testGetDefaultStorageCapInMb() {
+        long testStorageCap = 100L;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_STORAGE_CAP_IN_MB,
+                Long.toString(testStorageCap),
+                /* makeDefault */ false);
+        assertThat(FlagsFactory.getFlags().getDefaultStorageCapInMb())
+                .isEqualTo(testStorageCap);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_STORAGE_CAP_IN_MB,
+                Long.toString(DEFAULT_STORAGE_CAP_IN_MB),
+                /* makeDefault */ false);
+        assertThat(FlagsFactory.getFlags().getDefaultStorageCapInMb())
+                .isEqualTo(DEFAULT_STORAGE_CAP_IN_MB);
     }
 
     @Test

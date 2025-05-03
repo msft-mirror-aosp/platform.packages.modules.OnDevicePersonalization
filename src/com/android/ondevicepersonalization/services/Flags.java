@@ -72,9 +72,7 @@ public interface Flags extends ModuleSharedFlags {
      */
     int WEB_VIEW_FLOW_DEADLINE_SECONDS = 30;
 
-    /**
-     * Executiton deadline for web trigger flow.
-     */
+    /** Execution deadline for web trigger flow. */
     int WEB_TRIGGER_FLOW_DEADLINE_SECONDS = 30;
 
     /** Default value for the list of trusted partner app names. */
@@ -363,6 +361,16 @@ public interface Flags extends ModuleSharedFlags {
         return DEFAULT_AGGREGATED_ERROR_REPORT_TTL_DAYS;
     }
 
+    String DEFAULT_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL = "";
+
+    /**
+     * Override URL that the reporting job will use to send adopters daily aggregated counts of
+     * {@link android.adservices.ondevicepersonalization.IsolatedServiceException}s.
+     */
+    default String getAggregatedErrorReportingServerOverrideUrl() {
+        return DEFAULT_AGGREGATED_ERROR_REPORTING_OVERRIDE_URL;
+    }
+
     String DEFAULT_AGGREGATED_ERROR_REPORTING_URL_PATH =
             "/debugreporting/v1/exceptions:report-exceptions";
 
@@ -462,6 +470,24 @@ public interface Flags extends ModuleSharedFlags {
 
     default long getAdservicesIpcCallTimeoutInMillis() {
         return DEFAULT_ADSERVICES_IPC_CALL_TIMEOUT_IN_MILLIS;
+    }
+
+    /**
+     * Default download size limit in MB.
+     */
+    long DEFAULT_DOWNLOAD_REJECT_CAP_IN_MB = 100 * 1024 * 1024;
+
+    default long getDefaultDownloadRejectCapInMb() {
+        return DEFAULT_DOWNLOAD_REJECT_CAP_IN_MB;
+    }
+
+    /**
+     * Default storage size limit in MB to reject any remote storage attempt.
+     */
+    long DEFAULT_STORAGE_CAP_IN_MB = 100 * 1024 * 1024;
+
+    default long getDefaultStorageCapInMb() {
+        return DEFAULT_STORAGE_CAP_IN_MB;
     }
 
     String DEFAULT_PLATFORM_DATA_FOR_TRAINING_ALLOWLIST = "";
