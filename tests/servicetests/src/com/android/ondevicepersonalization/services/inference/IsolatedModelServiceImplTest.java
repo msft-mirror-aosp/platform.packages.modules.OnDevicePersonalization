@@ -184,8 +184,8 @@ public class IsolatedModelServiceImplTest {
     @Test
     public void runModelInference_invalidInputFormat() throws Exception {
         // Misconfigured inputs.
-        float[] input0 = {1.23f};
-        float[] input1 = {2.43f};
+        float input0 = 1.23f;
+        float input1 = 2.43f;
         Object[] invalidInput = {input0, input1, input0};
 
         InferenceInput inferenceInput =
@@ -295,11 +295,28 @@ public class IsolatedModelServiceImplTest {
     }
 
     private Object[] generateInferenceInput(int numExample) {
-        float[][] input0 = new float[numExample][100];
-        for (int i = 0; i < numExample; i++) {
-            input0[i][0] = mRandom.nextFloat();
+        int numFloatFeatures = 13;
+        int numStringFeatures = 26;
+        int totalInputs = numFloatFeatures + numStringFeatures;
+
+        Object[] inputs = new Object[totalInputs];
+        // Generate 13 float input tensors
+        for (int i = 0; i < numFloatFeatures; i++) {
+            float[][] floatInput = new float[numExample][1];
+            for (int j = 0; j < numExample; j++) {
+                floatInput[j][0] = mRandom.nextFloat() * 100;
+            }
+            inputs[i] = floatInput;
         }
-        return new Object[] {input0};
+        // Generate 26 string input tensors
+        for (int i = 0; i < numStringFeatures; i++) {
+            String[][] stringInput = new String[numExample][1];
+            for (int j = 0; j < numExample; j++) {
+                stringInput[j][0] = "example_cat_" + mRandom.nextInt(100);
+            }
+            inputs[numFloatFeatures + i] = stringInput;
+        }
+        return inputs;
     }
 
     private InferenceOutput generateInferenceOutput(int numExample) {
