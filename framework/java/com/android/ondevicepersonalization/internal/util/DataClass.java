@@ -78,7 +78,8 @@ public @interface DataClass {
     boolean genGetters() default true;
 
     /**
-     * {@link #genGetters} with @hide
+     * {@link #genGetters} hidden
+     * @hide
      */
     boolean genHiddenGetters() default false;
 
@@ -88,7 +89,8 @@ public @interface DataClass {
     boolean genSetters() default false;
 
     /**
-     * {@link #genSetters} with @hide
+     * {@link #genSetters} hidden
+     * @hide
      */
     boolean genHiddenSetters() default false;
 
@@ -108,7 +110,8 @@ public @interface DataClass {
     boolean genConstructor() default true;
 
     /**
-     * {@link #genConstructor} with @hide
+     * {@link #genConstructor} hidden
+     * @hide
      */
     boolean genHiddenConstructor() default false;
 
@@ -121,7 +124,8 @@ public @interface DataClass {
     boolean genBuilder() default false;
 
     /**
-     * {@link #genBuilder} with @hide
+     * {@link #genBuilder} hidden
+     * @hide
      */
     boolean genHiddenBuilder() default false;
 
@@ -159,7 +163,8 @@ public @interface DataClass {
     boolean genCopyConstructor() default false;
 
     /**
-     * {@link #genCopyConstructor} with @hide
+     * {@link #genCopyConstructor} hidden
+     * @hide
      */
     boolean genHiddenCopyConstructor() default false;
 
@@ -185,7 +190,8 @@ public @interface DataClass {
     boolean genConstDefs() default true;
 
     /**
-     * {@link #genConstDefs} with @hide
+     * {@link #genConstDefs} hidden
+     * @hide
      */
     boolean genHiddenConstDefs() default false;
 
