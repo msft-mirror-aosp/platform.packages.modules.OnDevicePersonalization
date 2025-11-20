@@ -53,7 +53,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 
-// TODO(b/289102463): Add a link to the public ODP developer documentation.
 /**
  * OnDevicePersonalizationManager provides APIs for apps to load an
  * {@link IsolatedService} in an isolated process and interact with it.
@@ -63,7 +62,16 @@ import java.util.concurrent.Executor;
  * persistent results to on-device storage which can be consumed by Federated Analytics for
  * cross-device statistical analysis or by Federated Learning for model training. The displayed
  * content and the persistent output are both not directly accessible by the calling app.
+ *
+ *  @deprecated The ODP APIs are deprecated and will not be supported in future Android releases.
+ *  There is no direct replacement API available. Developers currently integrated with these APIs
+ *  must cease further integration efforts. For comprehensive details regarding this deprecation and
+ *  the future roadmap of Privacy Sandbox on Android, please consult the official Privacy Sandbox
+ *  developer documentation and announcements:
+ *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
  */
+@Deprecated
+@FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
 public class OnDevicePersonalizationManager {
     /** @hide */
     public static final String ON_DEVICE_PERSONALIZATION_SERVICE =
@@ -101,14 +109,11 @@ public class OnDevicePersonalizationManager {
     @IntDef({FEATURE_ENABLED, FEATURE_DISABLED, FEATURE_UNSUPPORTED})
     public @interface FeatureStatus {}
     /** Indicates that a feature is present and enabled on the device.  */
-    @FlaggedApi(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public static final int FEATURE_ENABLED = 0;
     /** Indicates that a feature is present but disabled on the device.  */
-    @FlaggedApi(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public static final int FEATURE_DISABLED = 1;
 
     /** Indicates that a feature is not supported on the device. */
-    @FlaggedApi(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public static final int FEATURE_UNSUPPORTED = 2;
 
     private final AbstractServiceBinder<IOnDevicePersonalizationManagingService> mServiceBinder;
@@ -119,7 +124,16 @@ public class OnDevicePersonalizationManager {
     /**
      * The result of a call to {@link OnDevicePersonalizationManager#execute(ComponentName,
      * PersistableBundle, Executor, OutcomeReceiver)}
+     *
+     *  @deprecated The ODP APIs are deprecated and will not be supported in future Android
+     *  releases. There is no direct replacement API available. Developers currently integrated with
+     *  these APIs must cease further integration efforts. For comprehensive details regarding this
+     *  deprecation and the future roadmap of Privacy Sandbox on Android, please consult the
+     *  official Privacy Sandbox developer documentation and announcements:
+     *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
      */
+    @Deprecated
+    @FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
     public static class ExecuteResult {
         @Nullable private final SurfacePackageToken mSurfacePackageToken;
         @Nullable private final byte[] mOutputData;
@@ -352,7 +366,6 @@ public class OnDevicePersonalizationManager {
      *     ExecuteInIsolatedServiceResponse}. For error case, the receiver returns an {@link
      *     OnDevicePersonalizationException} if execution of the handler fails.
      */
-    @FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
     public void executeInIsolatedService(
             @NonNull ExecuteInIsolatedServiceRequest request,
             @NonNull @CallbackExecutor Executor executor,
@@ -649,7 +662,6 @@ public class OnDevicePersonalizationManager {
      *                 on success or {@link Exception} on failure.  The exception type is
      *                 {@link IllegalStateException} if the service is not available.
      */
-    @FlaggedApi(Flags.FLAG_IS_FEATURE_ENABLED_API_ENABLED)
     public void queryFeatureAvailability(
             @NonNull String featureName,
             @NonNull @CallbackExecutor Executor executor,

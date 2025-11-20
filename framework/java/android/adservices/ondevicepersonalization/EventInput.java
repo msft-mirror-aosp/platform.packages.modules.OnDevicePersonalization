@@ -28,7 +28,16 @@ import java.util.Objects;
 /**
  * The input data for {@link
  * IsolatedWorker#onEvent(EventInput, android.os.OutcomeReceiver)}.
+ *
+ *  @deprecated The ODP APIs are deprecated and will not be supported in future Android releases.
+ *  There is no direct replacement API available. Developers currently integrated with these APIs
+ *  must cease further integration efforts. For comprehensive details regarding this deprecation and
+ *  the future roadmap of Privacy Sandbox on Android, please consult the official Privacy Sandbox
+ *  developer documentation and announcements:
+ *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
  */
+@Deprecated
+@FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
 public final class EventInput {
     /**
      * The {@link RequestLogRecord} that was returned as a result of
@@ -59,7 +68,6 @@ public final class EventInput {
      *   EventUrlProvider#createEventTrackingUrlWithResponse(PersistableBundle, byte[], String)}
      *   or {@link EventUrlProvider#createEventTrackingUrlWithRedirect(PersistableBundle, Uri)}.
      */
-    @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public EventInput(
             @Nullable RequestLogRecord requestLogRecord,
             @NonNull PersistableBundle parameters) {

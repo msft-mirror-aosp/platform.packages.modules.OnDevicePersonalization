@@ -16,14 +16,27 @@
 
 package android.adservices.ondevicepersonalization;
 
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 import java.time.Duration;
 
-/** Training interval settings required for federated computation jobs. */
+/**
+ * Training interval settings required for federated computation jobs.
+ *
+ *  @deprecated The ODP APIs are deprecated and will not be supported in future Android releases.
+ *  There is no direct replacement API available. Developers currently integrated with these APIs
+ *  must cease further integration efforts. For comprehensive details regarding this deprecation and
+ *  the future roadmap of Privacy Sandbox on Android, please consult the official Privacy Sandbox
+ *  developer documentation and announcements:
+ *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
+ */
+@Deprecated
+@FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
 @DataClass(genBuilder = true, genHiddenConstDefs = true, genEqualsHashCode = true)
 public final class TrainingInterval {
     /** The scheduling mode for a one-off task. */
@@ -167,8 +180,19 @@ public final class TrainingInterval {
         return _hash;
     }
 
-    /** A builder for {@link TrainingInterval} */
+    /**
+     * A builder for {@link TrainingInterval}
+     *
+     *  @deprecated The ODP APIs are deprecated and will not be supported in future Android
+     *  releases. There is no direct replacement API available. Developers currently integrated with
+     *  these APIs must cease further integration efforts. For comprehensive details regarding this
+     *  deprecation and the future roadmap of Privacy Sandbox on Android, please consult the
+     *  official Privacy Sandbox developer documentation and announcements:
+     *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
+     */
     @SuppressWarnings("WeakerAccess")
+    @Deprecated
+    @FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
     @DataClass.Generated.Member
     public static final class Builder {
 

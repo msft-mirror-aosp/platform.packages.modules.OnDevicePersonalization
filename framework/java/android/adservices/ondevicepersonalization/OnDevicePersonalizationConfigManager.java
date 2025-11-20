@@ -19,11 +19,14 @@ package android.adservices.ondevicepersonalization;
 import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.MODIFY_ONDEVICEPERSONALIZATION_STATE;
 
 import android.annotation.CallbackExecutor;
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.RequiresPermission;
 import android.annotation.SystemApi;
 import android.content.Context;
 import android.os.OutcomeReceiver;
+
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 import java.util.concurrent.Executor;
 
@@ -31,9 +34,17 @@ import java.util.concurrent.Executor;
  * OnDevicePersonalizationConfigManager provides system APIs
  * for privileged APKs to control OnDevicePersonalization's enablement status.
  *
+ * @deprecated The ODP APIs are deprecated and will not be supported in future Android releases.
+ * There is no direct replacement API available. Developers currently integrated with these APIs
+ * must cease further integration efforts. For comprehensive details regarding this deprecation and
+ * the future roadmap of Privacy Sandbox on Android, please consult the official Privacy Sandbox
+ * developer documentation and announcements:
+ * <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
  * @hide
  */
 @SystemApi
+@Deprecated
+@FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
 public class OnDevicePersonalizationConfigManager {
     /** @hide */
     public static final String ON_DEVICE_PERSONALIZATION_CONFIG_SERVICE =

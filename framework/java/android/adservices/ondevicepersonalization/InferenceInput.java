@@ -35,7 +35,16 @@ import java.util.Objects;
 /**
  * Contains all the information needed for a run of model inference. The input of {@link
  * ModelManager#run}.
+ *
+ *  @deprecated The ODP APIs are deprecated and will not be supported in future Android releases.
+ *  There is no direct replacement API available. Developers currently integrated with these APIs
+ *  must cease further integration efforts. For comprehensive details regarding this deprecation and
+ *  the future roadmap of Privacy Sandbox on Android, please consult the official Privacy Sandbox
+ *  developer documentation and announcements:
+ *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
  */
+@Deprecated
+@FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
 public final class InferenceInput {
     /** The configuration that controls runtime interpreter behavior. */
     @NonNull private Params mParams;
@@ -82,6 +91,16 @@ public final class InferenceInput {
      */
     @NonNull private InferenceOutput mExpectedOutputStructure;
 
+    /**
+     *  @deprecated The ODP APIs are deprecated and will not be supported in future Android
+     *  releases. There is no direct replacement API available. Developers currently integrated with
+     *  these APIs must cease further integration efforts. For comprehensive details regarding this
+     *  deprecation and the future roadmap of Privacy Sandbox on Android, please consult the
+     *  official Privacy Sandbox developer documentation and announcements:
+     *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
+     */
+    @Deprecated
+    @FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
     public static class Params {
         /** A {@link KeyValueStore} where pre-trained model is stored. */
         @NonNull private KeyValueStore mKeyValueStore;
@@ -113,7 +132,6 @@ public final class InferenceInput {
         public static final int MODEL_TYPE_TENSORFLOW_LITE = 1;
 
         /** The model is an executorch model. */
-        @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
         public static final int MODEL_TYPE_EXECUTORCH = 2;
 
         /**
@@ -254,8 +272,19 @@ public final class InferenceInput {
             return _hash;
         }
 
-        /** A builder for {@link Params} */
+        /**
+         * A builder for {@link Params}
+         *
+         *  @deprecated The ODP APIs are deprecated and will not be supported in future Android
+         *  releases. There is no direct replacement API available. Developers currently integrated
+         *  with these APIs must cease further integration efforts. For comprehensive details
+         *  regarding this deprecation and the future roadmap of Privacy Sandbox on Android, please
+         *  consult the official Privacy Sandbox developer documentation and announcements:
+         *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
+         */
         @SuppressWarnings("WeakerAccess")
+        @Deprecated
+        @FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
         public static final class Builder {
 
             private @NonNull KeyValueStore mKeyValueStore;
@@ -380,7 +409,6 @@ public final class InferenceInput {
      *
      * <p>For Executorch model, this field is a serialized EValue array.
      */
-    @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
     public @NonNull byte[] getData() {
         return mData;
     }
@@ -464,8 +492,19 @@ public final class InferenceInput {
         return _hash;
     }
 
-    /** A builder for {@link InferenceInput} */
+    /**
+     * A builder for {@link InferenceInput}
+     *
+     *  @deprecated The ODP APIs are deprecated and will not be supported in future Android
+     *  releases. There is no direct replacement API available. Developers currently integrated with
+     *  these APIs must cease further integration efforts. For comprehensive details regarding this
+     *  deprecation and the future roadmap of Privacy Sandbox on Android, please consult the
+     *  official Privacy Sandbox developer documentation and announcements:
+     *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
+     */
     @SuppressWarnings("WeakerAccess")
+    @Deprecated
+    @FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
     public static final class Builder {
 
         private @NonNull Params mParams;
@@ -538,7 +577,6 @@ public final class InferenceInput {
          * @param params configuration that controls runtime interpreter behavior.
          * @param inputData byte array that holds serialized input data.
          */
-        @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
         public Builder(@NonNull Params params, @NonNull byte[] inputData) {
             mParams = Objects.requireNonNull(params);
             mData = Objects.requireNonNull(inputData);
@@ -567,7 +605,6 @@ public final class InferenceInput {
          *
          * <p>For Executorch model, this field is a serialized EValue array.
          */
-        @FlaggedApi(Flags.FLAG_EXECUTORCH_INFERENCE_API_ENABLED)
         public @NonNull Builder setInputData(@NonNull byte[] value) {
             mBuilderFieldsSet |= 0x2;
             mData = value;

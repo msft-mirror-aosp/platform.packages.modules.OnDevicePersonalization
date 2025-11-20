@@ -24,7 +24,18 @@ import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 import java.util.Objects;
 
-/** The input data for {@link IsolatedWorker#onTrainingExamples}. */
+/**
+ * The input data for {@link IsolatedWorker#onTrainingExamples}.
+ *
+ *  @deprecated The ODP APIs are deprecated and will not be supported in future Android releases.
+ *  There is no direct replacement API available. Developers currently integrated with these APIs
+ *  must cease further integration efforts. For comprehensive details regarding this deprecation and
+ *  the future roadmap of Privacy Sandbox on Android, please consult the official Privacy Sandbox
+ *  developer documentation and announcements:
+ *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
+ */
+@Deprecated
+@FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
 public final class TrainingExamplesInput {
     /**
      * The name of the federated compute population. It should match the population name in {@link
@@ -74,7 +85,6 @@ public final class TrainingExamplesInput {
      *     examples.
      * @param collectionName The data collection name to use to create training examples.
      */
-    @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public TrainingExamplesInput(
             @NonNull String populationName,
             @NonNull String taskName,
@@ -117,7 +127,6 @@ public final class TrainingExamplesInput {
     }
 
     /** The data collection name to use to create training examples. */
-    @FlaggedApi(Flags.FLAG_FCP_MODEL_VERSION_ENABLED)
     @Nullable
     public String getCollectionName() {
         return mCollectionName;

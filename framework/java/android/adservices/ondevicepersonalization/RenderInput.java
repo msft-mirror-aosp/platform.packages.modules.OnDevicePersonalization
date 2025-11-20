@@ -26,7 +26,15 @@ import com.android.adservices.ondevicepersonalization.flags.Flags;
  * The input data for
  * {@link IsolatedWorker#onRender(RenderInput, android.os.OutcomeReceiver)}.
  *
+ *  @deprecated The ODP APIs are deprecated and will not be supported in future Android releases.
+ *  There is no direct replacement API available. Developers currently integrated with these APIs
+ *  must cease further integration efforts. For comprehensive details regarding this deprecation and
+ *  the future roadmap of Privacy Sandbox on Android, please consult the official Privacy Sandbox
+ *  developer documentation and announcements:
+ *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
  */
+@Deprecated
+@FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
 public final class RenderInput {
     /** The width of the slot. */
     private int mWidth = 0;
@@ -56,7 +64,6 @@ public final class RenderInput {
      *   A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
      *   {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
      */
-    @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public RenderInput(
             int width,
             int height,

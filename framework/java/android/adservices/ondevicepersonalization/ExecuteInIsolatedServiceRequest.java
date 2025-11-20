@@ -33,8 +33,18 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Objects;
 
-/** The request of {@link OnDevicePersonalizationManager#executeInIsolatedService}. */
-@FlaggedApi(Flags.FLAG_EXECUTE_IN_ISOLATED_SERVICE_API_ENABLED)
+/**
+ * The request of {@link OnDevicePersonalizationManager#executeInIsolatedService}.
+ *
+ *  @deprecated The ODP APIs are deprecated and will not be supported in future Android releases.
+ *  There is no direct replacement API available. Developers currently integrated with these APIs
+ *  must cease further integration efforts. For comprehensive details regarding this deprecation and
+ *  the future roadmap of Privacy Sandbox on Android, please consult the official Privacy Sandbox
+ *  developer documentation and announcements:
+ *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
+ */
+@Deprecated
+@FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
 public class ExecuteInIsolatedServiceRequest {
     /** The {@link ComponentName} of the {@link IsolatedService}. */
     @NonNull private ComponentName mService;
@@ -63,7 +73,16 @@ public class ExecuteInIsolatedServiceRequest {
      * OutputSpec#buildBestValueSpec}, OnDevicePersonalization will verify {@link
      * ExecuteOutput#getBestValue()} returned by {@link IsolatedService} within the max value range
      * set in {@link OutputSpec#getMaxIntValue} and add noise.
+     *
+     *  @deprecated The ODP APIs are deprecated and will not be supported in future Android
+     *  releases. There is no direct replacement API available. Developers currently integrated with
+     *  these APIs must cease further integration efforts. For comprehensive details regarding this
+     *  deprecation and the future roadmap of Privacy Sandbox on Android, please consult the
+     *  official Privacy Sandbox developer documentation and announcements:
+     *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
      */
+    @Deprecated
+    @FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
     public static class OutputSpec {
         /**
          * The default value of OutputType. If set, OnDevicePersonalization will ignore result
@@ -194,7 +213,18 @@ public class ExecuteInIsolatedServiceRequest {
         return _hash;
     }
 
-    /** A builder for {@link ExecuteInIsolatedServiceRequest} */
+    /**
+     * A builder for {@link ExecuteInIsolatedServiceRequest}
+     *
+     *  @deprecated The ODP APIs are deprecated and will not be supported in future Android
+     *  releases. There is no direct replacement API available. Developers currently integrated with
+     *  these APIs must cease further integration efforts. For comprehensive details regarding this
+     *  deprecation and the future roadmap of Privacy Sandbox on Android, please consult the
+     *  official Privacy Sandbox developer documentation and announcements:
+     *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
+     */
+    @Deprecated
+    @FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
     public static final class Builder {
 
         private @NonNull ComponentName mService;

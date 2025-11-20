@@ -21,6 +21,7 @@ import static android.adservices.ondevicepersonalization.OnDevicePersonalization
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.annotation.CallbackExecutor;
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.RequiresPermission;
 import android.annotation.SystemApi;
@@ -30,6 +31,7 @@ import android.os.Bundle;
 import android.os.OutcomeReceiver;
 import android.os.SystemClock;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
@@ -40,9 +42,18 @@ import java.util.concurrent.Executor;
 
 /**
  * Provides APIs for the platform to signal events that are to be handled by the ODP service.
+ *
+ * @deprecated The ODP APIs are deprecated and will not be supported in future Android releases.
+ * There is no direct replacement API available. Developers currently integrated with these APIs
+ * must cease further integration efforts. For comprehensive details regarding this deprecation and
+ * the future roadmap of Privacy Sandbox on Android, please consult the official Privacy Sandbox
+ * developer documentation and announcements:
+ * <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
  * @hide
  */
 @SystemApi
+@Deprecated
+@FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
 public class OnDevicePersonalizationSystemEventManager {
     /** @hide */
     public static final String ON_DEVICE_PERSONALIZATION_SYSTEM_EVENT_SERVICE =

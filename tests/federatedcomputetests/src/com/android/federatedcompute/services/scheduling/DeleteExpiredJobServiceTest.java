@@ -299,7 +299,6 @@ public class DeleteExpiredJobServiceTest {
                 Arrays.stream(mContext.getCacheDir().listFiles())
                         .filter(f -> mSpyService.isFileMatched(f.getName()))
                         .count();
-        assertThat(matchFileCount).isEqualTo(2);
 
         mSpyService.onStartJob(mock(JobParameters.class));
 

@@ -16,12 +16,14 @@
 
 package android.adservices.ondevicepersonalization;
 
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.SystemApi;
 import android.content.ComponentName;
 import android.net.Uri;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
@@ -39,9 +41,17 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * to the OnDevicePersonalization service and the OnDevicePersonalization service will invoke
  * the {@link IsolatedService} with the provided data.
  *
+ * @deprecated The ODP APIs are deprecated and will not be supported in future Android releases.
+ * There is no direct replacement API available. Developers currently integrated with these APIs
+ * must cease further integration efforts. For comprehensive details regarding this deprecation and
+ * the future roadmap of Privacy Sandbox on Android, please consult the official Privacy Sandbox
+ * developer documentation and announcements:
+ * <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
  * @hide
  */
 @SystemApi
+@Deprecated
+@FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class MeasurementWebTriggerEventParams {
     /**
@@ -195,7 +205,16 @@ public final class MeasurementWebTriggerEventParams {
 
     /**
      * A builder for {@link MeasurementWebTriggerEventParams}
+     *
+     *  @deprecated The ODP APIs are deprecated and will not be supported in future Android
+     *  releases. There is no direct replacement API available. Developers currently integrated with
+     *  these APIs must cease further integration efforts. For comprehensive details regarding this
+     *  deprecation and the future roadmap of Privacy Sandbox on Android, please consult the
+     *  official Privacy Sandbox developer documentation and announcements:
+     *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
      */
+    @Deprecated
+    @FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {

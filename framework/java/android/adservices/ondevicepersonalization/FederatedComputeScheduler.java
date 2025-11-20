@@ -37,7 +37,16 @@ import java.util.concurrent.TimeUnit;
 /**
  * Handles scheduling federated compute jobs. See {@link
  * IsolatedService#getFederatedComputeScheduler}.
+ *
+ *  @deprecated The ODP APIs are deprecated and will not be supported in future Android releases.
+ *  There is no direct replacement API available. Developers currently integrated with these APIs
+ *  must cease further integration efforts. For comprehensive details regarding this deprecation and
+ *  the future roadmap of Privacy Sandbox on Android, please consult the official Privacy Sandbox
+ *  developer documentation and announcements:
+ *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
  */
+@Deprecated
+@FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
 public class FederatedComputeScheduler {
     private static final String TAG = FederatedComputeScheduler.class.getSimpleName();
 
@@ -144,7 +153,6 @@ public class FederatedComputeScheduler {
      *     for other reasons.
      */
     @WorkerThread
-    @FlaggedApi(Flags.FLAG_FCP_SCHEDULE_WITH_OUTCOME_RECEIVER_ENABLED)
     public void schedule(
             @NonNull FederatedComputeScheduleRequest federatedComputeScheduleRequest,
             @NonNull @CallbackExecutor Executor executor,
@@ -321,7 +329,18 @@ public class FederatedComputeScheduler {
         }
     }
 
-    /** The parameters related to job scheduling. */
+    /**
+     * The parameters related to job scheduling.
+     *
+     *  @deprecated The ODP APIs are deprecated and will not be supported in future Android
+     *  releases. There is no direct replacement API available. Developers currently integrated with
+     *  these APIs must cease further integration efforts. For comprehensive details regarding this
+     *  deprecation and the future roadmap of Privacy Sandbox on Android, please consult the
+     *  official Privacy Sandbox developer documentation and announcements:
+     *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
+     */
+    @Deprecated
+    @FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
     public static class Params {
         /**
          * If training interval is scheduled for recurrent tasks, the earliest time this task could

@@ -16,8 +16,11 @@
 
 package android.adservices.ondevicepersonalization;
 
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.os.OutcomeReceiver;
+
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 /**
  * Interface with methods that need to be implemented to handle requests from the
@@ -29,7 +32,16 @@ import android.os.OutcomeReceiver;
  * method to return results. If any of these methods throws a {@link RuntimeException}, the
  * platform treats it as an unrecoverable error in the {@link IsolatedService} and ends processing
  * the request.
+ *
+ *  @deprecated The ODP APIs are deprecated and will not be supported in future Android releases.
+ *  There is no direct replacement API available. Developers currently integrated with these APIs
+ *  must cease further integration efforts. For comprehensive details regarding this deprecation and
+ *  the future roadmap of Privacy Sandbox on Android, please consult the official Privacy Sandbox
+ *  developer documentation and announcements:
+ *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
  */
+@Deprecated
+@FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
 public interface IsolatedWorker {
 
     /**
