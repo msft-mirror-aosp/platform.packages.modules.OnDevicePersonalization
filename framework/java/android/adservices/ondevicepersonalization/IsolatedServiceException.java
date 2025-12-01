@@ -26,7 +26,16 @@ import com.android.adservices.ondevicepersonalization.flags.Flags;
  * return an error to be logged and aggregated. The error is not reported to the app that invoked
  * the {@link IsolatedService} in order to prevent data leakage from the {@link IsolatedService} to
  * an app. The platform does not interpret the error code, it only logs and aggregates it.
+ *
+ *  @deprecated The ODP APIs are deprecated and will not be supported in future Android releases.
+ *  There is no direct replacement API available. Developers currently integrated with these APIs
+ *  must cease further integration efforts. For comprehensive details regarding this deprecation and
+ *  the future roadmap of Privacy Sandbox on Android, please consult the official Privacy Sandbox
+ *  developer documentation and announcements:
+ *  <a href="https://privacysandbox.google.com">https://privacysandbox.google.com</a>
  */
+@Deprecated
+@FlaggedApi(Flags.FLAG_ODP_DEPRECIATION_ENABLED)
 public final class IsolatedServiceException extends Exception {
     private final int mErrorCode;
 
@@ -49,7 +58,6 @@ public final class IsolatedServiceException extends Exception {
      * @param errorCode An error code defined by the {@link IsolatedService}.
      * @param cause the cause of this exception.
      */
-    @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public IsolatedServiceException(
             int errorCode,
             @Nullable Throwable cause) {
@@ -65,7 +73,6 @@ public final class IsolatedServiceException extends Exception {
      * @param message the exception message.
      * @param cause the cause of this exception.
      */
-    @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public IsolatedServiceException(
             int errorCode,
             @Nullable String message,
@@ -77,7 +84,6 @@ public final class IsolatedServiceException extends Exception {
     /**
      * Returns the error code for this exception.
      */
-    @FlaggedApi(Flags.FLAG_DATA_CLASS_MISSING_CTORS_AND_GETTERS_ENABLED)
     public int getErrorCode() {
         return mErrorCode;
     }
