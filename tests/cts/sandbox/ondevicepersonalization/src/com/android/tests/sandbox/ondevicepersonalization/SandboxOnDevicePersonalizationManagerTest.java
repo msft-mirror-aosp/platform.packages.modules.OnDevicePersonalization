@@ -16,8 +16,6 @@
 
 package com.android.tests.sandbox.ondevicepersonalization;
 
-import static org.junit.Assert.assertTrue;
-
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.app.sdksandbox.LoadSdkException;
 import android.app.sdksandbox.SandboxedSdk;
@@ -43,7 +41,6 @@ import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Test;
 
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
@@ -121,23 +118,6 @@ public final class SandboxOnDevicePersonalizationManagerTest {
         ShellUtils.runShellCommand(
                 "am force-stop com.android.ondevicepersonalization.services");
         mSandboxedSdk = null;
-    }
-
-    @Test
-    public void matchPackageNameWithoutSandbox() {
-        boolean result = matchPackageNameWithoutSandbox(sContext.getPackageName());
-
-        assertTrue("Package name did not match without sandbox", result);
-    }
-
-    @Test
-    public void matchPackageNameWithinSandbox() {
-        Assume.assumeTrue(SdkLevel.isAtLeastU());
-        assertTrue("Unable to load SDK", loadSdk(SDK_NAME));
-
-        boolean result = matchPackageNameWithinSandbox(sContext.getPackageName());
-
-        assertTrue("Package name did not match within sandbox", result);
     }
 
     private boolean matchPackageNameWithoutSandbox(String packageName) {

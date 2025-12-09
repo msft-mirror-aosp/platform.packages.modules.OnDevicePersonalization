@@ -16,9 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static com.google.common.truth.Truth.assertThat;
+
+import static org.junit.Assert.assertNull;
 
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IIsFeatureEnabledCallback;
@@ -67,8 +67,8 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                             .build(),
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.isSuccess());
-        assertFalse(receiver.isError());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -82,36 +82,23 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                             .build(),
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void testnotifyMeasurementEventPropagatesIae() throws Exception {
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> mManager.notifyMeasurementEvent(
-                        new MeasurementWebTriggerEventParams.Builder(
-                            Uri.parse("http://iae"),
-                            "com.example.browser",
-                            ComponentName.createRelative("com.example", ".Example"))
-                                .build(),
-                        Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<Void>()));
-    }
-
-    @Test
-    public void testnotifyMeasurementEventPropagatesNpe() throws Exception {
-        assertThrows(
-                NullPointerException.class,
-                () -> mManager.notifyMeasurementEvent(
-                        new MeasurementWebTriggerEventParams.Builder(
-                            Uri.parse("http://npe"),
-                            "com.example.browser",
-                            ComponentName.createRelative("com.example", ".Example"))
-                                .build(),
-                        Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<Void>()));
+        var receiver = new ResultReceiver<Void>();
+        mManager.notifyMeasurementEvent(
+                new MeasurementWebTriggerEventParams.Builder(
+                        Uri.parse("http://iae"),
+                        "com.example.browser",
+                        ComponentName.createRelative("com.example", ".Example"))
+                        .build(),
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -125,9 +112,8 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                             .build(),
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof IllegalStateException);
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     class TestService extends IOnDevicePersonalizationManagingService.Stub {

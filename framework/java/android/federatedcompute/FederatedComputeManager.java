@@ -20,11 +20,8 @@ import android.annotation.CallbackExecutor;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
-import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IFederatedComputeService;
-import android.federatedcompute.aidl.IIsFeatureEnabledCallback;
 import android.federatedcompute.common.ScheduleFederatedComputeRequest;
-import android.os.Binder;
 import android.os.OutcomeReceiver;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
@@ -94,36 +91,15 @@ public final class FederatedComputeManager {
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<Object, Exception> callback) {
         Objects.requireNonNull(request);
+        Objects.requireNonNull(executor);
+        Objects.requireNonNull(callback);
+
         try {
             final IFederatedComputeService service = mServiceBinder.getService(executor);
-            IFederatedComputeCallback federatedComputeCallback =
-                    new IFederatedComputeCallback.Stub() {
-                        @Override
-                        public void onSuccess() {
-                            LogUtil.d(TAG, ": schedule onSuccess() called");
-                            executor.execute(() -> callback.onResult(null));
-                            unbindFromService();
-                        }
-
-                        @Override
-                        public void onFailure(int errorCode) {
-                            LogUtil.d(
-                                    TAG,
-                                    ": schedule onFailure() called with errorCode %d",
-                                    errorCode);
-                            executor.execute(
-                                    () ->
-                                            callback.onError(
-                                                    new FederatedComputeException(errorCode)));
-                            unbindFromService();
-                        }
-                    };
-            String appPackageName =
-                    mContext.getPackageManager().getNameForUid(Binder.getCallingUid());
-            service.schedule(
-                    appPackageName,
-                    request.getTrainingOptions(),
-                    federatedComputeCallback);
+            executor.execute(() -> callback.onError(
+                    new IllegalStateException("This API is deprecated and no longer functional.")
+            ));
+            unbindFromService();
         } catch (Exception e) {
             LogUtil.e(TAG, e, "Exception when schedule federated job");
             executor.execute(() -> callback.onError(e));
@@ -142,31 +118,15 @@ public final class FederatedComputeManager {
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<Object, Exception> callback) {
         Objects.requireNonNull(populationName);
+        Objects.requireNonNull(executor);
+        Objects.requireNonNull(callback);
+
         try {
             final IFederatedComputeService service = mServiceBinder.getService(executor);
-            IFederatedComputeCallback federatedComputeCallback =
-                    new IFederatedComputeCallback.Stub() {
-                        @Override
-                        public void onSuccess() {
-                            LogUtil.d(TAG, ": cancel onSuccess() called");
-                            executor.execute(() -> callback.onResult(null));
-                            unbindFromService();
-                        }
-
-                        @Override
-                        public void onFailure(int errorCode) {
-                            LogUtil.d(
-                                    TAG,
-                                    ": cancel onFailure() called with errorCode %d",
-                                    errorCode);
-                            executor.execute(
-                                    () ->
-                                            callback.onError(
-                                                    new FederatedComputeException(errorCode)));
-                            unbindFromService();
-                        }
-                    };
-            service.cancel(ownerComponent, populationName, federatedComputeCallback);
+            executor.execute(() -> callback.onError(
+                    new IllegalStateException("This API is deprecated and no longer functional.")
+            ));
+            unbindFromService();
         } catch (Exception e) {
             LogUtil.e(TAG, e, "Exception when cancel federated job %s", populationName);
             executor.execute(() -> callback.onError(e));
@@ -184,16 +144,15 @@ public final class FederatedComputeManager {
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<Integer, Exception> callback) {
         Objects.requireNonNull(featureName);
+        Objects.requireNonNull(executor);
+        Objects.requireNonNull(callback);
+
         final IFederatedComputeService service = mServiceBinder.getService(executor);
         try {
-            IIsFeatureEnabledCallback callbackWrapper = new IIsFeatureEnabledCallback.Stub() {
-                @Override
-                public void onResult(int result) {
-                    executor.execute(() -> callback.onResult(result));
-                    unbindFromService();
-                }
-            };
-            service.isFeatureEnabled(featureName, callbackWrapper);
+            executor.execute(() -> callback.onError(
+                    new IllegalStateException("This API is deprecated and no longer functional.")
+            ));
+            unbindFromService();
         } catch (Exception e) {
             LogUtil.e(TAG, e, "Exception querying feature availability %s", featureName);
             executor.execute(() -> callback.onError(e));

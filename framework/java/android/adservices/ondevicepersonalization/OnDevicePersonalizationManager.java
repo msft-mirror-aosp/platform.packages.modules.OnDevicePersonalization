@@ -19,10 +19,7 @@ package android.adservices.ondevicepersonalization;
 
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 
-import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
-import android.adservices.ondevicepersonalization.aidl.IIsFeatureEnabledCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
-import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
@@ -31,8 +28,6 @@ import android.annotation.Nullable;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.os.Binder;
-import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
@@ -43,10 +38,8 @@ import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
-import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.ExceptionInfo;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 
 import java.lang.annotation.Retention;
 import java.util.List;
@@ -239,113 +232,21 @@ public class OnDevicePersonalizationManager {
             throw new IllegalArgumentException("missing service class name");
         }
         long startTimeMillis = SystemClock.elapsedRealtime();
-
         try {
             final IOnDevicePersonalizationManagingService odpService =
                     mServiceBinder.getService(executor);
 
-            try {
-                IExecuteCallback callbackWrapper =
-                        new IExecuteCallback.Stub() {
-                            @Override
-                            public void onSuccess(
-                                    Bundle callbackResult, CalleeMetadata calleeMetadata) {
-                                final long token = Binder.clearCallingIdentity();
-                                try {
-                                    executor.execute(
-                                            () -> {
-                                                try {
-                                                    SurfacePackageToken surfacePackageToken = null;
-                                                    if (callbackResult != null) {
-                                                        String tokenString =
-                                                                callbackResult.getString(
-                                                                        Constants
-                                                                                .EXTRA_SURFACE_PACKAGE_TOKEN_STRING);
-                                                        if (tokenString != null
-                                                                && !tokenString.isBlank()) {
-                                                            surfacePackageToken =
-                                                                    new SurfacePackageToken(
-                                                                            tokenString);
-                                                        }
-                                                    }
-                                                    receiver.onResult(
-                                                            new ExecuteResult(
-                                                                    surfacePackageToken, null));
-                                                } catch (Exception e) {
-                                                    receiver.onError(e);
-                                                }
-                                            });
-                                } finally {
-                                    Binder.restoreCallingIdentity(token);
-                                    logApiCallStats(
-                                            odpService,
-                                            service.getPackageName(),
-                                            Constants.API_NAME_EXECUTE,
-                                            SystemClock.elapsedRealtime() - startTimeMillis,
-                                            calleeMetadata.getServiceEntryTimeMillis()
-                                                    - startTimeMillis,
-                                            SystemClock.elapsedRealtime()
-                                                    - calleeMetadata.getCallbackInvokeTimeMillis(),
-                                            Constants.STATUS_SUCCESS);
-                                }
-                            }
+            logApiCallStats(
+                    odpService,
+                    service.getPackageName(),
+                    Constants.API_NAME_EXECUTE,
+                    SystemClock.elapsedRealtime() - startTimeMillis,
+                    /* rpcCallLatencyMillis= */ 0,
+                    /* rpcReturnLatencyMillis= */ 0,
+                    Constants.STATUS_API_DISABLED);
 
-                            @Override
-                            public void onError(
-                                    int errorCode,
-                                    int isolatedServiceErrorCode,
-                                    byte[] serializedExceptionInfo,
-                                    CalleeMetadata calleeMetadata) {
-                                final long token = Binder.clearCallingIdentity();
-                                try {
-                                    executor.execute(
-                                            () -> {
-                                                receiver.onError(
-                                                        createException(
-                                                                errorCode, isolatedServiceErrorCode,
-                                                                serializedExceptionInfo, mContext));
-                                            });
-                                } finally {
-                                    Binder.restoreCallingIdentity(token);
-                                    logApiCallStats(
-                                            odpService,
-                                            service.getPackageName(),
-                                            Constants.API_NAME_EXECUTE,
-                                            SystemClock.elapsedRealtime() - startTimeMillis,
-                                            calleeMetadata.getServiceEntryTimeMillis()
-                                                    - startTimeMillis,
-                                            SystemClock.elapsedRealtime()
-                                                    - calleeMetadata.getCallbackInvokeTimeMillis(),
-                                            errorCode);
-                                }
-                            }
-                        };
-
-                Bundle wrappedParams = new Bundle();
-                wrappedParams.putParcelable(
-                        Constants.EXTRA_APP_PARAMS_SERIALIZED,
-                        new ByteArrayParceledSlice(PersistableBundleUtils.toByteArray(params)));
-                String appPackageName =
-                        mContext.getPackageManager().getNameForUid(Binder.getCallingUid());
-                odpService.execute(
-                        appPackageName,
-                        service,
-                        wrappedParams,
-                        new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
-                        ExecuteOptionsParcel.DEFAULT,
-                        callbackWrapper);
-            } catch (Exception e) {
-                logApiCallStats(
-                        odpService,
-                        service.getPackageName(),
-                        Constants.API_NAME_EXECUTE,
-                        SystemClock.elapsedRealtime() - startTimeMillis,
-                        0,
-                        0,
-                        Constants.STATUS_INTERNAL_ERROR);
-                receiver.onError(e);
-            }
-
+            receiver.onError(
+                    new IllegalStateException("This API is deprecated and no longer functional."));
         } catch (Exception e) {
             receiver.onError(e);
         }
@@ -379,127 +280,17 @@ public class OnDevicePersonalizationManager {
             final IOnDevicePersonalizationManagingService odpService =
                     mServiceBinder.getService(executor);
 
-            try {
-                IExecuteCallback callbackWrapper =
-                        new IExecuteCallback.Stub() {
-                            @Override
-                            public void onSuccess(
-                                    Bundle callbackResult, CalleeMetadata calleeMetadata) {
-                                final long token = Binder.clearCallingIdentity();
-                                try {
-                                    executor.execute(
-                                            () -> {
-                                                try {
-                                                    SurfacePackageToken surfacePackageToken = null;
-                                                    if (callbackResult != null) {
-                                                        String tokenString =
-                                                                callbackResult.getString(
-                                                                        Constants
-                                                                                .EXTRA_SURFACE_PACKAGE_TOKEN_STRING);
-                                                        if (tokenString != null
-                                                                && !tokenString.isBlank()) {
-                                                            surfacePackageToken =
-                                                                    new SurfacePackageToken(
-                                                                            tokenString);
-                                                        }
-                                                    }
-                                                    int intValue = -1;
-                                                    if (request.getOutputSpec().getOutputType()
-                                                            == ExecuteInIsolatedServiceRequest
-                                                                    .OutputSpec
-                                                                    .OUTPUT_TYPE_BEST_VALUE) {
-                                                        intValue =
-                                                                callbackResult.getInt(
-                                                                        Constants
-                                                                                .EXTRA_OUTPUT_BEST_VALUE);
-                                                    }
+            logApiCallStats(
+                    odpService,
+                    request.getService().getPackageName(),
+                    Constants.API_NAME_EXECUTE,
+                    SystemClock.elapsedRealtime() - startTimeMillis,
+                    /* rpcCallLatencyMillis= */ 0,
+                    /* rpcReturnLatencyMillis= */ 0,
+                    Constants.STATUS_API_DISABLED);
 
-                                                    receiver.onResult(
-                                                            new ExecuteInIsolatedServiceResponse(
-                                                                    surfacePackageToken, intValue));
-                                                } catch (Exception e) {
-                                                    receiver.onError(e);
-                                                }
-                                            });
-                                } finally {
-                                    Binder.restoreCallingIdentity(token);
-                                    logApiCallStats(
-                                            odpService,
-                                            request.getService().getPackageName(),
-                                            Constants.API_NAME_EXECUTE,
-                                            SystemClock.elapsedRealtime() - startTimeMillis,
-                                            calleeMetadata.getServiceEntryTimeMillis()
-                                                    - startTimeMillis,
-                                            SystemClock.elapsedRealtime()
-                                                    - calleeMetadata.getCallbackInvokeTimeMillis(),
-                                            Constants.STATUS_SUCCESS);
-                                }
-                            }
-
-                            @Override
-                            public void onError(
-                                    int errorCode,
-                                    int isolatedServiceErrorCode,
-                                    byte[] serializedExceptionInfo,
-                                    CalleeMetadata calleeMetadata) {
-                                final long token = Binder.clearCallingIdentity();
-                                try {
-                                    executor.execute(
-                                            () -> {
-                                                receiver.onError(
-                                                        // We can skip translating to legacy error
-                                                        // codes for the new API.
-                                                        createException(
-                                                                errorCode,
-                                                                isolatedServiceErrorCode,
-                                                                serializedExceptionInfo,
-                                                                mContext,
-                                                                /* translateToLegacyErrorCode= */ false));
-                                            });
-                                } finally {
-                                    Binder.restoreCallingIdentity(token);
-                                    logApiCallStats(
-                                            odpService,
-                                            request.getService().getPackageName(),
-                                            Constants.API_NAME_EXECUTE,
-                                            SystemClock.elapsedRealtime() - startTimeMillis,
-                                            calleeMetadata.getServiceEntryTimeMillis()
-                                                    - startTimeMillis,
-                                            SystemClock.elapsedRealtime()
-                                                    - calleeMetadata.getCallbackInvokeTimeMillis(),
-                                            errorCode);
-                                }
-                            }
-                        };
-
-                Bundle wrappedParams = new Bundle();
-                wrappedParams.putParcelable(
-                        Constants.EXTRA_APP_PARAMS_SERIALIZED,
-                        new ByteArrayParceledSlice(
-                                PersistableBundleUtils.toByteArray(request.getAppParams())));
-                String appPackageName =
-                        mContext.getPackageManager().getNameForUid(Binder.getCallingUid());
-                odpService.execute(
-                        appPackageName,
-                        request.getService(),
-                        wrappedParams,
-                        new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
-                        request.getOutputSpec() == null
-                                ? ExecuteOptionsParcel.DEFAULT
-                                : new ExecuteOptionsParcel(request.getOutputSpec()),
-                        callbackWrapper);
-            } catch (Exception e) {
-                logApiCallStats(
-                        odpService,
-                        request.getService().getPackageName(),
-                        Constants.API_NAME_EXECUTE,
-                        SystemClock.elapsedRealtime() - startTimeMillis,
-                        0,
-                        0,
-                        Constants.STATUS_INTERNAL_ERROR);
-                receiver.onError(e);
-            }
-
+            receiver.onError(
+                    new IllegalStateException("This API is deprecated and no longer functional."));
         } catch (Exception e) {
             receiver.onError(e);
         }
@@ -559,95 +350,18 @@ public class OnDevicePersonalizationManager {
         try {
             final IOnDevicePersonalizationManagingService service =
                     Objects.requireNonNull(mServiceBinder.getService(executor));
-            long serviceInvokedTimeMillis = SystemClock.elapsedRealtime();
 
-            try {
-                IRequestSurfacePackageCallback callbackWrapper =
-                        new IRequestSurfacePackageCallback.Stub() {
-                            @Override
-                            public void onSuccess(
-                                    SurfaceControlViewHost.SurfacePackage surfacePackage,
-                                    CalleeMetadata calleeMetadata) {
-                                final long token = Binder.clearCallingIdentity();
-                                try {
-                                    executor.execute(
-                                            () -> {
-                                                receiver.onResult(surfacePackage);
-                                            });
-                                } finally {
-                                    Binder.restoreCallingIdentity(token);
-                                    logApiCallStats(
-                                            service,
-                                            "",
-                                            Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
-                                            SystemClock.elapsedRealtime() - startTimeMillis,
-                                            0,
-                                            SystemClock.elapsedRealtime()
-                                                    - calleeMetadata.getCallbackInvokeTimeMillis(),
-                                            Constants.STATUS_SUCCESS);
-                                }
-                            }
+            logApiCallStats(
+                    service,
+                    /* sdkPackageName= */ "",
+                    Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
+                    SystemClock.elapsedRealtime() - startTimeMillis,
+                    /* rpcCallLatencyMillis= */ 0,
+                    /* rpcReturnLatencyMillis= */ 0,
+                    Constants.STATUS_API_DISABLED);
 
-                            @Override
-                            public void onError(
-                                    int errorCode,
-                                    int isolatedServiceErrorCode,
-                                    byte[] serializedExceptionInfo,
-                                    CalleeMetadata calleeMetadata) {
-                                final long token = Binder.clearCallingIdentity();
-                                try {
-                                    executor.execute(
-                                            () ->
-                                                    receiver.onError(
-                                                            createException(
-                                                                    errorCode,
-                                                                    isolatedServiceErrorCode,
-                                                                    serializedExceptionInfo,
-                                                                    mContext)));
-                                } finally {
-                                    Binder.restoreCallingIdentity(token);
-                                    logApiCallStats(
-                                            service,
-                                            "",
-                                            Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
-                                            SystemClock.elapsedRealtime() - startTimeMillis,
-                                            0,
-                                            SystemClock.elapsedRealtime()
-                                                    - calleeMetadata.getCallbackInvokeTimeMillis(),
-                                            errorCode);
-                                }
-                            }
-                        };
-
-                service.requestSurfacePackage(
-                        surfacePackageToken.getTokenString(),
-                        surfaceViewHostToken,
-                        displayId,
-                        width,
-                        height,
-                        new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
-                        callbackWrapper);
-                logApiCallStats(
-                        service,
-                        "",
-                        Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
-                        SystemClock.elapsedRealtime() - startTimeMillis,
-                        SystemClock.elapsedRealtime() - serviceInvokedTimeMillis,
-                        0,
-                        Constants.STATUS_SUCCESS);
-
-            } catch (Exception e) {
-                logApiCallStats(
-                        service,
-                        "",
-                        Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
-                        SystemClock.elapsedRealtime() - startTimeMillis,
-                        0,
-                        0,
-                        Constants.STATUS_INTERNAL_ERROR);
-                receiver.onError(e);
-            }
-
+            receiver.onError(
+                    new IllegalStateException("This API is deprecated and no longer functional."));
         } catch (Exception e) {
             receiver.onError(e);
         }
@@ -677,46 +391,17 @@ public class OnDevicePersonalizationManager {
             final IOnDevicePersonalizationManagingService service =
                     Objects.requireNonNull(mServiceBinder.getService(executor));
 
-            try {
-                IIsFeatureEnabledCallback callbackWrapper = new IIsFeatureEnabledCallback.Stub() {
-                    @Override
-                    public void onResult(int result, CalleeMetadata calleeMetadata) {
-                        final long token = Binder.clearCallingIdentity();
-                        try {
-                            executor.execute(
-                                    () -> {
-                                        receiver.onResult(result);
-                                    });
-                        } finally {
-                            Binder.restoreCallingIdentity(token);
-                            logApiCallStats(
-                                    service,
-                                    "",
-                                    Constants.API_NAME_IS_FEATURE_ENABLED,
-                                    SystemClock.elapsedRealtime() - startTimeMillis,
-                                    calleeMetadata.getServiceEntryTimeMillis()
-                                            - startTimeMillis,
-                                    SystemClock.elapsedRealtime()
-                                            - calleeMetadata.getCallbackInvokeTimeMillis(),
-                                    Constants.STATUS_SUCCESS);
-                        }
-                    }
-                };
-                service.isFeatureEnabled(
-                        featureName,
-                        new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
-                        callbackWrapper);
-            } catch (Exception e) {
-                logApiCallStats(
-                        service,
-                        "",
-                        Constants.API_NAME_IS_FEATURE_ENABLED,
-                        SystemClock.elapsedRealtime() - startTimeMillis,
-                        0,
-                        0,
-                        Constants.STATUS_INTERNAL_ERROR);
-                receiver.onError(e);
-            }
+            logApiCallStats(
+                    service,
+                    /* sdkPackageName= */ "",
+                    Constants.API_NAME_IS_FEATURE_ENABLED,
+                    SystemClock.elapsedRealtime() - startTimeMillis,
+                    /* rpcCallLatencyMillis= */ 0,
+                    /* rpcReturnLatencyMillis= */ 0,
+                    Constants.STATUS_API_DISABLED);
+
+            receiver.onError(
+                    new IllegalStateException("This API is deprecated and no longer functional."));
         } catch (Exception e) {
             receiver.onError(e);
         }

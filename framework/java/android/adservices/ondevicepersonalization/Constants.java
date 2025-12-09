@@ -97,6 +97,8 @@ public class Constants {
     public static final int STATUS_DOWNLOAD_SIZE_EXCEED_CAP_ERROR = 130;
     // Store content size exceeds size limit.
     public static final int STATUS_STORAGE_SIZE_EXCEED_CAP_ERROR = 131;
+    // Status for API disabled.
+    public static final int STATUS_API_DISABLED = 132;
 
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;

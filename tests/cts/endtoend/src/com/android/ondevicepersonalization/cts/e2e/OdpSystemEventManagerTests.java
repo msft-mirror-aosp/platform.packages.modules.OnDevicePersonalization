@@ -15,6 +15,8 @@
  */
 package com.android.ondevicepersonalization.cts.e2e;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -66,7 +68,6 @@ public class OdpSystemEventManagerTests {
         manager.notifyMeasurementEvent(params, Executors.newSingleThreadExecutor(), receiver);
         assertTrue(receiver.isError());
         assertNotNull(receiver.getException());
-        assertTrue(receiver.getException().getClass().getSimpleName(),
-                receiver.getException() instanceof SecurityException);
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 }

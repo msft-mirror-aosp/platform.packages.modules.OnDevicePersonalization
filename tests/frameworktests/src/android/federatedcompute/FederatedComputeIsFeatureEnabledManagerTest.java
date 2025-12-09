@@ -16,10 +16,7 @@
 
 package android.federatedcompute;
 
-import static com.google.common.truth.Truth.assertThat;
-
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
@@ -55,10 +52,8 @@ public class FederatedComputeIsFeatureEnabledManagerTest {
 
         mManager.isFeatureEnabled(
                 "success", Executors.newSingleThreadExecutor(), receiver);
-        assertTrue(receiver.isSuccess());
-        assertFalse(receiver.isError());
-        assertNotNull(receiver.getResult());
-        assertThat(receiver.getResult()).isEqualTo(OnDevicePersonalizationManager.FEATURE_DISABLED);
+        assertTrue(receiver.isError());
+        assertFalse(receiver.isSuccess());
     }
 
     @Test
