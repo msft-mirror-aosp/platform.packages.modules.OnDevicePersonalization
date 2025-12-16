@@ -80,4 +80,7 @@ android_app {
     optimize: {
         proguard_flags_files: ["proguard.flags"],
     },
+    visibility: [
+        "//packages/modules/OnDevicePersonalization/apex:__subpackages__",
+    ],
 }

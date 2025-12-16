@@ -89,15 +89,23 @@ apex {
     name: "com.android.ondevicepersonalization",
     androidManifest: ":com.android.ondevicepersonalization-androidManifest",
     manifest: "manifest.json",
-    apps: ["OnDevicePersonalization", "FederatedCompute"],
+    apps: [
+        "OnDevicePersonalization",
+        "FederatedCompute",
+    ],
     file_contexts: ":com.android.ondevicepersonalization-file_contexts",
     key: "com.android.ondevicepersonalization.key",
     bootclasspath_fragments: ["com.android.ondevicepersonalization-bootclasspath-fragment"],
     systemserverclasspath_fragments: ["com.android.ondevicepersonalization-systemserverclasspath-fragment"],
     defaults: ["t-launched-apex-module"],
     prebuilts: ["current_sdkinfo"],
-    jni_libs: ["libfcp_cpp_dep_jni", "libfcp_hpke_jni"],
-    visibility: ["//packages/modules/common/build"],
+    jni_libs: [
+        "libfcp_cpp_dep_jni",
+        "libfcp_hpke_jni",
+    ],
+    visibility: [
+        "//packages/modules/common/build",
+    ],
     licenses: [
         "Android-Apache-2.0",
         "opensourcerequest",
