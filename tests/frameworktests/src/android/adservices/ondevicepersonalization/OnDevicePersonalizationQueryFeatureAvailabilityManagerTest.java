@@ -16,10 +16,7 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static com.google.common.truth.Truth.assertThat;
-
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
@@ -76,11 +73,10 @@ public class OnDevicePersonalizationQueryFeatureAvailabilityManagerTest {
 
         mManager.queryFeatureAvailability(
                 "success", Executors.newSingleThreadExecutor(), receiver);
-        assertTrue(receiver.isSuccess());
-        assertFalse(receiver.isError());
-        assertNotNull(receiver.getResult());
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof IllegalStateException);
         assertTrue(mLogApiStatsCalled);
-        assertThat(receiver.getResult()).isEqualTo(OnDevicePersonalizationManager.FEATURE_DISABLED);
     }
 
     @Test

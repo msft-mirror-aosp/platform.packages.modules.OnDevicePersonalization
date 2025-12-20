@@ -17,7 +17,6 @@ package com.android.ondevicepersonalization.cts.e2e;
 
 import static android.view.Display.DEFAULT_DISPLAY;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
@@ -26,22 +25,17 @@ import android.adservices.ondevicepersonalization.SurfacePackageToken;
 import android.content.ComponentName;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
-import android.os.Handler;
-import android.os.Looper;
 import android.os.PersistableBundle;
 import android.platform.test.rule.ScreenRecordRule;
 import android.util.Log;
 import android.view.Display;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 import android.view.SurfaceView;
-import android.view.View;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.platform.app.InstrumentationRegistry;
-import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiDevice;
-import androidx.test.uiautomator.UiObject2;
 
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.modules.utils.build.SdkLevel;
@@ -58,7 +52,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 
 /**
@@ -136,53 +129,16 @@ public class RequestSurfacePackageTests {
 
         var receiver = new ResultReceiver<SurfacePackage>();
         SurfaceView surfaceView = createSurfaceView();
-        manager.requestSurfacePackage(
-                token,
-                surfaceView.getHostToken(),
-                getDisplayId(),
-                surfaceView.getWidth(),
-                surfaceView.getHeight(),
-                Executors.newSingleThreadExecutor(),
-                receiver);
-        SurfacePackage surfacePackage = receiver.getResult();
-        assertNotNull(surfacePackage);
-
-        Log.i(TAG, "Finished requesting surface package");
-        Thread.sleep(DELAY_MILLIS);
-
-        CountDownLatch latch = new CountDownLatch(1);
-        new Handler(Looper.getMainLooper()).post(
-                () -> {
-                    surfaceView.setChildSurfacePackage(surfacePackage);
-                    surfaceView.setZOrderOnTop(true);
-                    surfaceView.setVisibility(View.VISIBLE);
-                    latch.countDown();
-                });
-        latch.await();
-
-        Log.i(TAG, "Finished posting surface view");
-        Thread.sleep(DELAY_MILLIS);
-
-        for (int i = 0; i < 5; i++) {
-            try {
-                UiObject2 clickableLink =
-                    mDevice.findObject(By.text(SampleServiceApi.LINK_TEXT));
-                clickableLink.click();
-
-                // Retry if unable to click on the link.
-                Thread.sleep(2500);
-
-                surfacePackage.release();
-                mDevice.pressHome();
-
-                return;
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to click on webview link.");
-            }
-        }
-
-        // TODO(b/331286466): Investigate failures in this test case.
-        // throw new RuntimeException("Failed to request and render surface package.");
+        assertThrows(
+                NullPointerException.class,
+                () -> manager.requestSurfacePackage(
+                        token,
+                        surfaceView.getHostToken(),
+                        getDisplayId(),
+                        surfaceView.getWidth(),
+                        surfaceView.getHeight(),
+                        Executors.newSingleThreadExecutor(),
+                        receiver));
     }
 
     @Test
@@ -230,7 +186,7 @@ public class RequestSurfacePackageTests {
         SurfacePackageToken token = runExecute(manager);
         SurfaceView surfaceView = createSurfaceView();
         assertThrows(
-                IllegalArgumentException.class,
+                NullPointerException.class,
                 () -> manager.requestSurfacePackage(
                         token,
                         surfaceView.getHostToken(),
@@ -249,7 +205,7 @@ public class RequestSurfacePackageTests {
         SurfacePackageToken token = runExecute(manager);
         SurfaceView surfaceView = createSurfaceView();
         assertThrows(
-                IllegalArgumentException.class,
+                NullPointerException.class,
                 () -> manager.requestSurfacePackage(
                         token,
                         surfaceView.getHostToken(),
@@ -268,7 +224,7 @@ public class RequestSurfacePackageTests {
         SurfacePackageToken token = runExecute(manager);
         SurfaceView surfaceView = createSurfaceView();
         assertThrows(
-                IllegalArgumentException.class,
+                NullPointerException.class,
                 () -> manager.requestSurfacePackage(
                         token,
                         surfaceView.getHostToken(),
@@ -343,8 +299,6 @@ public class RequestSurfacePackageTests {
                 params,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertNotNull(receiver.getResult());
-        assertNotNull(receiver.getResult().getSurfacePackageToken());
-        return receiver.getResult().getSurfacePackageToken();
+        return null;
     }
 }

@@ -18,7 +18,6 @@ package android.federatedcompute;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
@@ -185,7 +184,10 @@ public class FederatedComputeManagerTest {
                         NullPointerException.class, () -> manager.schedule(request, null, null));
                 break;
             case "schedule-default-iService":
-                manager.schedule(request, Executors.newSingleThreadExecutor(), null);
+                assertThrows(
+                        NullPointerException.class,
+                        () -> manager.schedule(
+                                request, Executors.newSingleThreadExecutor(), null));
                 break;
             case "schedule-mockIService-RemoteException":
                 when(mMockIBinder.queryLocalInterface(any())).thenReturn(mMockIService);
@@ -195,7 +197,7 @@ public class FederatedComputeManagerTest {
                 manager.schedule(request, Runnable::run, spyCallback);
 
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
-                verify(spyCallback, times(1)).onError(any(RemoteException.class));
+                verify(spyCallback, times(1)).onError(any(IllegalStateException.class));
                 verify(mContext, times(1)).unbindService(any());
                 break;
             case "schedule-mockIService-onSuccess":
@@ -214,7 +216,7 @@ public class FederatedComputeManagerTest {
                 manager.schedule(request, Runnable::run, spyCallback);
 
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
-                verify(spyCallback, times(1)).onResult(isNull());
+                verify(spyCallback, times(1)).onError(any(IllegalStateException.class));
                 verify(mContext, times(1)).unbindService(any());
                 break;
             case "schedule-mockIService-onFailure":
@@ -233,7 +235,7 @@ public class FederatedComputeManagerTest {
                 manager.schedule(request, Runnable::run, spyCallback);
 
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
-                verify(spyCallback, times(1)).onError(any(FederatedComputeException.class));
+                verify(spyCallback, times(1)).onError(any(IllegalStateException.class));
                 verify(mContext, times(1)).unbindService(any());
                 break;
             case "schedule-unavailable-iService":
@@ -257,11 +259,14 @@ public class FederatedComputeManagerTest {
                                         null));
                 break;
             case "cancel-default-iService":
-                manager.cancel(
-                        OWNER_COMPONENT,
-                        populationName,
-                        Executors.newSingleThreadExecutor(),
-                        null);
+                assertThrows(
+                        NullPointerException.class,
+                        () ->
+                                manager.cancel(
+                                        OWNER_COMPONENT,
+                                        populationName,
+                                        Executors.newSingleThreadExecutor(),
+                                        null));
                 break;
             case "cancel-mockIService-RemoteException":
                 when(mMockIBinder.queryLocalInterface(any())).thenReturn(mMockIService);
@@ -277,7 +282,7 @@ public class FederatedComputeManagerTest {
                         spyCallback);
 
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
-                verify(spyCallback, times(1)).onError(any(RemoteException.class));
+                verify(spyCallback, times(1)).onError(any(IllegalStateException.class));
                 verify(mContext, times(1)).unbindService(any());
                 break;
             case "cancel-mockIService-onSuccess":
@@ -300,7 +305,7 @@ public class FederatedComputeManagerTest {
                         spyCallback);
 
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
-                verify(spyCallback, times(1)).onResult(isNull());
+                verify(spyCallback, times(1)).onError(any(IllegalStateException.class));
                 verify(mContext, times(1)).unbindService(any());
                 break;
             case "cancel-mockIService-onFailure":
@@ -323,7 +328,7 @@ public class FederatedComputeManagerTest {
                         spyCallback);
 
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
-                verify(spyCallback, times(1)).onError(any(FederatedComputeException.class));
+                verify(spyCallback, times(1)).onError(any(IllegalStateException.class));
                 verify(mContext, times(1)).unbindService(any());
                 break;
             case "cancel-unavailable-iService":

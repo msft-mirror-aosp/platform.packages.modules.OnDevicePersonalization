@@ -19,15 +19,12 @@ package android.adservices.ondevicepersonalization;
 import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT;
 
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
-import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.RequiresPermission;
 import android.annotation.SystemApi;
 import android.content.Context;
-import android.os.Binder;
-import android.os.Bundle;
 import android.os.OutcomeReceiver;
 import android.os.SystemClock;
 
@@ -116,59 +113,10 @@ public class OnDevicePersonalizationSystemEventManager {
         Objects.requireNonNull(receiver);
         long startTimeMillis = SystemClock.elapsedRealtime();
 
-        final IOnDevicePersonalizationManagingService service =
-                mServiceBinder.getService(executor);
-
         try {
-            Bundle bundle = new Bundle();
-            bundle.putParcelable(Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
-                    new MeasurementWebTriggerEventParamsParcel(measurementWebTriggerEvent));
-            // TODO(b/301732670): Update method name in service.
-            service.registerMeasurementEvent(
-                    Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER,
-                    bundle,
-                    new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
-                    new IRegisterMeasurementEventCallback.Stub() {
-                        @Override
-                        public void onSuccess(CalleeMetadata calleeMetadata) {
-                            final long token = Binder.clearCallingIdentity();
-                            try {
-                                executor.execute(() -> receiver.onResult(null));
-                            } finally {
-                                Binder.restoreCallingIdentity(token);
-                                logApiCallStats(
-                                        service,
-                                        "",
-                                        Constants.API_NAME_NOTIFY_MEASUREMENT_EVENT,
-                                        SystemClock.elapsedRealtime() - startTimeMillis,
-                                        calleeMetadata.getServiceEntryTimeMillis() - startTimeMillis,
-                                        SystemClock.elapsedRealtime()
-                                                - calleeMetadata.getCallbackInvokeTimeMillis(),
-                                        Constants.STATUS_SUCCESS);
-                            }
-                        }
-                        @Override
-                        public void onError(int errorCode, CalleeMetadata calleeMetadata) {
-                            final long token = Binder.clearCallingIdentity();
-                            try {
-                                executor.execute(() -> receiver.onError(
-                                        new IllegalStateException("Error: " + errorCode)));
-                            } finally {
-                                Binder.restoreCallingIdentity(token);
-                                logApiCallStats(
-                                        service,
-                                        "",
-                                        Constants.API_NAME_NOTIFY_MEASUREMENT_EVENT,
-                                        SystemClock.elapsedRealtime() - startTimeMillis,
-                                        calleeMetadata.getServiceEntryTimeMillis() - startTimeMillis,
-                                        SystemClock.elapsedRealtime()
-                                                - calleeMetadata.getCallbackInvokeTimeMillis(),
-                                        errorCode);
-                            }
-                        }
-                    }
-            );
-        } catch (IllegalArgumentException | NullPointerException e) {
+            final IOnDevicePersonalizationManagingService service =
+                    mServiceBinder.getService(executor);
+
             logApiCallStats(
                     service,
                     "",
@@ -176,17 +124,11 @@ public class OnDevicePersonalizationSystemEventManager {
                     SystemClock.elapsedRealtime() - startTimeMillis,
                     0,
                     0,
-                    Constants.STATUS_INTERNAL_ERROR);
-            throw e;
+                    Constants.STATUS_API_DISABLED);
+
+            receiver.onError(
+                    new IllegalStateException("This API is deprecated and no longer functional."));
         } catch (Exception e) {
-            logApiCallStats(
-                    service,
-                    "",
-                    Constants.API_NAME_NOTIFY_MEASUREMENT_EVENT,
-                    SystemClock.elapsedRealtime() - startTimeMillis,
-                    0,
-                    0,
-                    Constants.STATUS_INTERNAL_ERROR);
             receiver.onError(e);
         }
     }

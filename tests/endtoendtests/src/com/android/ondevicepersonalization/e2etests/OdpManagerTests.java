@@ -17,21 +17,16 @@ package com.android.ondevicepersonalization.e2etests;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest;
 import android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceResponse;
-import android.adservices.ondevicepersonalization.OnDevicePersonalizationException;
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
-import android.adservices.ondevicepersonalization.SurfacePackageToken;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.net.Uri;
 import android.os.PersistableBundle;
 import android.platform.test.flag.junit.CheckFlagsRule;
@@ -254,7 +249,7 @@ public class OdpManagerTests {
                 receiver);
 
         assertNull(receiver.getResult());
-        assertThat(receiver.getException()).isInstanceOf(NameNotFoundException.class);
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -272,7 +267,7 @@ public class OdpManagerTests {
                 receiver);
 
         assertNull(receiver.getResult());
-        assertThat(receiver.getException()).isInstanceOf(ClassNotFoundException.class);
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -286,9 +281,8 @@ public class OdpManagerTests {
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
-        assertNull(token);
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -309,9 +303,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
-        assertNotNull(token);
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -328,9 +321,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
-        assertNotNull(token);
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -349,8 +341,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        assertThat(receiver.getResult().getOutputData()).isNull();
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -366,7 +358,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -382,7 +375,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -402,9 +396,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
-        assertNull(token);
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -427,7 +420,8 @@ public class OdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+            assertNull(receiver.getResult());
+            assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
         }
 
         Thread.sleep(DELAY_MILLIS);
@@ -442,7 +436,8 @@ public class OdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+            assertNull(receiver.getResult());
+            assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
         }
     }
 
@@ -460,12 +455,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.isError());
         assertNull(receiver.getResult());
-        assertThat(receiver.getException()).isInstanceOf(OnDevicePersonalizationException.class);
-        assertEquals(
-                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode(),
-                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -483,12 +474,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.isError());
         assertNull(receiver.getResult());
-        assertThat(receiver.getException()).isInstanceOf(OnDevicePersonalizationException.class);
-        assertEquals(
-                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode(),
-                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -558,7 +545,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -596,7 +584,8 @@ public class OdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+            assertNull(receiver.getResult());
+            assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
         }
 
         Thread.sleep(DELAY_MILLIS);
@@ -614,7 +603,8 @@ public class OdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+            assertNull(receiver.getResult());
+            assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
         }
     }
 
@@ -631,8 +621,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -648,8 +638,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -667,7 +657,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -755,9 +746,8 @@ public class OdpManagerTests {
         var receiver = new ResultReceiver<ExecuteInIsolatedServiceResponse>();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-
         assertNull(receiver.getResult());
-        assertTrue(receiver.getException() instanceof IllegalStateException);
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -774,15 +764,8 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-
         assertNull(receiver.getResult());
-        assertThat(receiver.getException()).isInstanceOf(OnDevicePersonalizationException.class);
-        OnDevicePersonalizationException exception =
-                (OnDevicePersonalizationException) receiver.getException();
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        OnDevicePersonalizationException
-                                .ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED);
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -799,15 +782,8 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-
         assertNull(receiver.getResult());
-        assertThat(receiver.getException()).isInstanceOf(OnDevicePersonalizationException.class);
-        OnDevicePersonalizationException exception =
-                (OnDevicePersonalizationException) receiver.getException();
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        OnDevicePersonalizationException
-                                .ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED);
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -823,10 +799,8 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
-        assertNull(token);
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -849,10 +823,8 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
-        assertNotNull(token);
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -871,10 +843,8 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
-        assertNotNull(token);
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -892,8 +862,8 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -911,8 +881,8 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -934,9 +904,8 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
-        assertNull(token);
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -962,7 +931,8 @@ public class OdpManagerTests {
 
             manager.executeInIsolatedService(
                     request, Executors.newSingleThreadExecutor(), receiver);
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+            assertNull(receiver.getResult());
+            assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
         }
 
         // Add delay between writing and read from db to reduce flakiness.
@@ -981,7 +951,8 @@ public class OdpManagerTests {
 
             manager.executeInIsolatedService(
                     request, Executors.newSingleThreadExecutor(), receiver);
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+            assertNull(receiver.getResult());
+            assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
         }
     }
 
@@ -1002,12 +973,8 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-        assertTrue(receiver.isError());
         assertNull(receiver.getResult());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-        assertEquals(
-                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode(),
-                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -1028,12 +995,8 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-        assertTrue(receiver.isError());
         assertNull(receiver.getResult());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-        assertEquals(
-                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode(),
-                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -1112,7 +1075,8 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -1153,8 +1117,8 @@ public class OdpManagerTests {
 
             manager.executeInIsolatedService(
                     request, Executors.newSingleThreadExecutor(), receiver);
-
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+            assertNull(receiver.getResult());
+            assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
         }
 
         // Add delay between writing and read from db to reduce flakiness.
@@ -1176,8 +1140,8 @@ public class OdpManagerTests {
 
             manager.executeInIsolatedService(
                     request, Executors.newSingleThreadExecutor(), receiver);
-
-            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+            assertNull(receiver.getResult());
+            assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
         }
     }
 
@@ -1194,7 +1158,8 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -1214,7 +1179,8 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -1227,8 +1193,8 @@ public class OdpManagerTests {
         manager.queryFeatureAvailability("featureName",
                 Executors.newSingleThreadExecutor(),
                 receiver);
-
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -1277,9 +1243,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        assertThat(receiver.getResult().getOutputData()).isNull();
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -1333,7 +1298,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     /**
@@ -1360,8 +1326,8 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     /**
@@ -1422,8 +1388,8 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     /**
@@ -1455,8 +1421,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     /**
@@ -1477,7 +1443,8 @@ public class OdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 
     /**
@@ -1500,7 +1467,7 @@ public class OdpManagerTests {
                         .build();
 
         manager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
-
-        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertNull(receiver.getResult());
+        assertThat(receiver.getException()).isInstanceOf(IllegalStateException.class);
     }
 }

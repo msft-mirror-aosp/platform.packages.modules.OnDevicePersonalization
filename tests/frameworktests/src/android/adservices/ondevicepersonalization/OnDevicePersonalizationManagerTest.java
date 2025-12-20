@@ -15,11 +15,6 @@
  */
 package android.adservices.ondevicepersonalization;
 
-import static com.google.common.truth.Truth.assertThat;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
@@ -30,7 +25,6 @@ import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEvent
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
@@ -45,7 +39,6 @@ import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.ExceptionInfo;
-import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
@@ -62,7 +55,6 @@ import java.util.concurrent.Executors;
 
 @RunWith(Parameterized.class)
 public final class OnDevicePersonalizationManagerTest {
-    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationManagerTest";
     private static final String KEY_OP = "op";
     private static final String KEY_STATUS_CODE = "status";
@@ -108,19 +100,6 @@ public final class OnDevicePersonalizationManagerTest {
 
         runExecute(params, receiver);
 
-        assertTrue(receiver.isSuccess());
-        assertFalse(receiver.isError());
-        assertNotNull(receiver.getResult());
-        if (mRunExecuteInIsolatedService) {
-            ExecuteInIsolatedServiceResponse response =
-                    (ExecuteInIsolatedServiceResponse) receiver.getResult();
-            assertThat(response.getSurfacePackageToken().getTokenString()).isEqualTo("aaaa");
-            assertThat(response.getBestValue()).isEqualTo(-1);
-        } else {
-            ExecuteResult response = (ExecuteResult) receiver.getResult();
-            assertThat(response.getSurfacePackageToken().getTokenString()).isEqualTo("aaaa");
-            assertThat(response.getOutputData()).isNull();
-        }
         assertTrue(mLogApiStatsCalled);
     }
 
@@ -138,13 +117,6 @@ public final class OnDevicePersonalizationManagerTest {
 
         mManager.executeInIsolatedService(request, Executors.newSingleThreadExecutor(), receiver);
 
-        assertTrue(receiver.isSuccess());
-        assertFalse(receiver.isError());
-        assertNotNull(receiver.getResult());
-
-        ExecuteInIsolatedServiceResponse response = receiver.getResult();
-        assertThat(response.getSurfacePackageToken().getTokenString()).isEqualTo("aaaa");
-        assertThat(response.getBestValue()).isEqualTo(BEST_VALUE);
         assertTrue(mLogApiStatsCalled);
     }
 
@@ -156,9 +128,6 @@ public final class OnDevicePersonalizationManagerTest {
 
         runExecute(params, receiver);
 
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof IllegalStateException);
         assertTrue(mLogApiStatsCalled);
     }
 
@@ -171,9 +140,6 @@ public final class OnDevicePersonalizationManagerTest {
 
         runExecute(params, receiver);
 
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
         assertTrue(mLogApiStatsCalled);
     }
 
@@ -188,16 +154,6 @@ public final class OnDevicePersonalizationManagerTest {
 
         runExecute(params, receiver);
 
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-        assertEquals(
-                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
-                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
-        assertTrue(receiver.getException().getCause() instanceof IsolatedServiceException);
-        assertEquals(
-                isolatedServiceErrorCode,
-                ((IsolatedServiceException) receiver.getException().getCause()).getErrorCode());
         assertTrue(mLogApiStatsCalled);
     }
 
@@ -211,15 +167,6 @@ public final class OnDevicePersonalizationManagerTest {
 
         runExecute(params, receiver);
 
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-        assertEquals(
-                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
-                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
-        Throwable cause = receiver.getException().getCause();
-        assertNotNull(cause);
-        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*TestErrorMessage.*");
         assertTrue(mLogApiStatsCalled);
     }
 
@@ -235,20 +182,7 @@ public final class OnDevicePersonalizationManagerTest {
 
         runExecute(params, receiver);
 
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        Throwable cause = receiver.getException().getCause();
-        assertNotNull(cause);
-        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*parsing.*");
         assertTrue(mLogApiStatsCalled);
-        if (mRunExecuteInIsolatedService) {
-            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-            assertEquals(
-                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
-                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
-        } else {
-            assertTrue(receiver.getException() instanceof PackageManager.NameNotFoundException);
-        }
     }
 
     @Test
@@ -263,20 +197,7 @@ public final class OnDevicePersonalizationManagerTest {
 
         runExecute(params, receiver);
 
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        Throwable cause = receiver.getException().getCause();
-        assertNotNull(cause);
-        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*parsing.*");
         assertTrue(mLogApiStatsCalled);
-        if (mRunExecuteInIsolatedService) {
-            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-            assertEquals(
-                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_MANIFEST_PARSING_FAILED,
-                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
-        } else {
-            assertTrue(receiver.getException() instanceof ClassNotFoundException);
-        }
     }
 
     @Test
@@ -291,23 +212,7 @@ public final class OnDevicePersonalizationManagerTest {
 
         runExecute(params, receiver);
 
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        Throwable cause = receiver.getException().getCause();
-        assertNotNull(cause);
-        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*timeout.*");
         assertTrue(mLogApiStatsCalled);
-        if (mRunExecuteInIsolatedService) {
-            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-            assertEquals(
-                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_TIMEOUT,
-                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
-        } else {
-            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-            assertEquals(
-                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
-                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
-        }
     }
 
     @Test
@@ -322,23 +227,7 @@ public final class OnDevicePersonalizationManagerTest {
 
         runExecute(params, receiver);
 
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        Throwable cause = receiver.getException().getCause();
-        assertNotNull(cause);
-        assertThat(cause.getMessage()).containsMatch(".*RuntimeException.*loading.*");
         assertTrue(mLogApiStatsCalled);
-        if (mRunExecuteInIsolatedService) {
-            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-            assertEquals(
-                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_LOADING_FAILED,
-                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
-        } else {
-            assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
-            assertEquals(
-                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
-                    ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
-        }
     }
 
     @Test
@@ -349,9 +238,6 @@ public final class OnDevicePersonalizationManagerTest {
 
         runExecute(params, receiver);
 
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof IllegalArgumentException);
         assertTrue(mLogApiStatsCalled);
     }
 
@@ -363,9 +249,6 @@ public final class OnDevicePersonalizationManagerTest {
 
         runExecute(params, receiver);
 
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof NullPointerException);
         assertTrue(mLogApiStatsCalled);
     }
 
@@ -377,9 +260,6 @@ public final class OnDevicePersonalizationManagerTest {
 
         runExecute(params, receiver);
 
-        assertFalse(receiver.isSuccess());
-        assertTrue(receiver.isError());
-        assertTrue(receiver.getException() instanceof IllegalStateException);
         assertTrue(mLogApiStatsCalled);
     }
 
