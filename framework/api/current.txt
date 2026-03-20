@@ -1,6 +1,5 @@
 // Signature format: 6.0
 // - style=java
-// - overloaded-method-order=source
 package android.adservices.ondevicepersonalization {
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public final class AppInfo implements android.os.Parcelable {
@@ -163,8 +162,8 @@ package android.adservices.ondevicepersonalization {
   }
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public static final class InferenceInput.Builder {
-    ctor @Deprecated public InferenceInput.Builder(@NonNull android.adservices.ondevicepersonalization.InferenceInput.Params, @NonNull Object[], @NonNull android.adservices.ondevicepersonalization.InferenceOutput);
     ctor @Deprecated public InferenceInput.Builder(@NonNull android.adservices.ondevicepersonalization.InferenceInput.Params, @NonNull byte[]);
+    ctor @Deprecated public InferenceInput.Builder(@NonNull android.adservices.ondevicepersonalization.InferenceInput.Params, @NonNull Object[], @NonNull android.adservices.ondevicepersonalization.InferenceOutput);
     method @Deprecated @NonNull public android.adservices.ondevicepersonalization.InferenceInput build();
     method @Deprecated @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Builder setBatchSize(int);
     method @Deprecated @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Builder setExpectedOutputStructure(@NonNull android.adservices.ondevicepersonalization.InferenceOutput);
@@ -222,8 +221,8 @@ package android.adservices.ondevicepersonalization {
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public final class IsolatedServiceException extends Exception {
     ctor @Deprecated public IsolatedServiceException(int);
-    ctor @Deprecated public IsolatedServiceException(int, @Nullable Throwable);
     ctor @Deprecated public IsolatedServiceException(int, @Nullable String, @Nullable Throwable);
+    ctor @Deprecated public IsolatedServiceException(int, @Nullable Throwable);
     method @Deprecated public int getErrorCode();
   }
 
@@ -258,8 +257,8 @@ package android.adservices.ondevicepersonalization {
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public class OnDevicePersonalizationException extends Exception {
     ctor @Deprecated public OnDevicePersonalizationException(int);
     ctor @Deprecated public OnDevicePersonalizationException(int, @Nullable String);
-    ctor @Deprecated public OnDevicePersonalizationException(int, @Nullable Throwable);
     ctor @Deprecated public OnDevicePersonalizationException(int, @Nullable String, @Nullable Throwable);
+    ctor @Deprecated public OnDevicePersonalizationException(int, @Nullable Throwable);
     method @Deprecated public int getErrorCode();
     field @Deprecated public static final int ERROR_INFERENCE_FAILED = 9; // 0x9
     field @Deprecated public static final int ERROR_INFERENCE_MODEL_NOT_FOUND = 8; // 0x8
