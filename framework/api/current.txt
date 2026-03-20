@@ -1,7 +1,6 @@
 // Signature format: 6.0
 // - style=java
 // - overloaded-method-order=source
-// - strip-java-lang-prefix=legacy
 // - type-argument-spacing=legacy
 package android.adservices.ondevicepersonalization {
 
@@ -19,14 +18,14 @@ package android.adservices.ondevicepersonalization {
   }
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public final class DownloadCompletedOutput {
-    method @Deprecated @NonNull public java.util.List<java.lang.String> getRetainedKeys();
+    method @Deprecated @NonNull public java.util.List<String> getRetainedKeys();
   }
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public static final class DownloadCompletedOutput.Builder {
     ctor @Deprecated public DownloadCompletedOutput.Builder();
     method @Deprecated @NonNull public android.adservices.ondevicepersonalization.DownloadCompletedOutput.Builder addRetainedKey(@NonNull String);
     method @Deprecated @NonNull public android.adservices.ondevicepersonalization.DownloadCompletedOutput build();
-    method @Deprecated @NonNull public android.adservices.ondevicepersonalization.DownloadCompletedOutput.Builder setRetainedKeys(@NonNull java.util.List<java.lang.String>);
+    method @Deprecated @NonNull public android.adservices.ondevicepersonalization.DownloadCompletedOutput.Builder setRetainedKeys(@NonNull java.util.List<String>);
   }
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public final class EventInput {
@@ -148,7 +147,7 @@ package android.adservices.ondevicepersonalization {
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public class FederatedComputeScheduler {
     method @Deprecated @WorkerThread public void cancel(@NonNull android.adservices.ondevicepersonalization.FederatedComputeInput);
     method @Deprecated @WorkerThread public void schedule(@NonNull android.adservices.ondevicepersonalization.FederatedComputeScheduler.Params, @NonNull android.adservices.ondevicepersonalization.FederatedComputeInput);
-    method @Deprecated @WorkerThread public void schedule(@NonNull android.adservices.ondevicepersonalization.FederatedComputeScheduleRequest, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.FederatedComputeScheduleResponse,java.lang.Exception>);
+    method @Deprecated @WorkerThread public void schedule(@NonNull android.adservices.ondevicepersonalization.FederatedComputeScheduleRequest, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.FederatedComputeScheduleResponse,Exception>);
   }
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public static class FederatedComputeScheduler.Params {
@@ -171,7 +170,7 @@ package android.adservices.ondevicepersonalization {
     method @Deprecated @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Builder setBatchSize(int);
     method @Deprecated @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Builder setExpectedOutputStructure(@NonNull android.adservices.ondevicepersonalization.InferenceOutput);
     method @Deprecated @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Builder setInputData(@NonNull byte[]);
-    method @Deprecated @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Builder setInputData(@NonNull java.lang.Object...);
+    method @Deprecated @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Builder setInputData(@NonNull Object...);
     method @Deprecated @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Builder setParams(@NonNull android.adservices.ondevicepersonalization.InferenceInput.Params);
   }
 
@@ -198,7 +197,7 @@ package android.adservices.ondevicepersonalization {
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public final class InferenceOutput {
     method @Deprecated @NonNull public byte[] getData();
-    method @Deprecated @NonNull public java.util.Map<java.lang.Integer,java.lang.Object> getDataOutputs();
+    method @Deprecated @NonNull public java.util.Map<Integer,Object> getDataOutputs();
   }
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public static final class InferenceOutput.Builder {
@@ -206,7 +205,7 @@ package android.adservices.ondevicepersonalization {
     method @Deprecated @NonNull public android.adservices.ondevicepersonalization.InferenceOutput.Builder addDataOutput(int, @NonNull Object);
     method @Deprecated @NonNull public android.adservices.ondevicepersonalization.InferenceOutput build();
     method @Deprecated @NonNull public android.adservices.ondevicepersonalization.InferenceOutput.Builder setData(@NonNull byte[]);
-    method @Deprecated @NonNull public android.adservices.ondevicepersonalization.InferenceOutput.Builder setDataOutputs(@NonNull java.util.Map<java.lang.Integer,java.lang.Object>);
+    method @Deprecated @NonNull public android.adservices.ondevicepersonalization.InferenceOutput.Builder setDataOutputs(@NonNull java.util.Map<Integer,Object>);
   }
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public abstract class IsolatedService extends android.app.Service {
@@ -222,7 +221,7 @@ package android.adservices.ondevicepersonalization {
     method @Deprecated @NonNull public abstract android.adservices.ondevicepersonalization.IsolatedWorker onRequest(@NonNull android.adservices.ondevicepersonalization.RequestToken);
   }
 
-  @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public final class IsolatedServiceException extends java.lang.Exception {
+  @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public final class IsolatedServiceException extends Exception {
     ctor @Deprecated public IsolatedServiceException(int);
     ctor @Deprecated public IsolatedServiceException(int, @Nullable Throwable);
     ctor @Deprecated public IsolatedServiceException(int, @Nullable String, @Nullable Throwable);
@@ -240,7 +239,7 @@ package android.adservices.ondevicepersonalization {
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public interface KeyValueStore {
     method @Deprecated @Nullable @WorkerThread public byte[] get(@NonNull String);
-    method @Deprecated @NonNull @WorkerThread public java.util.Set<java.lang.String> keySet();
+    method @Deprecated @NonNull @WorkerThread public java.util.Set<String> keySet();
   }
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public class LogReader {
@@ -249,7 +248,7 @@ package android.adservices.ondevicepersonalization {
   }
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public class ModelManager {
-    method @Deprecated @WorkerThread public void run(@NonNull android.adservices.ondevicepersonalization.InferenceInput, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.InferenceOutput,java.lang.Exception>);
+    method @Deprecated @WorkerThread public void run(@NonNull android.adservices.ondevicepersonalization.InferenceInput, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.InferenceOutput,Exception>);
   }
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public interface MutableKeyValueStore extends android.adservices.ondevicepersonalization.KeyValueStore {
@@ -257,7 +256,7 @@ package android.adservices.ondevicepersonalization {
     method @Deprecated @Nullable @WorkerThread public byte[] remove(@NonNull String);
   }
 
-  @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public class OnDevicePersonalizationException extends java.lang.Exception {
+  @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public class OnDevicePersonalizationException extends Exception {
     ctor @Deprecated public OnDevicePersonalizationException(int);
     ctor @Deprecated public OnDevicePersonalizationException(int, @Nullable String);
     ctor @Deprecated public OnDevicePersonalizationException(int, @Nullable Throwable);
@@ -275,10 +274,10 @@ package android.adservices.ondevicepersonalization {
   }
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public class OnDevicePersonalizationManager {
-    method @Deprecated public void execute(@NonNull android.content.ComponentName, @NonNull android.os.PersistableBundle, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult,java.lang.Exception>);
-    method @Deprecated public void executeInIsolatedService(@NonNull android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceResponse,java.lang.Exception>);
-    method @Deprecated public void queryFeatureAvailability(@NonNull String, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<java.lang.Integer,java.lang.Exception>);
-    method @Deprecated public void requestSurfacePackage(@NonNull android.adservices.ondevicepersonalization.SurfacePackageToken, @NonNull android.os.IBinder, int, int, int, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.view.SurfaceControlViewHost.SurfacePackage,java.lang.Exception>);
+    method @Deprecated public void execute(@NonNull android.content.ComponentName, @NonNull android.os.PersistableBundle, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult,Exception>);
+    method @Deprecated public void executeInIsolatedService(@NonNull android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceRequest, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.ExecuteInIsolatedServiceResponse,Exception>);
+    method @Deprecated public void queryFeatureAvailability(@NonNull String, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<Integer,Exception>);
+    method @Deprecated public void requestSurfacePackage(@NonNull android.adservices.ondevicepersonalization.SurfacePackageToken, @NonNull android.os.IBinder, int, int, int, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.view.SurfaceControlViewHost.SurfacePackage,Exception>);
     field @Deprecated public static final int FEATURE_DISABLED = 1; // 0x1
     field @Deprecated public static final int FEATURE_ENABLED = 0; // 0x0
     field @Deprecated public static final int FEATURE_UNSUPPORTED = 2; // 0x2
@@ -312,7 +311,7 @@ package android.adservices.ondevicepersonalization {
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public final class RenderingConfig implements android.os.Parcelable {
     method @Deprecated public int describeContents();
-    method @Deprecated @NonNull public java.util.List<java.lang.String> getKeys();
+    method @Deprecated @NonNull public java.util.List<String> getKeys();
     method @Deprecated public void writeToParcel(@NonNull android.os.Parcel, int);
     field @Deprecated @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.RenderingConfig> CREATOR;
   }
@@ -321,7 +320,7 @@ package android.adservices.ondevicepersonalization {
     ctor @Deprecated public RenderingConfig.Builder();
     method @Deprecated @NonNull public android.adservices.ondevicepersonalization.RenderingConfig.Builder addKey(@NonNull String);
     method @Deprecated @NonNull public android.adservices.ondevicepersonalization.RenderingConfig build();
-    method @Deprecated @NonNull public android.adservices.ondevicepersonalization.RenderingConfig.Builder setKeys(@NonNull java.util.List<java.lang.String>);
+    method @Deprecated @NonNull public android.adservices.ondevicepersonalization.RenderingConfig.Builder setKeys(@NonNull java.util.List<String>);
   }
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public final class RequestLogRecord implements android.os.Parcelable {
@@ -395,7 +394,7 @@ package android.adservices.ondevicepersonalization {
 
   @Deprecated @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.odp_depreciation_enabled") public final class UserData implements android.os.Parcelable {
     method @Deprecated public int describeContents();
-    method @Deprecated @NonNull public java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInfo> getAppInfos();
+    method @Deprecated @NonNull public java.util.Map<String,android.adservices.ondevicepersonalization.AppInfo> getAppInfos();
     method @Deprecated @IntRange(from=0) public long getAvailableStorageBytes();
     method @Deprecated @IntRange(from=0, to=100) public int getBatteryPercentage();
     method @Deprecated @NonNull public String getCarrier();
